@@ -1,0 +1,25 @@
+{
+  "name": "@country-dairy/database",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "build": "tsc --build && prisma generate",
+    "clean": "tsc --build --clean"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.16.1"
+  },
+  "devDependencies": {
+    "prisma": "^5.16.1",
+    "typescript": "^5.0.0"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  }
+}

@@ -1,0 +1,230 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+  DELIVERY
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String?   @unique
+  phone         String    @unique
+  name          String?
+  passwordHash  String?
+  role          Role      @default(CUSTOMER)
+  walletBalance Decimal   @default(0.00) @db.Decimal(10, 2)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  addresses     Address[]
+  orders        Order[]
+  subscriptions Subscription[]
+  transactions  WalletTransaction[]
+  cartItems     CartItem[]
+  reviews       ProductReview[]
+}
+
+model Address {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  street      String
+  city        String
+  state       String
+  postalCode  String
+  country     String   @default("India")
+  isDefault   Boolean  @default(false)
+  phone       String?
+  latitude    Float?
+  longitude   Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orders      Order[]
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String
+  slug        String     @unique
+  description String?
+  imageUrl    String?
+  parentId    String?
+  parent      Category?  @relation("SubCategories", fields: [parentId], references: [id])
+  subCategories Category[] @relation("SubCategories")
+  products    Product[]
+  createdAt   DateTime   @default(now())
+}
+
+model Product {
+  id                    String        @id @default(uuid())
+  categoryId            String
+  category              Category      @relation(fields: [categoryId], references: [id])
+  name                  String
+  slug                  String        @unique
+  description           String
+  price                 Decimal       @db.Decimal(10, 2)
+  stock                 Int           @default(0)
+  imageUrls             String[]
+  videoUrls             String[]
+  isSubscriptionAllowed Boolean       @default(false)
+  nutritionFacts        Json?
+  metadata              Json?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  orderItems            OrderItem[]
+  cartItems             CartItem[]
+  subscriptions         Subscription[]
+  labReports            LabReport[]
+  reviews               ProductReview[]
+}
+
+model LabReport {
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  batchNumber String
+  testDate    DateTime
+  fileUrl     String
+  parameters  Json
+  createdAt   DateTime @default(now())
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+model Order {
+  id                String       @id @default(uuid())
+  userId            String
+  user              User         @relation(fields: [userId], references: [id])
+  addressId         String
+  address           Address      @relation(fields: [addressId], references: [id])
+  totalAmount       Decimal      @db.Decimal(10, 2)
+  deliveryCharges   Decimal      @default(0.00) @db.Decimal(10, 2)
+  status            OrderStatus  @default(PENDING)
+  paymentStatus     PaymentStatus @default(PENDING)
+  paymentGatewayId  String?
+  
+  // Logistics Fields
+  deliveryType      String       @default("COURIER")
+  shippingCarrier   String?
+  trackingNumber    String?
+  shippingLabelUrl  String?
+  shippingStatus    String?
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  orderItems        OrderItem[]
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Decimal  @db.Decimal(10, 2)
+}
+
+model Subscription {
+  id            String             @id @default(uuid())
+  userId        String
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product            @relation(fields: [productId], references: [id])
+  quantity      Int                @default(1)
+  frequency     String
+  daysOfWeek    Int[]
+  startDate     DateTime
+  endDate       DateTime?
+  status        SubscriptionStatus @default(ACTIVE)
+  nextDelivery  DateTime
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  deliveries    SubscriptionDelivery[]
+}
+
+model SubscriptionDelivery {
+  id             String       @id @default(uuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  deliveryDate   DateTime
+  status         String
+  quantity       Int
+  priceCharged   Decimal      @db.Decimal(10, 2)
+  createdAt      DateTime     @default(now())
+}
+
+model WalletTransaction {
+  id          String          @id @default(uuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Decimal         @db.Decimal(10, 2)
+  type        TransactionType
+  description String
+  referenceId String?
+  createdAt   DateTime        @default(now())
+}
+
+model ProductReview {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  rating     Int      // 1 to 5 stars
+  title      String?
+  comment    String?
+  mediaUrls  String[] // Array of S3/Cloudinary URLs for uploaded photos/videos
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, productId]) // Limit to one review per user per product
+}
