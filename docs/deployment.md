@@ -135,7 +135,53 @@ VITE_API_URL="https://api.countrydairy.in"
 
 ---
 
-## 4. Run & Release Steps
+## 4. Turborepo Monorepo Cloud Hosting (Vercel & Render)
+
+To deploy the Country Dairy workspace to Vercel and Render, configure the following settings in their respective dashboards:
+
+### 1. Customer Web (Next.js) on Vercel
+1. Select **New Project** and import the `chanddeepak/country_dairy` repository.
+2. In the setup panel, configure:
+   * **Project Name**: `country-dairy-web`
+   * **Framework Preset**: `Next.js`
+   * **Root Directory**: `.` (the root of the monorepo)
+   * Expand **Build and Development Settings** and set:
+     * **Build Command**: `npx turbo run build --filter=web`
+     * **Output Directory**: `apps/web/.next`
+   * Under **Environment Variables**, add:
+     * `NEXT_PUBLIC_API_URL` = `https://[your-api-domain]/api`
+3. Click **Deploy**.
+
+### 2. Admin Panel (Vite SPA) on Vercel
+1. Select **New Project** and import the same repository.
+2. Configure:
+   * **Project Name**: `country-dairy-admin`
+   * **Framework Preset**: `Other` or `Vite`
+   * **Root Directory**: `.` (the root of the monorepo)
+   * Expand **Build and Development Settings** and set:
+     * **Build Command**: `npx turbo run build --filter=admin`
+     * **Output Directory**: `apps/admin/dist`
+   * Under **Environment Variables**, add:
+     * `VITE_API_URL` = `https://[your-api-domain]/api`
+3. Click **Deploy**.
+
+### 3. NestJS API (Container) on Render.com
+1. Click **New +** -> **Web Service** on Render.
+2. Connect your GitHub account and import `chanddeepak/country_dairy`.
+3. Configure:
+   * **Name**: `country-dairy-api`
+   * **Runtime**: `Docker` (Render automatically uses the `Dockerfile` at the root)
+   * Under **Environment Variables**, add:
+     * `DATABASE_URL` (Supabase pooler URL with `pgbouncer=true` query param)
+     * `DIRECT_URL` (Supabase direct URL used for migrations)
+     * `JWT_SECRET` (Secure JWT secret key)
+     * `JWT_EXPIRES_IN` = `7d`
+     * `PORT` = `4000`
+4. Click **Deploy Web Service**.
+
+---
+
+## 5. Local Run & Release Steps
 
 To boot the system locally or inside production containers:
 
