@@ -14,7 +14,6 @@ COPY --from=builder /app/out/package-lock.json ./package-lock.json
 RUN npm clean-install
 
 COPY --from=builder /app/out/full/ .
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
 RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
 RUN npx turbo run build --filter=api
 
