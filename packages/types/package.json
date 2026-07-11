@@ -9,6 +9,7 @@
     "clean": "tsc --build --clean"
   },
   "devDependencies": {
+    "@country-dairy/tsconfig": "*",
     "typescript": "^5.0.0"
   }
 }

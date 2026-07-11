@@ -16,6 +16,7 @@
     "@prisma/client": "^5.16.1"
   },
   "devDependencies": {
+    "@country-dairy/tsconfig": "*",
     "prisma": "^5.16.1",
     "typescript": "^5.0.0"
   },
