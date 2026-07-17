@@ -35,7 +35,7 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
   };
 
   return (
-    <section id="shop" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+    <section id="shop" className="pt-20 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
       <div className="text-center max-w-xl mx-auto mb-14">
         <h2 className="font-serif font-black text-3xl md:text-4xl text-[#2A2A2A] mb-3">
           Our Bestsellers
