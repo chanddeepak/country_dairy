@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Calendar, MessageCircle } from 'lucide-react';
-import { PRODUCT_IMAGES, ENABLE_SUBSCRIPTIONS, ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER, WHATSAPP_MESSAGE_TEMPLATE } from '../../lib/constants';
+import { PRODUCT_IMAGES, ENABLE_SUBSCRIPTIONS, ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER, WHATSAPP_MESSAGE_TEMPLATE, ENABLE_PRODUCT_RATINGS } from '../../lib/constants';
 
 interface Product {
   id: string;
@@ -44,11 +44,13 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
 
       {/* Product Info */}
       <div className="p-5 flex flex-col flex-1">
-        <div className="flex items-center gap-1 mb-2">
-          <Star className="h-3.5 w-3.5 fill-[#C59B27] text-[#C59B27]" />
-          <span className="text-xs font-bold text-[#2A2A2A]">{product.averageRating}</span>
-          <span className="text-xs text-[#6b6661]">({product.totalReviews})</span>
-        </div>
+        {ENABLE_PRODUCT_RATINGS && (
+          <div className="flex items-center gap-1 mb-2">
+            <Star className="h-3.5 w-3.5 fill-[#C59B27] text-[#C59B27]" />
+            <span className="text-xs font-bold text-[#2A2A2A]">{product.averageRating}</span>
+            <span className="text-xs text-[#6b6661]">({product.totalReviews})</span>
+          </div>
+        )}
 
         <Link href={`/products/${product.slug}`} className="hover:text-[#3A6038] transition">
           <h3 className="font-serif font-bold text-base text-[#2A2A2A] leading-snug mb-1">

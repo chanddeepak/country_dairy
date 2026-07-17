@@ -16,7 +16,7 @@ import ProductCard from '../../../components/product/ProductCard';
 import AuthModal from '../../../components/modals/AuthModal';
 import SubscriptionModal from '../../../components/modals/SubscriptionModal';
 import CartDrawer from '../../../components/cart/CartDrawer';
-import { FALLBACK_PRODUCTS, API_URL, PRODUCT_IMAGES, ENABLE_SUBSCRIPTIONS, ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER, WHATSAPP_MESSAGE_TEMPLATE } from '../../../lib/constants';
+import { FALLBACK_PRODUCTS, API_URL, PRODUCT_IMAGES, ENABLE_SUBSCRIPTIONS, ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER, WHATSAPP_MESSAGE_TEMPLATE, ENABLE_PRODUCT_RATINGS } from '../../../lib/constants';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -144,11 +144,13 @@ export default function ProductDetailPage() {
                 <h1 className="font-serif font-black text-3xl md:text-4xl text-[#2A2A2A] leading-tight">{product.name}</h1>
               </div>
 
-              <div className="flex items-center gap-2">
-                <StarRating rating={product.averageRating || 0} size="md" />
-                <span className="text-sm font-bold text-[#2A2A2A]">{(product.averageRating || 0).toFixed(1)}</span>
-                <span className="text-xs text-[#6b6661]">({product.totalReviews || reviews.length} reviews)</span>
-              </div>
+              {ENABLE_PRODUCT_RATINGS && (
+                <div className="flex items-center gap-2">
+                  <StarRating rating={product.averageRating || 0} size="md" />
+                  <span className="text-sm font-bold text-[#2A2A2A]">{(product.averageRating || 0).toFixed(1)}</span>
+                  <span className="text-xs text-[#6b6661]">({product.totalReviews || reviews.length} reviews)</span>
+                </div>
+              )}
 
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-black text-[#2A2A2A]">₹{product.price}</span>
@@ -258,32 +260,34 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Reviews Section */}
-          <div className="mt-16">
-            <h2 className="font-serif font-black text-2xl text-[#2A2A2A] mb-8">Customer Reviews</h2>
-            <ReviewSummary
-              averageRating={product.averageRating || 0}
-              totalReviews={product.totalReviews || reviews.length}
-            />
+          {ENABLE_PRODUCT_RATINGS && (
+            <div className="mt-16">
+              <h2 className="font-serif font-black text-2xl text-[#2A2A2A] mb-8">Customer Reviews</h2>
+              <ReviewSummary
+                averageRating={product.averageRating || 0}
+                totalReviews={product.totalReviews || reviews.length}
+              />
 
-            {/* Write a Review (only if logged in) */}
-            {user && token && (
-              <div className="mt-8">
-                <ReviewForm productId={product.id} token={token} onSubmitted={fetchProduct} />
-              </div>
-            )}
+              {/* Write a Review (only if logged in) */}
+              {user && token && (
+                <div className="mt-8">
+                  <ReviewForm productId={product.id} token={token} onSubmitted={fetchProduct} />
+                </div>
+              )}
 
-            {/* Review List */}
-            {reviews.length > 0 && (
-              <div className="mt-8">
-                {reviews.map((review) => (
-                  <ReviewCard key={review.id} review={review} />
-                ))}
-              </div>
-            )}
-            {reviews.length === 0 && (
-              <p className="text-xs text-[#6b6661] mt-6">No reviews yet. Be the first to share your experience!</p>
-            )}
-          </div>
+              {/* Review List */}
+              {reviews.length > 0 && (
+                <div className="mt-8">
+                  {reviews.map((review) => (
+                    <ReviewCard key={review.id} review={review} />
+                  ))}
+                </div>
+              )}
+              {reviews.length === 0 && (
+                <p className="text-xs text-[#6b6661] mt-6">No reviews yet. Be the first to share your experience!</p>
+              )}
+            </div>
+          )}
 
           {/* Related Products */}
           {relatedProducts.length > 0 && (

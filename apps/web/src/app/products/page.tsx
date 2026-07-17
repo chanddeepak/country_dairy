@@ -9,7 +9,7 @@ import ProductCard from '../../components/product/ProductCard';
 import AuthModal from '../../components/modals/AuthModal';
 import SubscriptionModal from '../../components/modals/SubscriptionModal';
 import CartDrawer from '../../components/cart/CartDrawer';
-import { FALLBACK_PRODUCTS, API_URL } from '../../lib/constants';
+import { FALLBACK_PRODUCTS, API_URL, ENABLE_PRODUCT_RATINGS } from '../../lib/constants';
 
 const CATEGORIES = ['All', 'Dairy', 'Oils', 'Honey'];
 const SORT_OPTIONS = [
@@ -138,7 +138,7 @@ export default function ProductsPage() {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="bg-white border border-stone-200 px-3 py-2 rounded-lg text-xs font-bold text-[#2A2A2A] focus:outline-none focus:border-[#3A6038]"
               >
-                {SORT_OPTIONS.map((opt) => (
+                {SORT_OPTIONS.filter(opt => ENABLE_PRODUCT_RATINGS || opt.value !== 'rating').map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>

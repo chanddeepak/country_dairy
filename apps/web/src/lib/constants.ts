@@ -16,6 +16,7 @@ export const ENABLE_SUBSCRIPTIONS = false;
 export const ENABLE_WEBSITE_PAYMENT = false;
 export const ENABLE_USER_ACCOUNTS = false;
 export const ENABLE_CART = false;
+export const ENABLE_PRODUCT_RATINGS = false;
 
 // WhatsApp ordering
 export const WHATSAPP_NUMBER = '918291939317';
