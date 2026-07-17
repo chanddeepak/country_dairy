@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { FALLBACK_PRODUCTS } from '../lib/constants';
+import { FALLBACK_PRODUCTS, API_URL } from '../lib/constants';
 
 interface AppContextType {
   user: any | null;
@@ -13,6 +13,9 @@ interface AppContextType {
   setLoginPhone: (phone: string) => void;
   sendOtp: (phone: string) => Promise<boolean>;
   verifyOtp: (otp: string) => Promise<boolean>;
+  loginWithEmail: (email: string, pass: string) => Promise<boolean>;
+  registerWithEmail: (email: string, pass: string, name: string) => Promise<boolean>;
+  loginWithGoogle: (idToken: string) => Promise<boolean>;
   logout: () => void;
   fetchCart: () => Promise<void>;
   addToCart: (productId: string, quantity: number) => Promise<void>;
@@ -34,7 +37,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loginPhone, setLoginPhone] = useState<string>('+919876543210');
 
-  const API_URL = 'http://localhost:4000/api';
+  // API_URL is imported from constants
 
   // Attempt to restore token from localStorage on boot
   useEffect(() => {
@@ -96,28 +99,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       const data = await res.json();
       if (data.accessToken) {
-        setToken(data.accessToken);
-        setUser(data.user);
-        setWalletBalance(Number(data.user.walletBalance || 0));
-        localStorage.setItem('cd_token', data.accessToken);
-        localStorage.setItem('cd_user', JSON.stringify(data.user));
-
-        // Sync local guest cart with server
-        const guestCartStr = localStorage.getItem('cd_guest_cart');
-        if (guestCartStr) {
-          const guestCart = JSON.parse(guestCartStr);
-          for (const item of guestCart) {
-            await fetch(`${API_URL}/cart/add`, {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${data.accessToken}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ productId: item.product.id, quantity: item.quantity }),
-            });
-          }
-          localStorage.removeItem('cd_guest_cart');
-        }
+        await handleAuthSuccess(data);
         return true;
       }
       return false;
@@ -141,6 +123,96 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Clear local guest cart on mock login too
       localStorage.removeItem('cd_guest_cart');
       return true;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAuthSuccess = async (data: any) => {
+    setToken(data.accessToken);
+    setUser(data.user);
+    setWalletBalance(Number(data.user.walletBalance || 0));
+    localStorage.setItem('cd_token', data.accessToken);
+    localStorage.setItem('cd_user', JSON.stringify(data.user));
+
+    const guestCartStr = localStorage.getItem('cd_guest_cart');
+    if (guestCartStr) {
+      const guestCart = JSON.parse(guestCartStr);
+      for (const item of guestCart) {
+        await fetch(`${API_URL}/cart/add`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${data.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ productId: item.product.id, quantity: item.quantity }),
+        });
+      }
+      localStorage.removeItem('cd_guest_cart');
+    }
+  };
+
+  const loginWithEmail = async (email: string, pass: string) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/email/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass }),
+      });
+      const data = await res.json();
+      if (data.success && data.accessToken) {
+        await handleAuthSuccess(data);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to login with email:', err);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const registerWithEmail = async (email: string, pass: string, name: string) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/email/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass, name }),
+      });
+      const data = await res.json();
+      if (data.success && data.accessToken) {
+        await handleAuthSuccess(data);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to register with email:', err);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loginWithGoogle = async (idToken: string) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+      const data = await res.json();
+      if (data.success && data.accessToken) {
+        await handleAuthSuccess(data);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to login with google:', err);
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -373,6 +445,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setLoginPhone,
         sendOtp,
         verifyOtp,
+        loginWithEmail,
+        registerWithEmail,
+        loginWithGoogle,
         logout,
         fetchCart,
         addToCart,

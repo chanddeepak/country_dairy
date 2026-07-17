@@ -3,8 +3,8 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Star, Calendar } from 'lucide-react';
-import { PRODUCT_IMAGES } from '../../lib/constants';
+import { Star, Calendar, MessageCircle } from 'lucide-react';
+import { PRODUCT_IMAGES, ENABLE_SUBSCRIPTIONS, ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER, WHATSAPP_MESSAGE_TEMPLATE } from '../../lib/constants';
 
 interface Product {
   id: string;
@@ -68,13 +68,28 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
         </div>
 
         <div className="space-y-2 mt-auto">
-          <button
-            onClick={() => onAddToCart(product.id, 1)}
-            className="w-full bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold py-2.5 rounded-sm text-sm uppercase tracking-wider transition"
-          >
-            Add to Cart
-          </button>
-          {product.isSubscriptionAllowed && onSubscribe && (
+          {ENABLE_WEBSITE_PAYMENT && (
+            <button
+              onClick={() => onAddToCart(product.id, 1)}
+              className="w-full bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold py-2.5 rounded-sm text-sm uppercase tracking-wider transition"
+            >
+              Add to Cart
+            </button>
+          )}
+          
+          {!ENABLE_WEBSITE_PAYMENT && (
+            <a
+              href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE_TEMPLATE(product.name, product.price))}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-2.5 rounded-sm text-sm uppercase tracking-wider transition flex items-center justify-center"
+            >
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Order on WhatsApp
+            </a>
+          )}
+          
+          {ENABLE_SUBSCRIPTIONS && product.isSubscriptionAllowed && onSubscribe && (
             <button
               onClick={() => onSubscribe(product)}
               className="w-full border border-[#3A6038] text-[#3A6038] hover:bg-[#3A6038]/5 font-bold py-2 rounded-sm text-xs flex items-center justify-center transition uppercase tracking-wider"

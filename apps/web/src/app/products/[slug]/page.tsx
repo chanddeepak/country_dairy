@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronRight, Minus, Plus, Calendar, ShoppingBag } from 'lucide-react';
+import { ChevronRight, Minus, Plus, Calendar, ShoppingBag, MessageCircle } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import Navbar from '../../../components/layout/Navbar';
 import Footer from '../../../components/layout/Footer';
@@ -16,7 +16,7 @@ import ProductCard from '../../../components/product/ProductCard';
 import AuthModal from '../../../components/modals/AuthModal';
 import SubscriptionModal from '../../../components/modals/SubscriptionModal';
 import CartDrawer from '../../../components/cart/CartDrawer';
-import { FALLBACK_PRODUCTS, API_URL, PRODUCT_IMAGES } from '../../../lib/constants';
+import { FALLBACK_PRODUCTS, API_URL, PRODUCT_IMAGES, ENABLE_SUBSCRIPTIONS, ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER, WHATSAPP_MESSAGE_TEMPLATE } from '../../../lib/constants';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -173,14 +173,29 @@ export default function ProductDetailPage() {
 
               {/* CTA Buttons */}
               <div className="space-y-3 pt-2">
-                <button
-                  onClick={handleAddToCart}
-                  className="w-full flex items-center justify-center bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold py-3.5 rounded-lg text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg"
-                >
-                  <ShoppingBag className="h-4 w-4 mr-2" />
-                  Add to Cart — ₹{Number(product.price) * quantity}
-                </button>
-                {product.isSubscriptionAllowed && (
+                {ENABLE_WEBSITE_PAYMENT && (
+                  <button
+                    onClick={handleAddToCart}
+                    className="w-full flex items-center justify-center bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold py-3.5 rounded-lg text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg"
+                  >
+                    <ShoppingBag className="h-4 w-4 mr-2" />
+                    Add to Cart — ₹{Number(product.price) * quantity}
+                  </button>
+                )}
+                
+                {!ENABLE_WEBSITE_PAYMENT && (
+                  <a
+                    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE_TEMPLATE(product.name, String(Number(product.price) * quantity)))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-3.5 rounded-lg text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg"
+                  >
+                    <MessageCircle className="h-5 w-5 mr-2" />
+                    Order on WhatsApp — ₹{Number(product.price) * quantity}
+                  </a>
+                )}
+                
+                {ENABLE_SUBSCRIPTIONS && product.isSubscriptionAllowed && (
                   <button
                     onClick={() => {
                       if (!user) { setIsAuthOpen(true); return; }

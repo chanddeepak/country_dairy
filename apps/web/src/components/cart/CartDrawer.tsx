@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { X, ShoppingBag, Minus, Plus } from 'lucide-react';
+import { X, ShoppingBag, Minus, Plus, MessageCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER } from '../../lib/constants';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -96,12 +97,27 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
               <span>Total:</span>
               <span>₹{subtotal}</span>
             </div>
-            <button
-              onClick={onCheckout}
-              className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl transition"
-            >
-              Checkout Now
-            </button>
+            {ENABLE_WEBSITE_PAYMENT ? (
+              <button
+                onClick={onCheckout}
+                className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl transition"
+              >
+                Checkout Now
+              </button>
+            ) : (
+              <a
+                href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+                  `Hi! I'd like to order the following items:\n${cart.map(i => `📦 ${i.product.name} × ${i.quantity} — ₹${Number(i.product.price) * i.quantity}`).join('\n')}\n💰 Total: ₹${subtotal}\n\nPlease help me place this order. Thank you!`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onClose}
+                className="w-full flex items-center justify-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-3.5 rounded-xl transition"
+              >
+                <MessageCircle className="h-5 w-5 mr-2" />
+                Complete Order on WhatsApp
+              </a>
+            )}
             <button
               onClick={onClose}
               className="w-full text-center text-xs text-[#6b6661] hover:text-[#2A2A2A] font-bold mt-3 transition"

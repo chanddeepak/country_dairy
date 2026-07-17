@@ -37,13 +37,14 @@ export default function ProductsPage() {
   }, []);
 
   const fetchProducts = async () => {
-    try {
-      const res = await fetch(`${API_URL}/catalog/products`);
-      const data = await res.json();
-      setProducts(Array.isArray(data) && data.length > 0 ? data : FALLBACK_PRODUCTS);
-    } catch {
-      setProducts(FALLBACK_PRODUCTS);
-    }
+    // try {
+    //   const res = await fetch(`${API_URL}/catalog/products`);
+    //   const data = await res.json();
+    //   setProducts(Array.isArray(data) && data.length > 0 ? data : FALLBACK_PRODUCTS);
+    // } catch {
+    //   setProducts(FALLBACK_PRODUCTS);
+    // }
+    setProducts(FALLBACK_PRODUCTS);
   };
 
   const filteredProducts = useMemo(() => {

@@ -11,6 +11,17 @@ export const COLORS = {
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
+// Feature flags
+export const ENABLE_SUBSCRIPTIONS = false;
+export const ENABLE_WEBSITE_PAYMENT = false;
+export const ENABLE_USER_ACCOUNTS = false;
+export const ENABLE_CART = false;
+
+// WhatsApp ordering
+export const WHATSAPP_NUMBER = '918291939317';
+export const WHATSAPP_MESSAGE_TEMPLATE = (productName: string, price: string) =>
+  `Hi! I'd like to order:\n📦 ${productName} — ₹${price}\nPlease help me place this order. Thank you!`;
+
 // Local product image map keyed by slug
 export const PRODUCT_IMAGES: Record<string, string> = {
   'country-dairy-a2-cow-milk-1l': '/images/products/milk-bottle.png',

@@ -30,6 +30,34 @@ export class AuthController {
     };
   }
 
+  @Post('email/register')
+  @HttpCode(HttpStatus.OK)
+  async registerWithEmail(
+    @Body('email') email: string,
+    @Body('password') pass: string,
+    @Body('name') name: string,
+  ) {
+    const result = await this.authService.registerWithEmail(email, pass, name);
+    return { success: true, ...result };
+  }
+
+  @Post('email/login')
+  @HttpCode(HttpStatus.OK)
+  async loginWithEmail(
+    @Body('email') email: string,
+    @Body('password') pass: string,
+  ) {
+    const result = await this.authService.loginWithEmail(email, pass);
+    return { success: true, ...result };
+  }
+
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  async loginWithGoogle(@Body('idToken') idToken: string) {
+    const result = await this.authService.loginWithGoogle(idToken);
+    return { success: true, ...result };
+  }
+
   @Post('address')
   @UseGuards(AuthGuard)
   async addAddress(

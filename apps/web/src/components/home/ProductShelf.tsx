@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useApp } from '../../context/AppContext';
 import { FALLBACK_PRODUCTS, API_URL } from '../../lib/constants';
 import ProductCard from '../product/ProductCard';
@@ -18,17 +19,19 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
   }, []);
 
   const fetchProducts = async () => {
-    try {
-      const res = await fetch(`${API_URL}/catalog/products`);
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        setProducts(data);
-      } else {
-        setProducts(FALLBACK_PRODUCTS);
-      }
-    } catch {
-      setProducts(FALLBACK_PRODUCTS);
-    }
+    // Disabling API call for the WhatsApp MVP launch until the backend is fully deployed
+    // try {
+    //   const res = await fetch(`${API_URL}/catalog/products`);
+    //   const data = await res.json();
+    //   if (Array.isArray(data) && data.length > 0) {
+    //     setProducts(data);
+    //   } else {
+    //     setProducts(FALLBACK_PRODUCTS);
+    //   }
+    // } catch {
+    //   setProducts(FALLBACK_PRODUCTS);
+    // }
+    setProducts(FALLBACK_PRODUCTS);
   };
 
   return (
@@ -49,6 +52,16 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
             onSubscribe={onSubscribe}
           />
         ))}
+      </div>
+
+      <div className="mt-12 text-center">
+        <Link 
+          href="/products" 
+          className="inline-flex items-center text-[#3A6038] font-bold hover:text-[#2d4d2b] transition group"
+        >
+          View All Products 
+          <span className="ml-1 group-hover:translate-x-1 transition-transform">→</span>
+        </Link>
       </div>
     </section>
   );

@@ -71,6 +71,11 @@ export default function ValueBanner() {
             </div>
           ))}
         </div>
+        <div className="mt-12 text-center">
+          <p className="text-xs font-bold text-stone-500 uppercase tracking-wider bg-stone-100 inline-block px-4 py-2 rounded-full">
+            🇮🇳 We currently deliver across India only
+          </p>
+        </div>
       </div>
     </section>
   );
