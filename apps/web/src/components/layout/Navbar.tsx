@@ -72,8 +72,8 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
                 <path d="M16 24c0-3 2-5 4-7 2 2 4 4 4 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
             </div>
-            <span className="font-serif font-black text-xl md:text-2xl tracking-tight text-[#2A2A2A] group-hover:text-[#3A6038] transition">
-              Country<br className="md:hidden" /> Dairy
+            <span className="font-serif font-black text-xl md:text-2xl tracking-tight text-[#3A6038] transition">
+              Country<br className="md:hidden" /> <span className="text-[#C59B27]">Dairy</span>
             </span>
           </Link>
         </div>

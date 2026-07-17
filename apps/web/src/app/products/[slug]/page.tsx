@@ -187,7 +187,7 @@ export default function ProductDetailPage() {
                 
                 {!ENABLE_WEBSITE_PAYMENT && (
                   <a
-                    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE_TEMPLATE(product.name, String(Number(product.price) * quantity)))}`}
+                    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi! I'd like to order:\n- ${quantity} x ${product.name} (₹${product.price} each)\nTotal: ₹${Number(product.price) * quantity}\n\nPlease help me place this order. Thank you!`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full flex items-center justify-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-3.5 rounded-lg text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg"
