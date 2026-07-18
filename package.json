@@ -19,7 +19,9 @@
   "optionalDependencies": {
     "@rolldown/binding-darwin-arm64": "^1.1.4",
     "lightningcss-linux-x64-gnu": "1.32.0",
-    "lightningcss-darwin-arm64": "1.32.0"
+    "lightningcss-darwin-arm64": "1.32.0",
+    "@tailwindcss/oxide-linux-x64-gnu": "4.3.2",
+    "@tailwindcss/oxide-darwin-arm64": "4.3.2"
   },
   "overrides": {
     "react-native": "0.81.5",
