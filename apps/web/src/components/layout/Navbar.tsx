@@ -38,17 +38,34 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  // For hash links: use <a> on homepage, use Link to homepage+hash on other pages
-  const hashLink = (hash: string, label: string, className: string) => {
+  // Navigation link generator with clean route/hash handling
+  const navLink = (target: string, label: string, className: string) => {
+    // For "Shop" link
+    if (target === 'shop') {
+      if (pathname === '/') {
+        return (
+          <a href="#shop" className={className} onClick={() => setMobileMenuOpen(false)}>
+            {label}
+          </a>
+        );
+      }
+      return (
+        <Link href="/products" className={className} onClick={() => setMobileMenuOpen(false)}>
+          {label}
+        </Link>
+      );
+    }
+
+    // For section hash links (about, values, contact)
     if (pathname === '/') {
       return (
-        <a href={hash} className={className} onClick={() => setMobileMenuOpen(false)}>
+        <a href={`#${target}`} className={className} onClick={() => setMobileMenuOpen(false)}>
           {label}
         </a>
       );
     }
     return (
-      <Link href={`/${hash}`} className={className} onClick={() => setMobileMenuOpen(false)}>
+      <Link href={`/#${target}`} className={className} onClick={() => setMobileMenuOpen(false)}>
         {label}
       </Link>
     );
@@ -80,10 +97,10 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
 
         {/* Desktop Nav Links */}
         <div className="hidden md:flex flex-none items-center justify-center space-x-8 text-sm font-semibold text-[#2A2A2A]">
-          {hashLink('#shop', 'Shop', 'hover:text-[#3A6038] transition')}
-          {hashLink('#about', 'About', 'hover:text-[#3A6038] transition')}
-          {hashLink('#values', 'Farm', 'hover:text-[#3A6038] transition')}
-          {hashLink('#contact', 'Contact', 'hover:text-[#3A6038] transition')}
+          {navLink('shop', 'Shop', 'hover:text-[#3A6038] transition')}
+          {navLink('about', 'About', 'hover:text-[#3A6038] transition')}
+          {navLink('values', 'Farm', 'hover:text-[#3A6038] transition')}
+          {navLink('contact', 'Contact', 'hover:text-[#3A6038] transition')}
         </div>
 
         {/* Right Side Actions */}
@@ -205,10 +222,10 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-t border-stone-100 px-4 py-4 space-y-3">
-          {hashLink('#shop', 'Shop', 'block text-sm font-semibold text-[#2A2A2A]')}
-          {hashLink('#about', 'About', 'block text-sm font-semibold text-[#2A2A2A]')}
-          {hashLink('#values', 'Farm', 'block text-sm font-semibold text-[#2A2A2A]')}
-          {hashLink('#contact', 'Contact', 'block text-sm font-semibold text-[#2A2A2A]')}
+          {navLink('shop', 'Shop', 'block text-sm font-semibold text-[#2A2A2A]')}
+          {navLink('about', 'About', 'block text-sm font-semibold text-[#2A2A2A]')}
+          {navLink('values', 'Farm', 'block text-sm font-semibold text-[#2A2A2A]')}
+          {navLink('contact', 'Contact', 'block text-sm font-semibold text-[#2A2A2A]')}
           {ENABLE_USER_ACCOUNTS && (
             user ? (
               <div className="pt-2 border-t border-stone-100 space-y-2">

@@ -22,8 +22,8 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
   const productUrl = defaultVariant ? `/products/${product.slug}?variant=${defaultVariant.id}` : `/products/${product.slug}`;
 
   return (
-    <div className="bg-white rounded-xl overflow-hidden group hover:shadow-xl transition-all duration-300 border border-stone-200/80 flex flex-col relative">
-      {/* Product Image Container */}
+    <div className="bg-white rounded-xl overflow-hidden group hover:shadow-xl transition-all duration-300 border border-stone-200/80 flex flex-col relative h-full">
+      {/* Product Image Container (Aspect Square + Object Contain to prevent any image truncation) */}
       <Link href={productUrl} className="relative aspect-square bg-[#FAF8F3] flex items-center justify-center overflow-hidden block">
         {/* Top Left Discount Badge */}
         {discountBadge && (
@@ -43,15 +43,15 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
           src={imageSrc}
           alt={product.name}
           fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500 p-4"
+          className="object-contain group-hover:scale-105 transition-transform duration-500 p-4"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
         />
       </Link>
 
       {/* Product Info */}
-      <div className="p-5 flex flex-col flex-1">
+      <div className="p-4 flex flex-col flex-1">
         {ENABLE_PRODUCT_RATINGS && (
-          <div className="flex items-center gap-1.5 mb-2">
+          <div className="flex items-center gap-1.5 mb-1.5">
             <Star className="h-3.5 w-3.5 fill-[#C59B27] text-[#C59B27]" />
             <span className="text-xs font-bold text-[#2A2A2A]">{product.averageRating?.toFixed(1)}</span>
             <span className="text-xs text-[#6b6661]">({product.totalReviews})</span>
@@ -59,18 +59,18 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
         )}
 
         <Link href={productUrl} className="hover:text-[#3A6038] transition">
-          <h3 className="font-serif font-bold text-base text-[#2A2A2A] leading-snug mb-1.5 line-clamp-1">
+          <h3 className="font-serif font-bold text-base text-[#2A2A2A] leading-snug mb-1 line-clamp-1">
             {product.name}
           </h3>
         </Link>
 
-        <p className="text-[#6b6661] text-xs leading-relaxed line-clamp-2 mb-4 flex-1">
+        <p className="text-[#6b6661] text-xs leading-relaxed line-clamp-2 mb-3 flex-1">
           {product.description}
         </p>
 
         {/* Pricing Block */}
-        <div className="flex items-baseline gap-2 mb-4">
-          <span className="text-xl font-black text-[#2A2A2A]">₹{displayPrice}</span>
+        <div className="flex items-baseline gap-2 mb-3">
+          <span className="text-lg font-black text-[#2A2A2A]">₹{displayPrice}</span>
           {displayOriginalPrice && (
             <span className="text-xs text-[#6b6661] line-through font-medium">₹{displayOriginalPrice}</span>
           )}
