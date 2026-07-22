@@ -98,7 +98,6 @@ export default function ProductDetailPage() {
     const shareUrl = window.location.href;
     const shareTitle = product?.name || 'Country Dairy';
 
-    // Try Web Share API first if supported
     if (navigator.share && typeof navigator.share === 'function') {
       navigator.share({
         title: shareTitle,
@@ -162,6 +161,24 @@ export default function ProductDetailPage() {
   const currentDiscountBadge = selectedVariant?.discountPercent || product.discountBadge;
   const nutrition = product.nutritionFacts || {};
   const metadata = product.metadata || {};
+
+  // Variant-driven dynamic packaging & net quantity
+  const currentVolumeOrWeight = selectedVariant?.volumeOrWeight || metadata.volume || metadata.weight || '1 Litre';
+  const currentPackaging = (
+    selectedVariant?.volumeOrWeight.includes('Dolchi') ? 'Traditional Metal Dolchi' :
+    selectedVariant?.volumeOrWeight.includes('Tin') ? 'Food-Grade Tin Can' :
+    selectedVariant?.volumeOrWeight.includes('Bottle') ? 'Glass Bottle' :
+    selectedVariant?.volumeOrWeight.includes('Canister') ? 'Family Canister' :
+    metadata.packaging || 'Glass Jar'
+  );
+
+  const dynamicDetails = {
+    'Net Quantity / Volume': currentVolumeOrWeight,
+    'Packaging Type': currentPackaging,
+    'Standard Serving Size': '100g / 100ml',
+    'Shelf Life': metadata.shelfLife || '12 months',
+    'Storage Instructions': 'Store in a cool, dry place away from direct sunlight. Keep container tightly sealed after use.',
+  };
 
   // Build unique list of distinct gallery thumbnail images
   const baseImage = selectedVariant?.image || PRODUCT_IMAGES[product.slug] || product.imageUrls?.[0] || '/images/products/milk-bottle.png';
@@ -276,12 +293,16 @@ export default function ProductDetailPage() {
             {/* Right Column: Product Info, Variant Selector, Description & Trust Badges */}
             <div className="space-y-6">
               <div>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <span className="text-xs font-bold uppercase tracking-wider text-[#3A6038] bg-[#3A6038]/10 px-2.5 py-1 rounded-full">
                     {product.category || 'A2 Dairy'}
                   </span>
                   <span className="text-xs text-[#6b6661]">•</span>
-                  <span className="text-xs text-[#6b6661]">{metadata.packaging || 'Glass Bottle'}</span>
+                  <span className="text-xs text-[#6b6661]">{currentPackaging}</span>
+                  <span className="text-xs text-[#6b6661]">•</span>
+                  <span className="text-xs font-semibold text-[#3A6038] bg-stone-100 px-2 py-0.5 rounded">
+                    {currentVolumeOrWeight}
+                  </span>
                 </div>
                 <h1 className="font-serif font-black text-3xl md:text-4xl text-[#2A2A2A] leading-tight mb-2">
                   {product.name}
@@ -471,26 +492,32 @@ export default function ProductDetailPage() {
             </div>
             <div className="bg-white border border-t-0 border-stone-200 rounded-b-xl p-6">
               {activeTab === 'nutrition' ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(nutrition).map(([key, value]) => (
-                    <div key={key} className="text-center p-4 bg-[#FAF8F3] rounded-lg">
-                      <span className="text-xs font-bold text-[#6b6661] uppercase tracking-wider block mb-1">{key}</span>
-                      <span className="text-lg font-black text-[#2A2A2A]">{value as string}</span>
-                    </div>
-                  ))}
-                  {metadata.shelfLife && (
-                    <div className="text-center p-4 bg-[#FAF8F3] rounded-lg">
-                      <span className="text-xs font-bold text-[#6b6661] uppercase tracking-wider block mb-1">Shelf Life</span>
-                      <span className="text-lg font-black text-[#2A2A2A]">{metadata.shelfLife}</span>
-                    </div>
-                  )}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#6b6661] bg-[#FAF8F3] px-4 py-2 rounded-lg border border-stone-200/60">
+                    <span>Standard Nutritional Values (Per 100g / 100ml)</span>
+                    <span className="text-[#3A6038]">Active Variant Pack: {currentVolumeOrWeight}</span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {Object.entries(nutrition).map(([key, value]) => (
+                      <div key={key} className="text-center p-4 bg-[#FAF8F3] rounded-lg border border-stone-200/40">
+                        <span className="text-xs font-bold text-[#6b6661] uppercase tracking-wider block mb-1">{key}</span>
+                        <span className="text-lg font-black text-[#2A2A2A]">{value as string}</span>
+                      </div>
+                    ))}
+                    {metadata.shelfLife && (
+                      <div className="text-center p-4 bg-[#FAF8F3] rounded-lg border border-stone-200/40">
+                        <span className="text-xs font-bold text-[#6b6661] uppercase tracking-wider block mb-1">Shelf Life</span>
+                        <span className="text-lg font-black text-[#2A2A2A]">{metadata.shelfLife}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3 text-sm text-[#6b6661]">
-                  {Object.entries(metadata).map(([key, value]) => (
-                    <div key={key} className="flex justify-between border-b border-stone-100 pb-2">
-                      <span className="font-bold text-[#2A2A2A] capitalize">{key}</span>
-                      <span>{value as string}</span>
+                  {Object.entries(dynamicDetails).map(([key, value]) => (
+                    <div key={key} className="flex justify-between border-b border-stone-100 pb-2.5 items-center">
+                      <span className="font-bold text-[#2A2A2A]">{key}</span>
+                      <span className="font-medium text-[#2A2A2A]">{value as string}</span>
                     </div>
                   ))}
                 </div>
