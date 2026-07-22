@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronRight, Minus, Plus, Calendar, ShoppingBag, MessageCircle } from 'lucide-react';
+import { ChevronRight, Minus, Plus, Calendar, ShoppingBag, MessageCircle, Share2, Check, Truck, Headphones, RotateCcw, ClipboardCheck } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import Navbar from '../../../components/layout/Navbar';
 import Footer from '../../../components/layout/Footer';
@@ -16,18 +16,23 @@ import ProductCard from '../../../components/product/ProductCard';
 import AuthModal from '../../../components/modals/AuthModal';
 import SubscriptionModal from '../../../components/modals/SubscriptionModal';
 import CartDrawer from '../../../components/cart/CartDrawer';
-import { FALLBACK_PRODUCTS, API_URL, PRODUCT_IMAGES, ENABLE_SUBSCRIPTIONS, ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER, WHATSAPP_MESSAGE_TEMPLATE, ENABLE_PRODUCT_RATINGS } from '../../../lib/constants';
+import { FALLBACK_PRODUCTS, API_URL, PRODUCT_IMAGES, HERO_IMAGE, ENABLE_SUBSCRIPTIONS, ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER, WHATSAPP_MESSAGE_TEMPLATE, ENABLE_PRODUCT_RATINGS, Product, ProductVariant } from '../../../lib/constants';
 
 export default function ProductDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const slug = params?.slug as string;
+  const variantIdFromQuery = searchParams?.get('variant');
   const { user, token, addToCart } = useApp();
 
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [activeImage, setActiveImage] = useState<string>('');
   const [reviews, setReviews] = useState<any[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'nutrition' | 'details'>('nutrition');
-  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // Modal state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -37,41 +42,42 @@ export default function ProductDetailPage() {
   useEffect(() => {
     if (slug) {
       fetchProduct();
-      fetchReviews();
     }
-  }, [slug]);
+  }, [slug, variantIdFromQuery]);
 
   const fetchProduct = async () => {
     try {
       const res = await fetch(`${API_URL}/catalog/products/${slug}`);
       if (res.ok) {
         const data = await res.json();
-        setProduct(data);
-        // Fetch all products for "related" section
-        const allRes = await fetch(`${API_URL}/catalog/products`);
-        const all = await allRes.json();
-        setRelatedProducts((Array.isArray(all) ? all : FALLBACK_PRODUCTS).filter((p: any) => p.slug !== slug).slice(0, 3));
+        setupProductData(data);
       } else {
-        // Fallback to local data
         const fb = FALLBACK_PRODUCTS.find((p) => p.slug === slug) || FALLBACK_PRODUCTS[0];
-        setProduct(fb);
-        setRelatedProducts(FALLBACK_PRODUCTS.filter((p) => p.slug !== slug).slice(0, 3));
+        setupProductData(fb);
       }
     } catch {
       const fb = FALLBACK_PRODUCTS.find((p) => p.slug === slug) || FALLBACK_PRODUCTS[0];
-      setProduct(fb);
-      setRelatedProducts(FALLBACK_PRODUCTS.filter((p) => p.slug !== slug).slice(0, 3));
+      setupProductData(fb);
     }
   };
 
-  const fetchReviews = async () => {
-    try {
-      // We need productId but don't have it from slug yet; fetch after product loads
-    } catch { /* noop */ }
+  const setupProductData = (prod: Product) => {
+    setProduct(prod);
+    const defaultVar = (variantIdFromQuery && prod.variants?.find((v) => v.id === variantIdFromQuery))
+      || prod.variants?.find((v) => v.isDefault)
+      || prod.variants?.[0]
+      || null;
+    setSelectedVariant(defaultVar);
+    
+    // Set initial image (variant image if available, else product image)
+    const initialImg = defaultVar?.image || PRODUCT_IMAGES[prod.slug] || prod.imageUrls?.[0] || '/images/products/milk-bottle.png';
+    setActiveImage(initialImg);
+
+    setRelatedProducts(FALLBACK_PRODUCTS.filter((p) => p.slug !== prod.slug).slice(0, 3));
   };
 
   useEffect(() => {
-    if (product?.id) {
+    if (product?.id && ENABLE_PRODUCT_RATINGS) {
       fetch(`${API_URL}/products/${product.id}/reviews`)
         .then((r) => r.ok ? r.json() : [])
         .then((data) => setReviews(Array.isArray(data) ? data : []))
@@ -79,71 +85,213 @@ export default function ProductDetailPage() {
     }
   }, [product?.id]);
 
+  const handleVariantSelect = (variant: ProductVariant) => {
+    setSelectedVariant(variant);
+    // Dynamic image switching: 1st main image changes with variant selection
+    if (variant.image) {
+      setActiveImage(variant.image);
+    }
+  };
+
+  const handleShare = () => {
+    if (typeof window === 'undefined') return;
+    const shareUrl = window.location.href;
+    const shareTitle = product?.name || 'Country Dairy';
+
+    // Try Web Share API first if supported
+    if (navigator.share && typeof navigator.share === 'function') {
+      navigator.share({
+        title: shareTitle,
+        text: `Check out ${shareTitle} on Country Dairy!`,
+        url: shareUrl,
+      }).catch(() => {
+        copyToClipboard(shareUrl);
+      });
+    } else {
+      copyToClipboard(shareUrl);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    if (typeof window === 'undefined') return;
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => {
+        showCopyToast();
+      }).catch(() => {
+        fallbackCopy(text);
+      });
+    } else {
+      fallbackCopy(text);
+    }
+  };
+
+  const fallbackCopy = (text: string) => {
+    try {
+      const input = document.createElement('input');
+      input.value = text;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      showCopyToast();
+    } catch {
+      alert(`Product Link: ${text}`);
+    }
+  };
+
+  const showCopyToast = () => {
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
   if (!product) {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
         <div className="flex-1 flex items-center justify-center">
-          <div className="animate-pulse text-[#6b6661]">Loading product...</div>
+          <div className="animate-pulse text-[#6b6661]">Loading product details...</div>
         </div>
         <Footer />
       </div>
     );
   }
 
-  const imageSrc = PRODUCT_IMAGES[product.slug] || product.imageUrls?.[0] || '/images/products/milk-bottle.png';
+  const currentPrice = selectedVariant ? selectedVariant.price : product.price;
+  const currentOriginalPrice = selectedVariant ? selectedVariant.originalPrice : product.originalPrice;
+  const currentDiscountBadge = selectedVariant?.discountPercent || product.discountBadge;
   const nutrition = product.nutritionFacts || {};
   const metadata = product.metadata || {};
+
+  // Build unique list of distinct gallery thumbnail images
+  const baseImage = selectedVariant?.image || PRODUCT_IMAGES[product.slug] || product.imageUrls?.[0] || '/images/products/milk-bottle.png';
+  const allImages = Array.from(new Set([
+    baseImage,
+    ...(product.imageUrls || []),
+    ...(product.secondaryImages || []),
+    HERO_IMAGE,
+  ]));
+
+  const galleryThumbnails = allImages.map((imgUrl, index) => ({
+    id: `thumb-${index}`,
+    url: imgUrl,
+    label: index === 0 ? 'Main Product' : index === 1 ? 'Farm & Quality' : 'Lab Certificate',
+  }));
 
   const handleAddToCart = () => {
     if (!user) { setIsAuthOpen(true); return; }
     addToCart(product.id, quantity);
   };
 
+  const whatsappMessage = WHATSAPP_MESSAGE_TEMPLATE(
+    product.name,
+    currentPrice,
+    selectedVariant?.volumeOrWeight || selectedVariant?.name,
+    quantity
+  );
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
 
       <main className="flex-1 bg-[#FAF8F3]">
-        {/* Breadcrumb */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        {/* Top Header / Breadcrumb Bar */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <nav className="flex items-center text-xs text-[#6b6661] gap-1">
             <Link href="/" className="hover:text-[#3A6038] transition">Home</Link>
             <ChevronRight className="h-3 w-3" />
             <Link href="/products" className="hover:text-[#3A6038] transition">Shop</Link>
             <ChevronRight className="h-3 w-3" />
-            <span className="text-[#2A2A2A] font-bold">{product.name}</span>
+            <span className="text-[#2A2A2A] font-bold truncate max-w-[200px] sm:max-w-none">{product.name}</span>
           </nav>
+
+          {/* Share Button */}
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-1.5 text-xs font-bold text-[#6b6661] hover:text-[#3A6038] bg-white border border-stone-200 px-3.5 py-1.5 rounded-full transition shadow-sm hover:shadow"
+            title="Share Product"
+          >
+            {copiedLink ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Share2 className="h-3.5 w-3.5" />}
+            <span className={copiedLink ? 'text-emerald-700 font-extrabold' : ''}>
+              {copiedLink ? 'Link Copied!' : 'Share'}
+            </span>
+          </button>
         </div>
 
-        {/* Product Main Section */}
+        {/* Product Main Section (Items-Start for Sticky Left Column) */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
-            {/* Left: Image */}
-            <div className="relative aspect-square bg-white rounded-2xl overflow-hidden border border-stone-200">
-              <Image
-                src={imageSrc}
-                alt={product.name}
-                fill
-                className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                priority
-              />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-start">
+            
+            {/* Left Column: Interactive Sticky Image Gallery */}
+            <div className="space-y-4 lg:sticky lg:top-24">
+              {/* Main Preview Image */}
+              <div className="relative aspect-square bg-white rounded-2xl overflow-hidden border border-stone-200 shadow-sm flex items-center justify-center">
+                {currentDiscountBadge && (
+                  <span className="absolute top-4 left-4 z-10 bg-[#3A6038] text-white text-xs font-extrabold px-3 py-1 rounded-sm shadow-sm tracking-wide">
+                    {currentDiscountBadge}
+                  </span>
+                )}
+                {product.badge && (
+                  <span className="absolute top-4 right-4 z-10 bg-[#C59B27] text-white text-xs font-bold px-3 py-1 rounded-sm shadow-sm tracking-wider uppercase">
+                    {product.badge}
+                  </span>
+                )}
+                <Image
+                  src={activeImage || baseImage}
+                  alt={product.name}
+                  fill
+                  className="object-cover p-6 transition-all duration-300"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  priority
+                />
+              </div>
+
+              {/* Gallery Thumbnails Row */}
+              <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none">
+                {galleryThumbnails.map((thumb) => {
+                  const isSelected = activeImage === thumb.url;
+                  return (
+                    <button
+                      key={thumb.id}
+                      onClick={() => setActiveImage(thumb.url)}
+                      className={`relative w-20 h-20 bg-white rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 p-1.5 ${
+                        isSelected
+                          ? 'border-[#3A6038] shadow-md ring-2 ring-[#3A6038]/20 scale-95'
+                          : 'border-stone-200 hover:border-[#3A6038]/50 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <Image
+                        src={thumb.url}
+                        alt={thumb.label}
+                        fill
+                        className="object-cover p-1"
+                        sizes="80px"
+                      />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Right: Info */}
+            {/* Right Column: Product Info, Variant Selector, Description & Trust Badges */}
             <div className="space-y-6">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#3A6038] bg-[#3A6038]/10 px-2 py-0.5 rounded-full">
-                    {product.category?.name || 'Dairy'}
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#3A6038] bg-[#3A6038]/10 px-2.5 py-1 rounded-full">
+                    {product.category || 'A2 Dairy'}
                   </span>
                   <span className="text-xs text-[#6b6661]">•</span>
                   <span className="text-xs text-[#6b6661]">{metadata.packaging || 'Glass Bottle'}</span>
                 </div>
-                <h1 className="font-serif font-black text-3xl md:text-4xl text-[#2A2A2A] leading-tight">{product.name}</h1>
+                <h1 className="font-serif font-black text-3xl md:text-4xl text-[#2A2A2A] leading-tight mb-2">
+                  {product.name}
+                </h1>
+                <p className="text-xs font-semibold text-[#6b6661] tracking-wide uppercase">
+                  BILONA CHURNED | A2-VERIFIED MILK | 70+ QUALITY CHECKS
+                </p>
               </div>
 
+              {/* Rating */}
               {ENABLE_PRODUCT_RATINGS && (
                 <div className="flex items-center gap-2">
                   <StarRating rating={product.averageRating || 0} size="md" />
@@ -152,17 +300,68 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-black text-[#2A2A2A]">₹{product.price}</span>
-                <span className="text-sm text-[#6b6661]">per {metadata.volume || metadata.weight || 'unit'}</span>
+              {/* Price Display */}
+              <div className="flex items-baseline gap-3 pt-1">
+                <span className="text-4xl font-black text-[#2A2A2A]">₹{currentPrice}</span>
+                {currentOriginalPrice && (
+                  <span className="text-lg text-[#6b6661] line-through font-medium">₹{currentOriginalPrice}</span>
+                )}
+                {currentDiscountBadge && (
+                  <span className="text-xs font-extrabold text-[#3A6038] bg-[#3A6038]/10 px-2 py-0.5 rounded">
+                    {currentDiscountBadge}
+                  </span>
+                )}
               </div>
 
+              {/* Short Summary Description */}
               <p className="text-sm text-[#6b6661] leading-relaxed">{product.description}</p>
 
+              {/* VARIANT SELECTOR */}
+              {product.variants && product.variants.length > 0 && (
+                <div className="pt-2">
+                  <span className="text-xs font-bold text-[#2A2A2A] block mb-3 uppercase tracking-wider">
+                    Select Variant:
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {product.variants.map((variant) => {
+                      const isSelected = selectedVariant?.id === variant.id;
+                      return (
+                        <button
+                          key={variant.id}
+                          onClick={() => handleVariantSelect(variant)}
+                          className={`p-3 rounded-xl border-2 text-left transition-all relative ${
+                            isSelected
+                              ? 'border-[#3A6038] bg-[#3A6038]/5 shadow-sm'
+                              : 'border-stone-200 bg-white hover:border-[#3A6038]/40'
+                          }`}
+                        >
+                          <span className="block font-bold text-xs text-[#2A2A2A] mb-1">
+                            {variant.volumeOrWeight || variant.name}
+                          </span>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="font-extrabold text-sm text-[#2A2A2A]">₹{variant.price}</span>
+                            {variant.originalPrice && (
+                              <span className="text-[10px] text-[#6b6661] line-through">₹{variant.originalPrice}</span>
+                            )}
+                          </div>
+                          {variant.discountPercent && (
+                            <span className="text-[9px] font-bold text-[#3A6038] block mt-1">
+                              {variant.discountPercent}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Quantity Selector */}
-              <div>
-                <span className="text-xs font-bold text-[#2A2A2A] block mb-2">QUANTITY:</span>
-                <div className="flex items-center gap-3 bg-white border border-stone-200 rounded-lg w-fit px-3 py-1.5">
+              <div className="pt-2">
+                <span className="text-xs font-bold text-[#2A2A2A] block mb-2 uppercase tracking-wider">
+                  Quantity:
+                </span>
+                <div className="flex items-center gap-3 bg-white border border-stone-200 rounded-lg w-fit px-3 py-1.5 shadow-sm">
                   <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-1 hover:bg-stone-100 rounded transition">
                     <Minus className="h-4 w-4 text-[#2A2A2A]" />
                   </button>
@@ -174,26 +373,26 @@ export default function ProductDetailPage() {
               </div>
 
               {/* CTA Buttons */}
-              <div className="space-y-3 pt-2">
+              <div className="space-y-3 pt-4">
                 {ENABLE_WEBSITE_PAYMENT && (
                   <button
                     onClick={handleAddToCart}
-                    className="w-full flex items-center justify-center bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold py-3.5 rounded-lg text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg"
+                    className="w-full flex items-center justify-center bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg"
                   >
                     <ShoppingBag className="h-4 w-4 mr-2" />
-                    Add to Cart — ₹{Number(product.price) * quantity}
+                    Add to Cart — ₹{Number(currentPrice) * quantity}
                   </button>
                 )}
                 
                 {!ENABLE_WEBSITE_PAYMENT && (
                   <a
-                    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi! I'd like to order:\n- ${quantity} x ${product.name} (₹${product.price} each)\nTotal: ₹${Number(product.price) * quantity}\n\nPlease help me place this order. Thank you!`)}`}
+                    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappMessage)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-3.5 rounded-lg text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg"
+                    className="w-full flex items-center justify-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg"
                   >
                     <MessageCircle className="h-5 w-5 mr-2" />
-                    Order on WhatsApp — ₹{Number(product.price) * quantity}
+                    Order on WhatsApp — ₹{Number(currentPrice) * quantity}
                   </a>
                 )}
                 
@@ -203,13 +402,53 @@ export default function ProductDetailPage() {
                       if (!user) { setIsAuthOpen(true); return; }
                       setIsSubscrOpen(true);
                     }}
-                    className="w-full flex items-center justify-center border-2 border-[#3A6038] text-[#3A6038] hover:bg-[#3A6038]/5 font-bold py-3 rounded-lg text-sm uppercase tracking-wider transition"
+                    className="w-full flex items-center justify-center border-2 border-[#3A6038] text-[#3A6038] hover:bg-[#3A6038]/5 font-bold py-3 rounded-xl text-sm uppercase tracking-wider transition"
                   >
                     <Calendar className="h-4 w-4 mr-2" />
-                    Subscribe Daily — ₹{Math.round(Number(product.price) * 0.9)}
+                    Subscribe Daily — ₹{Math.round(Number(currentPrice) * 0.9)}
                   </button>
                 )}
               </div>
+
+              {/* DETAILED PRODUCT DESCRIPTION SECTION */}
+              <div className="pt-6 border-t border-stone-200/80 space-y-3">
+                <h3 className="font-serif font-black text-sm text-[#2A2A2A] uppercase tracking-wider">
+                  Product Description
+                </h3>
+                <div className="text-sm text-[#6b6661] leading-relaxed space-y-3">
+                  <p>
+                    Made in our farms, our {product.name} is crafted with uncompromised dedication to traditional purity. Our cows are the happiest beings you’ll meet—they graze freely in natural open pastures and are never injected with artificial hormones.
+                  </p>
+                  <p>
+                    Our nutritious A2 milk is set into cultured curd and traditional bilona-churned in small batches. Every batch is lab-tested so what reaches your kitchen is nothing but pure, wholesome quality that is easy to digest and helps boost immunity.
+                  </p>
+                </div>
+
+                {/* Trust Badges Grid (Matching Reference Screenshot) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-stone-200/60">
+                  <div className="flex flex-col items-center text-center p-3.5 rounded-xl bg-white border border-stone-200/60 shadow-2xs">
+                    <Truck className="h-6 w-6 text-[#3A6038] mb-2" />
+                    <span className="text-xs font-bold text-[#2A2A2A] mb-0.5">Free Shipping</span>
+                    <span className="text-[10px] text-[#6b6661]">Orders Above ₹499</span>
+                  </div>
+                  <div className="flex flex-col items-center text-center p-3.5 rounded-xl bg-white border border-stone-200/60 shadow-2xs">
+                    <Headphones className="h-6 w-6 text-[#3A6038] mb-2" />
+                    <span className="text-xs font-bold text-[#2A2A2A] mb-0.5">360° Support</span>
+                    <span className="text-[10px] text-[#6b6661]">Always Here to Help</span>
+                  </div>
+                  <div className="flex flex-col items-center text-center p-3.5 rounded-xl bg-white border border-stone-200/60 shadow-2xs">
+                    <RotateCcw className="h-6 w-6 text-[#3A6038] mb-2" />
+                    <span className="text-xs font-bold text-[#2A2A2A] mb-0.5">100% Purity</span>
+                    <span className="text-[10px] text-[#6b6661]">Guaranteed Fresh</span>
+                  </div>
+                  <div className="flex flex-col items-center text-center p-3.5 rounded-xl bg-white border border-stone-200/60 shadow-2xs">
+                    <ClipboardCheck className="h-6 w-6 text-[#3A6038] mb-2" />
+                    <span className="text-xs font-bold text-[#2A2A2A] mb-0.5">70+ Checks</span>
+                    <span className="text-[10px] text-[#6b6661]">Lab Tested Quality</span>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
 

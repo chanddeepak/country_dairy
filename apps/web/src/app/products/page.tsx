@@ -9,7 +9,7 @@ import ProductCard from '../../components/product/ProductCard';
 import AuthModal from '../../components/modals/AuthModal';
 import SubscriptionModal from '../../components/modals/SubscriptionModal';
 import CartDrawer from '../../components/cart/CartDrawer';
-import { FALLBACK_PRODUCTS, API_URL, ENABLE_PRODUCT_RATINGS } from '../../lib/constants';
+import { FALLBACK_PRODUCTS, API_URL, ENABLE_PRODUCT_RATINGS, getExpandedProducts } from '../../lib/constants';
 
 const CATEGORIES = ['All', 'Dairy', 'Oils', 'Honey'];
 const SORT_OPTIONS = [
@@ -37,14 +37,7 @@ export default function ProductsPage() {
   }, []);
 
   const fetchProducts = async () => {
-    // try {
-    //   const res = await fetch(`${API_URL}/catalog/products`);
-    //   const data = await res.json();
-    //   setProducts(Array.isArray(data) && data.length > 0 ? data : FALLBACK_PRODUCTS);
-    // } catch {
-    //   setProducts(FALLBACK_PRODUCTS);
-    // }
-    setProducts(FALLBACK_PRODUCTS);
+    setProducts(getExpandedProducts(FALLBACK_PRODUCTS));
   };
 
   const filteredProducts = useMemo(() => {
@@ -61,11 +54,11 @@ export default function ProductsPage() {
     // Category filter
     if (activeCategory !== 'All') {
       result = result.filter((p) => {
-        const cat = p.category?.name || '';
+        const cat = (typeof p.category === 'string' ? p.category : p.category?.name) || '';
         const name = p.name.toLowerCase();
-        if (activeCategory === 'Dairy') return cat === 'Dairy' || name.includes('milk') || name.includes('ghee');
-        if (activeCategory === 'Oils') return cat === 'Oils' || name.includes('oil');
-        if (activeCategory === 'Honey') return cat === 'Honey' || name.includes('honey');
+        if (activeCategory === 'Dairy') return cat.includes('Milk') || cat.includes('Ghee') || name.includes('milk') || name.includes('ghee');
+        if (activeCategory === 'Oils') return cat.includes('Oils') || name.includes('oil');
+        if (activeCategory === 'Honey') return cat.includes('Honey') || name.includes('honey');
         return true;
       });
     }
