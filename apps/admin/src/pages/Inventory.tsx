@@ -1,17 +1,6 @@
-import { useState } from 'react';
-import { AlertTriangle, Plus, X, ToggleLeft, ToggleRight, Edit2 } from 'lucide-react';
-import StatusBadge from '../components/ui/StatusBadge';
-
-export interface Product {
-  id: string;
-  name: string;
-  price: number;
-  stock: number;
-  category: string;
-  batchCode: string;
-  verified: boolean;
-  isSubscriptionAllowed?: boolean;
-}
+import React, { useState } from 'react';
+import { Plus, Edit2, Trash2, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight, Sparkles, Package } from 'lucide-react';
+import type { Product } from '../types';
 
 interface InventoryProps {
   products: Product[];
@@ -26,6 +15,8 @@ interface InventoryProps {
   fatInput: string;
   handleRegisterBatchTest: (e: React.FormEvent) => void;
   onUpdateProducts: (newProducts: Product[]) => void;
+  onOpenAddWizard: () => void;
+  onEditProduct: (product: Product) => void;
 }
 
 export default function Inventory({
@@ -36,15 +27,11 @@ export default function Inventory({
   setBatchCodeInput,
   purityScoreInput,
   setPurityScoreInput,
-  phInput,
-  setPhInput,
   handleRegisterBatchTest,
   onUpdateProducts,
+  onOpenAddWizard,
+  onEditProduct,
 }: InventoryProps) {
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [currentEditingProduct, setCurrentEditingProduct] = useState<Product | null>(null);
-
   // Adulterant Screening states
   const [ureaDetected, setUreaDetected] = useState(false);
   const [starchDetected, setStarchDetected] = useState(false);
@@ -66,77 +53,6 @@ export default function Inventory({
     setDyesDetected(false);
   };
 
-
-  // Form inputs for Add Product
-  const [newProductName, setNewProductName] = useState('');
-  const [newProductCategory, setNewProductCategory] = useState('Dairy');
-  const [newProductPrice, setNewProductPrice] = useState('');
-  const [newProductStock, setNewProductStock] = useState('');
-
-  // Handle Edit/Save Product
-  const [editProductName, setEditProductName] = useState('');
-  const [editProductCategory, setEditProductCategory] = useState('');
-  const [editProductPrice, setEditProductPrice] = useState('');
-  const [editProductStock, setEditProductStock] = useState('');
-
-  const handleAddProductSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProductName.trim()) { alert('Name is required'); return; }
-    if (Number(newProductPrice) <= 0) { alert('Price must be positive'); return; }
-    if (Number(newProductStock) < 0) { alert('Stock cannot be negative'); return; }
-
-    const newProd: Product = {
-      id: String(products.length + 1),
-      name: newProductName,
-      price: Number(newProductPrice),
-      stock: Number(newProductStock),
-      category: newProductCategory,
-      batchCode: '',
-      verified: false,
-      isSubscriptionAllowed: true,
-    };
-
-    onUpdateProducts([...products, newProd]);
-    setShowAddModal(false);
-    setNewProductName('');
-    setNewProductPrice('');
-    setNewProductStock('');
-  };
-
-  const handleOpenEdit = (p: Product) => {
-    setCurrentEditingProduct(p);
-    setEditProductName(p.name);
-    setEditProductCategory(p.category);
-    setEditProductPrice(String(p.price));
-    setEditProductStock(String(p.stock));
-    setShowEditModal(true);
-  };
-
-  const handleEditProductSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentEditingProduct) return;
-    if (!editProductName.trim()) { alert('Name is required'); return; }
-    if (Number(editProductPrice) <= 0) { alert('Price must be positive'); return; }
-    if (Number(editProductStock) < 0) { alert('Stock cannot be negative'); return; }
-
-    const updated = products.map(p => {
-      if (p.id === currentEditingProduct.id) {
-        return {
-          ...p,
-          name: editProductName,
-          category: editProductCategory,
-          price: Number(editProductPrice),
-          stock: Number(editProductStock),
-        };
-      }
-      return p;
-    });
-
-    onUpdateProducts(updated);
-    setShowEditModal(false);
-    setCurrentEditingProduct(null);
-  };
-
   const toggleSubscription = (productId: string) => {
     const updated = products.map(p => {
       if (p.id === productId) {
@@ -147,255 +63,285 @@ export default function Inventory({
     onUpdateProducts(updated);
   };
 
+  const handleDeleteProduct = (productId: string, title: string) => {
+    if (confirm(`Are you sure you want to delete "${title}" from the catalog?`)) {
+      onUpdateProducts(products.filter(p => p.id !== productId));
+    }
+  };
+
   return (
-    <div className="space-y-8">
-      {/* Product Catalog list */}
-      <div className="screen-panel bg-white p-6 rounded-2xl border border-stone-200 shadow-sm">
-        <div className="flex justify-between items-center mb-6">
+    <div className="space-y-8 text-[#2A2A2A]">
+      {/* Product Catalog Panel */}
+      <div className="bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm space-y-6">
+        {/* Panel Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-100 pb-4">
           <div>
-            <h2 className="text-lg font-bold text-stone-800">Product Catalog & Lab Certifications</h2>
-            <p className="text-xs text-stone-500">Add, edit, toggle subscriptions and certify fresh dairy batches.</p>
+            <div className="flex items-center gap-2 mb-1">
+              <Package className="h-5 w-5 text-[#064e3b]" />
+              <h2 className="text-xl font-serif font-bold text-[#2A2A2A]">Product Catalog & Inventory Engine</h2>
+            </div>
+            <p className="text-xs text-[#6b6661]">
+              Manage product titles, multi-variant pricing, stock levels, QA lab certifications, and subscription toggles.
+            </p>
           </div>
+
+          {/* SINGLE UNIFIED ADD PRODUCT BUTTON */}
           <button 
-            onClick={() => setShowAddModal(true)}
-            className="btn-primary bg-[#064e3b] text-white font-semibold text-xs px-4 py-2.5 rounded-lg flex items-center gap-2 hover:bg-[#065f46] transition-colors"
+            onClick={onOpenAddWizard}
+            className="flex items-center justify-center gap-2 bg-[#064e3b] hover:bg-[#065f46] text-white font-bold text-xs px-5 py-3 rounded-xl shadow-sm transition-all transform active:scale-95 shrink-0"
           >
             <Plus className="h-4 w-4" />
-            Add New Product
+            <span>Add New Product (4-Step Wizard)</span>
           </button>
         </div>
 
-        <table className="data-table w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-stone-100 text-stone-500 font-bold text-xs uppercase bg-stone-50/50">
-              <th className="p-4">Product Name</th>
-              <th className="p-4">Category</th>
-              <th className="p-4">Price</th>
-              <th className="p-4">Stock</th>
-              <th className="p-4">Subscr Allowed</th>
-              <th className="p-4">Active Batch</th>
-              <th className="p-4">QA Certificate</th>
-              <th className="p-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map(p => (
-              <tr key={p.id} className="border-b border-stone-100 last:border-0 hover:bg-stone-50/30 transition-colors text-sm">
-                <td className="p-4 font-bold text-stone-800">{p.name}</td>
-                <td className="p-4 text-stone-600">{p.category}</td>
-                <td className="p-4 font-bold text-stone-800">₹{p.price}</td>
-                <td className="p-4">
-                  <span className={`font-bold ${p.stock < 50 ? 'text-amber-600 flex items-center gap-1' : 'text-stone-700'}`}>
-                    {p.stock < 50 && <AlertTriangle className="h-3.5 w-3.5" />}
-                    {p.stock} units
-                  </span>
-                </td>
-                <td className="p-4">
-                  <button onClick={() => toggleSubscription(p.id)} className="text-stone-400 hover:text-stone-600 transition-colors">
-                    {p.isSubscriptionAllowed !== false ? (
-                      <ToggleRight className="h-6 w-6 text-emerald-600" />
-                    ) : (
-                      <ToggleLeft className="h-6 w-6" />
-                    )}
-                  </button>
-                </td>
-                <td className="p-4"><code className="bg-stone-100 text-stone-600 px-2 py-1 rounded text-xs">{p.batchCode || 'Not Assigned'}</code></td>
-                <td className="p-4">
-                  <StatusBadge status={p.verified ? 'verified' : 'unverified'} />
-                </td>
-                <td className="p-4 text-right">
-                  <button 
-                    onClick={() => handleOpenEdit(p)}
-                    className="p-1.5 hover:bg-stone-150 rounded text-stone-500 hover:text-stone-800 inline-flex items-center gap-1 text-xs font-bold transition"
-                  >
-                    <Edit2 className="h-3.5 w-3.5" /> Edit
-                  </button>
-                </td>
+        {/* Catalog Data Table */}
+        <div className="overflow-x-auto rounded-xl border border-stone-200/80">
+          <table className="w-full text-left text-xs text-[#2A2A2A] border-collapse">
+            <thead>
+              <tr className="bg-[#FAF8F3] text-[#6b6661] font-bold border-b border-stone-200 uppercase tracking-wider">
+                <th className="p-4">Product Details</th>
+                <th className="p-4">Category</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Price & Variants</th>
+                <th className="p-4">Total Stock</th>
+                <th className="p-4 text-center">Subscription Allowed</th>
+                <th className="p-4">Active Batch</th>
+                <th className="p-4">QA Certificate</th>
+                <th className="p-4 text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-stone-100 font-medium">
+              {products.map((p) => {
+                const defaultVariant = p.variants?.[0];
+                const displayPrice = defaultVariant ? defaultVariant.sellingPrice : ((p as any).price || 0);
+                const totalStock = p.variants ? p.variants.reduce((acc, v) => acc + (v.stockQuantity || 0), 0) : ((p as any).stock || 0);
+                const isOutOfStock = p.status === 'OUT_OF_STOCK' || totalStock === 0;
+                const primaryImage = p.galleryImages?.find(img => img.isPrimary)?.imageUrl || p.galleryImages?.[0]?.imageUrl || '/images/products/milk-bottle.png';
+
+                return (
+                  <tr key={p.id} className="hover:bg-[#FAF8F3]/60 transition-colors">
+                    {/* Product Name & Thumbnail */}
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 bg-[#C59B27]/10 border border-[#C59B27]/30 rounded-xl shrink-0 flex items-center justify-center p-1 relative shadow-sm">
+                          {primaryImage && !primaryImage.endsWith('milk-bottle.png') ? (
+                            <img 
+                              src={primaryImage} 
+                              alt={p.title} 
+                              className="w-full h-full object-contain"
+                              onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                            />
+                          ) : (
+                            <Package className="h-5 w-5 text-[#064e3b]" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-bold text-sm text-[#2A2A2A] flex items-center gap-1.5">
+                            <span>{p.title}</span>
+                            {p.badgeText && (
+                              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-[#C59B27]/15 text-[#C59B27] border border-[#C59B27]/30">
+                                {p.badgeText}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-[#6b6661] font-mono mt-0.5">
+                            /{p.slug} • {p.variants?.length || 1} Variant(s)
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Category */}
+                    <td className="p-4">
+                      <span className="font-bold text-xs text-[#064e3b] bg-[#064e3b]/10 px-2.5 py-1 rounded-lg border border-[#064e3b]/20">
+                        {p.categoryName || (p as any).category || 'Dairy'}
+                      </span>
+                    </td>
+
+                    {/* Status Badge */}
+                    <td className="p-4">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                        isOutOfStock ? 'bg-red-50 text-red-700 border border-red-200' :
+                        p.status === 'LIVE' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                        p.status === 'DRAFT' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                        'bg-stone-100 text-stone-600 border border-stone-200'
+                      }`}>
+                        {isOutOfStock ? 'OUT OF STOCK' : (p.status || 'LIVE')}
+                      </span>
+                    </td>
+
+                    {/* Price & Variants */}
+                    <td className="p-4 font-mono font-bold text-stone-900">
+                      <div>₹{displayPrice}</div>
+                      {p.variants && p.variants.length > 1 && (
+                        <div className="text-[10px] text-[#6b6661] font-normal font-sans">
+                          {p.variants.length} pack sizes
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Total Stock */}
+                    <td className="p-4 font-mono">
+                      <span className={`font-bold ${totalStock === 0 ? 'text-red-600 font-black' : 'text-stone-900'}`}>
+                        {totalStock} units
+                      </span>
+                    </td>
+
+                    {/* Subscription Allowed Toggle (DISABLED BY DEFAULT) */}
+                    <td className="p-4 text-center">
+                      <button
+                        type="button"
+                        onClick={() => toggleSubscription(p.id)}
+                        className="inline-flex items-center justify-center text-[#064e3b] hover:opacity-80 transition-opacity"
+                        title={p.isSubscriptionAllowed ? 'Subscription Enabled' : 'Subscription Disabled (Default)'}
+                      >
+                        {p.isSubscriptionAllowed ? (
+                          <div className="flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-bold text-[10px]">
+                            <ToggleRight className="h-5 w-5 text-emerald-600" /> ON
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200 font-bold text-[10px]">
+                            <ToggleLeft className="h-5 w-5 text-stone-400" /> OFF (Default)
+                          </div>
+                        )}
+                      </button>
+                    </td>
+
+                    {/* Active Batch */}
+                    <td className="p-4 font-mono text-[11px] text-[#6b6661]">
+                      {p.batchCode ? (
+                        <span className="bg-[#FAF8F3] px-2 py-1 rounded border border-stone-200 font-bold text-[#2A2A2A]">
+                          {p.batchCode}
+                        </span>
+                      ) : (
+                        <span className="text-stone-400 italic">No Batch</span>
+                      )}
+                    </td>
+
+                    {/* QA Certificate */}
+                    <td className="p-4">
+                      {p.verified ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <CheckCircle2 className="h-3 w-3" /> VERIFIED
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-50 text-amber-700 border border-amber-200">
+                          <AlertCircle className="h-3 w-3" /> PENDING QA
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="p-4 text-right space-x-1.5">
+                      <button
+                        onClick={() => onEditProduct(p)}
+                        className="px-3 py-1.5 bg-[#FAF8F3] hover:bg-stone-100 text-[#064e3b] border border-stone-200 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition-colors"
+                        title="Edit Full Product Details & Variants"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" /> Edit Full Details
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteProduct(p.id, p.title)}
+                        className="p-1.5 text-stone-400 hover:text-red-600 transition-colors"
+                        title="Delete Product"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Lab Certification block */}
-      <div className={`screen-panel p-6 rounded-2xl border shadow-sm transition-colors ${hasAdulterants ? 'bg-red-50/50 border-red-200' : 'bg-white border-stone-200'}`}>
-        <div className="screen-header mb-6">
-          <h2 className={`text-lg font-bold border-b pb-4 ${hasAdulterants ? 'text-red-900 border-red-200' : 'text-stone-800 border-stone-100'}`}>
-            🔬 QA Lab Certificate Publisher
-          </h2>
+      {/* Lab Certification & Adulterant Screening Tool */}
+      <div className="bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm space-y-4">
+        <div className="border-b border-stone-100 pb-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-[#C59B27]" />
+            <h3 className="text-base font-serif font-bold text-[#2A2A2A]">Rapid Farm QA & Lab Certificate Generator</h3>
+          </div>
+          <p className="text-xs text-[#6b6661]">
+            Certify batch purity before warehouse dispatch. Screening for 4 primary adulterants (Urea, Starch, Detergent, Synthetic Dyes).
+          </p>
         </div>
 
-        {hasAdulterants && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-300 text-red-800 rounded-lg flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+        <form onSubmit={onLabFormSubmit} className="space-y-4 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <strong className="block text-sm font-bold">CANNOT CERTIFY BATCH: Adulterants Detected</strong>
-              <span className="text-xs">Immediate inspection of farm dispatch batch is required. Pure certificates are blocked.</span>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={onLabFormSubmit}>
-          <div className="form-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="form-group flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-stone-600 uppercase">Select Product:</label>
-              <select 
+              <label className="block font-bold text-[#2A2A2A] mb-1">Target Product *</label>
+              <select
                 value={selectedProductId}
                 onChange={(e) => setSelectedProductId(e.target.value)}
-                className="form-control bg-stone-50 border border-stone-200 px-3 py-2 rounded-lg text-sm text-stone-800 focus:outline-none focus:border-[#064e3b]"
+                className="w-full px-3.5 py-2.5 bg-[#FAF8F3] border border-stone-200 rounded-xl text-[#2A2A2A] font-bold"
               >
                 {products.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                  <option key={p.id} value={p.id}>{p.title}</option>
                 ))}
               </select>
             </div>
 
-            <div className="form-group flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-stone-600 uppercase">Batch Code:</label>
-              <input 
-                type="text" 
+            <div>
+              <label className="block font-bold text-[#2A2A2A] mb-1">New Batch Code *</label>
+              <input
+                type="text"
+                required
                 value={batchCodeInput}
-                onChange={(e) => setBatchCodeInput(e.target.value)}
-                placeholder="BATCH-2026-MILK02"
-                className="form-control bg-stone-50 border border-stone-200 px-3 py-2 rounded-lg text-sm text-stone-800 focus:outline-none focus:border-[#064e3b]"
+                onChange={(e) => setBatchCodeInput(e.target.value.toUpperCase())}
+                className="w-full px-3.5 py-2.5 bg-[#FAF8F3] border border-stone-200 rounded-xl text-[#2A2A2A] font-mono font-bold"
+                placeholder="e.g. BATCH-2026-MILK02"
               />
             </div>
 
-            <div className="form-group flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-stone-600 uppercase">Purity Score (%):</label>
-              <input 
-                type="text" 
+            <div>
+              <label className="block font-bold text-[#2A2A2A] mb-1">Purity Score (%)</label>
+              <input
+                type="text"
                 value={purityScoreInput}
                 onChange={(e) => setPurityScoreInput(e.target.value)}
-                placeholder="99.8%"
-                className="form-control bg-stone-50 border border-stone-200 px-3 py-2 rounded-lg text-sm text-stone-800 focus:outline-none focus:border-[#064e3b]"
-              />
-            </div>
-
-            <div className="form-group flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-stone-600 uppercase">pH Level:</label>
-              <input 
-                type="text" 
-                value={phInput}
-                onChange={(e) => setPhInput(e.target.value)}
-                className="form-control bg-stone-50 border border-stone-200 px-3 py-2 rounded-lg text-sm text-stone-800 focus:outline-none focus:border-[#064e3b]"
+                className="w-full px-3.5 py-2.5 bg-[#FAF8F3] border border-stone-200 rounded-xl text-[#064e3b] font-bold"
               />
             </div>
           </div>
 
-          <div className="mb-6">
-            <h4 className="text-xs font-bold text-stone-600 uppercase mb-3">Adulterant Screening Checklist:</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-stone-50/50 p-4 rounded-xl border border-stone-200">
-              <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer">
-                <input type="checkbox" checked={ureaDetected} onChange={(e) => setUreaDetected(e.target.checked)} className="rounded text-[#064e3b] focus:ring-[#064e3b] h-4 w-4" />
-                Urea Detected
+          {/* Adulterant Screening Checks */}
+          <div className="p-4 bg-[#FAF8F3] rounded-xl border border-stone-200/80 space-y-2">
+            <div className="font-bold text-[#2A2A2A] mb-2 uppercase text-[10px] tracking-wider">Adulterant Screening Safety Locks</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={ureaDetected} onChange={(e) => setUreaDetected(e.target.checked)} className="accent-red-600" />
+                <span className={ureaDetected ? 'text-red-600 font-bold' : 'text-[#6b6661]'}>Urea Detected</span>
               </label>
-              <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer">
-                <input type="checkbox" checked={starchDetected} onChange={(e) => setStarchDetected(e.target.checked)} className="rounded text-[#064e3b] focus:ring-[#064e3b] h-4 w-4" />
-                Starch Detected
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={starchDetected} onChange={(e) => setStarchDetected(e.target.checked)} className="accent-red-600" />
+                <span className={starchDetected ? 'text-red-600 font-bold' : 'text-[#6b6661]'}>Starch Powder</span>
               </label>
-              <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer">
-                <input type="checkbox" checked={detergentDetected} onChange={(e) => setDetergentDetected(e.target.checked)} className="rounded text-[#064e3b] focus:ring-[#064e3b] h-4 w-4" />
-                Detergent Detected
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={detergentDetected} onChange={(e) => setDetergentDetected(e.target.checked)} className="accent-red-600" />
+                <span className={detergentDetected ? 'text-red-600 font-bold' : 'text-[#6b6661]'}>Detergent Residue</span>
               </label>
-              <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer">
-                <input type="checkbox" checked={dyesDetected} onChange={(e) => setDyesDetected(e.target.checked)} className="rounded text-[#064e3b] focus:ring-[#064e3b] h-4 w-4" />
-                Synthetic Dyes
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={dyesDetected} onChange={(e) => setDyesDetected(e.target.checked)} className="accent-red-600" />
+                <span className={dyesDetected ? 'text-red-600 font-bold' : 'text-[#6b6661]'}>Synthetic Dyes</span>
               </label>
             </div>
           </div>
 
-          <button 
-            type="submit" 
-            disabled={hasAdulterants}
-            className={`btn-primary font-semibold text-xs px-6 py-3 rounded-lg transition-colors ${
-              hasAdulterants 
-                ? 'bg-stone-300 text-stone-500 cursor-not-allowed border-none' 
-                : 'bg-[#064e3b] text-white hover:bg-[#065f46]'
-            }`}
+          <button
+            type="submit"
+            className="px-5 py-2.5 bg-[#064e3b] hover:bg-[#065f46] text-white font-bold rounded-xl text-xs shadow-sm transition-all"
           >
-            Publish Lab Certificate
+            Issue Batch QA Purity Certificate
           </button>
         </form>
       </div>
-
-      {/* Add Product Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl border border-stone-200 animate-slide-up">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="font-bold text-stone-900 text-base">Add New Catalog Product</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-stone-400 hover:text-stone-600 transition"><X className="h-5 w-5" /></button>
-            </div>
-            <form onSubmit={handleAddProductSubmit} className="space-y-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-stone-600">Product Name:</label>
-                <input type="text" value={newProductName} onChange={e => setNewProductName(e.target.value)} className="bg-stone-50 border border-stone-200 px-3 py-2 rounded-lg text-sm" placeholder="Country Dairy Fresh Paneer" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-stone-600">Category:</label>
-                <select value={newProductCategory} onChange={e => setNewProductCategory(e.target.value)} className="bg-stone-50 border border-stone-200 px-3 py-2 rounded-lg text-sm">
-                  <option value="Dairy">Dairy</option>
-                  <option value="Oils">Oils</option>
-                  <option value="Honey">Honey</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-stone-600">Price (INR):</label>
-                  <input type="number" value={newProductPrice} onChange={e => setNewProductPrice(e.target.value)} className="bg-stone-50 border border-stone-200 px-3 py-2 rounded-lg text-sm" placeholder="250" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-stone-600">Initial Stock:</label>
-                  <input type="number" value={newProductStock} onChange={e => setNewProductStock(e.target.value)} className="bg-stone-50 border border-stone-200 px-3 py-2 rounded-lg text-sm" placeholder="100" />
-                </div>
-              </div>
-              <button type="submit" className="w-full bg-[#064e3b] text-white font-semibold py-3 rounded-lg text-sm mt-4 hover:bg-[#065f46] transition">
-                Create Product
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Product Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 z-50 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl border border-stone-200 animate-slide-up">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="font-bold text-stone-900 text-base">Edit Product</h3>
-              <button onClick={() => setShowEditModal(false)} className="text-stone-400 hover:text-stone-600 transition"><X className="h-5 w-5" /></button>
-            </div>
-            <form onSubmit={handleEditProductSubmit} className="space-y-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-stone-600">Product Name:</label>
-                <input type="text" value={editProductName} onChange={e => setEditProductName(e.target.value)} className="bg-stone-50 border border-stone-200 px-3 py-2 rounded-lg text-sm" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-stone-600">Category:</label>
-                <select value={editProductCategory} onChange={e => setEditProductCategory(e.target.value)} className="bg-stone-50 border border-stone-200 px-3 py-2 rounded-lg text-sm">
-                  <option value="Dairy">Dairy</option>
-                  <option value="Oils">Oils</option>
-                  <option value="Honey">Honey</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-stone-600">Price (INR):</label>
-                  <input type="number" value={editProductPrice} onChange={e => setEditProductPrice(e.target.value)} className="bg-stone-50 border border-stone-200 px-3 py-2 rounded-lg text-sm" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-stone-600">Stock:</label>
-                  <input type="number" value={editProductStock} onChange={e => setEditProductStock(e.target.value)} className="bg-stone-50 border border-stone-200 px-3 py-2 rounded-lg text-sm" />
-                </div>
-              </div>
-              <button type="submit" className="w-full bg-[#064e3b] text-white font-semibold py-3 rounded-lg text-sm mt-4 hover:bg-[#065f46] transition">
-                Save Product Changes
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

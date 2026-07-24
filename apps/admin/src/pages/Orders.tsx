@@ -12,6 +12,7 @@ interface Order {
   paymentStatus: string;
   date: string;
   waybill: string;
+  assignedDriver?: string;
 }
 
 interface OrdersProps {
@@ -198,20 +199,41 @@ export default function Orders({ orders, onUpdateOrders }: OrdersProps) {
 
           {/* Body */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Status updates */}
-            <div className="bg-[#064e3b]/5 p-4 rounded-xl border border-[#064e3b]/10 space-y-2">
-              <label className="text-xs font-bold text-[#064e3b] uppercase">Fulfillment Status</label>
-              <select
-                value={selectedOrder.status}
-                onChange={e => handleStatusChange(selectedOrder.id, e.target.value)}
-                className="w-full bg-white border border-stone-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-[#064e3b]"
-              >
-                <option value="PENDING">PENDING</option>
-                <option value="CONFIRMED">CONFIRMED</option>
-                <option value="SHIPPED">SHIPPED</option>
-                <option value="DELIVERED">DELIVERED</option>
-                <option value="CANCELLED">CANCELLED</option>
-              </select>
+            {/* Status updates & Driver Assignment */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[#064e3b]/5 p-4 rounded-xl border border-[#064e3b]/10">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-[#064e3b] uppercase">Fulfillment Status</label>
+                <select
+                  value={selectedOrder.status}
+                  onChange={e => handleStatusChange(selectedOrder.id, e.target.value)}
+                  className="w-full bg-white border border-stone-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-[#064e3b]"
+                >
+                  <option value="PENDING">PENDING</option>
+                  <option value="CONFIRMED">CONFIRMED</option>
+                  <option value="SHIPPED">SHIPPED</option>
+                  <option value="DELIVERED">DELIVERED</option>
+                  <option value="CANCELLED">CANCELLED</option>
+                </select>
+              </div>
+
+              {selectedOrder.deliveryType === 'LOCAL' && (
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#064e3b] uppercase">Assign Driver</label>
+                  <select
+                    value={selectedOrder.assignedDriver || 'Vikram Singh'}
+                    onChange={e => {
+                      const updated = orders.map(o => o.id === selectedOrder.id ? { ...o, assignedDriver: e.target.value } : o);
+                      onUpdateOrders(updated);
+                      setSelectedOrder({ ...selectedOrder, assignedDriver: e.target.value });
+                    }}
+                    className="w-full bg-white border border-stone-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-[#064e3b]"
+                  >
+                    <option value="Vikram Singh">Vikram Singh (Sector 62 Route)</option>
+                    <option value="Ramesh Kumar">Ramesh Kumar (Golf Course Route)</option>
+                    <option value="Sunil Verma">Sunil Verma (DLF Phase 5 Route)</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Customer info */}

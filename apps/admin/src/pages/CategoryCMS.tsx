@@ -1,0 +1,236 @@
+import React, { useState } from 'react';
+import { Layers, Plus, Trash2, Edit3 } from 'lucide-react';
+
+export interface CategoryItem {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  iconName: string;
+  displayOrder: number;
+  isActive: boolean;
+}
+
+interface CategoryCMSProps {
+  categories: CategoryItem[];
+  onUpdateCategories: (categories: CategoryItem[]) => void;
+}
+
+export default function CategoryCMS({ categories, onUpdateCategories }: CategoryCMSProps) {
+  const setCategories = (action: CategoryItem[] | ((prev: CategoryItem[]) => CategoryItem[])) => {
+    if (typeof action === 'function') {
+      onUpdateCategories(action(categories));
+    } else {
+      onUpdateCategories(action);
+    }
+  };
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
+
+  // Form State
+  const [nameInput, setNameInput] = useState('');
+  const [descInput, setDescInput] = useState('');
+  const [orderInput, setOrderInput] = useState('1');
+
+  const handleOpenAdd = () => {
+    setEditingCategory(null);
+    setNameInput('');
+    setDescInput('');
+    setOrderInput((categories.length + 1).toString());
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (cat: CategoryItem) => {
+    setEditingCategory(cat);
+    setNameInput(cat.name);
+    setDescInput(cat.description);
+    setOrderInput(cat.displayOrder.toString());
+    setIsModalOpen(true);
+  };
+
+  const handleSaveCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nameInput.trim()) return;
+
+    const slug = nameInput.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+    if (editingCategory) {
+      setCategories(prev => prev.map(c => {
+        if (c.id === editingCategory.id) {
+          return {
+            ...c,
+            name: nameInput.trim(),
+            slug,
+            description: descInput.trim(),
+            displayOrder: parseInt(orderInput) || 1,
+          };
+        }
+        return c;
+      }));
+    } else {
+      const newCat: CategoryItem = {
+        id: `cat-${Date.now()}`,
+        name: nameInput.trim(),
+        slug,
+        description: descInput.trim(),
+        iconName: 'Package',
+        displayOrder: parseInt(orderInput) || categories.length + 1,
+        isActive: true,
+      };
+      setCategories(prev => [...prev, newCat]);
+    }
+
+    setIsModalOpen(false);
+  };
+
+  const toggleCategoryActive = (id: string) => {
+    setCategories(prev => prev.map(c => {
+      if (c.id === id) return { ...c, isActive: !c.isActive };
+      return c;
+    }));
+  };
+
+  const handleDeleteCategory = (id: string) => {
+    if (confirm('Delete this category taxonomy? Products assigned to this category may need re-assignment.')) {
+      setCategories(prev => prev.filter(c => c.id !== id));
+    }
+  };
+
+  return (
+    <div className="space-y-6 text-stone-100">
+      {/* Header */}
+      <div className="flex items-center justify-between bg-stone-900 p-6 rounded-2xl border border-stone-800">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Layers className="h-6 w-6 text-amber-400" />
+            <h1 className="text-xl font-bold">Category & Taxonomy Management</h1>
+          </div>
+          <p className="text-xs text-stone-400">
+            Manage storefront product categories, display order, and active navigation filters.
+          </p>
+        </div>
+
+        <button
+          onClick={handleOpenAdd}
+          className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs rounded-xl shadow-md transition-all"
+        >
+          <Plus className="h-4 w-4" /> Add Category
+        </button>
+      </div>
+
+      {/* Category List */}
+      <div className="bg-stone-900 rounded-2xl border border-stone-800 overflow-hidden">
+        <table className="w-full text-left text-xs text-stone-300">
+          <thead className="bg-stone-800 text-stone-400 font-semibold border-b border-stone-700 uppercase tracking-wider">
+            <tr>
+              <th className="px-4 py-3.5">Order</th>
+              <th className="px-4 py-3.5">Category Name</th>
+              <th className="px-4 py-3.5">Slug</th>
+              <th className="px-4 py-3.5">Description</th>
+              <th className="px-4 py-3.5">Status</th>
+              <th className="px-4 py-3.5 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-stone-800">
+            {categories.sort((a, b) => a.displayOrder - b.displayOrder).map((cat) => (
+              <tr key={cat.id} className="hover:bg-stone-800/50 transition-colors">
+                <td className="px-4 py-3.5 font-mono text-amber-400 font-bold">{cat.displayOrder}</td>
+                <td className="px-4 py-3.5 font-bold text-stone-100">{cat.name}</td>
+                <td className="px-4 py-3.5 font-mono text-stone-400">{cat.slug}</td>
+                <td className="px-4 py-3.5 text-stone-400 max-w-xs truncate">{cat.description}</td>
+                <td className="px-4 py-3.5">
+                  <button
+                    onClick={() => toggleCategoryActive(cat.id)}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase transition-colors ${
+                      cat.isActive
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-stone-700/50 text-stone-400 border border-stone-700'
+                    }`}
+                  >
+                    {cat.isActive ? 'Active' : 'Disabled'}
+                  </button>
+                </td>
+                <td className="px-4 py-3.5 text-right space-x-2">
+                  <button
+                    onClick={() => handleOpenEdit(cat)}
+                    className="p-1.5 text-stone-400 hover:text-amber-400 transition-colors"
+                    title="Edit Category"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCategory(cat.id)}
+                    className="p-1.5 text-stone-400 hover:text-red-400 transition-colors"
+                    title="Delete Category"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Add / Edit Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-stone-800 border border-stone-700 w-full max-w-md rounded-2xl p-6 shadow-2xl text-stone-100 space-y-4">
+            <h3 className="text-lg font-bold">{editingCategory ? 'Edit Category' : 'Add New Category'}</h3>
+            <form onSubmit={handleSaveCategory} className="space-y-3 text-xs">
+              <div>
+                <label className="block text-stone-300 mb-1 font-semibold">Category Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-900 border border-stone-700 rounded-lg text-stone-100"
+                  placeholder="e.g. Organic Oils"
+                />
+              </div>
+
+              <div>
+                <label className="block text-stone-300 mb-1 font-semibold">Display Order</label>
+                <input
+                  type="number"
+                  value={orderInput}
+                  onChange={(e) => setOrderInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-900 border border-stone-700 rounded-lg text-amber-400 font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-stone-300 mb-1 font-semibold">Description</label>
+                <textarea
+                  rows={3}
+                  value={descInput}
+                  onChange={(e) => setDescInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-900 border border-stone-700 rounded-lg text-stone-100"
+                  placeholder="Short description for storefront filter..."
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 bg-stone-700 rounded-lg text-stone-200 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-amber-500 text-stone-950 rounded-lg font-bold"
+                >
+                  {editingCategory ? 'Save Changes' : 'Create Category'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
