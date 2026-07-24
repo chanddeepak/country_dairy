@@ -88,7 +88,7 @@ export default function ProductDetailPage() {
       price: basePrice,
       originalPrice: baseOriginalPrice,
       categoryLabel: catLabel,
-      variants: formattedVariants,
+      variants: formattedVariants.length > 0 ? formattedVariants : prod.variants,
     };
 
     setProduct(normalizedProd);
@@ -186,12 +186,13 @@ export default function ProductDetailPage() {
   const metadata = product.metadata || {};
 
   // Variant-driven dynamic packaging & net quantity
-  const currentVolumeOrWeight = selectedVariant?.volumeOrWeight || metadata.volume || metadata.weight || '1 Litre';
+  const volStr = selectedVariant?.volumeOrWeight || (selectedVariant as any)?.sizeLabel || metadata.volume || metadata.weight || '1 Litre';
+  const currentVolumeOrWeight = volStr;
   const currentPackaging = (
-    selectedVariant?.volumeOrWeight?.includes('Dolchi') ? 'Traditional Metal Dolchi' :
-    selectedVariant?.volumeOrWeight?.includes('Tin') ? 'Food-Grade Tin Can' :
-    selectedVariant?.volumeOrWeight?.includes('Bottle') ? 'Glass Bottle' :
-    selectedVariant?.volumeOrWeight?.includes('Canister') ? 'Family Canister' :
+    volStr.includes('Dolchi') ? 'Traditional Metal Dolchi' :
+    volStr.includes('Tin') ? 'Food-Grade Tin Can' :
+    volStr.includes('Bottle') ? 'Glass Bottle' :
+    volStr.includes('Canister') ? 'Family Canister' :
     metadata.packaging || 'Glass Jar'
   );
 

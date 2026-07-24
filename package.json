@@ -13,6 +13,9 @@
     "lint": "turbo run lint",
     "clean": "git clean -xdf node_modules"
   },
+  "prisma": {
+    "seed": "node packages/database/prisma/seed.js"
+  },
   "devDependencies": {
     "turbo": "^2.0.0"
   },
