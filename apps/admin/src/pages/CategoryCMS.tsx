@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Layers, Plus, Trash2, Edit3 } from 'lucide-react';
+import { adminApi } from '../services/apiClient';
 
 export interface CategoryItem {
   id: string;
@@ -49,25 +50,26 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
     setIsModalOpen(true);
   };
 
-  const handleSaveCategory = (e: React.FormEvent) => {
+  const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nameInput.trim()) return;
 
     const slug = nameInput.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
     if (editingCategory) {
-      setCategories(prev => prev.map(c => {
-        if (c.id === editingCategory.id) {
-          return {
-            ...c,
-            name: nameInput.trim(),
-            slug,
-            description: descInput.trim(),
-            displayOrder: parseInt(orderInput) || 1,
-          };
-        }
-        return c;
-      }));
+      const updatedCat: CategoryItem = {
+        ...editingCategory,
+        name: nameInput.trim(),
+        slug,
+        description: descInput.trim(),
+        displayOrder: parseInt(orderInput) || 1,
+      };
+      setCategories(prev => prev.map(c => c.id === editingCategory.id ? updatedCat : c));
+      try {
+        await adminApi.updateCategory(editingCategory.id, updatedCat);
+      } catch (err) {
+        console.warn('API updateCategory error:', err);
+      }
     } else {
       const newCat: CategoryItem = {
         id: `cat-${Date.now()}`,
@@ -79,21 +81,39 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
         isActive: true,
       };
       setCategories(prev => [...prev, newCat]);
+      try {
+        const created = await adminApi.createCategory(newCat);
+        if (created?.id) {
+          setCategories(prev => prev.map(c => c.id === newCat.id ? created : c));
+        }
+      } catch (err) {
+        console.warn('API createCategory error:', err);
+      }
     }
 
     setIsModalOpen(false);
   };
 
-  const toggleCategoryActive = (id: string) => {
-    setCategories(prev => prev.map(c => {
-      if (c.id === id) return { ...c, isActive: !c.isActive };
-      return c;
-    }));
+  const toggleCategoryActive = async (id: string) => {
+    const target = categories.find(c => c.id === id);
+    if (!target) return;
+    const nextActive = !target.isActive;
+    setCategories(prev => prev.map(c => c.id === id ? { ...c, isActive: nextActive } : c));
+    try {
+      await adminApi.updateCategory(id, { isActive: nextActive });
+    } catch (err) {
+      console.warn('API toggle category error:', err);
+    }
   };
 
-  const handleDeleteCategory = (id: string) => {
+  const handleDeleteCategory = async (id: string) => {
     if (confirm('Delete this category taxonomy? Products assigned to this category may need re-assignment.')) {
       setCategories(prev => prev.filter(c => c.id !== id));
+      try {
+        await adminApi.deleteCategory(id);
+      } catch (err) {
+        console.warn('API deleteCategory error:', err);
+      }
     }
   };
 

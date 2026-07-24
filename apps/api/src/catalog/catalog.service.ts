@@ -191,7 +191,7 @@ export class CatalogService {
         slug,
         tagline: dto.tagline || '',
         storyDescription: dto.storyDescription || '',
-        status: dto.status || 'LIVE',
+        status: dto.status || 'DRAFT',
         badgeText: dto.badgeText || '',
         isFeatured: dto.isFeatured ?? false,
         displayOrder: dto.displayOrder ? Number(dto.displayOrder) : 1,

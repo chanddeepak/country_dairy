@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sliders, Save } from 'lucide-react';
 import type { FeatureFlags } from '../types';
+import { adminApi } from '../services/apiClient';
 
 export default function FeatureFlagsPanel() {
   const [flags, setFlags] = useState<FeatureFlags>({
@@ -11,8 +12,27 @@ export default function FeatureFlagsPanel() {
     ENABLE_USER_ACCOUNTS: true,
   });
 
-  const toggleFlag = (key: keyof FeatureFlags) => {
+  useEffect(() => {
+    adminApi.getFeatureFlags()
+      .then(liveFlags => {
+        if (liveFlags && liveFlags.length > 0) {
+          const map: any = { ...flags };
+          liveFlags.forEach(f => {
+            map[f.key] = f.isEnabled;
+          });
+          setFlags(map);
+        }
+      })
+      .catch(err => console.warn('API getFeatureFlags warning:', err));
+  }, []);
+
+  const toggleFlag = async (key: keyof FeatureFlags) => {
     setFlags(prev => ({ ...prev, [key]: !prev[key] }));
+    try {
+      await adminApi.toggleFeatureFlag(key);
+    } catch (err) {
+      console.warn('API toggleFeatureFlag warning:', err);
+    }
   };
 
   const handleSave = () => {

@@ -4,8 +4,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { API_URL } from '../../lib/constants';
 
-const HERO_SLIDES = [
+const STATIC_HERO_SLIDES = [
   {
     id: 1,
     image: '/images/himalayan-hero-banner-v2.png',
@@ -45,25 +46,48 @@ const HERO_SLIDES = [
 ];
 
 export default function HeroSection() {
+  const [slides, setSlides] = useState<any[]>(STATIC_HERO_SLIDES);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const nextSlide = () => {
-    setActiveIndex((prev) => (prev + 1) % HERO_SLIDES.length);
+  useEffect(() => {
+    fetchHeroBanners();
+  }, []);
+
+  const fetchHeroBanners = async () => {
+    try {
+      const res = await fetch(`${API_URL}/cms/hero`);
+      if (res.ok) {
+        const banners = await res.json();
+        if (banners && banners.length > 0) {
+          const mapped = banners.map((b: any, idx: number) => ({
+            id: b.id || idx,
+            image: b.imageUrl || '/images/hero-banner.png',
+            objectPosition: 'center',
+            headline: b.title,
+            subtitle: b.subtitle,
+            ctaText: b.ctaText || 'Shop All Products',
+            ctaHref: b.ctaLink || '/products',
+          }));
+          setSlides(mapped);
+        }
+      }
+    } catch (err) {
+      console.warn('API fetchHeroBanners warning:', err);
+    }
   };
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (!isPaused) {
+    if (!isPaused && slides.length > 0) {
       interval = setInterval(() => {
-        setActiveIndex((prev) => (prev + 1) % HERO_SLIDES.length);
+        setActiveIndex((prev) => (prev + 1) % slides.length);
       }, 10000);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isPaused]);
+  }, [isPaused, slides.length]);
 
   return (
     <section 
@@ -73,7 +97,7 @@ export default function HeroSection() {
     >
       <div className="relative w-full h-[520px] md:h-[600px]">
         {/* Slides */}
-        {HERO_SLIDES.map((slide, index) => (
+        {slides.map((slide, index) => (
           <div
             key={slide.id}
             className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
@@ -83,7 +107,7 @@ export default function HeroSection() {
             {/* Background image */}
             <Image
               src={slide.image}
-              alt={slide.headline}
+              alt={slide.headline || 'Hero banner'}
               fill
               className="object-cover scale-105 transition-transform duration-1000"
               style={{ objectPosition: slide.objectPosition || 'center' }}
@@ -99,14 +123,20 @@ export default function HeroSection() {
                 <div className="inline-flex items-center gap-1 bg-[#3A6038]/85 backdrop-blur-xs text-amber-200 border border-amber-300/30 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider shadow-sm">
                   <span>⛰️ Devbhoomi Uttarakhand Origin</span>
                 </div>
+<<<<<<< HEAD
                 <h1 className={`font-serif font-black leading-tight text-white drop-shadow-lg ${slide.headlineSize || 'text-3xl sm:text-4xl md:text-5xl'}`}>
                   {slide.headline.split('. ').map((part, i, arr) => (
+=======
+                <h1 className="font-serif font-black text-4xl sm:text-5xl md:text-6xl leading-tight text-white drop-shadow-lg">
+                  {(slide.headline || '').split('. ').map((part: string, i: number, arr: string[]) => (
+>>>>>>> 3cee461 (fix(wiring): resolve CORS dev port allowlist, CategoryCMS API CRUD, homepage live catalog/hero fetching, and default product DRAFT toggle status)
                     <React.Fragment key={i}>
                       {part}{i < arr.length - 1 ? '.' : ''}
                       {i < arr.length - 1 && <span className="block" />}
                     </React.Fragment>
                   ))}
                 </h1>
+<<<<<<< HEAD
                 {slide.subtitle && (
                   <p className="text-white/90 text-sm md:text-base max-w-md leading-relaxed drop-shadow">
                     {slide.subtitle}
@@ -121,6 +151,18 @@ export default function HeroSection() {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </div>
+=======
+                <p className="text-white/90 text-base md:text-lg max-w-md leading-relaxed drop-shadow">
+                  {slide.subtitle}
+                </p>
+                <Link
+                  href={slide.ctaHref || '/products'}
+                  className="inline-flex items-center bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold px-8 py-4 rounded-sm uppercase tracking-wider text-sm shadow-lg transition-all hover:shadow-xl"
+                >
+                  {slide.ctaText || 'Shop All Products'}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+>>>>>>> 3cee461 (fix(wiring): resolve CORS dev port allowlist, CategoryCMS API CRUD, homepage live catalog/hero fetching, and default product DRAFT toggle status)
               </div>
             </div>
           </div>
@@ -128,7 +170,7 @@ export default function HeroSection() {
 
         {/* Indicators */}
         <div className="absolute bottom-6 left-0 right-0 z-30 flex justify-center space-x-3">
-          {HERO_SLIDES.map((_, index) => (
+          {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => setActiveIndex(index)}

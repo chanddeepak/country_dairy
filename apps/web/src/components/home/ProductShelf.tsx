@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { FALLBACK_PRODUCTS, Product, getExpandedProducts } from '../../lib/constants';
+<<<<<<< HEAD
+import { FALLBACK_PRODUCTS, API_URL, Product, getExpandedProducts } from '../../lib/constants';
 import ProductCard from '../product/ProductCard';
 
 interface ProductShelfProps {
@@ -23,9 +24,54 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const expanded = getExpandedProducts(FALLBACK_PRODUCTS);
-    setProducts(expanded);
+    fetchProducts();
   }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch(`${API_URL}/catalog/products`);
+      if (res.ok) {
+        const liveProducts = await res.json();
+        if (liveProducts && liveProducts.length > 0) {
+          const mapped = liveProducts.map((p: any) => ({
+            id: p.id,
+            name: p.title || p.name,
+            slug: p.slug,
+            category: p.categoryName || (typeof p.category === 'string' ? p.category : p.category?.name) || 'A2 Cow Milk',
+            tagline: p.tagline || '',
+            description: p.storyDescription || p.description || '',
+            badgeText: p.badgeText || '',
+            isSubscriptionAllowed: p.isSubscriptionAllowed ?? false,
+            price: String(p.variants?.[0]?.sellingPrice || p.price || 100),
+            originalPrice: String(p.variants?.[0]?.mrpPrice || p.originalPrice || 120),
+            image: p.galleryImages?.[0]?.imageUrl || p.image || '/images/products/milk-bottle.png',
+            variants: p.variants?.map((v: any) => ({
+              id: v.id,
+              name: v.sizeLabel,
+              volumeOrWeight: v.sizeLabel,
+              price: String(v.sellingPrice),
+              originalPrice: String(v.mrpPrice),
+            })) || [],
+          }));
+          setProducts(mapped);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('API Server offline, using fallback products:', err);
+    }
+    const expanded = getExpandedProducts(FALLBACK_PRODUCTS);
+    const primaryVariants = expanded.filter((p) => {
+      const vol = p.metadata?.volume || p.name;
+      if (vol.includes('2.5L')) return false;
+      const isOil = p.category === 'Wood-Pressed Oils' || p.slug.includes('mustard-oil');
+      if (isOil) {
+        return vol.includes('1L');
+      }
+      return vol.includes('1L') || vol.includes('5L');
+    });
+    setProducts(primaryVariants);
+  };
 
   const filteredProducts = activeCategory === 'All'
     ? products

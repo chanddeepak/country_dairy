@@ -63,6 +63,17 @@ export default function Inventory({
     onUpdateProducts(updated);
   };
 
+  const toggleProductStatus = (productId: string) => {
+    const updated = products.map(p => {
+      if (p.id === productId) {
+        const nextStatus = p.status === 'LIVE' ? 'DRAFT' : 'LIVE';
+        return { ...p, status: nextStatus as any };
+      }
+      return p;
+    });
+    onUpdateProducts(updated);
+  };
+
   const handleDeleteProduct = (productId: string, title: string) => {
     if (confirm(`Are you sure you want to delete "${title}" from the catalog?`)) {
       onUpdateProducts(products.filter(p => p.id !== productId));
@@ -159,16 +170,27 @@ export default function Inventory({
                       </span>
                     </td>
 
-                    {/* Status Badge */}
+                    {/* Status Badge with Click-to-Toggle (Make Live / Draft) */}
                     <td className="p-4">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                        isOutOfStock ? 'bg-red-50 text-red-700 border border-red-200' :
-                        p.status === 'LIVE' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                        p.status === 'DRAFT' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                        'bg-stone-100 text-stone-600 border border-stone-200'
-                      }`}>
-                        {isOutOfStock ? 'OUT OF STOCK' : (p.status || 'LIVE')}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => toggleProductStatus(p.id)}
+                        className="group flex items-center gap-1.5 focus:outline-none"
+                        title={p.status === 'LIVE' ? 'Click to set status to DRAFT (Offline)' : 'Click to set status to LIVE (Published)'}
+                      >
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase transition-all group-hover:scale-105 cursor-pointer ${
+                          isOutOfStock ? 'bg-red-50 text-red-700 border border-red-200' :
+                          p.status === 'LIVE' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 group-hover:bg-emerald-100' :
+                          'bg-amber-50 text-amber-700 border border-amber-200 group-hover:bg-amber-100'
+                        }`}>
+                          {isOutOfStock ? 'OUT OF STOCK' : (p.status || 'DRAFT')}
+                        </span>
+                        {p.status === 'LIVE' ? (
+                          <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200">LIVE</span>
+                        ) : (
+                          <span className="text-[10px] font-black text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200">DRAFT (OFF)</span>
+                        )}
+                      </button>
                     </td>
 
                     {/* Price & Variants */}

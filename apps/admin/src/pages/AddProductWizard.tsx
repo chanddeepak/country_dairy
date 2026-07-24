@@ -55,9 +55,9 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
   const [galleryImages, setGalleryImages] = useState<ProductImage[]>([]);
 
   // Step 4: Visibility, Specifications & Nutrition
-  const [status, setStatus] = useState<ProductStatus>('LIVE');
+  const [status, setStatus] = useState<ProductStatus>('DRAFT'); // Default DRAFT (OFF/Not Live)
   const [badgeText, setBadgeText] = useState('★ FRESH ARRIVAL');
-  const [isFeatured, setIsFeatured] = useState(true);
+  const [isFeatured, setIsFeatured] = useState(false);
   const [isSubscriptionAllowed, setIsSubscriptionAllowed] = useState(false); // Default OFF
 
   // Explicit Storefront Details
