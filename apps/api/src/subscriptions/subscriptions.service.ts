@@ -56,9 +56,9 @@ export class SubscriptionsService {
         include: {
           product: {
             select: {
-              name: true,
-              price: true,
-              imageUrls: true,
+              title: true,
+              galleryImages: true,
+              variants: true,
             },
           },
         },
@@ -116,9 +116,9 @@ export class SubscriptionsService {
       include: {
         product: {
           select: {
-            name: true,
-            price: true,
-            imageUrls: true,
+            title: true,
+            galleryImages: true,
+            variants: true,
           },
         },
         deliveries: {
@@ -134,27 +134,25 @@ export class SubscriptionsService {
     });
   }
 
-  /**
-   * Nightly cron processor to execute daily deliveries and deduct wallet funds.
-   */
-  async processDailyDeliveries(targetDate: Date) {
-    this.logger.log(`[Subscription Scheduler] Launching delivery processor for date: ${targetDate.toDateString()}`);
-    
-    // Set hours to midnight for date matches
-    const searchDate = new Date(targetDate);
+  async processDailySubscriptions(date?: string) {
+    const searchDate = date ? new Date(date) : new Date();
     searchDate.setHours(0, 0, 0, 0);
 
+    this.logger.log(`[Scheduler] Running daily subscription processing for date: ${searchDate.toISOString()}`);
+
     try {
-      // Find active subscriptions where nextDelivery falls on or before searchDate
       const activeSubs = await this.prisma.subscription.findMany({
         where: {
           status: 'ACTIVE',
           nextDelivery: {
-            lte: searchDate,
+            gte: searchDate,
+            lt: new Date(searchDate.getTime() + 24 * 60 * 60 * 1000),
           },
         },
         include: {
-          product: true,
+          product: {
+            include: { variants: true },
+          },
           user: true,
         },
       });
@@ -165,7 +163,7 @@ export class SubscriptionsService {
       let failCount = 0;
 
       for (const sub of activeSubs) {
-        const cost = Number(sub.product.price) * sub.quantity;
+        const cost = Number((sub.product as any).variants?.[0]?.sellingPrice || 100) * sub.quantity;
         const balance = Number(sub.user.walletBalance);
 
         if (balance >= cost) {
@@ -186,7 +184,7 @@ export class SubscriptionsService {
                 userId: sub.userId,
                 amount: cost,
                 type: 'DEBIT',
-                description: `Daily subscription delivery: ${sub.quantity}x ${sub.product.name}`,
+                description: `Daily subscription delivery: ${sub.quantity}x ${sub.product.title}`,
                 referenceId: sub.id,
               },
             });
@@ -215,7 +213,7 @@ export class SubscriptionsService {
             });
           });
 
-          this.logger.log(`[Scheduler] SUCCESS: Scheduled delivery of ${sub.product.name} to user: ${sub.user.name ?? sub.user.phone}`);
+          this.logger.log(`[Scheduler] SUCCESS: Scheduled delivery of ${sub.product.title} to user: ${sub.user.name ?? sub.user.phone}`);
           successCount++;
         } else {
           // Insufficient Balance: Log failed delivery, do not deduct, pause subscription

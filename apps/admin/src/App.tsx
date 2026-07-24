@@ -22,6 +22,7 @@ import AuditLogPage from './pages/AuditLog';
 import CMSManager from './pages/CMSManager';
 import DriverView from './pages/DriverView';
 import type { CategoryItem } from './pages/CategoryCMS';
+import { adminApi } from './services/apiClient';
 
 export const INITIAL_PRODUCTS: Product[] = [
   {
@@ -171,6 +172,29 @@ function AdminMainContent() {
     { id: 'cat-4', name: 'Spices & Staples', slug: 'spices-staples', description: 'Organic rock salt, turmeric powder & traditional grains', iconName: 'Sparkles', displayOrder: 4, isActive: false },
   ]);
 
+  // Fetch live products & categories from NestJS API server
+  useEffect(() => {
+    adminApi.getProducts()
+      .then(liveProducts => {
+        if (liveProducts && liveProducts.length > 0) {
+          setProducts(liveProducts);
+        }
+      })
+      .catch(err => {
+        console.warn('API Server offline, using local seed catalog:', err);
+      });
+
+    adminApi.getCategories()
+      .then(liveCats => {
+        if (liveCats && liveCats.length > 0) {
+          setCategories(liveCats);
+        }
+      })
+      .catch(err => {
+        console.warn('API Server offline, using local seed categories:', err);
+      });
+  }, []);
+
   // Seeded mock order database records
   const [orders, setOrders] = useState([
     { id: 'ORD-10492', customer: 'Amit Sharma', items: 'A2 Cow Milk (6L)', total: 570, deliveryType: 'LOCAL', status: 'CONFIRMED', paymentStatus: 'PAID', date: 'July 5, 2026', waybill: '' },
@@ -249,9 +273,14 @@ function AdminMainContent() {
               <AddProductWizard
                 categories={categories}
                 onCancel={() => setIsAddingNewProduct(false)}
-                onComplete={(newProd) => {
+                onComplete={async (newProd) => {
                   setProducts(prev => [newProd, ...prev]);
                   setIsAddingNewProduct(false);
+                  try {
+                    await adminApi.createProduct(newProd);
+                  } catch (err) {
+                    console.warn('API save warning:', err);
+                  }
                 }}
               />
             ) : editingProduct ? (
@@ -259,9 +288,14 @@ function AdminMainContent() {
                 categories={categories}
                 initialProduct={editingProduct}
                 onBack={() => setEditingProduct(null)}
-                onSave={(updated) => {
+                onSave={async (updated) => {
                   setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
                   setEditingProduct(null);
+                  try {
+                    await adminApi.updateProduct(updated.id, updated);
+                  } catch (err) {
+                    console.warn('API update warning:', err);
+                  }
                 }}
               />
             ) : (

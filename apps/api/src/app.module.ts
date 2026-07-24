@@ -9,6 +9,7 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { MediaModule } from './media/media.module';
 import { OrdersModule } from './orders/orders.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { CmsModule } from './cms/cms.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     MediaModule,
     OrdersModule,
     SubscriptionsModule,
+    CmsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

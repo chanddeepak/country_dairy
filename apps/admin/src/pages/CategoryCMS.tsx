@@ -5,10 +5,10 @@ export interface CategoryItem {
   id: string;
   name: string;
   slug: string;
-  description: string;
-  iconName: string;
-  displayOrder: number;
-  isActive: boolean;
+  description?: string;
+  iconName?: string;
+  displayOrder?: number;
+  isActive?: boolean;
 }
 
 interface CategoryCMSProps {
@@ -44,8 +44,8 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
   const handleOpenEdit = (cat: CategoryItem) => {
     setEditingCategory(cat);
     setNameInput(cat.name);
-    setDescInput(cat.description);
-    setOrderInput(cat.displayOrder.toString());
+    setDescInput(cat.description || '');
+    setOrderInput((cat.displayOrder || 1).toString());
     setIsModalOpen(true);
   };
 
@@ -133,7 +133,7 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-800">
-            {categories.sort((a, b) => a.displayOrder - b.displayOrder).map((cat) => (
+            {categories.slice().sort((a, b) => (a.displayOrder || 1) - (b.displayOrder || 1)).map((cat) => (
               <tr key={cat.id} className="hover:bg-stone-800/50 transition-colors">
                 <td className="px-4 py-3.5 font-mono text-amber-400 font-bold">{cat.displayOrder}</td>
                 <td className="px-4 py-3.5 font-bold text-stone-100">{cat.name}</td>

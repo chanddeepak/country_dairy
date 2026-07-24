@@ -16,12 +16,11 @@ export class CartService {
           product: {
             select: {
               id: true,
-              name: true,
+              title: true,
               slug: true,
-              price: true,
-              imageUrls: true,
               isSubscriptionAllowed: true,
-              stock: true,
+              galleryImages: true,
+              variants: true,
             },
           },
         },

@@ -1,4 +1,8 @@
-export type Role = 'CUSTOMER' | 'ADMIN' | 'DELIVERY';
+export type Role = 'CUSTOMER' | 'SUPER_ADMIN' | 'CATALOG_MANAGER' | 'ORDER_MANAGER' | 'DELIVERY_DRIVER';
+
+export type ProductStatus = 'LIVE' | 'DRAFT' | 'OUT_OF_STOCK' | 'ARCHIVED';
+
+export type PackagingType = 'GLASS_JAR' | 'METAL_DOLCHI' | 'FOOD_GRADE_TIN' | 'PET_BOTTLE' | 'ECO_POUCH';
 
 export interface User {
   id: string;
@@ -7,50 +11,106 @@ export interface User {
   name?: string;
   role: Role;
   walletBalance: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface Address {
+export interface ProductVariant {
   id: string;
-  userId: string;
-  street: string;
-  city: string;
-  state: string;
-  postalCode: string;
-  country: string;
-  isDefault: boolean;
-  latitude?: number;
-  longitude?: number;
-  createdAt: Date;
-  updatedAt: Date;
+  productId: string;
+  sku: string;
+  sizeLabel: string;
+  sellingPrice: number;
+  mrpPrice: number;
+  stockQuantity: number;
+  lowStockThreshold: number;
+  packagingType: PackagingType;
+  isActive: boolean;
+  displayOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ProductImage {
+  id: string;
+  productId: string;
+  imageUrl: string;
+  displayOrder: number;
+  isPrimary: boolean;
 }
 
 export interface Product {
   id: string;
-  categoryId: string;
-  name: string;
+  categoryId?: string;
+  categoryName?: string;
+  title: string;
   slug: string;
-  description: string;
-  price: number;
-  stock: number;
-  imageUrls: string[];
-  videoUrls: string[];
-  isSubscriptionAllowed: boolean;
+  tagline?: string;
+  storyDescription?: string;
+  status?: ProductStatus;
+  badgeText?: string;
+  isFeatured?: boolean;
+  displayOrder?: number;
+  isSubscriptionAllowed?: boolean;
+  batchCode?: string;
+  verified?: boolean;
+  galleryImages?: ProductImage[];
+  variants?: ProductVariant[];
   nutritionFacts?: Record<string, string>;
+  specifications?: Record<string, string>;
   metadata?: Record<string, any>;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export interface ProductReview {
+export interface CategoryItem {
   id: string;
-  userId: string;
-  productId: string;
-  rating: number;
-  title?: string;
-  comment?: string;
-  mediaUrls: string[];
-  createdAt: Date;
-  updatedAt: Date;
+  name: string;
+  slug: string;
+  description?: string;
+  iconName?: string;
+  displayOrder?: number;
+  isActive?: boolean;
+}
+
+export interface HeroBanner {
+  id: string;
+  title: string;
+  subtitle: string;
+  imageUrl: string;
+  ctaText: string;
+  ctaLink: string;
+  badgeText?: string;
+  displayOrder: number;
+  isActive: boolean;
+}
+
+export interface TrustBadge {
+  id: string;
+  title: string;
+  subtitle: string;
+  iconName: string;
+  displayOrder: number;
+  isActive: boolean;
+}
+
+export interface AuditLog {
+  id: string;
+  userId?: string;
+  userName: string;
+  action: string;
+  entity: string;
+  entityId?: string;
+  payloadBefore?: any;
+  payloadAfter?: any;
+  ipAddress?: string;
+  createdAt: string;
+}
+
+export interface FeatureFlag {
+  id: string;
+  key: string;
+  description: string;
+  isEnabled: boolean;
+  rolloutPercentage: number;
 }

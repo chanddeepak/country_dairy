@@ -40,7 +40,8 @@ export class OrdersService {
     // Calculate total amount
     let subtotal = 0;
     for (const item of cartItems) {
-      subtotal += Number(item.product.price) * item.quantity;
+      const price = Number((item.product as any).variants?.[0]?.sellingPrice || 100);
+      subtotal += price * item.quantity;
     }
 
     // Delivery charges rules: free above 500 INR, else 40 INR
@@ -63,7 +64,7 @@ export class OrdersService {
           create: cartItems.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
-            price: item.product.price,
+            price: Number((item.product as any).variants?.[0]?.sellingPrice || 100),
           })),
         },
       },
@@ -163,9 +164,9 @@ export class OrdersService {
           include: {
             product: {
               select: {
-                name: true,
+                title: true,
                 slug: true,
-                imageUrls: true,
+                galleryImages: true,
               },
             },
           },

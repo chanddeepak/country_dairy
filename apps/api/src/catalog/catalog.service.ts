@@ -11,11 +11,9 @@ export class CatalogService {
     this.logger.log('Fetching all product categories');
     try {
       return await this.prisma.category.findMany({
+        orderBy: { displayOrder: 'asc' },
         include: {
           subCategories: true,
-        },
-        where: {
-          parentId: null, // Return root level categories with children
         },
       });
     } catch (error) {
@@ -24,8 +22,46 @@ export class CatalogService {
     }
   }
 
-  async getProducts(categoryId?: string, search?: string) {
-    this.logger.log(`Fetching products (categoryId: ${categoryId ?? 'none'}, search: ${search ?? 'none'})`);
+  async createCategory(dto: any) {
+    this.logger.log(`Creating category: ${dto.name}`);
+    const slug = dto.slug || dto.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    return await this.prisma.category.create({
+      data: {
+        name: dto.name,
+        slug,
+        description: dto.description || '',
+        iconName: dto.iconName || 'Package',
+        displayOrder: dto.displayOrder ? Number(dto.displayOrder) : 1,
+        isActive: dto.isActive !== undefined ? dto.isActive : true,
+      },
+    });
+  }
+
+  async updateCategory(id: string, dto: any) {
+    this.logger.log(`Updating category: ${id}`);
+    const existing = await this.prisma.category.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Category ${id} not found`);
+
+    return await this.prisma.category.update({
+      where: { id },
+      data: {
+        name: dto.name ?? existing.name,
+        slug: dto.slug ?? existing.slug,
+        description: dto.description ?? existing.description,
+        iconName: dto.iconName ?? existing.iconName,
+        displayOrder: dto.displayOrder !== undefined ? Number(dto.displayOrder) : existing.displayOrder,
+        isActive: dto.isActive !== undefined ? dto.isActive : existing.isActive,
+      },
+    });
+  }
+
+  async deleteCategory(id: string) {
+    this.logger.log(`Deleting category: ${id}`);
+    return await this.prisma.category.delete({ where: { id } });
+  }
+
+  async getProducts(categoryId?: string, search?: string, status?: string) {
+    this.logger.log(`Fetching products (category: ${categoryId}, search: ${search}, status: ${status})`);
     try {
       const whereClause: any = {};
 
@@ -33,21 +69,33 @@ export class CatalogService {
         whereClause.categoryId = categoryId;
       }
 
+      if (status) {
+        whereClause.status = status;
+      }
+
       if (search) {
         whereClause.OR = [
-          { name: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
+          { title: { contains: search, mode: 'insensitive' } },
+          { tagline: { contains: search, mode: 'insensitive' } },
+          { storyDescription: { contains: search, mode: 'insensitive' } },
         ];
       }
 
       const products = await this.prisma.product.findMany({
         where: whereClause,
+        orderBy: { displayOrder: 'asc' },
         include: {
           category: {
             select: {
               name: true,
               slug: true,
             },
+          },
+          variants: {
+            orderBy: { displayOrder: 'asc' },
+          },
+          galleryImages: {
+            orderBy: { displayOrder: 'asc' },
           },
           reviews: {
             select: {
@@ -57,7 +105,6 @@ export class CatalogService {
         },
       });
 
-      // Calculate aggregate rating parameters dynamically
       return products.map((product) => {
         const totalReviews = product.reviews.length;
         const averageRating =
@@ -67,9 +114,10 @@ export class CatalogService {
 
         return {
           ...product,
+          categoryName: product.category?.name || 'Dairy',
           averageRating,
           totalReviews,
-          reviews: undefined, // Omit detailed reviews for list view
+          reviews: undefined,
         };
       });
     } catch (error) {
@@ -78,54 +126,152 @@ export class CatalogService {
     }
   }
 
-  async getProductBySlug(slug: string) {
-    this.logger.log(`Fetching detailed product profile for slug: ${slug}`);
+  async getProductBySlugOrId(slugOrId: string) {
+    this.logger.log(`Fetching detailed product profile for: ${slugOrId}`);
     try {
-      const product = await this.prisma.product.findUnique({
-        where: { slug },
+      const product = await this.prisma.product.findFirst({
+        where: {
+          OR: [{ id: slugOrId }, { slug: slugOrId }],
+        },
         include: {
           category: true,
+          variants: { orderBy: { displayOrder: 'asc' } },
+          galleryImages: { orderBy: { displayOrder: 'asc' } },
           labReports: {
-            orderBy: {
-              testDate: 'desc',
-            },
-            take: 1, // Only return the latest lab test report verification
+            orderBy: { testDate: 'desc' },
+            take: 1,
           },
           reviews: {
             include: {
               user: {
-                select: {
-                  name: true,
-                },
+                select: { name: true },
               },
             },
-            orderBy: {
-              createdAt: 'desc',
-            },
+            orderBy: { createdAt: 'desc' },
           },
         },
       });
 
       if (!product) {
-        this.logger.warn(`Product profile not found for slug: ${slug}`);
-        throw new NotFoundException(`Product with slug '${slug}' not found`);
+        throw new NotFoundException(`Product ${slugOrId} not found`);
       }
-
-      const totalReviews = product.reviews.length;
-      const averageRating =
-        totalReviews > 0
-          ? Number((product.reviews.reduce((acc, r) => acc + r.rating, 0) / totalReviews).toFixed(2))
-          : 0;
 
       return {
         ...product,
-        averageRating,
-        totalReviews,
+        categoryName: product.category?.name || 'Dairy',
       };
     } catch (error) {
-      if (error instanceof NotFoundException) throw error;
-      this.logger.error(`Failed to fetch product detailed profile (slug: ${slug})`, error.stack);
+      this.logger.error(`Failed to fetch product ${slugOrId}`, error.stack);
       throw error;
     }
+  }
+
+  async createProduct(dto: any) {
+    this.logger.log(`Creating product: ${dto.title}`);
+    const slug = dto.slug || dto.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+    // Resolve or create category
+    let categoryId = dto.categoryId;
+    if (!categoryId && dto.categoryName) {
+      let cat = await this.prisma.category.findFirst({ where: { name: dto.categoryName } });
+      if (!cat) {
+        cat = await this.prisma.category.create({
+          data: {
+            name: dto.categoryName,
+            slug: dto.categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+          },
+        });
+      }
+      categoryId = cat.id;
+    }
+
+    return await this.prisma.product.create({
+      data: {
+        title: dto.title,
+        slug,
+        tagline: dto.tagline || '',
+        storyDescription: dto.storyDescription || '',
+        status: dto.status || 'LIVE',
+        badgeText: dto.badgeText || '',
+        isFeatured: dto.isFeatured ?? false,
+        displayOrder: dto.displayOrder ? Number(dto.displayOrder) : 1,
+        isSubscriptionAllowed: dto.isSubscriptionAllowed ?? false,
+        batchCode: dto.batchCode || '',
+        verified: dto.verified ?? false,
+        specifications: dto.specifications || {},
+        nutritionFacts: dto.nutritionFacts || {},
+        categoryId: categoryId || 'cat-1',
+        variants: {
+          create: (dto.variants || []).map((v: any, idx: number) => ({
+            sku: v.sku || `CD-${slug.toUpperCase()}-${idx + 1}`,
+            sizeLabel: v.sizeLabel || 'Standard Pack',
+            sellingPrice: v.sellingPrice || 100,
+            mrpPrice: v.mrpPrice || 120,
+            stockQuantity: v.stockQuantity || 50,
+            lowStockThreshold: v.lowStockThreshold || 10,
+            packagingType: v.packagingType || 'GLASS_JAR',
+            isActive: v.isActive ?? true,
+            displayOrder: idx + 1,
+          })),
+        },
+        galleryImages: {
+          create: (dto.galleryImages || []).map((img: any, idx: number) => ({
+            imageUrl: img.imageUrl,
+            isPrimary: img.isPrimary ?? idx === 0,
+            displayOrder: idx + 1,
+          })),
+        },
+      },
+      include: {
+        variants: true,
+        galleryImages: true,
+      },
+    });
+  }
+
+  async updateProduct(id: string, dto: any) {
+    this.logger.log(`Updating product: ${id}`);
+    const existing = await this.prisma.product.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Product ${id} not found`);
+
+    return await this.prisma.product.update({
+      where: { id },
+      data: {
+        title: dto.title ?? existing.title,
+        slug: dto.slug ?? existing.slug,
+        tagline: dto.tagline ?? existing.tagline,
+        storyDescription: dto.storyDescription ?? existing.storyDescription,
+        status: dto.status ?? existing.status,
+        badgeText: dto.badgeText ?? existing.badgeText,
+        isFeatured: dto.isFeatured ?? existing.isFeatured,
+        isSubscriptionAllowed: dto.isSubscriptionAllowed ?? existing.isSubscriptionAllowed,
+        batchCode: dto.batchCode ?? existing.batchCode,
+        verified: dto.verified ?? existing.verified,
+        specifications: dto.specifications ?? existing.specifications,
+        nutritionFacts: dto.nutritionFacts ?? existing.nutritionFacts,
+      },
+      include: {
+        variants: true,
+        galleryImages: true,
+      },
+    });
+  }
+
+  async toggleSubscription(id: string) {
+    const existing = await this.prisma.product.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Product ${id} not found`);
+
+    return await this.prisma.product.update({
+      where: { id },
+      data: { isSubscriptionAllowed: !existing.isSubscriptionAllowed },
+    });
+  }
+
+  async deleteProduct(id: string) {
+    this.logger.log(`Deleting/Archiving product: ${id}`);
+    return await this.prisma.product.update({
+      where: { id },
+      data: { status: 'ARCHIVED' },
+    });
   }
 }

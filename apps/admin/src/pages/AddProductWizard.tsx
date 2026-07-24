@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, ArrowRight, Check } from 'lucide-react';
+import { Plus, Trash2, ArrowRight, Check, X } from 'lucide-react';
 import ImageUploader from '../components/common/ImageUploader';
 import type { Product, ProductStatus, PackagingType, ProductImage } from '../types';
 import type { CategoryItem } from './CategoryCMS';
@@ -167,8 +167,13 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
           <h1 className="text-xl font-serif font-bold text-stone-100">4-Step Add New Product Wizard</h1>
           <p className="text-xs text-stone-400">Step {currentStep} of 4: Guided product creation flow</p>
         </div>
-        <button onClick={onCancel} className="text-xs font-semibold text-stone-400 hover:text-stone-200">
-          Cancel & Close
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-white font-bold text-xs rounded-xl border border-stone-700 shadow-sm transition-all"
+        >
+          <X className="h-4 w-4 text-stone-400" />
+          <span>Cancel & Close</span>
         </button>
       </div>
 

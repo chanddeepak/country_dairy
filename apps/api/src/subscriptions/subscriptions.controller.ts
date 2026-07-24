@@ -45,7 +45,6 @@ export class SubscriptionsController {
   // Developer-only endpoint to verify delivery trigger flows locally
   @Post('trigger-scheduler')
   async triggerScheduler(@Body('date') dateStr?: string) {
-    const date = dateStr ? new Date(dateStr) : new Date();
-    return this.subscriptionsService.processDailyDeliveries(date);
+    return this.subscriptionsService.processDailySubscriptions(dateStr);
   }
 }

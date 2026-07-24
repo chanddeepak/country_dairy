@@ -1,0 +1,115 @@
+import type { Product, CategoryItem, HeroBanner, TrustBadge, FeatureFlag } from '../types';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+
+async function fetchJson<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const token = localStorage.getItem('country_dairy_admin_token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string>),
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`API Error (${response.status}): ${errorText || response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export const adminApi = {
+  // Products API
+  async getProducts(categoryId?: string, search?: string, status?: string): Promise<Product[]> {
+    const query = new URLSearchParams();
+    if (categoryId) query.append('categoryId', categoryId);
+    if (search) query.append('search', search);
+    if (status) query.append('status', status);
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    return fetchJson<Product[]>(`/catalog/products${queryString}`);
+  },
+
+  async createProduct(product: Product): Promise<Product> {
+    return fetchJson<Product>('/catalog/products', {
+      method: 'POST',
+      body: JSON.stringify(product),
+    });
+  },
+
+  async updateProduct(id: string, product: Partial<Product>): Promise<Product> {
+    return fetchJson<Product>(`/catalog/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(product),
+    });
+  },
+
+  async toggleSubscription(id: string): Promise<Product> {
+    return fetchJson<Product>(`/catalog/products/${id}/toggle-subscription`, {
+      method: 'PATCH',
+    });
+  },
+
+  async deleteProduct(id: string): Promise<void> {
+    return fetchJson<void>(`/catalog/products/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Categories API
+  async getCategories(): Promise<CategoryItem[]> {
+    return fetchJson<CategoryItem[]>('/catalog/categories');
+  },
+
+  async createCategory(category: Partial<CategoryItem>): Promise<CategoryItem> {
+    return fetchJson<CategoryItem>('/catalog/categories', {
+      method: 'POST',
+      body: JSON.stringify(category),
+    });
+  },
+
+  async updateCategory(id: string, category: Partial<CategoryItem>): Promise<CategoryItem> {
+    return fetchJson<CategoryItem>(`/catalog/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(category),
+    });
+  },
+
+  async deleteCategory(id: string): Promise<void> {
+    return fetchJson<void>(`/catalog/categories/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // CMS API
+  async getHeroBanners(): Promise<HeroBanner[]> {
+    return fetchJson<HeroBanner[]>('/cms/hero');
+  },
+
+  async createHeroBanner(banner: Partial<HeroBanner>): Promise<HeroBanner> {
+    return fetchJson<HeroBanner>('/cms/hero', {
+      method: 'POST',
+      body: JSON.stringify(banner),
+    });
+  },
+
+  async getTrustBadges(): Promise<TrustBadge[]> {
+    return fetchJson<TrustBadge[]>('/cms/trust-badges');
+  },
+
+  async getFeatureFlags(): Promise<FeatureFlag[]> {
+    return fetchJson<FeatureFlag[]>('/cms/feature-flags');
+  },
+
+  async toggleFeatureFlag(key: string): Promise<FeatureFlag> {
+    return fetchJson<FeatureFlag>(`/cms/feature-flags/${key}/toggle`, {
+      method: 'PATCH',
+    });
+  },
+};

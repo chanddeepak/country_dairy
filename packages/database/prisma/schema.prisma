@@ -10,8 +10,10 @@ generator client {
 
 enum Role {
   CUSTOMER
-  ADMIN
-  DELIVERY
+  SUPER_ADMIN
+  CATALOG_MANAGER
+  ORDER_MANAGER
+  DELIVERY_DRIVER
 }
 
 enum OrderStatus {
@@ -41,13 +43,28 @@ enum TransactionType {
   DEBIT
 }
 
+enum ProductStatus {
+  LIVE
+  DRAFT
+  OUT_OF_STOCK
+  ARCHIVED
+}
+
+enum PackagingType {
+  GLASS_JAR
+  METAL_DOLCHI
+  FOOD_GRADE_TIN
+  PET_BOTTLE
+  ECO_POUCH
+}
+
 model User {
   id            String    @id @default(uuid())
   name          String?
   phone         String?   @unique
   email         String?   @unique
   passwordHash  String?
-  authProvider  String?   @default("PHONE") // "PHONE", "EMAIL", "GOOGLE"
+  authProvider  String?   @default("PHONE")
   role          Role      @default(CUSTOMER)
   walletBalance Decimal   @default(0.00) @db.Decimal(10, 2)
   createdAt     DateTime  @default(now())
@@ -59,6 +76,7 @@ model User {
   transactions  WalletTransaction[]
   cartItems     CartItem[]
   reviews       ProductReview[]
+  auditLogs     AuditLog[]
 }
 
 model Address {
@@ -85,35 +103,72 @@ model Category {
   slug        String     @unique
   description String?
   imageUrl    String?
+  iconName    String?    @default("Package")
+  displayOrder Int       @default(1)
+  isActive    Boolean    @default(true)
   parentId    String?
   parent      Category?  @relation("SubCategories", fields: [parentId], references: [id])
   subCategories Category[] @relation("SubCategories")
   products    Product[]
   createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @default(now()) @updatedAt
 }
 
 model Product {
-  id                    String        @id @default(uuid())
+  id                    String            @id @default(uuid())
   categoryId            String
-  category              Category      @relation(fields: [categoryId], references: [id])
-  name                  String
-  slug                  String        @unique
-  description           String
-  price                 Decimal       @db.Decimal(10, 2)
-  stock                 Int           @default(0)
-  imageUrls             String[]
-  videoUrls             String[]
-  isSubscriptionAllowed Boolean       @default(false)
+  category              Category          @relation(fields: [categoryId], references: [id])
+  title                 String
+  slug                  String            @unique
+  tagline               String?
+  storyDescription      String?
+  status                ProductStatus     @default(LIVE)
+  badgeText             String?
+  isFeatured            Boolean           @default(false)
+  displayOrder          Int               @default(1)
+  isSubscriptionAllowed Boolean           @default(false)
+  batchCode             String?
+  verified              Boolean           @default(false)
+  specifications        Json?
   nutritionFacts        Json?
   metadata              Json?
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 
+  variants              ProductVariant[]
+  galleryImages         ProductImage[]
   orderItems            OrderItem[]
   cartItems             CartItem[]
   subscriptions         Subscription[]
   labReports            LabReport[]
   reviews               ProductReview[]
+}
+
+model ProductVariant {
+  id                String        @id @default(uuid())
+  productId         String
+  product           Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku               String        @unique
+  sizeLabel         String
+  sellingPrice      Decimal       @db.Decimal(10, 2)
+  mrpPrice          Decimal       @db.Decimal(10, 2)
+  stockQuantity     Int           @default(0)
+  lowStockThreshold Int           @default(10)
+  packagingType     PackagingType @default(GLASS_JAR)
+  isActive          Boolean       @default(true)
+  displayOrder      Int           @default(1)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model ProductImage {
+  id           String   @id @default(uuid())
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  imageUrl     String
+  isPrimary    Boolean  @default(false)
+  displayOrder Int      @default(1)
+  createdAt    DateTime @default(now())
 }
 
 model LabReport {
@@ -140,26 +195,27 @@ model CartItem {
 }
 
 model Order {
-  id                String       @id @default(uuid())
+  id                String        @id @default(uuid())
   userId            String
-  user              User         @relation(fields: [userId], references: [id])
+  user              User          @relation(fields: [userId], references: [id])
   addressId         String
-  address           Address      @relation(fields: [addressId], references: [id])
-  totalAmount       Decimal      @db.Decimal(10, 2)
-  deliveryCharges   Decimal      @default(0.00) @db.Decimal(10, 2)
-  status            OrderStatus  @default(PENDING)
+  address           Address       @relation(fields: [addressId], references: [id])
+  totalAmount       Decimal       @db.Decimal(10, 2)
+  deliveryCharges   Decimal       @default(0.00) @db.Decimal(10, 2)
+  status            OrderStatus   @default(PENDING)
   paymentStatus     PaymentStatus @default(PENDING)
   paymentGatewayId  String?
   
-  // Logistics Fields
-  deliveryType      String       @default("COURIER")
+  // Logistics & Delivery Driver Assignment
+  deliveryType      String        @default("LOCAL") // "LOCAL" or "COURIER"
+  driverName        String?
   shippingCarrier   String?
   trackingNumber    String?
   shippingLabelUrl  String?
   shippingStatus    String?
   
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   orderItems        OrderItem[]
 }
@@ -221,12 +277,61 @@ model ProductReview {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   productId  String
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  rating     Int      // 1 to 5 stars
+  rating     Int
   title      String?
   comment    String?
-  mediaUrls  String[] // Array of S3/Cloudinary URLs for uploaded photos/videos
+  mediaUrls  String[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  @@unique([userId, productId]) // Limit to one review per user per product
+  @@unique([userId, productId])
+}
+
+model HeroBanner {
+  id           String   @id @default(uuid())
+  title        String
+  subtitle     String
+  imageUrl     String
+  ctaText      String   @default("Order Fresh Now")
+  ctaLink      String   @default("/products")
+  badgeText    String?  @default("FARM FRESH")
+  displayOrder Int      @default(1)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model TrustBadge {
+  id           String   @id @default(uuid())
+  title        String
+  subtitle     String
+  iconName     String   @default("ShieldCheck")
+  displayOrder Int      @default(1)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName      String   @default("System Admin")
+  action        String
+  entity        String
+  entityId      String?
+  payloadBefore Json?
+  payloadAfter  Json?
+  ipAddress     String?
+  createdAt     DateTime @default(now())
+}
+
+model FeatureFlag {
+  id                String   @id @default(uuid())
+  key               String   @unique
+  description       String
+  isEnabled         Boolean  @default(false)
+  rolloutPercentage Int      @default(100)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

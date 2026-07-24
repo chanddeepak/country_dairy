@@ -129,6 +129,37 @@ export interface FeatureFlags {
   ENABLE_USER_ACCOUNTS: boolean;
 }
 
+export type CategoryItem = Category;
+
+export interface HeroBanner {
+  id: string;
+  title: string;
+  subtitle: string;
+  imageUrl: string;
+  ctaText: string;
+  ctaLink: string;
+  badgeText?: string;
+  displayOrder: number;
+  isActive: boolean;
+}
+
+export interface TrustBadge {
+  id: string;
+  title: string;
+  subtitle: string;
+  iconName: string;
+  displayOrder: number;
+  isActive: boolean;
+}
+
+export interface FeatureFlag {
+  id: string;
+  key: string;
+  description: string;
+  isEnabled: boolean;
+  rolloutPercentage: number;
+}
+
 export interface LabCertificate {
   id: string;
   batchCode: string;

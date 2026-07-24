@@ -37,6 +37,38 @@ export default function ProductsPage() {
   }, []);
 
   const fetchProducts = async () => {
+    try {
+      const res = await fetch(`${API_URL}/catalog/products`);
+      if (res.ok) {
+        const liveProducts = await res.json();
+        if (liveProducts && liveProducts.length > 0) {
+          const mapped = liveProducts.map((p: any) => ({
+            id: p.id,
+            name: p.title || p.name,
+            slug: p.slug,
+            category: p.categoryName || (typeof p.category === 'string' ? p.category : p.category?.name) || 'Dairy',
+            tagline: p.tagline || '',
+            description: p.storyDescription || p.description || '',
+            badgeText: p.badgeText || '',
+            isSubscriptionAllowed: p.isSubscriptionAllowed ?? false,
+            price: String(p.variants?.[0]?.sellingPrice || p.price || 100),
+            originalPrice: String(p.variants?.[0]?.mrpPrice || p.originalPrice || 120),
+            image: p.galleryImages?.[0]?.imageUrl || p.image || '/images/products/milk-bottle.png',
+            variants: p.variants?.map((v: any) => ({
+              id: v.id,
+              name: v.sizeLabel,
+              volumeOrWeight: v.sizeLabel,
+              price: String(v.sellingPrice),
+              originalPrice: String(v.mrpPrice),
+            })) || [],
+          }));
+          setProducts(mapped);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('API Server offline, using fallback products:', err);
+    }
     setProducts(getExpandedProducts(FALLBACK_PRODUCTS));
   };
 
