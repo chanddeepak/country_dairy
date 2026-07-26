@@ -9,10 +9,11 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <svg viewBox="0 0 50 50" className="w-8 h-8 text-[#C59B27]" fill="none">
-              <path d="M5 36L18 16L27 28L36 14L45 36H5Z" fill="#C59B27" fillOpacity="0.15" />
-              <path d="M5 36L18 16L27 28L36 14L45 36" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M18 16L21 21M36 14L33 19" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
+            <svg viewBox="0 0 44 44" className="w-8 h-8" fill="none">
+              <path d="M4 31L16 12L24 24L31 14L40 31H4Z" fill="#C59B27" fillOpacity="0.2" />
+              <path d="M4 31L16 12L24 24L31 14L40 31" stroke="#C59B27" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M16 12L19 17M31 14L28.5 18" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
+              <circle cx="23.5" cy="18" r="2" fill="#ffffff" />
             </svg>
             <div>
               <h4 className="text-white font-serif font-black text-xl leading-tight">Country Dairy</h4>

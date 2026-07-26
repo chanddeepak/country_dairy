@@ -102,16 +102,12 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
             }}
             className="flex items-center space-x-2.5 group cursor-pointer"
           >
-            <div className="w-11 h-11 flex items-center justify-center p-1 bg-[#FAF8F3] rounded-xl border border-stone-200/80 group-hover:border-[#3A6038]/40 transition-all shadow-2xs">
-              <svg viewBox="0 0 50 50" className="w-9 h-9 text-[#3A6038]" fill="none">
-                {/* Himalayan Mountain Peaks */}
-                <path d="M5 36L18 16L27 28L36 14L45 36H5Z" fill="#3A6038" fillOpacity="0.12" />
-                <path d="M5 36L18 16L27 28L36 14L45 36" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                {/* Sun & Snow Caps Accent */}
-                <path d="M18 16L21 21M36 14L33 19" stroke="#C59B27" strokeWidth="2.5" strokeLinecap="round" />
-                {/* Cow Silhouette Accent */}
-                <path d="M17 36C17 33 19 31 22 31H28C31 31 33 33 33 36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <circle cx="25" cy="28" r="1.5" fill="#C59B27" />
+            <div className="w-11 h-11 flex items-center justify-center p-1.5 bg-[#FAF8F3] rounded-xl border border-stone-200/80 group-hover:border-[#3A6038]/40 transition-all shadow-2xs">
+              <svg viewBox="0 0 44 44" className="w-8 h-8" fill="none">
+                <path d="M4 31L16 12L24 24L31 14L40 31H4Z" fill="#3A6038" fillOpacity="0.15" />
+                <path d="M4 31L16 12L24 24L31 14L40 31" stroke="#3A6038" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M16 12L19 17M31 14L28.5 18" stroke="#C59B27" strokeWidth="2.5" strokeLinecap="round" />
+                <circle cx="23.5" cy="18" r="2" fill="#C59B27" />
               </svg>
             </div>
             <div className="flex flex-col">
