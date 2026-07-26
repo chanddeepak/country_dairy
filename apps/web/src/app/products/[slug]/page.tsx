@@ -16,7 +16,7 @@ import ProductCard from '../../../components/product/ProductCard';
 import AuthModal from '../../../components/modals/AuthModal';
 import SubscriptionModal from '../../../components/modals/SubscriptionModal';
 import CartDrawer from '../../../components/cart/CartDrawer';
-import { FALLBACK_PRODUCTS, API_URL, PRODUCT_IMAGES, HERO_IMAGE, ENABLE_SUBSCRIPTIONS, ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER, WHATSAPP_MESSAGE_TEMPLATE, ENABLE_PRODUCT_RATINGS, Product, ProductVariant } from '../../../lib/constants';
+import { FALLBACK_PRODUCTS, API_URL, PRODUCT_IMAGES, HERO_IMAGE, ENABLE_SUBSCRIPTIONS, ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER, WHATSAPP_MESSAGE_TEMPLATE, ENABLE_PRODUCT_RATINGS, Product, ProductVariant, resolveStorefrontImageUrl } from '../../../lib/constants';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -61,17 +61,46 @@ export default function ProductDetailPage() {
     }
   };
 
-  const setupProductData = (prod: Product) => {
-    setProduct(prod);
-    const defaultVar = (variantIdFromQuery && prod.variants?.find((v) => v.id === variantIdFromQuery))
-      || prod.variants?.find((v) => v.isDefault)
-      || prod.variants?.[0]
+  const setupProductData = (prod: any) => {
+    if (!prod) return;
+
+    const formattedVariants = prod.variants?.map((v: any) => ({
+      id: v.id,
+      name: v.name || v.sizeLabel || 'Standard Pack',
+      volumeOrWeight: v.volumeOrWeight || v.sizeLabel || '1 Litre',
+      price: String(v.price ?? v.sellingPrice ?? 100),
+      originalPrice: String(v.originalPrice ?? v.mrpPrice ?? 120),
+      discountPercent: v.discountPercent || (v.mrpPrice && v.sellingPrice ? `${Math.round(((v.mrpPrice - v.sellingPrice) / v.mrpPrice) * 100)}% OFF` : ''),
+      image: v.image || v.imageUrl,
+      isDefault: v.isDefault ?? false,
+    })) || [];
+
+    const defaultVar = (variantIdFromQuery && formattedVariants.find((v: any) => v.id === variantIdFromQuery))
+      || formattedVariants.find((v: any) => v.isDefault)
+      || formattedVariants[0]
       || null;
+
+    const catLabel = typeof prod.category === 'string'
+      ? prod.category
+      : prod.category?.name || prod.categoryName || 'A2 Dairy';
+
+    const basePrice = defaultVar ? defaultVar.price : String(prod.price ?? prod.variants?.[0]?.sellingPrice ?? 100);
+    const baseOriginalPrice = defaultVar ? defaultVar.originalPrice : String(prod.originalPrice ?? prod.variants?.[0]?.mrpPrice ?? 120);
+
+    const normalizedProd = {
+      ...prod,
+      name: prod.title || prod.name || 'Country Dairy Product',
+      price: basePrice,
+      originalPrice: baseOriginalPrice,
+      categoryLabel: catLabel,
+      variants: formattedVariants,
+    };
+
+    setProduct(normalizedProd);
     setSelectedVariant(defaultVar);
-    
-    // Set initial image (variant image if available, else product image)
-    const initialImg = defaultVar?.image || PRODUCT_IMAGES[prod.slug] || prod.imageUrls?.[0] || '/images/products/milk-bottle.png';
-    setActiveImage(initialImg);
+
+    const initialImg = defaultVar?.image || PRODUCT_IMAGES[prod.slug] || prod.galleryImages?.[0]?.imageUrl || prod.imageUrls?.[0] || '/images/products/ghee-jar.png';
+    setActiveImage(resolveStorefrontImageUrl(initialImg));
 
     setRelatedProducts(FALLBACK_PRODUCTS.filter((p) => p.slug !== prod.slug).slice(0, 3));
   };
@@ -254,12 +283,13 @@ export default function ProductDetailPage() {
                   </span>
                 )}
                 <Image
-                  src={activeImage || baseImage}
-                  alt={product.name}
+                  src={resolveStorefrontImageUrl(activeImage || baseImage)}
+                  alt={product.name || 'Country Dairy Product Image'}
                   fill
                   className="object-cover p-6 transition-all duration-300"
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   priority
+                  loading="eager"
                 />
               </div>
 
@@ -278,8 +308,8 @@ export default function ProductDetailPage() {
                       }`}
                     >
                       <Image
-                        src={thumb.url}
-                        alt={thumb.label}
+                        src={resolveStorefrontImageUrl(thumb.url)}
+                        alt={`${product.name || 'Product'} thumbnail - ${thumb.label}`}
                         fill
                         className="object-cover p-1"
                         sizes="80px"

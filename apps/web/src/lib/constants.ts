@@ -23,6 +23,17 @@ export const WHATSAPP_NUMBER = '919997801112';
 export const WHATSAPP_MESSAGE_TEMPLATE = (productName: string, price: string, variantName?: string, quantity: number = 1) =>
   `Hi! I'd like to order:\n- ${quantity} x ${productName}${variantName ? ` (${variantName})` : ''} — ₹${price} each\nTotal Amount: ₹${Number(price) * quantity}\n\nPlease help me place this order. Thank you!`;
 
+export function resolveStorefrontImageUrl(url: string | undefined): string {
+  if (!url) return '/images/products/ghee-jar.png';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const cdnBase = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
+  if (url.startsWith('/')) {
+    if (url.startsWith('/images/') || url.startsWith('/uploads/')) return url;
+    return `${cdnBase}/storage/v1/object/public${url}`;
+  }
+  return `${cdnBase}/storage/v1/object/public/${url}`;
+}
+
 // Local product image map keyed by slug
 export const PRODUCT_IMAGES: Record<string, string> = {
   'country-dairy-a2-cow-milk-1l': '/images/products/milk-bottle.png',
