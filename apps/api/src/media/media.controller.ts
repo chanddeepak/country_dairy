@@ -36,6 +36,24 @@ export class MediaController {
     return null;
   }
 
+  private async ensureBucketExists(supabase: any, bucketName: string) {
+    try {
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const exists = buckets?.some((b: any) => b.name === bucketName);
+      if (!exists) {
+        this.logger.log(`Creating public bucket '${bucketName}' in Supabase Storage...`);
+        const { error } = await supabase.storage.createBucket(bucketName, { public: true });
+        if (error) {
+          this.logger.warn(`Supabase createBucket warning on '${bucketName}': ${error.message}`);
+        } else {
+          this.logger.log(`Public bucket '${bucketName}' created successfully in Supabase Storage!`);
+        }
+      }
+    } catch (e: any) {
+      this.logger.warn(`Could not auto-create bucket '${bucketName}': ${e?.message || e}`);
+    }
+  }
+
   @Post('upload')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -57,6 +75,9 @@ export class MediaController {
     const supabase = this.getSupabaseClient();
     if (supabase) {
       try {
+        await this.ensureBucketExists(supabase, 'hero-banners');
+        await this.ensureBucketExists(supabase, 'products');
+
         const timestamp = Date.now();
         const cleanName = file.originalname ? file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_') : 'image.webp';
         const pathName = `upload-${timestamp}-${cleanName}`;
