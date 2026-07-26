@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Query, UseGuards, UseInterceptors, UploadedFile, Logger } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { createClient } from '@supabase/supabase-js';
+import ws from 'ws';
 import * as path from 'path';
 import * as fs from 'fs';
 import { AuthGuard } from '../auth/auth.guard';
@@ -21,7 +22,16 @@ export class MediaController {
     const supabaseUrl = process.env.SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
     if (supabaseUrl && supabaseKey) {
-      return createClient(supabaseUrl, supabaseKey);
+      return createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+        realtime: {
+          transport: ws as any,
+        },
+      });
     }
     return null;
   }

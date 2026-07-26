@@ -32,7 +32,8 @@
     "google-auth-library": "^10.9.0",
     "razorpay": "^2.9.6",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "ws": "^8.21.1"
   },
   "devDependencies": {
     "@country-dairy/tsconfig": "*",
@@ -46,6 +47,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
     "@types/supertest": "^6.0.2",
+    "@types/ws": "^8.18.1",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
