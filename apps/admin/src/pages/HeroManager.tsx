@@ -8,6 +8,7 @@ import { adminApi } from '../services/apiClient';
 export default function HeroManager() {
   const [slides, setSlides] = useState<HeroSlide[]>([]);
   const [activeEditingSlide, setActiveEditingSlide] = useState<HeroSlide | null>(null);
+  const [activeDeviceType, setActiveDeviceType] = useState<'DESKTOP' | 'MOBILE'>('DESKTOP');
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -17,7 +18,7 @@ export default function HeroManager() {
   };
 
   useEffect(() => {
-    adminApi.getHeroBanners()
+    adminApi.getHeroBanners(activeDeviceType)
       .then(banners => {
         if (banners && banners.length > 0) {
           const mapped: HeroSlide[] = banners.map(b => ({
@@ -28,7 +29,7 @@ export default function HeroManager() {
             ctaLabel: b.ctaText || 'Shop All Products',
             ctaLink: b.ctaLink || '/products',
             desktopImageUrl: (b.imageUrl && (b.imageUrl.startsWith('/uploads/') || b.imageUrl.includes('/storage/v1/object/public/'))) ? b.imageUrl : '',
-            mobileImageUrl: (b.mobileImageUrl && (b.mobileImageUrl.startsWith('/uploads/') || b.mobileImageUrl.includes('/storage/v1/object/public/'))) ? b.mobileImageUrl : '',
+            mobileImageUrl: (b.imageUrl && (b.imageUrl.startsWith('/uploads/') || b.imageUrl.includes('/storage/v1/object/public/'))) ? b.imageUrl : '',
             overlayOpacity: 30,
             sortOrder: b.displayOrder || 1,
             isActive: b.isActive ?? true,
@@ -36,32 +37,33 @@ export default function HeroManager() {
             updatedAt: new Date().toISOString(),
           }));
           setSlides(mapped);
-          if (mapped.length > 0) {
-            setActiveEditingSlide(mapped[0]);
-          }
+          setActiveEditingSlide(mapped[0]);
+        } else {
+          setSlides([]);
+          setActiveEditingSlide(null);
         }
       })
       .catch(err => console.warn('API getHeroBanners warning:', err));
-  }, []);
+  }, [activeDeviceType]);
 
   const activeCount = slides.filter(s => s.isActive).length;
   const isMaxReached = slides.length >= 6;
 
   const handleAddSlide = async () => {
     if (isMaxReached) {
-      alert('Maximum 6 hero carousel slides allowed.');
+      alert(`Maximum 6 ${activeDeviceType.toLowerCase()} hero carousel slides allowed.`);
       return;
     }
 
     const newSlide: HeroSlide = {
       id: `slide-${Date.now()}`,
-      title: 'New Storefront Banner',
+      title: `${activeDeviceType === 'DESKTOP' ? 'Desktop' : 'Mobile'} Storefront Banner`,
       subtitle: 'Add compelling subtitle text here',
       badgeText: 'Special Offer',
       ctaLabel: 'Explore Shop',
       ctaLink: '/products',
-      desktopImageUrl: '/images/hero-banner.png',
-      mobileImageUrl: '/images/hero-banner.png',
+      desktopImageUrl: '',
+      mobileImageUrl: '',
       overlayOpacity: 30,
       sortOrder: slides.length + 1,
       isActive: true,
@@ -76,7 +78,8 @@ export default function HeroManager() {
       const created = await adminApi.createHeroBanner({
         title: newSlide.title,
         subtitle: newSlide.subtitle,
-        imageUrl: newSlide.desktopImageUrl || '/images/hero-banner.png',
+        imageUrl: '/images/hero-banner.png',
+        deviceType: activeDeviceType,
         ctaText: newSlide.ctaLabel,
         ctaLink: newSlide.ctaLink,
         badgeText: newSlide.badgeText,
@@ -131,11 +134,12 @@ export default function HeroManager() {
     setSlides(prev => prev.map(s => s.id === activeEditingSlide.id ? activeEditingSlide : s));
     
     try {
+      const imgUrl = (activeDeviceType === 'DESKTOP' ? activeEditingSlide.desktopImageUrl : activeEditingSlide.mobileImageUrl) || '/images/hero-banner.png';
       const saved = await adminApi.updateHeroBanner(activeEditingSlide.id, {
         title: activeEditingSlide.title,
         subtitle: activeEditingSlide.subtitle,
-        imageUrl: activeEditingSlide.desktopImageUrl || '/images/hero-banner.png',
-        mobileImageUrl: activeEditingSlide.mobileImageUrl || undefined,
+        imageUrl: imgUrl,
+        deviceType: activeDeviceType,
         ctaText: activeEditingSlide.ctaLabel,
         ctaLink: activeEditingSlide.ctaLink,
         badgeText: activeEditingSlide.badgeText,
@@ -144,13 +148,22 @@ export default function HeroManager() {
       });
 
       if (saved?.id) {
-        const dUrl = (saved.imageUrl && (saved.imageUrl.startsWith('/uploads/') || saved.imageUrl.includes('/storage/v1/object/public/'))) ? saved.imageUrl : '';
-        const mUrl = (saved.mobileImageUrl && (saved.mobileImageUrl.startsWith('/uploads/') || saved.mobileImageUrl.includes('/storage/v1/object/public/'))) ? saved.mobileImageUrl : '';
-        setSlides(prev => prev.map(s => s.id === activeEditingSlide.id ? { ...s, id: saved.id, desktopImageUrl: dUrl, mobileImageUrl: mUrl } : s));
-        setActiveEditingSlide(prev => prev ? { ...prev, id: saved.id, desktopImageUrl: dUrl, mobileImageUrl: mUrl } : null);
+        const resUrl = (saved.imageUrl && (saved.imageUrl.startsWith('/uploads/') || saved.imageUrl.includes('/storage/v1/object/public/'))) ? saved.imageUrl : '';
+        setSlides(prev => prev.map(s => s.id === activeEditingSlide.id ? {
+          ...s,
+          id: saved.id,
+          desktopImageUrl: activeDeviceType === 'DESKTOP' ? resUrl : s.desktopImageUrl,
+          mobileImageUrl: activeDeviceType === 'MOBILE' ? resUrl : s.mobileImageUrl,
+        } : s));
+        setActiveEditingSlide(prev => prev ? {
+          ...prev,
+          id: saved.id,
+          desktopImageUrl: activeDeviceType === 'DESKTOP' ? resUrl : prev.desktopImageUrl,
+          mobileImageUrl: activeDeviceType === 'MOBILE' ? resUrl : prev.mobileImageUrl,
+        } : null);
       }
 
-      showNotification('success', 'Hero slide banner saved successfully to Database!');
+      showNotification('success', `${activeDeviceType === 'DESKTOP' ? 'Desktop' : 'Mobile'} hero banner saved successfully!`);
     } catch (err: any) {
       console.error('API updateHeroBanner error:', err);
       showNotification('error', `Save failed: ${err.message || err}`);
@@ -190,8 +203,41 @@ export default function HeroManager() {
             title={isMaxReached ? 'Maximum 6 hero slides allowed' : 'Add new hero banner'}
           >
             <Plus className="h-4 w-4" />
-            <span>Add Banner Slide</span>
+            <span>Add {activeDeviceType === 'DESKTOP' ? 'Desktop' : 'Mobile'} Banner</span>
           </button>
+        </div>
+      </div>
+
+      {/* Device Type Tab Switcher */}
+      <div className="flex items-center justify-between bg-stone-900 p-2 rounded-2xl border border-stone-800">
+        <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={() => setActiveDeviceType('DESKTOP')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition-all ${
+              activeDeviceType === 'DESKTOP'
+                ? 'bg-amber-500 text-stone-950 shadow-md'
+                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800'
+            }`}
+          >
+            <span>💻 Desktop Banners (16:9)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveDeviceType('MOBILE')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition-all ${
+              activeDeviceType === 'MOBILE'
+                ? 'bg-amber-500 text-stone-950 shadow-md'
+                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800'
+            }`}
+          >
+            <span>📱 Mobile Banners (4:3)</span>
+          </button>
+        </div>
+
+        <div className="text-xs text-stone-400 font-mono px-3 hidden sm:block">
+          Managing Mode: <span className="text-amber-400 font-bold">{activeDeviceType} BANNERS</span>
         </div>
       </div>
 
@@ -370,21 +416,23 @@ export default function HeroManager() {
                   </div>
                 </div>
 
-                {/* Uploaders for Desktop & Mobile Banners (5MB max each, WebP auto-compressed) */}
+                {/* Image Uploader for Active Device Type */}
                 <div className="space-y-4 pt-2 border-t border-stone-800">
-                  <ImageUploader
-                    label="Desktop Banner Image (16:9 Aspect Ratio)"
-                    aspectRatio="desktop"
-                    currentImageUrl={activeEditingSlide.desktopImageUrl}
-                    onImageUploaded={(url) => setActiveEditingSlide({ ...activeEditingSlide, desktopImageUrl: url })}
-                  />
-
-                  <ImageUploader
-                    label="Mobile Banner Image (4:3 Aspect Ratio)"
-                    aspectRatio="mobile"
-                    currentImageUrl={activeEditingSlide.mobileImageUrl}
-                    onImageUploaded={(url) => setActiveEditingSlide({ ...activeEditingSlide, mobileImageUrl: url })}
-                  />
+                  {activeDeviceType === 'DESKTOP' ? (
+                    <ImageUploader
+                      label="Desktop Banner Image (16:9 Aspect Ratio)"
+                      aspectRatio="desktop"
+                      currentImageUrl={activeEditingSlide.desktopImageUrl}
+                      onImageUploaded={(url) => setActiveEditingSlide({ ...activeEditingSlide, desktopImageUrl: url })}
+                    />
+                  ) : (
+                    <ImageUploader
+                      label="Mobile Banner Image (4:3 Aspect Ratio)"
+                      aspectRatio="mobile"
+                      currentImageUrl={activeEditingSlide.mobileImageUrl}
+                      onImageUploaded={(url) => setActiveEditingSlide({ ...activeEditingSlide, mobileImageUrl: url })}
+                    />
+                  )}
                 </div>
 
               </form>

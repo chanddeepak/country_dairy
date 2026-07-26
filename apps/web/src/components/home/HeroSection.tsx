@@ -57,24 +57,33 @@ export default function HeroSection() {
 
   const fetchHeroBanners = async () => {
     try {
-      const res = await fetch(`${API_URL}/cms/hero`);
-      if (res.ok) {
-        const banners = await res.json();
-        if (banners && banners.length > 0) {
-          const mapped = banners.map((b: any, idx: number) => ({
+      const [desktopRes, mobileRes] = await Promise.all([
+        fetch(`${API_URL}/cms/hero?deviceType=DESKTOP`),
+        fetch(`${API_URL}/cms/hero?deviceType=MOBILE`),
+      ]);
+
+      let desktopBanners: any[] = [];
+      let mobileBanners: any[] = [];
+
+      if (desktopRes.ok) desktopBanners = await desktopRes.json();
+      if (mobileRes.ok) mobileBanners = await mobileRes.json();
+
+      if (desktopBanners.length > 0 || mobileBanners.length > 0) {
+        const primaryBanners = desktopBanners.length > 0 ? desktopBanners : mobileBanners;
+        const mapped = primaryBanners.map((b: any, idx: number) => {
+          const mobMatch = mobileBanners[idx] || mobileBanners[0] || b;
+          return {
             id: b.id || idx,
             image: resolveStorefrontImageUrl(b.imageUrl || '/images/hero-banner.png'),
-            mobileImage: resolveStorefrontImageUrl(b.mobileImageUrl || b.imageUrl || '/images/hero-banner.png'),
+            mobileImage: resolveStorefrontImageUrl(mobMatch.imageUrl || b.imageUrl || '/images/hero-banner.png'),
             objectPosition: 'center',
             headline: b.title,
             subtitle: b.subtitle,
             ctaText: b.ctaText || 'Shop All Products',
             ctaHref: b.ctaLink || '/products',
-          }));
-          setSlides(mapped);
-        } else {
-          setSlides(STATIC_HERO_SLIDES);
-        }
+          };
+        });
+        setSlides(mapped);
       } else {
         setSlides(STATIC_HERO_SLIDES);
       }

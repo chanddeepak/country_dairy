@@ -287,19 +287,24 @@ model ProductReview {
   @@unique([userId, productId])
 }
 
+enum BannerType {
+  DESKTOP
+  MOBILE
+}
+
 model HeroBanner {
-  id             String   @id @default(uuid())
-  title          String
-  subtitle       String
-  imageUrl       String
-  mobileImageUrl String?
-  ctaText        String   @default("Order Fresh Now")
-  ctaLink        String   @default("/products")
-  badgeText      String?  @default("FARM FRESH")
-  displayOrder   Int      @default(1)
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id           String     @id @default(uuid())
+  title        String
+  subtitle     String
+  imageUrl     String
+  deviceType   BannerType @default(DESKTOP)
+  ctaText      String     @default("Order Fresh Now")
+  ctaLink      String     @default("/products")
+  badgeText    String?    @default("FARM FRESH")
+  displayOrder Int        @default(1)
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
 model TrustBadge {

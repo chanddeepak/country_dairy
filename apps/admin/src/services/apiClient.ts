@@ -142,8 +142,9 @@ export const adminApi = {
   },
 
   // CMS API
-  async getHeroBanners(): Promise<HeroBanner[]> {
-    return fetchJson<HeroBanner[]>('/cms/hero');
+  async getHeroBanners(deviceType?: 'DESKTOP' | 'MOBILE'): Promise<HeroBanner[]> {
+    const query = deviceType ? `?deviceType=${deviceType}` : '';
+    return fetchJson<HeroBanner[]>(`/cms/hero${query}`);
   },
 
   async createHeroBanner(banner: Partial<HeroBanner>): Promise<HeroBanner> {

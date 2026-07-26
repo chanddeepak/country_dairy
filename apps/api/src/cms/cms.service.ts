@@ -12,8 +12,9 @@ export class CmsService {
   ) {}
 
   // Hero Banners
-  async getHeroBanners() {
+  async getHeroBanners(deviceType?: 'DESKTOP' | 'MOBILE') {
     return this.prisma.heroBanner.findMany({
+      where: deviceType ? { deviceType: deviceType as any } : undefined,
       orderBy: { displayOrder: 'asc' },
     });
   }
@@ -24,7 +25,7 @@ export class CmsService {
         title: dto.title,
         subtitle: dto.subtitle || '',
         imageUrl: dto.imageUrl,
-        mobileImageUrl: dto.mobileImageUrl || undefined,
+        deviceType: dto.deviceType || 'DESKTOP',
         ctaText: dto.ctaText || 'Order Fresh Now',
         ctaLink: dto.ctaLink || '/products',
         badgeText: dto.badgeText || 'FARM FRESH',
@@ -44,7 +45,7 @@ export class CmsService {
           title: dto.title || 'Hero Banner',
           subtitle: dto.subtitle || '',
           imageUrl: dto.imageUrl || '/images/hero-banner.png',
-          mobileImageUrl: dto.mobileImageUrl || undefined,
+          deviceType: dto.deviceType || 'DESKTOP',
           ctaText: dto.ctaText || 'Shop All Products',
           ctaLink: dto.ctaLink || '/products',
           badgeText: dto.badgeText || 'FARM FRESH',
@@ -54,24 +55,20 @@ export class CmsService {
       });
     }
 
-    // Auto-cleanup old media files if updated with a new URL
+    // Auto-cleanup old media file if updated with a new image URL
     if (dto.imageUrl && existing.imageUrl && dto.imageUrl !== existing.imageUrl) {
-      this.logger.log(`Cleaning up old desktop image: ${existing.imageUrl}`);
+      this.logger.log(`Cleaning up old banner image: ${existing.imageUrl}`);
       await this.mediaService.deleteMediaFile(existing.imageUrl);
     }
-    if (dto.mobileImageUrl && existing.mobileImageUrl && dto.mobileImageUrl !== existing.mobileImageUrl) {
-      this.logger.log(`Cleaning up old mobile image: ${existing.mobileImageUrl}`);
-      await this.mediaService.deleteMediaFile(existing.mobileImageUrl);
-    }
 
-    this.logger.log(`Updating HeroBanner id ${id} in DB: title="${dto.title}", imageUrl="${dto.imageUrl}"`);
+    this.logger.log(`Updating HeroBanner id ${id} in DB: title="${dto.title}", deviceType="${dto.deviceType || existing.deviceType}", imageUrl="${dto.imageUrl}"`);
     return this.prisma.heroBanner.update({
       where: { id },
       data: {
         title: dto.title,
         subtitle: dto.subtitle,
         imageUrl: dto.imageUrl,
-        mobileImageUrl: dto.mobileImageUrl,
+        deviceType: dto.deviceType || undefined,
         ctaText: dto.ctaText,
         ctaLink: dto.ctaLink,
         badgeText: dto.badgeText,
@@ -85,7 +82,6 @@ export class CmsService {
     const existing = await this.prisma.heroBanner.findUnique({ where: { id } });
     if (existing) {
       await this.mediaService.deleteMediaFile(existing.imageUrl);
-      await this.mediaService.deleteMediaFile(existing.mobileImageUrl);
     }
     return this.prisma.heroBanner.delete({ where: { id } });
   }

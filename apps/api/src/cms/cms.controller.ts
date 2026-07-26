@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Patch, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Param, Body, Query } from '@nestjs/common';
 import { CmsService } from './cms.service';
 
 @Controller('cms')
@@ -6,8 +6,8 @@ export class CmsController {
   constructor(private readonly cmsService: CmsService) {}
 
   @Get('hero')
-  async getHeroBanners() {
-    return this.cmsService.getHeroBanners();
+  async getHeroBanners(@Query('deviceType') deviceType?: 'DESKTOP' | 'MOBILE') {
+    return this.cmsService.getHeroBanners(deviceType);
   }
 
   @Post('hero')
