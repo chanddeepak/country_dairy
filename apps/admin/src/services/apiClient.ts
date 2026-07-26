@@ -62,13 +62,21 @@ export const adminApi = {
         headers,
         body: formData,
       });
+
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text();
+        throw new Error(`Direct media upload failed (${uploadRes.status}): ${errText}`);
+      }
+
+      const resData = await uploadRes.json();
+      console.log('[adminApi.uploadMedia] Upload response:', resData);
+      return resData.url || fileUrl;
     }
 
     if (!uploadRes.ok) {
       throw new Error(`Direct media upload failed (${uploadRes.status})`);
     }
 
-    // 3. Return final file/CDN URL to save in database
     return fileUrl;
   },
 

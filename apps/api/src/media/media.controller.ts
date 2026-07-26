@@ -53,6 +53,39 @@ export class MediaController {
     if (!file) {
       return { success: false, message: 'No file provided' };
     }
+
+    const supabase = this.getSupabaseClient();
+    if (supabase) {
+      try {
+        const timestamp = Date.now();
+        const cleanName = file.originalname ? file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_') : 'image.webp';
+        const pathName = `upload-${timestamp}-${cleanName}`;
+        const fileBuffer = fs.readFileSync(file.path);
+
+        const { data: sData, error: sErr } = await supabase.storage
+          .from('hero-banners')
+          .upload(pathName, fileBuffer, {
+            contentType: 'image/webp',
+            upsert: true,
+          });
+
+        if (!sErr && sData?.path) {
+          const publicUrlData = supabase.storage.from('hero-banners').getPublicUrl(sData.path);
+          this.logger.log(`[Supabase Storage] File uploaded successfully: ${publicUrlData.data.publicUrl}`);
+          return {
+            success: true,
+            url: publicUrlData.data.publicUrl,
+            filename: file.filename,
+          };
+        }
+        if (sErr) {
+          this.logger.warn(`[Supabase Storage Upload Warning] ${sErr.message}. Falling back to local server storage.`);
+        }
+      } catch (err: any) {
+        this.logger.warn(`[Supabase Storage Upload Exception] ${err?.message || err}`);
+      }
+    }
+
     const relativeUrl = `/uploads/${file.filename}`;
     this.logger.log(`File saved locally: ${relativeUrl} (${file.size} bytes)`);
     return {

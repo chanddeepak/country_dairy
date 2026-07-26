@@ -123,7 +123,7 @@ export default function HeroManager() {
     setSlides(prev => prev.map(s => s.id === activeEditingSlide.id ? activeEditingSlide : s));
     
     try {
-      await adminApi.updateHeroBanner(activeEditingSlide.id, {
+      const saved = await adminApi.updateHeroBanner(activeEditingSlide.id, {
         title: activeEditingSlide.title,
         subtitle: activeEditingSlide.subtitle,
         imageUrl: activeEditingSlide.desktopImageUrl || '/images/hero-banner.png',
@@ -133,10 +133,16 @@ export default function HeroManager() {
         displayOrder: activeEditingSlide.sortOrder,
         isActive: activeEditingSlide.isActive,
       });
+
+      if (saved?.id) {
+        setSlides(prev => prev.map(s => s.id === activeEditingSlide.id ? { ...s, id: saved.id, desktopImageUrl: saved.imageUrl, mobileImageUrl: saved.imageUrl } : s));
+        setActiveEditingSlide(prev => prev ? { ...prev, id: saved.id, desktopImageUrl: saved.imageUrl, mobileImageUrl: saved.imageUrl } : null);
+      }
+
       alert('Hero slide changes saved successfully to Database!');
-    } catch (err) {
-      console.warn('API updateHeroBanner error:', err);
-      alert('Updated in memory (Backend offline check warnings in console)');
+    } catch (err: any) {
+      console.error('API updateHeroBanner error:', err);
+      alert(`Save failed: ${err.message || err}`);
     }
   };
 

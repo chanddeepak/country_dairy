@@ -30,6 +30,25 @@ export class CmsService {
   }
 
   async updateHeroBanner(id: string, dto: any) {
+    const existing = await this.prisma.heroBanner.findUnique({ where: { id } });
+    if (!existing) {
+      this.logger.log(`HeroBanner id ${id} not found in DB. Creating new DB record...`);
+      return this.prisma.heroBanner.create({
+        data: {
+          id: id.startsWith('slide-') ? undefined : id,
+          title: dto.title || 'Hero Banner',
+          subtitle: dto.subtitle || '',
+          imageUrl: dto.imageUrl || '/images/hero-banner.png',
+          ctaText: dto.ctaText || 'Shop All Products',
+          ctaLink: dto.ctaLink || '/products',
+          badgeText: dto.badgeText || 'FARM FRESH',
+          displayOrder: dto.displayOrder ? Number(dto.displayOrder) : 1,
+          isActive: dto.isActive !== undefined ? dto.isActive : true,
+        },
+      });
+    }
+
+    this.logger.log(`Updating HeroBanner id ${id} in DB: title="${dto.title}", imageUrl="${dto.imageUrl}"`);
     return this.prisma.heroBanner.update({
       where: { id },
       data: {
