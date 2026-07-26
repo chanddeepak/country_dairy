@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight, Sparkles, Package } from 'lucide-react';
 import type { Product } from '../types';
+import { resolveImageUrl } from '../components/common/ImageUploader';
 
 interface InventoryProps {
   products: Product[];
@@ -107,19 +108,19 @@ export default function Inventory({
         </div>
 
         {/* Catalog Data Table */}
-        <div className="overflow-x-auto rounded-xl border border-stone-200/80">
-          <table className="w-full text-left text-xs text-[#2A2A2A] border-collapse">
+        <div className="overflow-x-auto rounded-xl border border-stone-200/80 shadow-xs bg-white">
+          <table className="w-full text-left text-xs text-[#2A2A2A] border-collapse min-w-[960px]">
             <thead>
-              <tr className="bg-[#FAF8F3] text-[#6b6661] font-bold border-b border-stone-200 uppercase tracking-wider">
-                <th className="p-4">Product Details</th>
-                <th className="p-4">Category</th>
-                <th className="p-4">Status</th>
-                <th className="p-4">Price & Variants</th>
-                <th className="p-4">Total Stock</th>
-                <th className="p-4 text-center">Subscription Allowed</th>
-                <th className="p-4">Active Batch</th>
-                <th className="p-4">QA Certificate</th>
-                <th className="p-4 text-right">Actions</th>
+              <tr className="bg-[#FAF8F3] text-[#6b6661] font-bold border-b border-stone-200 uppercase tracking-wider text-[11px]">
+                <th className="py-3.5 px-4 min-w-[280px]">Product Details</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Category</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Status</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Price & Variants</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Total Stock</th>
+                <th className="py-3.5 px-4 text-center whitespace-nowrap">Subscription Allowed</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Active Batch</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">QA Certificate</th>
+                <th className="py-3.5 px-4 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 font-medium">
@@ -128,35 +129,41 @@ export default function Inventory({
                 const displayPrice = defaultVariant ? defaultVariant.sellingPrice : ((p as any).price || 0);
                 const totalStock = p.variants ? p.variants.reduce((acc, v) => acc + (v.stockQuantity || 0), 0) : ((p as any).stock || 0);
                 const isOutOfStock = p.status === 'OUT_OF_STOCK' || totalStock === 0;
-                const primaryImage = p.galleryImages?.find(img => img.isPrimary)?.imageUrl || p.galleryImages?.[0]?.imageUrl || '/images/products/milk-bottle.png';
+                
+                const rawImg = p.galleryImages?.find(img => img.isPrimary)?.imageUrl 
+                  || p.galleryImages?.[0]?.imageUrl 
+                  || (p as any).imageUrl;
+                const resolvedImg = rawImg ? resolveImageUrl(rawImg) : null;
 
                 return (
                   <tr key={p.id} className="hover:bg-[#FAF8F3]/60 transition-colors">
-                    {/* Product Name & Thumbnail */}
-                    <td className="p-4">
+                    {/* Product Name & Image Thumbnail */}
+                    <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 bg-[#C59B27]/10 border border-[#C59B27]/30 rounded-xl shrink-0 flex items-center justify-center p-1 relative shadow-sm">
-                          {primaryImage && !primaryImage.endsWith('milk-bottle.png') ? (
+                        <div className="w-12 h-12 bg-stone-100 border border-stone-200 rounded-xl shrink-0 flex items-center justify-center overflow-hidden shadow-xs relative">
+                          {resolvedImg ? (
                             <img 
-                              src={primaryImage} 
+                              src={resolvedImg} 
                               alt={p.title} 
-                              className="w-full h-full object-contain"
-                              onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                              className="w-full h-full object-cover"
+                              onError={(e) => { 
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
                             />
                           ) : (
-                            <Package className="h-5 w-5 text-[#064e3b]" />
+                            <Package className="h-5 w-5 text-stone-400" />
                           )}
                         </div>
-                        <div>
-                          <div className="font-bold text-sm text-[#2A2A2A] flex items-center gap-1.5">
-                            <span>{p.title}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-bold text-sm text-[#2A2A2A] flex items-center gap-1.5 flex-wrap">
+                            <span className="truncate max-w-[220px]" title={p.title}>{p.title}</span>
                             {p.badgeText && (
-                              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-[#C59B27]/15 text-[#C59B27] border border-[#C59B27]/30">
+                              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-[#C59B27]/15 text-[#C59B27] border border-[#C59B27]/30 shrink-0">
                                 {p.badgeText}
                               </span>
                             )}
                           </div>
-                          <div className="text-[10px] text-[#6b6661] font-mono mt-0.5">
+                          <div className="text-[10px] text-[#6b6661] font-mono mt-0.5 truncate">
                             /{p.slug} • {p.variants?.length || 1} Variant(s)
                           </div>
                         </div>
@@ -164,37 +171,38 @@ export default function Inventory({
                     </td>
 
                     {/* Category */}
-                    <td className="p-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <span className="font-bold text-xs text-[#064e3b] bg-[#064e3b]/10 px-2.5 py-1 rounded-lg border border-[#064e3b]/20">
                         {p.categoryName || (p as any).category || 'Dairy'}
                       </span>
                     </td>
 
-                    {/* Status Badge with Click-to-Toggle (Make Live / Draft) */}
-                    <td className="p-4">
+                    {/* Single Clean Status Badge */}
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <button
                         type="button"
                         onClick={() => toggleProductStatus(p.id)}
-                        className="group flex items-center gap-1.5 focus:outline-none"
+                        className="inline-flex items-center focus:outline-none cursor-pointer"
                         title={p.status === 'LIVE' ? 'Click to set status to DRAFT (Offline)' : 'Click to set status to LIVE (Published)'}
                       >
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase transition-all group-hover:scale-105 cursor-pointer ${
-                          isOutOfStock ? 'bg-red-50 text-red-700 border border-red-200' :
-                          p.status === 'LIVE' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 group-hover:bg-emerald-100' :
-                          'bg-amber-50 text-amber-700 border border-amber-200 group-hover:bg-amber-100'
-                        }`}>
-                          {isOutOfStock ? 'OUT OF STOCK' : (p.status || 'DRAFT')}
-                        </span>
-                        {p.status === 'LIVE' ? (
-                          <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200">LIVE</span>
+                        {isOutOfStock ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-red-50 text-red-700 border border-red-200 shadow-xs">
+                            ● OUT OF STOCK
+                          </span>
+                        ) : p.status === 'LIVE' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-xs">
+                            ● LIVE
+                          </span>
                         ) : (
-                          <span className="text-[10px] font-black text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200">DRAFT (OFF)</span>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors shadow-xs">
+                            ○ DRAFT (OFF)
+                          </span>
                         )}
                       </button>
                     </td>
 
                     {/* Price & Variants */}
-                    <td className="p-4 font-mono font-bold text-stone-900">
+                    <td className="py-3.5 px-4 font-mono font-bold text-stone-900 whitespace-nowrap">
                       <div>₹{displayPrice}</div>
                       {p.variants && p.variants.length > 1 && (
                         <div className="text-[10px] text-[#6b6661] font-normal font-sans">
@@ -204,14 +212,14 @@ export default function Inventory({
                     </td>
 
                     {/* Total Stock */}
-                    <td className="p-4 font-mono">
+                    <td className="py-3.5 px-4 font-mono whitespace-nowrap">
                       <span className={`font-bold ${totalStock === 0 ? 'text-red-600 font-black' : 'text-stone-900'}`}>
                         {totalStock} units
                       </span>
                     </td>
 
-                    {/* Subscription Allowed Toggle (DISABLED BY DEFAULT) */}
-                    <td className="p-4 text-center">
+                    {/* Subscription Allowed Toggle */}
+                    <td className="py-3.5 px-4 text-center whitespace-nowrap">
                       <button
                         type="button"
                         onClick={() => toggleSubscription(p.id)}
@@ -219,19 +227,19 @@ export default function Inventory({
                         title={p.isSubscriptionAllowed ? 'Subscription Enabled' : 'Subscription Disabled (Default)'}
                       >
                         {p.isSubscriptionAllowed ? (
-                          <div className="flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-bold text-[10px]">
-                            <ToggleRight className="h-5 w-5 text-emerald-600" /> ON
+                          <div className="flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 font-extrabold text-[10px] shadow-xs">
+                            <ToggleRight className="h-4 w-4 text-emerald-600" /> ON
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1 text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200 font-bold text-[10px]">
-                            <ToggleLeft className="h-5 w-5 text-stone-400" /> OFF (Default)
+                          <div className="flex items-center gap-1 text-stone-500 bg-stone-100 px-2.5 py-1 rounded-full border border-stone-200 font-extrabold text-[10px] shadow-xs">
+                            <ToggleLeft className="h-4 w-4 text-stone-400" /> OFF
                           </div>
                         )}
                       </button>
                     </td>
 
                     {/* Active Batch */}
-                    <td className="p-4 font-mono text-[11px] text-[#6b6661]">
+                    <td className="py-3.5 px-4 font-mono text-[11px] text-[#6b6661] whitespace-nowrap">
                       {p.batchCode ? (
                         <span className="bg-[#FAF8F3] px-2 py-1 rounded border border-stone-200 font-bold text-[#2A2A2A]">
                           {p.batchCode}
@@ -242,26 +250,26 @@ export default function Inventory({
                     </td>
 
                     {/* QA Certificate */}
-                    <td className="p-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       {p.verified ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
                           <CheckCircle2 className="h-3 w-3" /> VERIFIED
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-50 text-amber-700 border border-amber-200">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-50 text-amber-700 border border-amber-200 shadow-xs">
                           <AlertCircle className="h-3 w-3" /> PENDING QA
                         </span>
                       )}
                     </td>
 
                     {/* Actions */}
-                    <td className="p-4 text-right space-x-1.5">
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap space-x-1.5">
                       <button
                         onClick={() => onEditProduct(p)}
-                        className="px-3 py-1.5 bg-[#FAF8F3] hover:bg-stone-100 text-[#064e3b] border border-stone-200 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition-colors"
+                        className="px-3 py-1.5 bg-[#FAF8F3] hover:bg-stone-100 text-[#064e3b] border border-stone-200 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition-colors shadow-xs"
                         title="Edit Full Product Details & Variants"
                       >
-                        <Edit2 className="h-3.5 w-3.5" /> Edit Full Details
+                        <Edit2 className="h-3.5 w-3.5" /> Edit Details
                       </button>
 
                       <button
