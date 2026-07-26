@@ -29,30 +29,44 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch(`${API_URL}/catalog/products`);
+      const res = await fetch(`${API_URL}/catalog/products?status=LIVE`);
       if (res.ok) {
         const liveProducts = await res.json();
         if (liveProducts && liveProducts.length > 0) {
-          const mapped = liveProducts.map((p: any) => ({
-            id: p.id,
-            name: p.title || p.name,
-            slug: p.slug,
-            category: p.categoryName || (typeof p.category === 'string' ? p.category : p.category?.name) || 'A2 Cow Milk',
-            tagline: p.tagline || '',
-            description: p.storyDescription || p.description || '',
-            badgeText: p.badgeText || '',
-            isSubscriptionAllowed: p.isSubscriptionAllowed ?? false,
-            price: String(p.variants?.[0]?.sellingPrice || p.price || 100),
-            originalPrice: String(p.variants?.[0]?.mrpPrice || p.originalPrice || 120),
-            image: p.galleryImages?.[0]?.imageUrl || p.image || '/images/products/milk-bottle.png',
-            variants: p.variants?.map((v: any) => ({
-              id: v.id,
-              name: v.sizeLabel,
-              volumeOrWeight: v.sizeLabel,
-              price: String(v.sellingPrice),
-              originalPrice: String(v.mrpPrice),
-            })) || [],
-          }));
+          const mapped = liveProducts.map((p: any) => {
+            const primaryImg = p.galleryImages?.find((img: any) => img.isPrimary)?.imageUrl 
+              || p.galleryImages?.[0]?.imageUrl 
+              || p.imageUrl 
+              || '/images/products/milk-bottle.png';
+            const defaultVariant = p.variants?.find((v: any) => v.isDefault) || p.variants?.[0];
+
+            return {
+              id: p.id,
+              name: p.title || p.name,
+              title: p.title || p.name,
+              slug: p.slug,
+              category: p.categoryName || (typeof p.category === 'string' ? p.category : p.category?.name) || 'Dairy',
+              tagline: p.tagline || '',
+              description: p.storyDescription || p.description || '',
+              badgeText: p.badgeText || '',
+              status: p.status || 'LIVE',
+              isSubscriptionAllowed: p.isSubscriptionAllowed ?? false,
+              price: String(defaultVariant?.sellingPrice || p.price || 100),
+              originalPrice: String(defaultVariant?.mrpPrice || p.originalPrice || 120),
+              imageUrls: p.galleryImages?.map((img: any) => img.imageUrl) || [primaryImg],
+              galleryImages: p.galleryImages || [{ imageUrl: primaryImg, isPrimary: true }],
+              variants: p.variants?.map((v: any) => ({
+                id: v.id,
+                name: v.sizeLabel || v.name || 'Standard Pack',
+                volumeOrWeight: v.sizeLabel || v.name || '1 Litre',
+                price: String(v.sellingPrice || v.price || 100),
+                originalPrice: String(v.mrpPrice || v.originalPrice || 120),
+                stockQuantity: v.stockQuantity ?? 50,
+                packagingType: v.packagingType,
+                isDefault: v.isDefault ?? false,
+              })) || [],
+            };
+          });
           setProducts(mapped);
           return;
         }
