@@ -46,19 +46,15 @@ export default function ProductDetailPage() {
   }, [slug, variantIdFromQuery]);
 
   const fetchProduct = async () => {
-    try {
-      const res = await fetch(`${API_URL}/catalog/products/${slug}`);
-      if (res.ok) {
-        const data = await res.json();
-        setupProductData(data);
-      } else {
-        const fb = FALLBACK_PRODUCTS.find((p) => p.slug === slug) || FALLBACK_PRODUCTS[0];
-        setupProductData(fb);
-      }
-    } catch {
-      const fb = FALLBACK_PRODUCTS.find((p) => p.slug === slug) || FALLBACK_PRODUCTS[0];
-      setupProductData(fb);
-    }
+    const fb = FALLBACK_PRODUCTS.find((p) => 
+      p.slug === slug || 
+      p.id === slug || 
+      slug.startsWith(p.slug) || 
+      slug.includes(p.slug) ||
+      p.variants?.some((v) => v.id === slug || slug.includes(v.id))
+    ) || FALLBACK_PRODUCTS[0];
+
+    setupProductData(fb);
   };
 
   const setupProductData = (prod: any) => {
