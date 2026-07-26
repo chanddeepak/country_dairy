@@ -94,7 +94,7 @@ export default function ProductDetailPage() {
     setProduct(normalizedProd);
     setSelectedVariant(defaultVar);
 
-    const initialImg = defaultVar?.image || PRODUCT_IMAGES[prod.slug] || prod.galleryImages?.[0]?.imageUrl || prod.imageUrls?.[0] || '/images/products/ghee-jar.png';
+    const initialImg = PRODUCT_IMAGES[prod.slug] || defaultVar?.image || prod.galleryImages?.[0]?.imageUrl || prod.imageUrls?.[0] || '/images/products/ghee-jar.png';
     setActiveImage(resolveStorefrontImageUrl(initialImg));
 
     setRelatedProducts(FALLBACK_PRODUCTS.filter((p) => p.slug !== prod.slug).slice(0, 3));
@@ -205,12 +205,11 @@ export default function ProductDetailPage() {
   };
 
   // Build unique list of distinct gallery thumbnail images
-  const baseImage = selectedVariant?.image || PRODUCT_IMAGES[product.slug] || product.imageUrls?.[0] || '/images/products/milk-bottle.png';
+  const baseImage = PRODUCT_IMAGES[product.slug] || selectedVariant?.image || product.imageUrls?.[0] || '/images/products/milk-bottle.png';
   const allImages = Array.from(new Set([
     baseImage,
-    ...(product.imageUrls || []),
-    ...(product.secondaryImages || []),
-    HERO_IMAGE,
+    ...(product.imageUrls || []).filter((img) => img !== baseImage),
+    ...(product.secondaryImages || []).filter((img) => img !== baseImage),
   ]));
 
   const galleryThumbnails = allImages.map((imgUrl, index) => ({
