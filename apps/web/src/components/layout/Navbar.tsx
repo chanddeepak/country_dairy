@@ -77,7 +77,18 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
   };
 
   return (
-    <nav className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-stone-200">
+    <header className="sticky top-0 z-40">
+      {/* Devbhoomi Uttarakhand Origin Top Bar */}
+      <div className="bg-[#2d4d2b] text-stone-100 text-[11px] font-medium py-1.5 px-4 text-center tracking-wide flex items-center justify-center gap-2 border-b border-white/10">
+        <span className="bg-[#C59B27] text-stone-950 font-extrabold px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider shadow-2xs">
+          ⛰️ Devbhoomi Origin
+        </span>
+        <span className="hidden sm:inline">Handcrafted in the Himalayan Foothills of Tanakpur, Uttarakhand</span>
+        <span className="sm:hidden">Tanakpur, Uttarakhand</span>
+        <span className="text-white/40">•</span>
+        <span className="font-semibold text-amber-200">Free Shipping Orders ₹499+</span>
+      </div>
+      <nav className="bg-white/95 backdrop-blur-sm border-b border-stone-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex justify-between items-center">
         {/* Logo */}
         <div className="flex-1 flex justify-start">
@@ -244,6 +255,7 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
           )}
         </div>
       )}
-    </nav>
+      </nav>
+    </header>
   );
 }

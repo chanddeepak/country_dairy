@@ -58,6 +58,10 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
           </div>
         )}
 
+        <div className="flex items-center gap-1 mb-1 text-[10px] text-[#3A6038] font-extrabold uppercase tracking-wider">
+          <span>⛰️ Tanakpur, Uttarakhand</span>
+        </div>
+
         <Link href={productUrl} className="hover:text-[#3A6038] transition">
           <h3 className="font-serif font-bold text-base text-[#2A2A2A] leading-snug mb-1 line-clamp-1">
             {product.name}

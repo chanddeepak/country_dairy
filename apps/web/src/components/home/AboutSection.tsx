@@ -6,27 +6,27 @@ import { Leaf, Heart, Shield, Truck } from 'lucide-react';
 const storyPoints = [
   {
     icon: <Leaf className="h-6 w-6" />,
-    title: 'Born on the Farm',
+    title: 'Himalayan Foothill Farm',
     description:
-      'Country Dairy started as a single family farm in Uttarakhand, raising native Gir and Sahiwal cows on open pastures — no factory floors, no shortcuts.',
+      'Country Dairy is located in Tanakpur, Champawat, Uttarakhand — where cows graze freely on lush green hill pastures in the lap of nature.',
   },
   {
     icon: <Heart className="h-6 w-6" />,
-    title: 'Happy Cows, Pure Ghee',
+    title: 'Pure Spring Water & Pastures',
     description:
-      'Our cows are grass-fed, free-range, and milked by hand. We believe that happy, healthy cows produce the purest A2 Bilona Ghee.',
+      'Our native Gir & Sahiwal cows drink mountain spring water and feed on natural flora. Happy cows yield the highest quality A2 Bilona Ghee.',
   },
   {
     icon: <Shield className="h-6 w-6" />,
     title: 'NABL Lab Verified',
     description:
-      'Every batch is tested for adulterants — synthetic fats, starch, detergent, chemical solvents — at NABL-accredited laboratories before it reaches you.',
+      'Every batch is tested for 70+ quality parameters and adulterants at NABL-accredited laboratories before being shipped to your home.',
   },
   {
     icon: <Truck className="h-6 w-6" />,
-    title: 'Farm to Doorstep',
+    title: 'Fresh from Devbhoomi',
     description:
-      'We ship across India directly from our farm. Order pure, organic products crafted with care and transparency.',
+      'Directly shipped from our farm in Uttarakhand across India. Pure, unadulterated, and packaged with zero chemical preservatives.',
   },
 ];
 

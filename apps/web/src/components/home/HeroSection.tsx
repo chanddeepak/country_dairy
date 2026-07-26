@@ -10,8 +10,8 @@ const HERO_SLIDES = [
     id: 1,
     image: '/images/hero-banner.png',
     objectPosition: 'center',
-    headline: 'Farm Fresh. Organic. Pure Happiness.',
-    subtitle: 'Experience the finest A2 Vedic Ghee & Wood-Pressed Oils, sourced directly from our farm.',
+    headline: 'Nourishment from the Himalayan Foothills.',
+    subtitle: 'Experience the purity of A2 Vedic Ghee & Wood-Pressed Oils, crafted in Tanakpur, Uttarakhand.',
     ctaText: 'Shop All Products',
     ctaHref: '/products'
   },
@@ -20,7 +20,7 @@ const HERO_SLIDES = [
     image: '/images/hero-banner-2-wide.png',
     objectPosition: 'center',
     headline: 'Pure A2 Vedic Ghee. Bilona Churned.',
-    subtitle: 'Grass-fed Gir & Sahiwal cows. NABL lab-verified. Zero adulterants.',
+    subtitle: 'Grass-fed Gir & Sahiwal cows grazing in pristine mountain pastures. Zero adulterants.',
     ctaText: 'Shop All Products',
     ctaHref: '/products'
   },
@@ -87,6 +87,9 @@ export default function HeroSection() {
             {/* Hero content overlay */}
             <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
               <div className="max-w-xl space-y-6">
+                <div className="inline-flex items-center gap-1.5 bg-[#3A6038]/80 backdrop-blur-xs text-amber-200 border border-amber-300/30 px-3.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-widest shadow-sm">
+                  <span>⛰️ Devbhoomi Uttarakhand Origin</span>
+                </div>
                 <h1 className="font-serif font-black text-4xl sm:text-5xl md:text-6xl leading-tight text-white drop-shadow-lg">
                   {slide.headline.split('. ').map((part, i, arr) => (
                     <React.Fragment key={i}>
