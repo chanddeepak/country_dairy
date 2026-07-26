@@ -464,10 +464,10 @@ export default function ProductDetailPage() {
                 </h3>
                 <div className="text-sm text-[#6b6661] leading-relaxed space-y-3">
                   <p>
-                    Made in our farms, our {product.name} is crafted with uncompromised dedication to traditional purity. Our cows are the happiest beings you’ll meet—they graze freely in natural open pastures and are never injected with artificial hormones.
+                    {product.storyDescription || product.description}
                   </p>
                   <p>
-                    Every product is crafted in small batches and lab-tested so what reaches your kitchen is nothing but pure, wholesome quality that is easy to digest and helps boost health and immunity.
+                    Every batch is lab-tested before dispatch so what reaches your kitchen is 100% pure, unadulterated, and crafted with uncompromised quality.
                   </p>
                 </div>
 

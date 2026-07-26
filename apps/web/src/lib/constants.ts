@@ -63,6 +63,7 @@ export interface Product {
   slug: string;
   category: string;
   description: string;
+  storyDescription?: string;
   price: string;
   originalPrice?: string;
   discountBadge?: string;
@@ -85,12 +86,13 @@ export const FALLBACK_PRODUCTS: Product[] = [
     slug: 'country-dairy-a2-vedic-ghee-1l',
     category: 'A2 Desi Ghee',
     description: 'Made in our farms, our A2 Desi Cow Ghee is bilona-churned in small batches from A2 cultured curd. Pure, aromatic, and easy to digest.',
+    storyDescription: 'Made on our farm, our A2 Desi Cow Ghee is crafted using the traditional Vedic bilona method. A2 cultured curd is slow-churned to yield pure makkhan, which is then gently heated in earthen pots to produce rich, golden ghee with an authentic granular texture and divine aroma.',
     price: '1450',
     originalPrice: '1600',
     discountBadge: '9% OFF',
     badge: '★ Best Seller',
-    imageUrls: ['/images/products/ghee-jar.png', '/images/hero-banner.png', '/images/products/milk-bottle.png'],
-    secondaryImages: ['/images/hero-banner.png', '/images/products/milk-bottle.png'],
+    imageUrls: ['/images/products/ghee-jar.png', '/images/hero-banner.png'],
+    secondaryImages: ['/images/hero-banner.png'],
     variants: [
       {
         id: 'ghee-500ml',
@@ -142,12 +144,13 @@ export const FALLBACK_PRODUCTS: Product[] = [
     slug: 'country-dairy-a2-gir-cow-ghee-1l',
     category: 'A2 Desi Ghee',
     description: 'Sourced exclusively from indigenous purebred Gir cows. Traditional bilona-churned in small batches from A2 cultured curd for golden purity.',
+    storyDescription: 'Sourced exclusively from purebred Gir cows in Uttarakhand, famous for their high-potency A2 beta-casein milk. Crafted using the ancient bilona method, our Gir Cow Ghee retains essential vitamins, fatty acids, and natural antioxidants for supreme health and aroma.',
     price: '1650',
     originalPrice: '1800',
     discountBadge: '8% OFF',
     badge: '★ Premium Gir Breed',
-    imageUrls: ['/images/products/ghee-jar.png', '/images/hero-banner.png', '/images/products/milk-bottle.png'],
-    secondaryImages: ['/images/hero-banner.png', '/images/products/milk-bottle.png'],
+    imageUrls: ['/images/products/ghee-jar.png', '/images/hero-banner.png'],
+    secondaryImages: ['/images/hero-banner.png'],
     variants: [
       {
         id: 'gir-ghee-500ml',
@@ -199,12 +202,13 @@ export const FALLBACK_PRODUCTS: Product[] = [
     slug: 'organic-wood-pressed-mustard-oil-1l',
     category: 'Wood-Pressed Oils',
     description: 'Cold wood-pressed kachi ghani mustard oil, chemical-free and rich in natural nutrients.',
+    storyDescription: 'Our Organic Wood-Pressed Mustard Oil is extracted using traditional wooden chakkis (Kachi Ghani) at low temperatures. This cold-press method preserves natural pungency, rich aroma, and essential Omega-3 and Omega-6 fatty acids without any artificial preservatives.',
     price: '320',
     originalPrice: '380',
     discountBadge: '16% OFF',
     badge: '★ Top Rated Choice',
-    imageUrls: ['/images/products/mustard-oil.png', '/images/hero-banner.png', '/images/products/wild-honey.png'],
-    secondaryImages: ['/images/hero-banner.png', '/images/products/wild-honey.png'],
+    imageUrls: ['/images/products/mustard-oil.png', '/images/hero-banner.png'],
+    secondaryImages: ['/images/hero-banner.png'],
     variants: [
       {
         id: 'oil-500ml',
