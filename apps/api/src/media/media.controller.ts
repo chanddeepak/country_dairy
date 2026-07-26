@@ -85,8 +85,9 @@ export class MediaController {
         await this.ensureBucketExists(supabase, 'products');
 
         const timestamp = Date.now();
-        const cleanName = file.originalname ? file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_') : 'image.webp';
-        const pathName = `upload-${timestamp}-${cleanName}`;
+        const randomHash = Math.random().toString(36).substring(2, 10);
+        const fileExt = file.originalname ? (path.extname(file.originalname).toLowerCase() || '.webp') : '.webp';
+        const pathName = `${timestamp}-${randomHash}${fileExt}`;
         const fileBuffer = fs.readFileSync(file.path);
 
         const { data: sData, error: sErr } = await supabase.storage
@@ -97,7 +98,7 @@ export class MediaController {
           });
 
         if (!sErr && sData?.path) {
-          const relativeStoragePath = `/storage/v1/object/public/hero-banners/${sData.path}`;
+          const relativeStoragePath = `/hero-banners/${sData.path}`;
           this.logger.log(`[Supabase Storage] File uploaded successfully: ${relativeStoragePath}`);
           return {
             success: true,
@@ -138,9 +139,10 @@ export class MediaController {
     if (supabase) {
       try {
         const timestamp = Date.now();
-        const cleanFilename = filename ? filename.replace(/[^a-zA-Z0-9.-]/g, '_') : 'image.webp';
-        const filePath = `${timestamp}-${cleanFilename}`;
-        const relativeStoragePath = `/storage/v1/object/public/${bucketName}/${filePath}`;
+        const randomHash = Math.random().toString(36).substring(2, 10);
+        const fileExt = filename ? (path.extname(filename).toLowerCase() || '.webp') : '.webp';
+        const filePath = `${timestamp}-${randomHash}${fileExt}`;
+        const relativeStoragePath = `/${bucketName}/${filePath}`;
 
         const { data, error } = await supabase.storage
           .from(bucketName)

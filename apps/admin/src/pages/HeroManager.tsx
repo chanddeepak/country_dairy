@@ -27,7 +27,7 @@ export default function HeroManager() {
         if (!isCurrent) return;
         if (banners && banners.length > 0) {
           const mapped: HeroSlide[] = banners.map(b => {
-            const validUrl = (b.imageUrl && (b.imageUrl.startsWith('/uploads/') || b.imageUrl.includes('/storage/v1/object/public/'))) ? b.imageUrl : '';
+            const validUrl = (b.imageUrl && (b.imageUrl.startsWith('/hero-banners/') || b.imageUrl.startsWith('/products/') || b.imageUrl.startsWith('/uploads/') || b.imageUrl.includes('/storage/v1/object/public/'))) ? b.imageUrl : '';
             return {
               id: b.id,
               title: b.title,
@@ -162,7 +162,7 @@ export default function HeroManager() {
       });
 
       if (saved?.id) {
-        const resUrl = (saved.imageUrl && (saved.imageUrl.startsWith('/uploads/') || saved.imageUrl.includes('/storage/v1/object/public/'))) ? saved.imageUrl : '';
+        const resUrl = (saved.imageUrl && (saved.imageUrl.startsWith('/hero-banners/') || saved.imageUrl.startsWith('/products/') || saved.imageUrl.startsWith('/uploads/') || saved.imageUrl.includes('/storage/v1/object/public/'))) ? saved.imageUrl : '';
         setSlides(prev => prev.map(s => s.id === activeEditingSlide.id ? {
           ...s,
           id: saved.id,

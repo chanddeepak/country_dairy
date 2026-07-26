@@ -42,10 +42,15 @@ export class MediaService {
     }
 
     try {
-      // 1. If Supabase Storage CDN URL (e.g. .../storage/v1/object/public/<bucket>/<path>)
-      if (imageUrl.includes('/storage/v1/object/public/')) {
-        const parts = imageUrl.split('/storage/v1/object/public/')[1]?.split('/');
-        if (parts && parts.length >= 2) {
+      let relativePath = imageUrl;
+      if (relativePath.includes('/storage/v1/object/public/')) {
+        relativePath = '/' + relativePath.split('/storage/v1/object/public/')[1];
+      }
+
+      // If relative bucket path like /hero-banners/xxx.webp or /products/xxx.webp
+      if (relativePath.startsWith('/hero-banners/') || relativePath.startsWith('/products/')) {
+        const parts = relativePath.substring(1).split('/');
+        if (parts.length >= 2) {
           const bucket = parts[0];
           const filePath = parts.slice(1).join('/');
           const supabase = this.getSupabaseClient();
@@ -59,9 +64,9 @@ export class MediaService {
           }
         }
       }
-      // 2. If local server storage path (/uploads/upload-xxx.webp)
-      else if (imageUrl.startsWith('/uploads/')) {
-        const localPath = path.join(process.cwd(), imageUrl);
+      // If local server storage path (/uploads/xxx.webp)
+      else if (relativePath.startsWith('/uploads/')) {
+        const localPath = path.join(process.cwd(), relativePath);
         if (fs.existsSync(localPath)) {
           fs.unlinkSync(localPath);
           this.logger.log(`[Media Cleanup] Deleted old local file: ${localPath}`);

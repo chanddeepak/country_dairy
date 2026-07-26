@@ -12,6 +12,10 @@ interface ImageUploaderProps {
 
 export function resolveImageUrl(url?: string | null): string {
   if (!url || url.startsWith('blob:')) return '';
+  if (url.startsWith('/hero-banners/') || url.startsWith('/products/')) {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
+    return `${supabaseUrl}/storage/v1/object/public${url}`;
+  }
   if (url.startsWith('/storage/v1/object/public/')) {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
     return `${supabaseUrl}${url}`;

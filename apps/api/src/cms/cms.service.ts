@@ -5,7 +5,8 @@ import { MediaService } from '../media/media.service';
 function sanitizeRelativeUrl(url?: string): string | undefined {
   if (!url) return url;
   if (url.includes('/storage/v1/object/public/')) {
-    return `/storage/v1/object/public/${url.split('/storage/v1/object/public/')[1]}`;
+    const parts = url.split('/storage/v1/object/public/')[1];
+    return parts ? `/${parts}` : url;
   }
   return url;
 }
