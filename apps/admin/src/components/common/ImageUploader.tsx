@@ -19,6 +19,11 @@ export function resolveImageUrl(url?: string | null): string {
   return url;
 }
 
+const isUploadedImage = (url?: string | null): boolean => {
+  if (!url || url.startsWith('blob:') || url.startsWith('/images/')) return false;
+  return true;
+};
+
 export default function ImageUploader({
   onImageUploaded,
   maxSizeBytes = 5 * 1024 * 1024, // 5MB
@@ -26,7 +31,7 @@ export default function ImageUploader({
   label = 'Upload Photo',
   currentImageUrl
 }: ImageUploaderProps) {
-  const initialUrl = (currentImageUrl && !currentImageUrl.startsWith('blob:')) ? currentImageUrl : null;
+  const initialUrl = isUploadedImage(currentImageUrl) ? (currentImageUrl || null) : null;
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialUrl);
   const [isCompressing, setIsCompressing] = useState(false);
   const [originalSizeKB, setOriginalSizeKB] = useState<number | null>(null);
@@ -36,8 +41,8 @@ export default function ImageUploader({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (currentImageUrl && !currentImageUrl.startsWith('blob:')) {
-      setPreviewUrl(currentImageUrl);
+    if (isUploadedImage(currentImageUrl)) {
+      setPreviewUrl(currentImageUrl || null);
     } else {
       setPreviewUrl(null);
     }
