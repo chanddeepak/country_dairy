@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, X, Check, AlertCircle } from 'lucide-react';
+import { adminApi } from '../../services/apiClient';
 
 interface ImageUploaderProps {
   onImageUploaded: (url: string) => void;
@@ -7,6 +8,15 @@ interface ImageUploaderProps {
   aspectRatio?: 'desktop' | 'mobile' | 'square';
   label?: string;
   currentImageUrl?: string;
+}
+
+export function resolveImageUrl(url?: string | null): string {
+  if (!url) return '';
+  if (url.startsWith('/uploads/')) {
+    const apiHost = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api').replace(/\/api\/?$/, '');
+    return `${apiHost}${url}`;
+  }
+  return url;
 }
 
 export default function ImageUploader({
@@ -24,8 +34,12 @@ export default function ImageUploader({
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    setPreviewUrl(currentImageUrl || null);
+  }, [currentImageUrl]);
+
   // Compress image on client side using HTML5 Canvas API (JPG/PNG -> WebP @ 85% quality)
-  const compressToWebP = (file: File): Promise<{ webpUrl: string; sizeKB: number }> => {
+  const compressToWebPBlob = (file: File): Promise<{ blob: Blob; sizeKB: number }> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -65,9 +79,8 @@ export default function ImageUploader({
                 reject(new Error('Compression failed'));
                 return;
               }
-              const webpUrl = URL.createObjectURL(blob);
               const sizeKB = Math.round(blob.size / 1024);
-              resolve({ webpUrl, sizeKB });
+              resolve({ blob, sizeKB });
             },
             'image/webp',
             0.85
@@ -102,10 +115,15 @@ export default function ImageUploader({
 
     try {
       // 3. Client-side WebP Compression
-      const { webpUrl, sizeKB } = await compressToWebP(file);
+      const { blob, sizeKB } = await compressToWebPBlob(file);
       setCompressedSizeKB(sizeKB);
-      setPreviewUrl(webpUrl);
-      onImageUploaded(webpUrl);
+
+      // 4. Upload file to backend server & store relative path
+      const webpFilename = file.name.replace(/\.[^/.]+$/, '') + '.webp';
+      const relativeUrl = await adminApi.uploadMedia(blob, webpFilename);
+
+      setPreviewUrl(relativeUrl);
+      onImageUploaded(relativeUrl);
     } catch (err: any) {
       setError(err.message || 'Image processing failed');
     } finally {
@@ -151,7 +169,7 @@ export default function ImageUploader({
       {previewUrl ? (
         <div className="relative group rounded-xl overflow-hidden border border-stone-700 bg-stone-900">
           <img
-            src={previewUrl}
+            src={resolveImageUrl(previewUrl)}
             alt="Uploaded preview"
             className={`w-full object-cover ${
               aspectRatio === 'desktop' ? 'h-36' : aspectRatio === 'mobile' ? 'h-48' : 'h-32'

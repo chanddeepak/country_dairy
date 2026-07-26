@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Monitor, Smartphone } from 'lucide-react';
 import type { HeroSlide } from '../../types';
+import { resolveImageUrl } from '../common/ImageUploader';
 
 interface HeroPreviewSimulatorProps {
   slide: Partial<HeroSlide>;
@@ -9,9 +10,10 @@ interface HeroPreviewSimulatorProps {
 export default function HeroPreviewSimulator({ slide }: HeroPreviewSimulatorProps) {
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
 
-  const bgImage = device === 'desktop' 
-    ? (slide.desktopImageUrl || 'https://images.unsplash.com/photo-1527153857715-3908f2bae5da?auto=format&fit=crop&w=1200&q=80')
-    : (slide.mobileImageUrl || slide.desktopImageUrl || 'https://images.unsplash.com/photo-1527153857715-3908f2bae5da?auto=format&fit=crop&w=800&q=80');
+  const rawBg = device === 'desktop' 
+    ? (slide.desktopImageUrl || '/images/hero-banner.png')
+    : (slide.mobileImageUrl || slide.desktopImageUrl || '/images/hero-banner.png');
+  const bgImage = resolveImageUrl(rawBg);
 
   const opacityPercent = slide.overlayOpacity !== undefined ? slide.overlayOpacity : 30;
 

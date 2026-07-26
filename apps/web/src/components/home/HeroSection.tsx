@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
@@ -109,6 +109,7 @@ export default function HeroSection() {
               src={slide.image}
               alt={slide.headline || 'Hero banner'}
               fill
+              unoptimized={typeof slide.image === 'string' && (slide.image.startsWith('http') || slide.image.includes('/uploads/'))}
               className="object-cover scale-105 transition-transform duration-1000"
               style={{ objectPosition: slide.objectPosition || 'center' }}
               priority={index === 0}
@@ -123,20 +124,14 @@ export default function HeroSection() {
                 <div className="inline-flex items-center gap-1 bg-[#3A6038]/85 backdrop-blur-xs text-amber-200 border border-amber-300/30 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider shadow-sm">
                   <span>⛰️ Devbhoomi Uttarakhand Origin</span>
                 </div>
-<<<<<<< HEAD
                 <h1 className={`font-serif font-black leading-tight text-white drop-shadow-lg ${slide.headlineSize || 'text-3xl sm:text-4xl md:text-5xl'}`}>
-                  {slide.headline.split('. ').map((part, i, arr) => (
-=======
-                <h1 className="font-serif font-black text-4xl sm:text-5xl md:text-6xl leading-tight text-white drop-shadow-lg">
                   {(slide.headline || '').split('. ').map((part: string, i: number, arr: string[]) => (
->>>>>>> 3cee461 (fix(wiring): resolve CORS dev port allowlist, CategoryCMS API CRUD, homepage live catalog/hero fetching, and default product DRAFT toggle status)
                     <React.Fragment key={i}>
                       {part}{i < arr.length - 1 ? '.' : ''}
                       {i < arr.length - 1 && <span className="block" />}
                     </React.Fragment>
                   ))}
                 </h1>
-<<<<<<< HEAD
                 {slide.subtitle && (
                   <p className="text-white/90 text-sm md:text-base max-w-md leading-relaxed drop-shadow">
                     {slide.subtitle}
@@ -144,25 +139,13 @@ export default function HeroSection() {
                 )}
                 <div className={slide.ctaMarginTop || ''}>
                   <Link
-                    href={slide.ctaHref}
+                    href={slide.ctaHref || '/products'}
                     className="inline-flex items-center bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold px-6 py-3 rounded-sm uppercase tracking-wider text-xs sm:text-sm shadow-lg transition-all hover:shadow-xl"
                   >
-                    {slide.ctaText}
+                    {slide.ctaText || 'Shop All Products'}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </div>
-=======
-                <p className="text-white/90 text-base md:text-lg max-w-md leading-relaxed drop-shadow">
-                  {slide.subtitle}
-                </p>
-                <Link
-                  href={slide.ctaHref || '/products'}
-                  className="inline-flex items-center bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold px-8 py-4 rounded-sm uppercase tracking-wider text-sm shadow-lg transition-all hover:shadow-xl"
-                >
-                  {slide.ctaText || 'Shop All Products'}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
->>>>>>> 3cee461 (fix(wiring): resolve CORS dev port allowlist, CategoryCMS API CRUD, homepage live catalog/hero fetching, and default product DRAFT toggle status)
               </div>
             </div>
           </div>

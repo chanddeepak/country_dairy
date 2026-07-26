@@ -26,6 +26,31 @@ async function fetchJson<T>(endpoint: string, options: RequestInit = {}): Promis
 }
 
 export const adminApi = {
+  // Media Upload API
+  async uploadMedia(file: Blob, filename: string = 'image.webp'): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file, filename);
+
+    const token = localStorage.getItem('country_dairy_admin_token');
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${API_BASE_URL}/media/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Upload failed (${res.status})`);
+    }
+
+    const data = await res.json();
+    return data.url; // Relative URL like "/uploads/upload-12345.webp"
+  },
+
   // Products API
   async getProducts(categoryId?: string, search?: string, status?: string): Promise<Product[]> {
     const query = new URLSearchParams();
