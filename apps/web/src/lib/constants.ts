@@ -91,8 +91,19 @@ export const FALLBACK_PRODUCTS: Product[] = [
     originalPrice: '1600',
     discountBadge: '9% OFF',
     badge: '★ Best Seller',
-    imageUrls: ['/images/products/ghee-jar.png', '/images/hero-banner.png'],
-    secondaryImages: ['/images/hero-banner.png'],
+    imageUrls: [
+      '/images/products/a2-desi-ghee-1l-main.png',
+      '/images/products/ghee-gallery-banner.png',
+      '/images/products/ghee-gallery-purity.png',
+      '/images/products/ghee-gallery-uses.png',
+      '/images/products/ghee-gallery-nutrition.png',
+    ],
+    secondaryImages: [
+      '/images/products/ghee-gallery-banner.png',
+      '/images/products/ghee-gallery-purity.png',
+      '/images/products/ghee-gallery-uses.png',
+      '/images/products/ghee-gallery-nutrition.png',
+    ],
     variants: [
       {
         id: 'ghee-500ml',
@@ -101,7 +112,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '750',
         originalPrice: '850',
         discountPercent: '12% OFF',
-        image: '/images/products/ghee-jar.png',
+        image: '/images/products/a2-desi-ghee-1l-main.png',
       },
       {
         id: 'ghee-1l',
@@ -110,7 +121,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '1450',
         originalPrice: '1600',
         discountPercent: '9% OFF',
-        image: '/images/products/ghee-jar.png',
+        image: '/images/products/a2-desi-ghee-1l-main.png',
         isDefault: true,
       },
       {
@@ -120,7 +131,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '3500',
         originalPrice: '3800',
         discountPercent: '8% OFF',
-        image: '/images/products/ghee-jar.png',
+        image: '/images/products/a2-desi-ghee-1l-main.png',
       },
       {
         id: 'ghee-5l',
@@ -129,7 +140,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '6800',
         originalPrice: '7500',
         discountPercent: '9% OFF',
-        image: '/images/products/ghee-jar.png',
+        image: '/images/products/a2-desi-ghee-1l-main.png',
       },
     ],
     isSubscriptionAllowed: false,
@@ -149,8 +160,19 @@ export const FALLBACK_PRODUCTS: Product[] = [
     originalPrice: '1800',
     discountBadge: '8% OFF',
     badge: '★ Premium Gir Breed',
-    imageUrls: ['/images/products/ghee-jar.png', '/images/hero-banner.png'],
-    secondaryImages: ['/images/hero-banner.png'],
+    imageUrls: [
+      '/images/products/a2-gir-ghee-1l-main.png',
+      '/images/products/ghee-gallery-banner.png',
+      '/images/products/ghee-gallery-purity.png',
+      '/images/products/ghee-gallery-uses.png',
+      '/images/products/ghee-gallery-nutrition.png',
+    ],
+    secondaryImages: [
+      '/images/products/ghee-gallery-banner.png',
+      '/images/products/ghee-gallery-purity.png',
+      '/images/products/ghee-gallery-uses.png',
+      '/images/products/ghee-gallery-nutrition.png',
+    ],
     variants: [
       {
         id: 'gir-ghee-500ml',
@@ -159,7 +181,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '880',
         originalPrice: '980',
         discountPercent: '10% OFF',
-        image: '/images/products/ghee-jar.png',
+        image: '/images/products/a2-gir-ghee-1l-main.png',
       },
       {
         id: 'gir-ghee-1l',
@@ -168,7 +190,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '1650',
         originalPrice: '1800',
         discountPercent: '8% OFF',
-        image: '/images/products/ghee-jar.png',
+        image: '/images/products/a2-gir-ghee-1l-main.png',
         isDefault: true,
       },
       {
@@ -178,7 +200,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '3950',
         originalPrice: '4300',
         discountPercent: '8% OFF',
-        image: '/images/products/ghee-jar.png',
+        image: '/images/products/a2-gir-ghee-main.png',
       },
       {
         id: 'gir-ghee-5l',
@@ -187,7 +209,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '7450',
         originalPrice: '8200',
         discountPercent: '9% OFF',
-        image: '/images/products/ghee-jar.png',
+        image: '/images/products/a2-gir-ghee-main.png',
       },
     ],
     isSubscriptionAllowed: false,
