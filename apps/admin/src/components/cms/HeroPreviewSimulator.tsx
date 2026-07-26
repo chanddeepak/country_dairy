@@ -12,9 +12,9 @@ export default function HeroPreviewSimulator({ slide, deviceType = 'DESKTOP', on
   const currentDevice = deviceType.toLowerCase() as 'desktop' | 'mobile';
 
   const rawBg = currentDevice === 'desktop' 
-    ? (slide.desktopImageUrl || '/images/hero-banner.png')
-    : (slide.mobileImageUrl || slide.desktopImageUrl || '/images/hero-banner.png');
-  const bgImage = resolveImageUrl(rawBg);
+    ? slide.desktopImageUrl 
+    : slide.mobileImageUrl;
+  const bgImage = resolveImageUrl(rawBg || '/images/hero-banner.png');
 
   const opacityPercent = slide.overlayOpacity !== undefined ? slide.overlayOpacity : 30;
 

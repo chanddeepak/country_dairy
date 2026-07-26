@@ -18,24 +18,32 @@ export default function HeroManager() {
   };
 
   useEffect(() => {
+    let isCurrent = true;
+    setSlides([]);
+    setActiveEditingSlide(null);
+
     adminApi.getHeroBanners(activeDeviceType)
       .then(banners => {
+        if (!isCurrent) return;
         if (banners && banners.length > 0) {
-          const mapped: HeroSlide[] = banners.map(b => ({
-            id: b.id,
-            title: b.title,
-            subtitle: b.subtitle,
-            badgeText: b.badgeText || 'FARM FRESH',
-            ctaLabel: b.ctaText || 'Shop All Products',
-            ctaLink: b.ctaLink || '/products',
-            desktopImageUrl: (b.imageUrl && (b.imageUrl.startsWith('/uploads/') || b.imageUrl.includes('/storage/v1/object/public/'))) ? b.imageUrl : '',
-            mobileImageUrl: (b.imageUrl && (b.imageUrl.startsWith('/uploads/') || b.imageUrl.includes('/storage/v1/object/public/'))) ? b.imageUrl : '',
-            overlayOpacity: 30,
-            sortOrder: b.displayOrder || 1,
-            isActive: b.isActive ?? true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          }));
+          const mapped: HeroSlide[] = banners.map(b => {
+            const validUrl = (b.imageUrl && (b.imageUrl.startsWith('/uploads/') || b.imageUrl.includes('/storage/v1/object/public/'))) ? b.imageUrl : '';
+            return {
+              id: b.id,
+              title: b.title,
+              subtitle: b.subtitle,
+              badgeText: b.badgeText || 'FARM FRESH',
+              ctaLabel: b.ctaText || 'Shop All Products',
+              ctaLink: b.ctaLink || '/products',
+              desktopImageUrl: activeDeviceType === 'DESKTOP' ? validUrl : '',
+              mobileImageUrl: activeDeviceType === 'MOBILE' ? validUrl : '',
+              overlayOpacity: 30,
+              sortOrder: b.displayOrder || 1,
+              isActive: b.isActive ?? true,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+          });
           setSlides(mapped);
           setActiveEditingSlide(mapped[0]);
         } else {
@@ -43,7 +51,13 @@ export default function HeroManager() {
           setActiveEditingSlide(null);
         }
       })
-      .catch(err => console.warn('API getHeroBanners warning:', err));
+      .catch(err => {
+        if (isCurrent) console.warn('API getHeroBanners warning:', err);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
   }, [activeDeviceType]);
 
   const activeCount = slides.filter(s => s.isActive).length;
