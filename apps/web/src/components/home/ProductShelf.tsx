@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { FALLBACK_PRODUCTS, Product } from '../../lib/constants';
+import { FALLBACK_PRODUCTS, Product, getExpandedProducts } from '../../lib/constants';
 import ProductCard from '../product/ProductCard';
 
 interface ProductShelfProps {
@@ -24,7 +24,7 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setProducts(FALLBACK_PRODUCTS);
+    setProducts(getExpandedProducts(FALLBACK_PRODUCTS));
   }, []);
 
   const filteredProducts = activeCategory === 'All'
