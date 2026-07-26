@@ -46,7 +46,8 @@ const STATIC_HERO_SLIDES = [
 ];
 
 export default function HeroSection() {
-  const [slides, setSlides] = useState<any[]>(STATIC_HERO_SLIDES);
+  const [slides, setSlides] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -70,10 +71,17 @@ export default function HeroSection() {
             ctaHref: b.ctaLink || '/products',
           }));
           setSlides(mapped);
+        } else {
+          setSlides(STATIC_HERO_SLIDES);
         }
+      } else {
+        setSlides(STATIC_HERO_SLIDES);
       }
     } catch (err) {
-      console.warn('API fetchHeroBanners warning:', err);
+      console.warn('API fetchHeroBanners warning, using static slides fallback:', err);
+      setSlides(STATIC_HERO_SLIDES);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -88,6 +96,47 @@ export default function HeroSection() {
       if (interval) clearInterval(interval);
     };
   }, [isPaused, slides.length]);
+
+  if (isLoading) {
+    return (
+      <section className="relative w-full overflow-hidden bg-stone-900">
+        <div className="relative w-full h-[520px] md:h-[600px] bg-gradient-to-r from-stone-900 via-stone-850 to-stone-900 animate-pulse flex items-center">
+          {/* Shimmer background gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-stone-950/80 via-stone-900/60 to-transparent" />
+          
+          <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+            <div className="max-w-xl space-y-6">
+              {/* Badge skeleton */}
+              <div className="w-32 h-6 bg-stone-800/80 rounded-full border border-stone-700/50 animate-pulse" />
+              
+              {/* Headline skeleton lines */}
+              <div className="space-y-3">
+                <div className="w-3/4 h-10 md:h-14 bg-stone-800/90 rounded-lg animate-pulse" />
+                <div className="w-1/2 h-10 md:h-14 bg-stone-800/90 rounded-lg animate-pulse" />
+              </div>
+              
+              {/* Subtitle skeleton */}
+              <div className="space-y-2 max-w-md pt-2">
+                <div className="w-full h-4 bg-stone-800/70 rounded animate-pulse" />
+                <div className="w-4/5 h-4 bg-stone-800/70 rounded animate-pulse" />
+              </div>
+              
+              {/* CTA button skeleton */}
+              <div className="pt-4">
+                <div className="w-48 h-12 bg-amber-600/30 rounded-sm border border-amber-500/30 animate-pulse" />
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom indicator dots skeleton */}
+          <div className="absolute bottom-6 left-0 right-0 z-30 flex justify-center space-x-3">
+            <div className="w-2.5 h-2.5 rounded-full bg-stone-700/60 animate-pulse" />
+            <div className="w-2.5 h-2.5 rounded-full bg-stone-700/60 animate-pulse" />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section 
