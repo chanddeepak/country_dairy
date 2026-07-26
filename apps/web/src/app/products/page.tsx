@@ -11,7 +11,7 @@ import SubscriptionModal from '../../components/modals/SubscriptionModal';
 import CartDrawer from '../../components/cart/CartDrawer';
 import { FALLBACK_PRODUCTS, API_URL, ENABLE_PRODUCT_RATINGS, getExpandedProducts } from '../../lib/constants';
 
-const CATEGORIES = ['All', 'Dairy', 'Oils', 'Honey'];
+const CATEGORIES = ['All', 'Ghee', 'Oils'];
 const SORT_OPTIONS = [
   { label: 'Relevance', value: 'relevance' },
   { label: 'Price: Low → High', value: 'price-asc' },
@@ -56,9 +56,8 @@ export default function ProductsPage() {
       result = result.filter((p) => {
         const cat = (typeof p.category === 'string' ? p.category : p.category?.name) || '';
         const name = p.name.toLowerCase();
-        if (activeCategory === 'Dairy') return cat.includes('Milk') || cat.includes('Ghee') || name.includes('milk') || name.includes('ghee');
+        if (activeCategory === 'Ghee' || activeCategory === 'Dairy') return cat.includes('Ghee') || name.includes('ghee');
         if (activeCategory === 'Oils') return cat.includes('Oils') || name.includes('oil');
-        if (activeCategory === 'Honey') return cat.includes('Honey') || name.includes('honey');
         return true;
       });
     }

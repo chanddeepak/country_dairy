@@ -19,7 +19,7 @@ export const ENABLE_CART = false;
 export const ENABLE_PRODUCT_RATINGS = false;
 
 // WhatsApp ordering
-export const WHATSAPP_NUMBER = '918291939317';
+export const WHATSAPP_NUMBER = '919997801112';
 export const WHATSAPP_MESSAGE_TEMPLATE = (productName: string, price: string, variantName?: string, quantity: number = 1) =>
   `Hi! I'd like to order:\n- ${quantity} x ${productName}${variantName ? ` (${variantName})` : ''} — ₹${price} each\nTotal Amount: ₹${Number(price) * quantity}\n\nPlease help me place this order. Thank you!`;
 
@@ -68,54 +68,6 @@ export interface Product {
 
 // Fallback product catalogue (DB-Ready structure with universal product variants and multiple gallery images)
 export const FALLBACK_PRODUCTS: Product[] = [
-  {
-    id: 'c96dd14f-588a-4af6-bb9f-7341d2db72e1',
-    name: 'Country Dairy A2 Cow Milk',
-    slug: 'country-dairy-a2-cow-milk-1l',
-    category: 'A2 Cow Milk',
-    description: 'Pure A2 milk sourced from happy grass-fed cows. High fat, rich in A2 beta-casein.',
-    price: '95',
-    originalPrice: '110',
-    discountBadge: '14% OFF',
-    badge: 'Fresh Daily',
-    imageUrls: ['/images/products/milk-bottle.png', '/images/hero-banner.png', '/images/products/ghee-jar.png'],
-    secondaryImages: ['/images/hero-banner.png', '/images/products/ghee-jar.png'],
-    variants: [
-      {
-        id: 'milk-500ml',
-        name: '500ml Glass Bottle',
-        volumeOrWeight: '500ml',
-        price: '50',
-        originalPrice: '60',
-        discountPercent: '16% OFF',
-        image: '/images/products/milk-bottle.png',
-      },
-      {
-        id: 'milk-1l',
-        name: '1L Glass Bottle',
-        volumeOrWeight: '1L Bottle',
-        price: '95',
-        originalPrice: '110',
-        discountPercent: '14% OFF',
-        image: '/images/products/milk-bottle.png',
-        isDefault: true,
-      },
-      {
-        id: 'milk-2l',
-        name: '2L Family Canister',
-        volumeOrWeight: '2L Canister',
-        price: '185',
-        originalPrice: '210',
-        discountPercent: '12% OFF',
-        image: '/images/products/milk-bottle.png',
-      },
-    ],
-    isSubscriptionAllowed: true,
-    averageRating: 5.0,
-    totalReviews: 12,
-    nutritionFacts: { fat: '4.2%', energy: '64 kcal', calcium: '120mg', protein: '3.3g' },
-    metadata: { volume: '1 Litre', packaging: 'Glass Bottle', shelfLife: '2 days' },
-  },
   {
     id: '30c195de-b5dd-4510-b236-fb8224a9d00e',
     name: 'Country Dairy A2 Desi Cow Ghee',
@@ -277,54 +229,6 @@ export const FALLBACK_PRODUCTS: Product[] = [
     totalReviews: 94,
     nutritionFacts: { fat: '100g', energy: '884 kcal', omega3: '11.6%' },
     metadata: { volume: '1 Litre', packaging: 'PET Bottle', shelfLife: '9 months' },
-  },
-  {
-    id: 'e1c50580-58fb-464c-ae24-bad55488ce90',
-    name: 'Raw Wild Forest Honey',
-    slug: 'raw-wild-forest-honey-500g',
-    category: 'Raw Honey',
-    description: 'Unprocessed, unpasteurized honey collected by native tribes from deep forest hives.',
-    price: '450',
-    originalPrice: '520',
-    discountBadge: '13% OFF',
-    badge: '⚡ Selling Fast',
-    imageUrls: ['/images/products/wild-honey.png', '/images/hero-banner.png', '/images/products/ghee-jar.png'],
-    secondaryImages: ['/images/hero-banner.png', '/images/products/ghee-jar.png'],
-    variants: [
-      {
-        id: 'honey-250g',
-        name: '250g Glass Jar',
-        volumeOrWeight: '250g Jar',
-        price: '240',
-        originalPrice: '280',
-        discountPercent: '14% OFF',
-        image: '/images/products/wild-honey.png',
-      },
-      {
-        id: 'honey-500g',
-        name: '500g Glass Jar',
-        volumeOrWeight: '500g Jar',
-        price: '450',
-        originalPrice: '520',
-        discountPercent: '13% OFF',
-        image: '/images/products/wild-honey.png',
-        isDefault: true,
-      },
-      {
-        id: 'honey-1kg',
-        name: '1kg Glass Jar',
-        volumeOrWeight: '1kg Jar',
-        price: '850',
-        originalPrice: '990',
-        discountPercent: '14% OFF',
-        image: '/images/products/wild-honey.png',
-      },
-    ],
-    isSubscriptionAllowed: false,
-    averageRating: 4.9,
-    totalReviews: 116,
-    nutritionFacts: { sugar: '82.1g', energy: '304 kcal', carbohydrates: '82.4g' },
-    metadata: { weight: '500g', packaging: 'Glass Jar', shelfLife: '18 months' },
   },
 ];
 

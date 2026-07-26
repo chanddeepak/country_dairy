@@ -43,7 +43,7 @@ const values = [
       </svg>
     ),
     title: 'Sustainable',
-    description: 'Sustainable to natural milk and products.',
+    description: 'Sustainable natural production and eco-friendly packaging.',
   },
 ];
 

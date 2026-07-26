@@ -14,8 +14,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Country Dairy | Organic A2 Milk & Forest Honey Shop",
-  description: "Experience premium, traceable organic dairy, cold-pressed oils, and forest honey delivered fresh from farm to home. Purity verified with batch lab test reports.",
+  title: "Country Dairy | Organic A2 Vedic Ghee & Wood-Pressed Oils",
+  description: "Experience premium, traceable organic A2 Vedic Ghee and cold-pressed oils delivered fresh from farm to home. Purity verified with batch lab test reports.",
 };
 
 export default function RootLayout({

@@ -8,25 +8,25 @@ const storyPoints = [
     icon: <Leaf className="h-6 w-6" />,
     title: 'Born on the Farm',
     description:
-      'Country Dairy started as a single family farm in Haryana, raising native Gir and Sahiwal cows on open pastures — no factory floors, no shortcuts.',
+      'Country Dairy started as a single family farm in Uttarakhand, raising native Gir and Sahiwal cows on open pastures — no factory floors, no shortcuts.',
   },
   {
     icon: <Heart className="h-6 w-6" />,
-    title: 'Happy Cows, Pure Milk',
+    title: 'Happy Cows, Pure Ghee',
     description:
-      'Our cows are grass-fed, free-range, and milked by hand. We believe that happy, healthy cows produce the purest A2 beta-casein milk.',
+      'Our cows are grass-fed, free-range, and milked by hand. We believe that happy, healthy cows produce the purest A2 Bilona Ghee.',
   },
   {
     icon: <Shield className="h-6 w-6" />,
     title: 'NABL Lab Verified',
     description:
-      'Every batch is tested for adulterants — urea, starch, detergent, synthetic dyes — at NABL-accredited laboratories before it reaches you.',
+      'Every batch is tested for adulterants — synthetic fats, starch, detergent, chemical solvents — at NABL-accredited laboratories before it reaches you.',
   },
   {
     icon: <Truck className="h-6 w-6" />,
-    title: 'Farm to Door, Same Day',
+    title: 'Farm to Doorstep',
     description:
-      'We deliver across Delhi NCR within hours of milking. Subscribe daily and never run out of fresh, organic dairy again.',
+      'We ship across India directly from our farm. Order pure, organic products crafted with care and transparency.',
   },
 ];
 

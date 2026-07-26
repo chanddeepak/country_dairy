@@ -19,7 +19,7 @@ export default function Footer() {
             NABL Audited
           </h4>
           <p className="text-xs leading-relaxed max-w-sm">
-            All milk batches are screened for dilution, starch, detergents, and urea before release. Zero contamination.
+            All product batches are screened for adulterants and quality metrics before release. Zero contamination.
           </p>
         </div>
         <div>
@@ -27,8 +27,8 @@ export default function Footer() {
           <div className="text-xs leading-relaxed space-y-2">
             <p>📍 Country Dairy, Tanakpur, Champawat, Uttarakhand - 262309</p>
             <p>📧 Email: <a href="mailto:support@countrydairy.farm" className="text-[#C59B27] hover:underline">support@countrydairy.farm</a></p>
-            <p>📞 Support Helpline: <strong>+91 82919 39317</strong></p>
-            <p>💬 WhatsApp Orders: <a href="https://wa.me/918291939317" target="_blank" className="text-[#C59B27] hover:underline">+91 82919 39317</a></p>
+            <p>📞 Support Helpline: <strong>+91 99978 01112</strong></p>
+            <p>💬 WhatsApp Orders: <a href="https://wa.me/919997801112" target="_blank" className="text-[#C59B27] hover:underline">+91 99978 01112</a></p>
             <p>📦 <span className="font-bold">Delivery available across India</span></p>
             <p className="text-stone-500 font-medium text-[10px] uppercase pt-1">Service Hours: Daily 6:00 AM – 9:00 PM</p>
           </div>

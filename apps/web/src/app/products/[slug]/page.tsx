@@ -165,10 +165,10 @@ export default function ProductDetailPage() {
   // Variant-driven dynamic packaging & net quantity
   const currentVolumeOrWeight = selectedVariant?.volumeOrWeight || metadata.volume || metadata.weight || '1 Litre';
   const currentPackaging = (
-    selectedVariant?.volumeOrWeight.includes('Dolchi') ? 'Traditional Metal Dolchi' :
-    selectedVariant?.volumeOrWeight.includes('Tin') ? 'Food-Grade Tin Can' :
-    selectedVariant?.volumeOrWeight.includes('Bottle') ? 'Glass Bottle' :
-    selectedVariant?.volumeOrWeight.includes('Canister') ? 'Family Canister' :
+    selectedVariant?.volumeOrWeight?.includes('Dolchi') ? 'Traditional Metal Dolchi' :
+    selectedVariant?.volumeOrWeight?.includes('Tin') ? 'Food-Grade Tin Can' :
+    selectedVariant?.volumeOrWeight?.includes('Bottle') ? 'Glass Bottle' :
+    selectedVariant?.volumeOrWeight?.includes('Canister') ? 'Family Canister' :
     metadata.packaging || 'Glass Jar'
   );
 
@@ -295,7 +295,7 @@ export default function ProductDetailPage() {
               <div>
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <span className="text-xs font-bold uppercase tracking-wider text-[#3A6038] bg-[#3A6038]/10 px-2.5 py-1 rounded-full">
-                    {product.category || 'A2 Dairy'}
+                    {typeof (product as any).category === 'string' ? (product as any).category : (product as any).category?.name || (product as any).categoryLabel || 'A2 Dairy'}
                   </span>
                   <span className="text-xs text-[#6b6661]">•</span>
                   <span className="text-xs text-[#6b6661]">{currentPackaging}</span>
@@ -308,7 +308,7 @@ export default function ProductDetailPage() {
                   {product.name}
                 </h1>
                 <p className="text-xs font-semibold text-[#6b6661] tracking-wide uppercase">
-                  BILONA CHURNED | A2-VERIFIED MILK | 70+ QUALITY CHECKS
+                  BILONA CHURNED | A2-VERIFIED | 70+ QUALITY CHECKS
                 </p>
               </div>
 
@@ -441,7 +441,7 @@ export default function ProductDetailPage() {
                     Made in our farms, our {product.name} is crafted with uncompromised dedication to traditional purity. Our cows are the happiest beings you’ll meet—they graze freely in natural open pastures and are never injected with artificial hormones.
                   </p>
                   <p>
-                    Our nutritious A2 milk is set into cultured curd and traditional bilona-churned in small batches. Every batch is lab-tested so what reaches your kitchen is nothing but pure, wholesome quality that is easy to digest and helps boost immunity.
+                    Every product is crafted in small batches and lab-tested so what reaches your kitchen is nothing but pure, wholesome quality that is easy to digest and helps boost health and immunity.
                   </p>
                 </div>
 

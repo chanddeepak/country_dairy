@@ -15,8 +15,6 @@ const CATEGORIES = [
   { id: 'All', label: 'All Products' },
   { id: 'A2 Desi Ghee', label: 'Ghee' },
   { id: 'Wood-Pressed Oils', label: 'Oils' },
-  { id: 'A2 Cow Milk', label: 'Milk' },
-  { id: 'Raw Honey', label: 'Honey' },
 ];
 
 export default function ProductShelf({ onSubscribe }: ProductShelfProps) {

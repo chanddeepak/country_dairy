@@ -11,7 +11,7 @@ const HERO_SLIDES = [
     image: '/images/hero-banner.png',
     objectPosition: 'center',
     headline: 'Farm Fresh. Organic. Pure Happiness.',
-    subtitle: 'Experience the finest A2 Milk & Organic Ghee, sourced directly from our happy cows.',
+    subtitle: 'Experience the finest A2 Vedic Ghee & Wood-Pressed Oils, sourced directly from our farm.',
     ctaText: 'Shop All Products',
     ctaHref: '/products'
   },
@@ -19,8 +19,8 @@ const HERO_SLIDES = [
     id: 2,
     image: '/images/hero-banner-2-wide.png',
     objectPosition: 'center',
-    headline: 'Pure A2 Milk. From Happy Cows.',
-    subtitle: 'Grass-fed, free-range Gir & Sahiwal cows. NABL lab-verified. Zero adulterants.',
+    headline: 'Pure A2 Vedic Ghee. Bilona Churned.',
+    subtitle: 'Grass-fed Gir & Sahiwal cows. NABL lab-verified. Zero adulterants.',
     ctaText: 'Shop All Products',
     ctaHref: '/products'
   },
@@ -28,8 +28,8 @@ const HERO_SLIDES = [
     id: 3,
     image: '/images/hero-banner-3-wide.png',
     objectPosition: 'center',
-    headline: 'Traditional. Organic. Authentic.',
-    subtitle: 'Wood-pressed mustard oil & raw forest honey. The way nature intended.',
+    headline: 'Traditional Wood-Pressed Oils.',
+    subtitle: 'Cold wood-pressed kachi ghani mustard oil. The way nature intended.',
     ctaText: 'Shop All Products',
     ctaHref: '/products'
   }
