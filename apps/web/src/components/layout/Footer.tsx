@@ -10,13 +10,13 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
         <div>
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 flex items-center justify-center p-0.5 bg-white rounded-lg overflow-hidden">
+            <div className="w-12 h-12 flex items-center justify-center p-0.5 bg-white rounded-xl overflow-hidden">
               <Image
                 src="/images/logo-icon.png"
                 alt="Country Dairy Logo"
-                width={40}
-                height={40}
-                className="h-9 w-auto object-contain scale-110"
+                width={60}
+                height={60}
+                className="h-11 w-auto object-contain scale-130"
               />
             </div>
             <div>
