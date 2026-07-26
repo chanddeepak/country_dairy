@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight, Sparkles, Package } from 'lucide-react';
 import type { Product } from '../types';
 import { resolveImageUrl } from '../components/common/ImageUploader';
+import { adminApi } from '../services/apiClient';
 
 interface InventoryProps {
   products: Product[];
@@ -54,7 +55,7 @@ export default function Inventory({
     setDyesDetected(false);
   };
 
-  const toggleSubscription = (productId: string) => {
+  const toggleSubscription = async (productId: string) => {
     const updated = products.map(p => {
       if (p.id === productId) {
         return { ...p, isSubscriptionAllowed: !p.isSubscriptionAllowed };
@@ -62,22 +63,40 @@ export default function Inventory({
       return p;
     });
     onUpdateProducts(updated);
+    try {
+      await adminApi.toggleSubscription(productId);
+    } catch (err) {
+      console.warn('Failed to toggle subscription on API:', err);
+    }
   };
 
-  const toggleProductStatus = (productId: string) => {
+  const toggleProductStatus = async (productId: string) => {
+    const target = products.find(p => p.id === productId);
+    if (!target) return;
+    const nextStatus = target.status === 'LIVE' ? 'DRAFT' : 'LIVE';
+
     const updated = products.map(p => {
       if (p.id === productId) {
-        const nextStatus = p.status === 'LIVE' ? 'DRAFT' : 'LIVE';
         return { ...p, status: nextStatus as any };
       }
       return p;
     });
     onUpdateProducts(updated);
+    try {
+      await adminApi.updateProduct(productId, { status: nextStatus as any });
+    } catch (err) {
+      console.warn('Failed to update product status on API:', err);
+    }
   };
 
-  const handleDeleteProduct = (productId: string, title: string) => {
+  const handleDeleteProduct = async (productId: string, title: string) => {
     if (confirm(`Are you sure you want to delete "${title}" from the catalog?`)) {
       onUpdateProducts(products.filter(p => p.id !== productId));
+      try {
+        await adminApi.deleteProduct(productId);
+      } catch (err) {
+        console.warn('Failed to delete product on API:', err);
+      }
     }
   };
 

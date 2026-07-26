@@ -249,13 +249,36 @@ export class CatalogService {
 
   async updateProduct(id: string, dto: any) {
     this.logger.log(`Updating product: ${id}`);
+    
+    // Resolve category if categoryName passed
+    let categoryId = dto.categoryId;
+    if (!categoryId && dto.categoryName) {
+      let cat = await this.prisma.category.findFirst({ where: { name: dto.categoryName } });
+      if (!cat) {
+        cat = await this.prisma.category.create({
+          data: {
+            name: dto.categoryName,
+            slug: dto.categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+          },
+        });
+      }
+      categoryId = cat.id;
+    }
+
     const existing = await this.prisma.product.findUnique({
       where: { id },
-      include: { galleryImages: true },
+      include: { galleryImages: true, variants: true },
     });
-    if (!existing) throw new NotFoundException(`Product ${id} not found`);
 
-    // If new galleryImages provided, auto-cleanup replaced images & update
+    if (!existing) {
+      this.logger.log(`Product ${id} not found in DB. Upserting as new product...`);
+      return this.createProduct({
+        ...dto,
+        id: id.startsWith('prod-') ? undefined : id,
+      });
+    }
+
+    // 1. Update Gallery Images if provided
     if (dto.galleryImages && Array.isArray(dto.galleryImages)) {
       const newUrls = dto.galleryImages.map((img: any) => sanitizeProductStoragePath(typeof img === 'string' ? img : img.imageUrl));
       for (const oldImg of existing.galleryImages) {
@@ -279,6 +302,27 @@ export class CatalogService {
       });
     }
 
+    // 2. Update Variants Matrix if provided
+    if (dto.variants && Array.isArray(dto.variants) && dto.variants.length > 0) {
+      const slugStr = (dto.slug || existing.slug || 'product').toLowerCase();
+      await this.prisma.productVariant.deleteMany({ where: { productId: id } });
+      await this.prisma.productVariant.createMany({
+        data: dto.variants.map((v: any, idx: number) => ({
+          productId: id,
+          sku: v.sku || `CD-${slugStr.toUpperCase()}-${idx + 1}`,
+          sizeLabel: v.sizeLabel || v.name || 'Standard Pack',
+          sellingPrice: Number(v.sellingPrice || v.price || 100),
+          mrpPrice: Number(v.mrpPrice || v.originalPrice || 120),
+          stockQuantity: Number(v.stockQuantity ?? 50),
+          lowStockThreshold: Number(v.lowStockThreshold ?? 10),
+          packagingType: v.packagingType || 'GLASS_JAR',
+          isActive: v.isActive ?? true,
+          displayOrder: idx + 1,
+        })),
+      });
+    }
+
+    // 3. Update Core Product Details
     return await this.prisma.product.update({
       where: { id },
       data: {
@@ -294,10 +338,12 @@ export class CatalogService {
         verified: dto.verified ?? existing.verified,
         specifications: dto.specifications ?? existing.specifications,
         nutritionFacts: dto.nutritionFacts ?? existing.nutritionFacts,
+        categoryId: categoryId || existing.categoryId,
       },
       include: {
-        variants: true,
-        galleryImages: true,
+        variants: { orderBy: { displayOrder: 'asc' } },
+        galleryImages: { orderBy: { displayOrder: 'asc' } },
+        category: true,
       },
     });
   }

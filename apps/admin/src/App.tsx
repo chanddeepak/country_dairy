@@ -274,12 +274,13 @@ function AdminMainContent() {
                 categories={categories}
                 onCancel={() => setIsAddingNewProduct(false)}
                 onComplete={async (newProd) => {
-                  setProducts(prev => [newProd, ...prev]);
                   setIsAddingNewProduct(false);
                   try {
-                    await adminApi.createProduct(newProd);
+                    const created = await adminApi.createProduct(newProd);
+                    setProducts(prev => [created || newProd, ...prev.filter(p => p.id !== newProd.id)]);
                   } catch (err) {
                     console.warn('API save warning:', err);
+                    setProducts(prev => [newProd, ...prev]);
                   }
                 }}
               />
@@ -289,12 +290,17 @@ function AdminMainContent() {
                 initialProduct={editingProduct}
                 onBack={() => setEditingProduct(null)}
                 onSave={async (updated) => {
-                  setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
                   setEditingProduct(null);
                   try {
-                    await adminApi.updateProduct(updated.id, updated);
+                    const saved = await adminApi.updateProduct(updated.id, updated);
+                    if (saved?.id) {
+                      setProducts(prev => prev.map(p => (p.id === updated.id || p.id === saved.id) ? saved : p));
+                    } else {
+                      setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
+                    }
                   } catch (err) {
                     console.warn('API update warning:', err);
+                    setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
                   }
                 }}
               />
