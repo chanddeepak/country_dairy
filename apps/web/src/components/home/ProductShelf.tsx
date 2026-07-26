@@ -27,6 +27,10 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
     const expanded = getExpandedProducts(FALLBACK_PRODUCTS);
     const primaryVariants = expanded.filter((p) => {
       const vol = p.metadata?.volume || p.name;
+      const isOil = p.category === 'Wood-Pressed Oils' || p.slug.includes('mustard-oil');
+      if (isOil) {
+        return vol.includes('1L');
+      }
       return vol.includes('1L') || vol.includes('5L');
     });
     setProducts(primaryVariants);
