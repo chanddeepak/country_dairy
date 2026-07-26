@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Layout, Plus, Trash2, ArrowUp, ArrowDown, Save, AlertCircle } from 'lucide-react';
+import { Layout, Plus, Trash2, ArrowUp, ArrowDown, Save, AlertCircle, Loader2, CheckCircle2, X } from 'lucide-react';
 import ImageUploader from '../components/common/ImageUploader';
 import HeroPreviewSimulator from '../components/cms/HeroPreviewSimulator';
 import type { HeroSlide } from '../types';
@@ -8,6 +8,13 @@ import { adminApi } from '../services/apiClient';
 export default function HeroManager() {
   const [slides, setSlides] = useState<HeroSlide[]>([]);
   const [activeEditingSlide, setActiveEditingSlide] = useState<HeroSlide | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   useEffect(() => {
     adminApi.getHeroBanners()
@@ -120,6 +127,7 @@ export default function HeroManager() {
     e.preventDefault();
     if (!activeEditingSlide) return;
 
+    setIsSaving(true);
     setSlides(prev => prev.map(s => s.id === activeEditingSlide.id ? activeEditingSlide : s));
     
     try {
@@ -139,10 +147,12 @@ export default function HeroManager() {
         setActiveEditingSlide(prev => prev ? { ...prev, id: saved.id, desktopImageUrl: saved.imageUrl, mobileImageUrl: saved.imageUrl } : null);
       }
 
-      alert('Hero slide changes saved successfully to Database!');
+      showNotification('success', 'Hero slide banner saved successfully to Database!');
     } catch (err: any) {
       console.error('API updateHeroBanner error:', err);
-      alert(`Save failed: ${err.message || err}`);
+      showNotification('error', `Save failed: ${err.message || err}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -270,9 +280,19 @@ export default function HeroManager() {
                   <h3 className="font-bold text-sm text-stone-100">Edit Slide Details</h3>
                   <button
                     type="submit"
-                    className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs rounded-xl shadow-md transition-all"
+                    disabled={isSaving}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-stone-950 font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer disabled:cursor-not-allowed"
                   >
-                    <Save className="h-4 w-4" /> Save Banner
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin text-stone-950" />
+                        Saving Banner...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" /> Save Banner
+                      </>
+                    )}
                   </button>
                 </div>
 
@@ -375,6 +395,25 @@ export default function HeroManager() {
         </div>
 
       </div>
+
+      {/* Floating Glassmorphism Toast Notification Dialog */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border backdrop-blur-md transition-all animate-bounce ${
+          toast.type === 'success'
+            ? 'bg-emerald-950/95 border-emerald-500/50 text-emerald-200 shadow-emerald-950/50'
+            : 'bg-rose-950/95 border-rose-500/50 text-rose-200 shadow-rose-950/50'
+        }`}>
+          {toast.type === 'success' ? (
+            <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
+          ) : (
+            <AlertCircle className="h-5 w-5 text-rose-400 shrink-0" />
+          )}
+          <span className="font-semibold text-xs">{toast.message}</span>
+          <button onClick={() => setToast(null)} className="ml-2 text-stone-400 hover:text-white transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
