@@ -75,6 +75,24 @@ export class MediaController {
           .from(bucketName)
           .createSignedUploadUrl(filePath);
 
+        if (error) {
+          this.logger.warn(`Supabase createSignedUploadUrl warning on bucket ${bucketName}: ${error.message}. Attempting bucket creation...`);
+          try {
+            await supabase.storage.createBucket(bucketName, { public: true });
+          } catch (bErr) {
+            // Bucket might already exist or policy error
+          }
+          const retry = await supabase.storage.from(bucketName).createSignedUploadUrl(filePath);
+          if (retry.data?.signedUrl) {
+            const publicUrlData = supabase.storage.from(bucketName).getPublicUrl(filePath);
+            return {
+              uploadUrl: retry.data.signedUrl,
+              fileUrl: publicUrlData.data.publicUrl,
+              method: 'PUT',
+            };
+          }
+        }
+
         if (data?.signedUrl) {
           const publicUrlData = supabase.storage
             .from(bucketName)
@@ -87,8 +105,8 @@ export class MediaController {
             method: 'PUT',
           };
         }
-      } catch (err) {
-        this.logger.warn(`Supabase Storage pre-signed URL warning: ${err}`);
+      } catch (err: any) {
+        this.logger.warn(`Supabase Storage pre-signed URL warning: ${err?.message || err}`);
       }
     }
 
