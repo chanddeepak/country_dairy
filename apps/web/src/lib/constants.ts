@@ -37,8 +37,8 @@ export function resolveStorefrontImageUrl(url: string | undefined): string {
 // Local product image map keyed by slug
 export const PRODUCT_IMAGES: Record<string, string> = {
   'country-dairy-a2-cow-milk-1l': '/images/products/milk-bottle.png',
-  'country-dairy-a2-vedic-ghee-1l': '/images/products/a2-desi-ghee-1l-main.png',
-  'country-dairy-a2-gir-cow-ghee-1l': '/images/products/a2-gir-ghee-1l-main.png',
+  'country-dairy-a2-vedic-ghee-1l': '/images/products/a2-desi-ghee-v2.png',
+  'country-dairy-a2-gir-cow-ghee-1l': '/images/products/a2-gir-ghee-v2.png',
   'organic-wood-pressed-mustard-oil-1l': '/images/products/mustard-oil.png',
   'raw-wild-forest-honey-500g': '/images/products/wild-honey.png',
 };
@@ -92,7 +92,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
     discountBadge: '9% OFF',
     badge: '★ Best Seller',
     imageUrls: [
-      '/images/products/a2-desi-ghee-1l-main.png',
+      '/images/products/a2-desi-ghee-v2.png',
       '/images/products/ghee-gallery-banner.png',
       '/images/products/ghee-gallery-purity.png',
       '/images/products/ghee-gallery-uses.png',
@@ -112,7 +112,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '750',
         originalPrice: '850',
         discountPercent: '12% OFF',
-        image: '/images/products/a2-desi-ghee-1l-main.png',
+        image: '/images/products/a2-desi-ghee-v2.png',
       },
       {
         id: 'ghee-1l',
@@ -121,7 +121,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '1450',
         originalPrice: '1600',
         discountPercent: '9% OFF',
-        image: '/images/products/a2-desi-ghee-1l-main.png',
+        image: '/images/products/a2-desi-ghee-v2.png',
         isDefault: true,
       },
       {
@@ -131,7 +131,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '3500',
         originalPrice: '3800',
         discountPercent: '8% OFF',
-        image: '/images/products/a2-desi-ghee-1l-main.png',
+        image: '/images/products/a2-desi-ghee-v2.png',
       },
       {
         id: 'ghee-5l',
@@ -140,7 +140,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '6800',
         originalPrice: '7500',
         discountPercent: '9% OFF',
-        image: '/images/products/a2-desi-ghee-1l-main.png',
+        image: '/images/products/a2-desi-ghee-v2.png',
       },
     ],
     isSubscriptionAllowed: false,
@@ -161,7 +161,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
     discountBadge: '8% OFF',
     badge: '★ Premium Gir Breed',
     imageUrls: [
-      '/images/products/a2-gir-ghee-1l-main.png',
+      '/images/products/a2-gir-ghee-v2.png',
       '/images/products/ghee-gallery-banner.png',
       '/images/products/ghee-gallery-purity.png',
       '/images/products/ghee-gallery-uses.png',
@@ -181,7 +181,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '880',
         originalPrice: '980',
         discountPercent: '10% OFF',
-        image: '/images/products/a2-gir-ghee-1l-main.png',
+        image: '/images/products/a2-gir-ghee-v2.png',
       },
       {
         id: 'gir-ghee-1l',
@@ -190,7 +190,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '1650',
         originalPrice: '1800',
         discountPercent: '8% OFF',
-        image: '/images/products/a2-gir-ghee-1l-main.png',
+        image: '/images/products/a2-gir-ghee-v2.png',
         isDefault: true,
       },
       {
@@ -200,7 +200,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '3950',
         originalPrice: '4300',
         discountPercent: '8% OFF',
-        image: '/images/products/a2-gir-ghee-1l-main.png',
+        image: '/images/products/a2-gir-ghee-v2.png',
       },
       {
         id: 'gir-ghee-5l',
@@ -209,7 +209,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '7450',
         originalPrice: '8200',
         discountPercent: '9% OFF',
-        image: '/images/products/a2-gir-ghee-1l-main.png',
+        image: '/images/products/a2-gir-ghee-v2.png',
       },
     ],
     isSubscriptionAllowed: false,
