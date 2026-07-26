@@ -20,8 +20,9 @@ export function resolveImageUrl(url?: string | null): string {
 }
 
 const isUploadedImage = (url?: string | null): boolean => {
-  if (!url || url.startsWith('blob:') || url.startsWith('/images/')) return false;
-  return true;
+  if (!url) return false;
+  if (url.startsWith('/uploads/') || url.includes('/storage/v1/object/public/')) return true;
+  return false;
 };
 
 export default function ImageUploader({
