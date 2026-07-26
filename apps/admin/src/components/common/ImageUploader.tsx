@@ -11,7 +11,7 @@ interface ImageUploaderProps {
 }
 
 export function resolveImageUrl(url?: string | null): string {
-  if (!url) return '';
+  if (!url || url.startsWith('blob:')) return '';
   if (url.startsWith('/uploads/')) {
     const apiHost = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api').replace(/\/api\/?$/, '');
     return `${apiHost}${url}`;
@@ -26,7 +26,8 @@ export default function ImageUploader({
   label = 'Upload Photo',
   currentImageUrl
 }: ImageUploaderProps) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl || null);
+  const initialUrl = (currentImageUrl && !currentImageUrl.startsWith('blob:')) ? currentImageUrl : null;
+  const [previewUrl, setPreviewUrl] = useState<string | null>(initialUrl);
   const [isCompressing, setIsCompressing] = useState(false);
   const [originalSizeKB, setOriginalSizeKB] = useState<number | null>(null);
   const [compressedSizeKB, setCompressedSizeKB] = useState<number | null>(null);
@@ -35,7 +36,11 @@ export default function ImageUploader({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setPreviewUrl(currentImageUrl || null);
+    if (currentImageUrl && !currentImageUrl.startsWith('blob:')) {
+      setPreviewUrl(currentImageUrl);
+    } else {
+      setPreviewUrl(null);
+    }
   }, [currentImageUrl]);
 
   // Compress image on client side using HTML5 Canvas API (JPG/PNG -> WebP @ 85% quality)
@@ -171,6 +176,7 @@ export default function ImageUploader({
           <img
             src={resolveImageUrl(previewUrl)}
             alt="Uploaded preview"
+            onError={() => setPreviewUrl(null)}
             className={`w-full object-cover ${
               aspectRatio === 'desktop' ? 'h-36' : aspectRatio === 'mobile' ? 'h-48' : 'h-32'
             }`}
