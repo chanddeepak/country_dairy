@@ -70,6 +70,22 @@ export default function ProductDetailPage() {
       isDefault: v.isDefault ?? false,
     })) || [];
 
+<<<<<<< HEAD
+=======
+    const catLabel = typeof prod.category === 'string'
+      ? prod.category
+      : prod.category?.name || prod.categoryName || 'A2 Dairy';
+
+    const normalizedProd = {
+      ...prod,
+      name: prod.title || prod.name,
+      categoryLabel: catLabel,
+      variants: formattedVariants.length > 0 ? formattedVariants : prod.variants,
+    };
+
+    setProduct(normalizedProd);
+
+>>>>>>> 9d898e8 (fix(web): render category name string instead of category object in ProductDetailPage badge)
     const defaultVar = (variantIdFromQuery && formattedVariants.find((v: any) => v.id === variantIdFromQuery))
       || formattedVariants.find((v: any) => v.isDefault)
       || formattedVariants[0]
@@ -321,7 +337,7 @@ export default function ProductDetailPage() {
               <div>
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <span className="text-xs font-bold uppercase tracking-wider text-[#3A6038] bg-[#3A6038]/10 px-2.5 py-1 rounded-full">
-                    {typeof (product as any).category === 'string' ? (product as any).category : (product as any).category?.name || (product as any).categoryLabel || 'A2 Dairy'}
+                    {(product as any).categoryLabel || (typeof product.category === 'string' ? product.category : (product.category as any)?.name) || (product as any).categoryName || 'A2 Dairy'}
                   </span>
                   <span className="text-xs text-[#6b6661]">•</span>
                   <span className="text-xs text-[#6b6661]">{currentPackaging}</span>
