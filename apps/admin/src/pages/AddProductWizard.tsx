@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2, ArrowRight, Check, X } from 'lucide-react';
-import ImageUploader from '../components/common/ImageUploader';
+import ImageUploader, { resolveImageUrl } from '../components/common/ImageUploader';
 import type { Product, ProductStatus, PackagingType, ProductImage } from '../types';
 import type { CategoryItem } from './CategoryCMS';
 
@@ -375,7 +375,7 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
           <div className="grid grid-cols-4 gap-3">
             {galleryImages.map((img, idx) => (
               <div key={img.id} className="relative aspect-square bg-stone-950 border border-stone-800 rounded-xl overflow-hidden group">
-                <img src={img.imageUrl} alt="" className="w-full h-full object-cover" />
+                <img src={resolveImageUrl(img.imageUrl)} alt="" className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={() => setGalleryImages(galleryImages.filter((_, i) => i !== idx))}
@@ -388,6 +388,7 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
           </div>
 
           <ImageUploader
+            bucket="products"
             label="Upload Product Photo (Auto WebP Compressed)"
             aspectRatio="square"
             onImageUploaded={handleAddImage}

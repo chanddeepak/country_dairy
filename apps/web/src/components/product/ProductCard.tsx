@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Calendar, MessageCircle, AlertCircle } from 'lucide-react';
-import { PRODUCT_IMAGES, ENABLE_SUBSCRIPTIONS, ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER, WHATSAPP_MESSAGE_TEMPLATE, ENABLE_PRODUCT_RATINGS, Product } from '../../lib/constants';
+import { PRODUCT_IMAGES, ENABLE_SUBSCRIPTIONS, ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER, WHATSAPP_MESSAGE_TEMPLATE, ENABLE_PRODUCT_RATINGS, Product, resolveStorefrontImageUrl } from '../../lib/constants';
 import { trackStorefrontEvent } from '../../lib/analytics';
 
 interface ProductCardProps {
@@ -15,9 +15,10 @@ interface ProductCardProps {
 export default function ProductCard({ product, onAddToCart, onSubscribe }: ProductCardProps) {
   // imageUrls[0] is the variant image when coming from getExpandedProducts (homepage shelf).
   // For base FALLBACK_PRODUCTS (e.g. "You May Also Like"), imageUrls[0] is a gallery image — skip it.
-  const firstUrl = product.imageUrls?.[0];
+  const firstUrl = product.imageUrls?.[0] || (product as any).galleryImages?.[0]?.imageUrl;
   const isGalleryImage = firstUrl?.includes('-gallery-') || firstUrl?.includes('hero-') || firstUrl?.includes('hero_');
-  const imageSrc = (!isGalleryImage && firstUrl) || PRODUCT_IMAGES[product.slug] || '/images/products/ghee-jar.png';
+  const rawImage = (!isGalleryImage && firstUrl) || PRODUCT_IMAGES[product.slug] || '/images/products/ghee-jar.png';
+  const imageSrc = resolveStorefrontImageUrl(rawImage);
   const defaultVariant = product.variants?.find((v) => v.isDefault) || product.variants?.[0];
   const displayPrice = defaultVariant ? defaultVariant.price : product.price;
   const displayOriginalPrice = defaultVariant ? defaultVariant.originalPrice : product.originalPrice;

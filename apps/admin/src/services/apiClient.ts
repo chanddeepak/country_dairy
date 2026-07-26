@@ -27,10 +27,10 @@ async function fetchJson<T>(endpoint: string, options: RequestInit = {}): Promis
 
 export const adminApi = {
   // Media Upload API (Pre-Signed URL Object Storage Pattern)
-  async uploadMedia(file: Blob, filename: string = 'image.webp'): Promise<string> {
+  async uploadMedia(file: Blob, filename: string = 'image.webp', bucket: string = 'hero-banners'): Promise<string> {
     // 1. Fetch pre-signed upload URL from backend API
     const presigned = await fetchJson<{ uploadUrl: string; fileUrl: string; method?: string }>(
-      `/media/presigned-url?filename=${encodeURIComponent(filename)}&contentType=image/webp`
+      `/media/presigned-url?filename=${encodeURIComponent(filename)}&contentType=image/webp&bucket=${bucket}`
     );
 
     const { uploadUrl, fileUrl, method = 'POST' } = presigned;

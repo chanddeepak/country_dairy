@@ -8,6 +8,7 @@ interface ImageUploaderProps {
   aspectRatio?: 'desktop' | 'mobile' | 'square';
   label?: string;
   currentImageUrl?: string;
+  bucket?: 'hero-banners' | 'products';
 }
 
 export function resolveImageUrl(url?: string | null): string {
@@ -32,7 +33,8 @@ export default function ImageUploader({
   maxSizeBytes = 5 * 1024 * 1024, // 5MB
   aspectRatio = 'square',
   label = 'Upload Photo',
-  currentImageUrl: _currentImageUrl
+  currentImageUrl: _currentImageUrl,
+  bucket = 'hero-banners',
 }: ImageUploaderProps) {
   // Always default previewUrl to null on load/reload so the Upload Dropzone Box is rendered until user selects an image
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -125,7 +127,7 @@ export default function ImageUploader({
 
       // 4. Upload file to backend server & store relative path
       const webpFilename = file.name.replace(/\.[^/.]+$/, '') + '.webp';
-      const relativeUrl = await adminApi.uploadMedia(blob, webpFilename);
+      const relativeUrl = await adminApi.uploadMedia(blob, webpFilename, bucket);
 
       setPreviewUrl(relativeUrl);
       onImageUploaded(relativeUrl);

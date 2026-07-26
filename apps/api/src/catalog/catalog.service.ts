@@ -1,11 +1,24 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MediaService } from '../media/media.service';
+
+function sanitizeProductStoragePath(url?: string): string | undefined {
+  if (!url) return url;
+  if (url.includes('/storage/v1/object/public/')) {
+    const parts = url.split('/storage/v1/object/public/')[1];
+    return parts ? `/${parts}` : url;
+  }
+  return url;
+}
 
 @Injectable()
 export class CatalogService {
   private readonly logger = new Logger(CatalogService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mediaService: MediaService,
+  ) {}
 
   async getCategories() {
     this.logger.log('Fetching all product categories');
@@ -185,6 +198,15 @@ export class CatalogService {
       categoryId = cat.id;
     }
 
+    const galleryData = (dto.galleryImages || []).map((img: any, idx: number) => {
+      const urlStr = typeof img === 'string' ? img : img.imageUrl;
+      return {
+        imageUrl: sanitizeProductStoragePath(urlStr) || '/images/products/milk-bottle.png',
+        isPrimary: typeof img === 'object' && img.isPrimary !== undefined ? img.isPrimary : idx === 0,
+        displayOrder: idx + 1,
+      };
+    });
+
     return await this.prisma.product.create({
       data: {
         title: dto.title,
@@ -215,11 +237,7 @@ export class CatalogService {
           })),
         },
         galleryImages: {
-          create: (dto.galleryImages || []).map((img: any, idx: number) => ({
-            imageUrl: img.imageUrl,
-            isPrimary: img.isPrimary ?? idx === 0,
-            displayOrder: idx + 1,
-          })),
+          create: galleryData,
         },
       },
       include: {
@@ -231,8 +249,35 @@ export class CatalogService {
 
   async updateProduct(id: string, dto: any) {
     this.logger.log(`Updating product: ${id}`);
-    const existing = await this.prisma.product.findUnique({ where: { id } });
+    const existing = await this.prisma.product.findUnique({
+      where: { id },
+      include: { galleryImages: true },
+    });
     if (!existing) throw new NotFoundException(`Product ${id} not found`);
+
+    // If new galleryImages provided, auto-cleanup replaced images & update
+    if (dto.galleryImages && Array.isArray(dto.galleryImages)) {
+      const newUrls = dto.galleryImages.map((img: any) => sanitizeProductStoragePath(typeof img === 'string' ? img : img.imageUrl));
+      for (const oldImg of existing.galleryImages) {
+        if (oldImg.imageUrl && !newUrls.includes(oldImg.imageUrl)) {
+          this.logger.log(`Cleaning up old product gallery image: ${oldImg.imageUrl}`);
+          await this.mediaService.deleteMediaFile(oldImg.imageUrl);
+        }
+      }
+
+      await this.prisma.productImage.deleteMany({ where: { productId: id } });
+      await this.prisma.productImage.createMany({
+        data: dto.galleryImages.map((img: any, idx: number) => {
+          const urlStr = typeof img === 'string' ? img : img.imageUrl;
+          return {
+            productId: id,
+            imageUrl: sanitizeProductStoragePath(urlStr) || '/images/products/milk-bottle.png',
+            isPrimary: typeof img === 'object' && img.isPrimary !== undefined ? img.isPrimary : idx === 0,
+            displayOrder: idx + 1,
+          };
+        }),
+      });
+    }
 
     return await this.prisma.product.update({
       where: { id },
@@ -269,6 +314,15 @@ export class CatalogService {
 
   async deleteProduct(id: string) {
     this.logger.log(`Deleting/Archiving product: ${id}`);
+    const existing = await this.prisma.product.findUnique({
+      where: { id },
+      include: { galleryImages: true },
+    });
+    if (existing?.galleryImages) {
+      for (const img of existing.galleryImages) {
+        await this.mediaService.deleteMediaFile(img.imageUrl);
+      }
+    }
     return await this.prisma.product.update({
       where: { id },
       data: { status: 'ARCHIVED' },

@@ -70,22 +70,6 @@ export default function ProductDetailPage() {
       isDefault: v.isDefault ?? false,
     })) || [];
 
-<<<<<<< HEAD
-=======
-    const catLabel = typeof prod.category === 'string'
-      ? prod.category
-      : prod.category?.name || prod.categoryName || 'A2 Dairy';
-
-    const normalizedProd = {
-      ...prod,
-      name: prod.title || prod.name,
-      categoryLabel: catLabel,
-      variants: formattedVariants.length > 0 ? formattedVariants : prod.variants,
-    };
-
-    setProduct(normalizedProd);
-
->>>>>>> 9d898e8 (fix(web): render category name string instead of category object in ProductDetailPage badge)
     const defaultVar = (variantIdFromQuery && formattedVariants.find((v: any) => v.id === variantIdFromQuery))
       || formattedVariants.find((v: any) => v.isDefault)
       || formattedVariants[0]
@@ -223,8 +207,10 @@ export default function ProductDetailPage() {
   // Always include the product's primary image in the gallery.
   // activeImage is used only for highlight state — all images stay visible at all times.
   const productPrimaryImage = selectedVariant?.image || PRODUCT_IMAGES[product.slug];
+  const dbImages = ((product as any).galleryImages || []).map((gi: any) => gi.imageUrl);
   const galleryPool = [
     productPrimaryImage,
+    ...dbImages,
     ...(product.imageUrls || []),
     ...(product.secondaryImages || []),
   ].filter(Boolean) as string[];
