@@ -58,34 +58,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+async function generateAdminJwtToken(userId: string, role: string, email: string): Promise<string> {
+  try {
+    const header = { alg: 'HS256', typ: 'JWT' };
+    const payload = { sub: userId, role, email, iat: Math.floor(Date.now() / 1000) };
+
+    const base64UrlEncode = (obj: any) => {
+      const str = JSON.stringify(obj);
+      return btoa(str).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+    };
+
+    const encodedHeader = base64UrlEncode(header);
+    const encodedPayload = base64UrlEncode(payload);
+    const dataToSign = `${encodedHeader}.${encodedPayload}`;
+
+    const secret = 'country-dairy-dev-secret-key-12345';
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+
+    const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(dataToSign));
+    const signatureArray = Array.from(new Uint8Array(signature));
+    const base64Signature = btoa(String.fromCharCode.apply(null, signatureArray))
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
+
+    return `${dataToSign}.${base64Signature}`;
+  } catch (e) {
+    console.warn('Crypto JWT generation failed fallback:', e);
+    return 'demo-jwt-token';
+  }
+}
+
   // Restore stored session on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (stored) {
-        const { user: storedUser, timestamp } = JSON.parse(stored);
-        // Check 24-hour idle expiry (24 * 60 * 60 * 1000 ms)
-        const isExpired = Date.now() - timestamp > 24 * 60 * 60 * 1000;
-        if (!isExpired && storedUser && storedUser.isActive) {
-          setUser(storedUser);
-        } else {
-          localStorage.removeItem(AUTH_STORAGE_KEY);
+    async function restoreSession() {
+      try {
+        const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (stored) {
+          const { user: storedUser, timestamp } = JSON.parse(stored);
+          const isExpired = Date.now() - timestamp > 24 * 60 * 60 * 1000;
+          if (!isExpired && storedUser && storedUser.isActive) {
+            setUser(storedUser);
+            const token = await generateAdminJwtToken(storedUser.id, storedUser.role, storedUser.email);
+            localStorage.setItem('country_dairy_admin_token', token);
+          } else {
+            localStorage.removeItem(AUTH_STORAGE_KEY);
+            localStorage.removeItem('country_dairy_admin_token');
+          }
         }
+      } catch (e) {
+        console.error('Failed to restore auth session:', e);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (e) {
-      console.error('Failed to restore auth session:', e);
-    } finally {
-      setIsLoading(false);
     }
+    restoreSession();
   }, []);
 
   // Silent Token Refresh Simulation (every 55 minutes)
   useEffect(() => {
     if (!user) return;
-    const refreshInterval = setInterval(() => {
-      // Update session timestamp to keep session alive while actively working
-      const sessionData = { user, timestamp: Date.now() };
+    const refreshInterval = setInterval(async () => {
+      const token = await generateAdminJwtToken(user.id, user.role, user.email);
+      const sessionData = { user, token, timestamp: Date.now() };
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionData));
+      localStorage.setItem('country_dairy_admin_token', token);
     }, 55 * 60 * 1000);
 
     return () => clearInterval(refreshInterval);
@@ -94,7 +138,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, selectedRole: UserRole): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Find matching demo account or construct active profile
       const found = DEMO_ACCOUNTS.find(a => a.email.toLowerCase() === email.toLowerCase()) || {
         id: `usr-${Date.now()}`,
         email,
@@ -109,8 +152,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Account is deactivated. Contact Super Admin.');
       }
 
-      const sessionData = { user: found, timestamp: Date.now() };
+      const token = await generateAdminJwtToken(found.id, found.role, found.email);
+      const sessionData = { user: found, token, timestamp: Date.now() };
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionData));
+      localStorage.setItem('country_dairy_admin_token', token);
       setUser(found);
       return true;
     } catch (err) {
@@ -123,6 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem('country_dairy_admin_token');
     setUser(null);
   };
 

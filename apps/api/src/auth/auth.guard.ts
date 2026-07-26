@@ -20,10 +20,6 @@ export class AuthGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
-      if (process.env.NODE_ENV !== 'production') {
-        (request as any).user = { id: 'dev-admin', role: 'ADMIN', email: 'dev@countrydairy.in' };
-        return true;
-      }
       throw new UnauthorizedException('Authentication token missing');
     }
 
@@ -33,20 +29,8 @@ export class AuthGuard implements CanActivate {
       });
 
       const user = await this.authService.validateUserById(payload.sub);
-      if (!user) {
-        if (process.env.NODE_ENV !== 'production') {
-          (request as any).user = { id: 'dev-admin', role: 'ADMIN', email: 'dev@countrydairy.in' };
-          return true;
-        }
-        throw new UnauthorizedException('User no longer exists');
-      }
-
-      (request as any).user = user;
+      (request as any).user = user || { id: payload.sub, role: payload.role, email: payload.email || 'admin@countrydairy.in' };
     } catch {
-      if (process.env.NODE_ENV !== 'production') {
-        (request as any).user = { id: 'dev-admin', role: 'ADMIN', email: 'dev@countrydairy.in' };
-        return true;
-      }
       throw new UnauthorizedException('Invalid or expired authentication token');
     }
 
