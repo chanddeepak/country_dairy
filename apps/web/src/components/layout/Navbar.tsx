@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { ShoppingBag, Search, User, Menu, X, Wallet, LogOut, Package, ChevronDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -102,21 +103,14 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
             }}
             className="flex items-center space-x-2.5 group cursor-pointer"
           >
-            <div className="w-14 h-11 flex items-center justify-center p-1 bg-[#FAF8F3] rounded-xl border border-stone-200/80 group-hover:border-[#3A6038]/40 transition-all shadow-2xs">
-              <svg viewBox="0 0 60 44" className="w-12 h-9 text-[#3A6038]" fill="none">
-                {/* Background Mountain Ridge Peaks */}
-                <path d="M5 26L16 13L25 21L34 8L43 18L55 26" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M34 8L37.5 15M16 13L19 18" stroke="#C59B27" strokeWidth="2" strokeLinecap="round" />
-                
-                {/* Standing Cow Silhouette */}
-                <path d="M22 23C21 23 20.5 24 20.5 25.5V33H22V29H31V33H32.5V28.5L34.5 27.5C36 26.5 37 25 38 25.5C38.5 25.8 39 25 38.5 24.2C38 23.5 36.5 23 35 23.5L32.5 24.5C31.5 23.5 30 23 28 23H22Z" fill="currentColor" />
-                {/* Cow Back Legs */}
-                <path d="M23.5 29V34H24.5V29M29.5 29V34H30.5V29" stroke="currentColor" strokeWidth="1" />
-                
-                {/* Curved Ground Hill Line with Grass Tufts */}
-                <path d="M8 36Q30 40 52 36" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                <path d="M15 35L14 33M43 35L44 33" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-              </svg>
+            <div className="w-12 h-11 flex items-center justify-center p-0.5 bg-white rounded-xl border border-stone-200/80 group-hover:border-[#3A6038]/40 transition-all shadow-2xs overflow-hidden">
+              <Image
+                src="/images/logo-icon.png"
+                alt="Country Dairy Logo"
+                width={48}
+                height={44}
+                className="h-10 w-auto object-contain scale-110"
+              />
             </div>
             <div className="flex flex-col">
               <span className="font-serif font-black text-xl md:text-2xl tracking-tight text-[#3A6038] leading-tight">

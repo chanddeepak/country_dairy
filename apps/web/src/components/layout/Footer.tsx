@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { ShieldCheck } from 'lucide-react';
 
 export default function Footer() {
@@ -8,13 +9,16 @@ export default function Footer() {
     <footer id="contact" className="bg-stone-900 text-stone-400 py-16 px-6 border-t border-stone-800 mt-auto">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <svg viewBox="0 0 60 44" className="w-10 h-8 text-[#C59B27]" fill="none">
-              <path d="M5 26L16 13L25 21L34 8L43 18L55 26" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M34 8L37.5 15M16 13L19 18" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
-              <path d="M22 23C21 23 20.5 24 20.5 25.5V33H22V29H31V33H32.5V28.5L34.5 27.5C36 26.5 37 25 38 25.5C38.5 25.8 39 25 38.5 24.2C38 23.5 36.5 23 35 23.5L32.5 24.5C31.5 23.5 30 23 28 23H22Z" fill="currentColor" />
-              <path d="M8 36Q30 40 52 36" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 flex items-center justify-center p-0.5 bg-white rounded-lg overflow-hidden">
+              <Image
+                src="/images/logo-icon.png"
+                alt="Country Dairy Logo"
+                width={40}
+                height={40}
+                className="h-9 w-auto object-contain scale-110"
+              />
+            </div>
             <div>
               <h4 className="text-white font-serif font-black text-xl leading-tight">Country Dairy</h4>
               <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#C59B27] block">Devbhoomi Uttarakhand</span>
