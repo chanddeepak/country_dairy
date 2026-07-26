@@ -26,7 +26,7 @@ export default function Footer() {
           <h4 className="text-white font-serif font-black text-xl mb-4">Support & Contacts</h4>
           <div className="text-xs leading-relaxed space-y-2">
             <p>📍 Country Dairy, Tanakpur, Champawat, Uttarakhand - 262309</p>
-            <p>📧 Email: <a href="mailto:support@countrydairy.farm" className="text-[#C59B27] hover:underline">support@countrydairy.farm</a></p>
+            <p>📧 Email: <a href="mailto:info@countrydairy.in" className="text-[#C59B27] hover:underline">info@countrydairy.in</a></p>
             <p>📞 Support Helpline: <strong>+91 99978 01112</strong></p>
             <p>💬 WhatsApp Orders: <a href="https://wa.me/919997801112" target="_blank" className="text-[#C59B27] hover:underline">+91 99978 01112</a></p>
             <p>📦 <span className="font-bold">Delivery available across India</span></p>
