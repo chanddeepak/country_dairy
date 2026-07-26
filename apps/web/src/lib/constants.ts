@@ -37,8 +37,8 @@ export function resolveStorefrontImageUrl(url: string | undefined): string {
 // Local product image map keyed by slug
 export const PRODUCT_IMAGES: Record<string, string> = {
   'country-dairy-a2-cow-milk-1l': '/images/products/milk-bottle.png',
-  'country-dairy-a2-vedic-ghee-1l': '/images/products/ghee-jar.png',
-  'country-dairy-a2-gir-cow-ghee-1l': '/images/products/ghee-jar.png',
+  'country-dairy-a2-vedic-ghee-1l': '/images/products/a2-desi-ghee-1l-main.png',
+  'country-dairy-a2-gir-cow-ghee-1l': '/images/products/a2-gir-ghee-1l-main.png',
   'organic-wood-pressed-mustard-oil-1l': '/images/products/mustard-oil.png',
   'raw-wild-forest-honey-500g': '/images/products/wild-honey.png',
 };
