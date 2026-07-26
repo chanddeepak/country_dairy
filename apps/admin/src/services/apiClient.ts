@@ -26,29 +26,50 @@ async function fetchJson<T>(endpoint: string, options: RequestInit = {}): Promis
 }
 
 export const adminApi = {
-  // Media Upload API
+  // Media Upload API (Pre-Signed URL Object Storage Pattern)
   async uploadMedia(file: Blob, filename: string = 'image.webp'): Promise<string> {
-    const formData = new FormData();
-    formData.append('file', file, filename);
+    // 1. Fetch pre-signed upload URL from backend API
+    const presigned = await fetchJson<{ uploadUrl: string; fileUrl: string; method?: string }>(
+      `/media/presigned-url?filename=${encodeURIComponent(filename)}&contentType=image/webp`
+    );
 
-    const token = localStorage.getItem('country_dairy_admin_token');
-    const headers: Record<string, string> = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    const { uploadUrl, fileUrl, method = 'POST' } = presigned;
+
+    // 2. Direct upload to object storage uploadUrl (S3 or local handler)
+    let uploadRes: Response;
+    if (method === 'PUT' && !uploadUrl.includes('/media/upload')) {
+      // Direct S3 / R2 Object Storage PUT Upload
+      uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'image/webp',
+        },
+        body: file,
+      });
+    } else {
+      // Local multipart handler fallback
+      const formData = new FormData();
+      formData.append('file', file, filename);
+      
+      const token = localStorage.getItem('country_dairy_admin_token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      uploadRes = await fetch(uploadUrl, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
     }
 
-    const res = await fetch(`${API_BASE_URL}/media/upload`, {
-      method: 'POST',
-      headers,
-      body: formData,
-    });
-
-    if (!res.ok) {
-      throw new Error(`Upload failed (${res.status})`);
+    if (!uploadRes.ok) {
+      throw new Error(`Direct media upload failed (${uploadRes.status})`);
     }
 
-    const data = await res.json();
-    return data.url; // Relative URL like "/uploads/upload-12345.webp"
+    // 3. Return final file/CDN URL to save in database
+    return fileUrl;
   },
 
   // Products API

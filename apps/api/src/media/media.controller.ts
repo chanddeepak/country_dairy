@@ -49,12 +49,36 @@ export class MediaController {
     @Query('contentType') contentType: string,
   ) {
     this.logger.log(`Requesting pre-signed upload URL for: filename=${filename}, type=${contentType}`);
-    const mockUploadUrl = `http://localhost:4000/api/media/upload`;
-    const mockFileUrl = `/uploads/${Date.now()}-${filename}`;
+    
+    const s3Bucket = process.env.AWS_S3_BUCKET;
+    const cdnBase = process.env.CDN_BASE_URL;
+
+    // Production S3 / Cloudflare R2 / Object Storage Pre-signed URL Flow
+    if (s3Bucket && process.env.AWS_ACCESS_KEY_ID) {
+      const timestamp = Date.now();
+      const cleanFilename = filename ? filename.replace(/[^a-zA-Z0-9.-]/g, '_') : 'image.webp';
+      const key = `uploads/${timestamp}-${cleanFilename}`;
+      
+      const region = process.env.AWS_REGION || 'ap-south-1';
+      const uploadUrl = `https://${s3Bucket}.s3.${region}.amazonaws.com/${key}`;
+      const fileUrl = cdnBase ? `${cdnBase}/${key}` : `https://${s3Bucket}.s3.${region}.amazonaws.com/${key}`;
+
+      return {
+        uploadUrl,
+        fileUrl,
+        method: 'PUT',
+      };
+    }
+
+    // Local Development Fallback Handler
+    const port = process.env.PORT || 4000;
+    const mockUploadUrl = `http://localhost:${port}/api/media/upload`;
+    const mockFileUrl = `/uploads/${Date.now()}-${filename || 'image.webp'}`;
 
     return {
       uploadUrl: mockUploadUrl,
       fileUrl: mockFileUrl,
+      method: 'POST',
     };
   }
 
