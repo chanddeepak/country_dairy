@@ -24,7 +24,12 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setProducts(getExpandedProducts(FALLBACK_PRODUCTS));
+    const expanded = getExpandedProducts(FALLBACK_PRODUCTS);
+    const primaryVariants = expanded.filter((p) => {
+      const vol = p.metadata?.volume || p.name;
+      return vol.includes('1L') || vol.includes('5L');
+    });
+    setProducts(primaryVariants);
   }, []);
 
   const filteredProducts = activeCategory === 'All'
