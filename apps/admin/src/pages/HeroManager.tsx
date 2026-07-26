@@ -208,39 +208,6 @@ export default function HeroManager() {
         </div>
       </div>
 
-      {/* Device Type Tab Switcher */}
-      <div className="flex items-center justify-between bg-stone-900 p-2 rounded-2xl border border-stone-800">
-        <div className="flex items-center space-x-2">
-          <button
-            type="button"
-            onClick={() => setActiveDeviceType('DESKTOP')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition-all ${
-              activeDeviceType === 'DESKTOP'
-                ? 'bg-amber-500 text-stone-950 shadow-md'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800'
-            }`}
-          >
-            <span>💻 Desktop Banners (16:9)</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveDeviceType('MOBILE')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition-all ${
-              activeDeviceType === 'MOBILE'
-                ? 'bg-amber-500 text-stone-950 shadow-md'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800'
-            }`}
-          >
-            <span>📱 Mobile Banners (4:3)</span>
-          </button>
-        </div>
-
-        <div className="text-xs text-stone-400 font-mono px-3 hidden sm:block">
-          Managing Mode: <span className="text-amber-400 font-bold">{activeDeviceType} BANNERS</span>
-        </div>
-      </div>
-
       {isMaxReached && (
         <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300 flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
@@ -320,8 +287,12 @@ export default function HeroManager() {
           {activeEditingSlide ? (
             <div className="bg-stone-900 p-6 rounded-2xl border border-stone-800 space-y-6">
               
-              {/* Simulator Component */}
-              <HeroPreviewSimulator slide={activeEditingSlide} />
+              {/* Simulator Component with Integrated Device Mode Toggle */}
+              <HeroPreviewSimulator 
+                slide={activeEditingSlide} 
+                deviceType={activeDeviceType} 
+                onDeviceTypeChange={setActiveDeviceType} 
+              />
 
               {/* Editor Form */}
               <form onSubmit={handleSaveSlide} className="space-y-4 text-xs text-stone-200">

@@ -1,16 +1,17 @@
-import { useState } from 'react';
 import { Monitor, Smartphone } from 'lucide-react';
 import type { HeroSlide } from '../../types';
 import { resolveImageUrl } from '../common/ImageUploader';
 
 interface HeroPreviewSimulatorProps {
   slide: Partial<HeroSlide>;
+  deviceType?: 'DESKTOP' | 'MOBILE';
+  onDeviceTypeChange?: (device: 'DESKTOP' | 'MOBILE') => void;
 }
 
-export default function HeroPreviewSimulator({ slide }: HeroPreviewSimulatorProps) {
-  const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
+export default function HeroPreviewSimulator({ slide, deviceType = 'DESKTOP', onDeviceTypeChange }: HeroPreviewSimulatorProps) {
+  const currentDevice = deviceType.toLowerCase() as 'desktop' | 'mobile';
 
-  const rawBg = device === 'desktop' 
+  const rawBg = currentDevice === 'desktop' 
     ? (slide.desktopImageUrl || '/images/hero-banner.png')
     : (slide.mobileImageUrl || slide.desktopImageUrl || '/images/hero-banner.png');
   const bgImage = resolveImageUrl(rawBg);
@@ -27,18 +28,18 @@ export default function HeroPreviewSimulator({ slide }: HeroPreviewSimulatorProp
         <div className="flex items-center bg-stone-900 border border-stone-700 rounded-lg p-1 space-x-1 text-xs">
           <button
             type="button"
-            onClick={() => setDevice('desktop')}
+            onClick={() => onDeviceTypeChange?.('DESKTOP')}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-              device === 'desktop' ? 'bg-amber-500 text-stone-950 font-bold' : 'text-stone-400 hover:text-stone-200'
+              deviceType === 'DESKTOP' ? 'bg-amber-500 text-stone-950 font-bold' : 'text-stone-400 hover:text-stone-200'
             }`}
           >
             <Monitor className="h-3.5 w-3.5" /> Desktop
           </button>
           <button
             type="button"
-            onClick={() => setDevice('mobile')}
+            onClick={() => onDeviceTypeChange?.('MOBILE')}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-              device === 'mobile' ? 'bg-amber-500 text-stone-950 font-bold' : 'text-stone-400 hover:text-stone-200'
+              deviceType === 'MOBILE' ? 'bg-amber-500 text-stone-950 font-bold' : 'text-stone-400 hover:text-stone-200'
             }`}
           >
             <Smartphone className="h-3.5 w-3.5" /> Mobile
@@ -50,7 +51,7 @@ export default function HeroPreviewSimulator({ slide }: HeroPreviewSimulatorProp
       <div className="flex justify-center bg-stone-900/60 p-4 rounded-xl border border-stone-800">
         <div 
           className={`relative overflow-hidden rounded-xl shadow-2xl transition-all ${
-            device === 'desktop' 
+            currentDevice === 'desktop' 
               ? 'w-full aspect-[16/7] max-h-[320px]' 
               : 'w-[280px] aspect-[4/5]'
           }`}
@@ -77,14 +78,14 @@ export default function HeroPreviewSimulator({ slide }: HeroPreviewSimulatorProp
             )}
 
             <h2 className={`font-black tracking-tight drop-shadow-md text-stone-100 ${
-              device === 'desktop' ? 'text-2xl' : 'text-base'
+              currentDevice === 'desktop' ? 'text-2xl' : 'text-base'
             }`}>
               {slide.title || 'Pure A2 Gir Cow Bilona Ghee'}
             </h2>
 
             {slide.subtitle && (
               <p className={`text-stone-200 drop-shadow line-clamp-2 ${
-                device === 'desktop' ? 'text-sm max-w-xl' : 'text-xs'
+                currentDevice === 'desktop' ? 'text-sm max-w-xl' : 'text-xs'
               }`}>
                 {slide.subtitle}
               </p>
