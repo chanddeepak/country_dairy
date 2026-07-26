@@ -112,7 +112,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '750',
         originalPrice: '850',
         discountPercent: '12% OFF',
-        image: '/images/products/a2-desi-ghee-v2.png',
+        image: '/images/products/a2-desi-ghee-500ml.png',
       },
       {
         id: 'ghee-1l',
