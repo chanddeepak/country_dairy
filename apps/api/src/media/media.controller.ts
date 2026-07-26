@@ -6,6 +6,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { AuthGuard } from '../auth/auth.guard';
 
+import * as dotenv from 'dotenv';
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { diskStorage } = require('multer');
 
@@ -19,6 +21,9 @@ export class MediaController {
   private readonly logger = new Logger(MediaController.name);
 
   private getSupabaseClient() {
+    dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+    dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
+
     const supabaseUrl = process.env.SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
     if (supabaseUrl && supabaseKey) {
@@ -40,17 +45,18 @@ export class MediaController {
     try {
       const { data: buckets } = await supabase.storage.listBuckets();
       const exists = buckets?.some((b: any) => b.name === bucketName);
-      if (!exists) {
-        this.logger.log(`Creating public bucket '${bucketName}' in Supabase Storage...`);
-        const { error } = await supabase.storage.createBucket(bucketName, { public: true });
-        if (error) {
-          this.logger.warn(`Supabase createBucket warning on '${bucketName}': ${error.message}`);
-        } else {
-          this.logger.log(`Public bucket '${bucketName}' created successfully in Supabase Storage!`);
-        }
+      if (exists) {
+        return;
+      }
+      this.logger.log(`Bucket '${bucketName}' missing. Creating public bucket in Supabase Storage...`);
+      const { error } = await supabase.storage.createBucket(bucketName, { public: true });
+      if (error) {
+        this.logger.warn(`Supabase createBucket warning on '${bucketName}': ${error.message}`);
+      } else {
+        this.logger.log(`Public bucket '${bucketName}' created successfully in Supabase Storage!`);
       }
     } catch (e: any) {
-      this.logger.warn(`Could not auto-create bucket '${bucketName}': ${e?.message || e}`);
+      this.logger.warn(`Could not check/create bucket '${bucketName}': ${e?.message || e}`);
     }
   }
 
