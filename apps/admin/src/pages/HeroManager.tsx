@@ -1,49 +1,46 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layout, Plus, Trash2, ArrowUp, ArrowDown, Save, AlertCircle } from 'lucide-react';
 import ImageUploader from '../components/common/ImageUploader';
 import HeroPreviewSimulator from '../components/cms/HeroPreviewSimulator';
 import type { HeroSlide } from '../types';
+import { adminApi } from '../services/apiClient';
 
 export default function HeroManager() {
-  const [slides, setSlides] = useState<HeroSlide[]>([
-    {
-      id: 'slide-1',
-      title: 'Traditional A2 Vedic Bilona Ghee',
-      subtitle: 'Made from free-grazing Gir Cows using ancient hand-churned Bilona method.',
-      badgeText: '100% Certified Pure',
-      ctaLabel: 'Shop Ghee Range',
-      ctaLink: '/products/ghee',
-      desktopImageUrl: 'https://images.unsplash.com/photo-1527153857715-3908f2bae5da?auto=format&fit=crop&w=1200&q=80',
-      mobileImageUrl: 'https://images.unsplash.com/photo-1527153857715-3908f2bae5da?auto=format&fit=crop&w=800&q=80',
-      overlayOpacity: 35,
-      sortOrder: 1,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'slide-2',
-      title: 'Farm Fresh A2 Cow Milk',
-      subtitle: 'Delivered to your doorstep within hours of morning milking.',
-      badgeText: 'Daily Doorstep Delivery',
-      ctaLabel: 'Order Milk Subscription',
-      ctaLink: '/products/milk',
-      desktopImageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=1200&q=80',
-      mobileImageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
-      overlayOpacity: 25,
-      sortOrder: 2,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ]);
-
+  const [slides, setSlides] = useState<HeroSlide[]>([]);
   const [activeEditingSlide, setActiveEditingSlide] = useState<HeroSlide | null>(null);
+
+  useEffect(() => {
+    adminApi.getHeroBanners()
+      .then(banners => {
+        if (banners && banners.length > 0) {
+          const mapped: HeroSlide[] = banners.map(b => ({
+            id: b.id,
+            title: b.title,
+            subtitle: b.subtitle,
+            badgeText: b.badgeText || 'FARM FRESH',
+            ctaLabel: b.ctaText || 'Shop All Products',
+            ctaLink: b.ctaLink || '/products',
+            desktopImageUrl: b.imageUrl,
+            mobileImageUrl: b.imageUrl,
+            overlayOpacity: 30,
+            sortOrder: b.displayOrder || 1,
+            isActive: b.isActive ?? true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }));
+          setSlides(mapped);
+          if (mapped.length > 0) {
+            setActiveEditingSlide(mapped[0]);
+          }
+        }
+      })
+      .catch(err => console.warn('API getHeroBanners warning:', err));
+  }, []);
 
   const activeCount = slides.filter(s => s.isActive).length;
   const isMaxReached = slides.length >= 6;
 
-  const handleAddSlide = () => {
+  const handleAddSlide = async () => {
     if (isMaxReached) {
       alert('Maximum 6 hero carousel slides allowed.');
       return;
@@ -56,8 +53,8 @@ export default function HeroManager() {
       badgeText: 'Special Offer',
       ctaLabel: 'Explore Shop',
       ctaLink: '/products',
-      desktopImageUrl: '',
-      mobileImageUrl: '',
+      desktopImageUrl: '/images/hero-banner.png',
+      mobileImageUrl: '/images/hero-banner.png',
       overlayOpacity: 30,
       sortOrder: slides.length + 1,
       isActive: true,
@@ -67,6 +64,25 @@ export default function HeroManager() {
 
     setSlides(prev => [...prev, newSlide]);
     setActiveEditingSlide(newSlide);
+
+    try {
+      const created = await adminApi.createHeroBanner({
+        title: newSlide.title,
+        subtitle: newSlide.subtitle,
+        imageUrl: newSlide.desktopImageUrl || '/images/hero-banner.png',
+        ctaText: newSlide.ctaLabel,
+        ctaLink: newSlide.ctaLink,
+        badgeText: newSlide.badgeText,
+        displayOrder: newSlide.sortOrder,
+        isActive: newSlide.isActive,
+      });
+      if (created?.id) {
+        setSlides(prev => prev.map(s => s.id === newSlide.id ? { ...s, id: created.id } : s));
+        setActiveEditingSlide(prev => prev && prev.id === newSlide.id ? { ...prev, id: created.id } : prev);
+      }
+    } catch (err) {
+      console.warn('API createHeroBanner error:', err);
+    }
   };
 
   const handleMove = (index: number, direction: 'up' | 'down') => {
@@ -78,12 +94,11 @@ export default function HeroManager() {
     newSlides[index] = newSlides[targetIndex];
     newSlides[targetIndex] = temp;
 
-    // Update sortOrder
     newSlides.forEach((s, idx) => { s.sortOrder = idx + 1; });
     setSlides(newSlides);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (slides.length <= 1) {
       alert('At least 1 hero slide must remain in the carousel.');
       return;
@@ -93,15 +108,36 @@ export default function HeroManager() {
       if (activeEditingSlide?.id === id) {
         setActiveEditingSlide(null);
       }
+      try {
+        await adminApi.deleteHeroBanner(id);
+      } catch (err) {
+        console.warn('API deleteHeroBanner error:', err);
+      }
     }
   };
 
-  const handleSaveSlide = (e: React.FormEvent) => {
+  const handleSaveSlide = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeEditingSlide) return;
 
     setSlides(prev => prev.map(s => s.id === activeEditingSlide.id ? activeEditingSlide : s));
-    alert('Hero slide changes saved successfully!');
+    
+    try {
+      await adminApi.updateHeroBanner(activeEditingSlide.id, {
+        title: activeEditingSlide.title,
+        subtitle: activeEditingSlide.subtitle,
+        imageUrl: activeEditingSlide.desktopImageUrl || '/images/hero-banner.png',
+        ctaText: activeEditingSlide.ctaLabel,
+        ctaLink: activeEditingSlide.ctaLink,
+        badgeText: activeEditingSlide.badgeText,
+        displayOrder: activeEditingSlide.sortOrder,
+        isActive: activeEditingSlide.isActive,
+      });
+      alert('Hero slide changes saved successfully to Database!');
+    } catch (err) {
+      console.warn('API updateHeroBanner error:', err);
+      alert('Updated in memory (Backend offline check warnings in console)');
+    }
   };
 
   return (

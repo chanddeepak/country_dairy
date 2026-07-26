@@ -99,6 +99,19 @@ export const adminApi = {
     });
   },
 
+  async updateHeroBanner(id: string, banner: Partial<HeroBanner>): Promise<HeroBanner> {
+    return fetchJson<HeroBanner>(`/cms/hero/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(banner),
+    });
+  },
+
+  async deleteHeroBanner(id: string): Promise<void> {
+    return fetchJson<void>(`/cms/hero/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   async getTrustBadges(): Promise<TrustBadge[]> {
     return fetchJson<TrustBadge[]>('/cms/trust-badges');
   },
