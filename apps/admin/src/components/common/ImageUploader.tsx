@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Upload, X, Check, AlertCircle } from 'lucide-react';
 import { adminApi } from '../../services/apiClient';
 
@@ -19,35 +19,21 @@ export function resolveImageUrl(url?: string | null): string {
   return url;
 }
 
-const isUploadedImage = (url?: string | null): boolean => {
-  if (!url) return false;
-  if (url.startsWith('/uploads/') || url.includes('/storage/v1/object/public/')) return true;
-  return false;
-};
-
 export default function ImageUploader({
   onImageUploaded,
   maxSizeBytes = 5 * 1024 * 1024, // 5MB
   aspectRatio = 'square',
   label = 'Upload Photo',
-  currentImageUrl
+  currentImageUrl: _currentImageUrl
 }: ImageUploaderProps) {
-  const initialUrl = isUploadedImage(currentImageUrl) ? (currentImageUrl || null) : null;
-  const [previewUrl, setPreviewUrl] = useState<string | null>(initialUrl);
+  // Always default previewUrl to null on load/reload so the Upload Dropzone Box is rendered until user selects an image
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
   const [originalSizeKB, setOriginalSizeKB] = useState<number | null>(null);
   const [compressedSizeKB, setCompressedSizeKB] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isUploadedImage(currentImageUrl)) {
-      setPreviewUrl(currentImageUrl || null);
-    } else {
-      setPreviewUrl(null);
-    }
-  }, [currentImageUrl]);
 
   // Compress image on client side using HTML5 Canvas API (JPG/PNG -> WebP @ 85% quality)
   const compressToWebPBlob = (file: File): Promise<{ blob: Blob; sizeKB: number }> => {
