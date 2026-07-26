@@ -9,7 +9,7 @@ const HERO_SLIDES = [
   {
     id: 1,
     image: '/images/himalayan-hero-banner.png',
-    objectPosition: 'center',
+    objectPosition: 'center 35%',
     headline: 'Nourishment from the Himalayan Foothills.',
     subtitle: 'Experience the purity of A2 Vedic Ghee & Wood-Pressed Oils, crafted in Tanakpur, Uttarakhand.',
     ctaText: 'Shop All Products',
@@ -76,7 +76,7 @@ export default function HeroSection() {
               src={slide.image}
               alt={slide.headline}
               fill
-              className="object-cover"
+              className="object-cover scale-110 sm:scale-105 transition-transform duration-1000"
               style={{ objectPosition: slide.objectPosition || 'center' }}
               priority={index === 0}
               sizes="100vw"
