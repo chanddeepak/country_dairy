@@ -92,17 +92,36 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex justify-between items-center">
         {/* Logo */}
         <div className="flex-1 flex justify-start">
-          <Link href="/" className="flex items-center space-x-2 group">
-            <div className="w-10 h-10 flex items-center justify-center">
-              <svg viewBox="0 0 40 40" className="w-10 h-10 text-[#3A6038]" fill="none">
-                <circle cx="20" cy="20" r="19" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M12 28c0-6 4-10 8-14 4 4 8 8 8 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <path d="M16 24c0-3 2-5 4-7 2 2 4 4 4 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <Link
+            href="/"
+            onClick={(e) => {
+              if (pathname === '/') {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+            className="flex items-center space-x-2.5 group cursor-pointer"
+          >
+            <div className="w-11 h-11 flex items-center justify-center p-1 bg-[#FAF8F3] rounded-xl border border-stone-200/80 group-hover:border-[#3A6038]/40 transition-all shadow-2xs">
+              <svg viewBox="0 0 50 50" className="w-9 h-9 text-[#3A6038]" fill="none">
+                {/* Himalayan Mountain Peaks */}
+                <path d="M5 36L18 16L27 28L36 14L45 36H5Z" fill="#3A6038" fillOpacity="0.12" />
+                <path d="M5 36L18 16L27 28L36 14L45 36" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                {/* Sun & Snow Caps Accent */}
+                <path d="M18 16L21 21M36 14L33 19" stroke="#C59B27" strokeWidth="2.5" strokeLinecap="round" />
+                {/* Cow Silhouette Accent */}
+                <path d="M17 36C17 33 19 31 22 31H28C31 31 33 33 33 36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <circle cx="25" cy="28" r="1.5" fill="#C59B27" />
               </svg>
             </div>
-            <span className="font-serif font-black text-xl md:text-2xl tracking-tight text-[#3A6038] transition">
-              Country<br className="md:hidden" /> <span className="text-[#C59B27]">Dairy</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="font-serif font-black text-xl md:text-2xl tracking-tight text-[#3A6038] leading-tight">
+                Country <span className="text-[#C59B27]">Dairy</span>
+              </span>
+              <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#6b6661] -mt-0.5">
+                Himalayan Purity
+              </span>
+            </div>
           </Link>
         </div>
 

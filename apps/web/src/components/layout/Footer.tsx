@@ -8,9 +8,19 @@ export default function Footer() {
     <footer id="contact" className="bg-stone-900 text-stone-400 py-16 px-6 border-t border-stone-800 mt-auto">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
         <div>
-          <h4 className="text-white font-serif font-black text-xl mb-4">Country Dairy</h4>
-          <p className="text-xs leading-relaxed max-w-sm">
-            Delivering certified pure organic products to families. Transparent quality audits published for every product batch.
+          <div className="flex items-center gap-2 mb-4">
+            <svg viewBox="0 0 50 50" className="w-8 h-8 text-[#C59B27]" fill="none">
+              <path d="M5 36L18 16L27 28L36 14L45 36H5Z" fill="#C59B27" fillOpacity="0.15" />
+              <path d="M5 36L18 16L27 28L36 14L45 36" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M18 16L21 21M36 14L33 19" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+            <div>
+              <h4 className="text-white font-serif font-black text-xl leading-tight">Country Dairy</h4>
+              <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#C59B27] block">Devbhoomi Uttarakhand</span>
+            </div>
+          </div>
+          <p className="text-xs leading-relaxed max-w-sm text-stone-400">
+            Handcrafting certified pure organic products in the Himalayan foothills of Tanakpur, Uttarakhand. Transparent quality audits for every product batch.
           </p>
         </div>
         <div>
