@@ -63,7 +63,8 @@ export default function HeroSection() {
         if (banners && banners.length > 0) {
           const mapped = banners.map((b: any, idx: number) => ({
             id: b.id || idx,
-            image: b.imageUrl || '/images/hero-banner.png',
+            image: resolveStorefrontImageUrl(b.imageUrl || '/images/hero-banner.png'),
+            mobileImage: resolveStorefrontImageUrl(b.mobileImageUrl || b.imageUrl || '/images/hero-banner.png'),
             objectPosition: 'center',
             headline: b.title,
             subtitle: b.subtitle,
@@ -153,17 +154,32 @@ export default function HeroSection() {
               index === activeIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
             }`}
           >
-            {/* Background image */}
-            <Image
-              src={slide.image}
-              alt={slide.headline || 'Hero banner'}
-              fill
-              unoptimized={typeof slide.image === 'string' && (slide.image.startsWith('http') || slide.image.includes('/uploads/'))}
-              className="object-cover scale-105 transition-transform duration-1000"
-              style={{ objectPosition: slide.objectPosition || 'center' }}
-              priority={index === 0}
-              sizes="100vw"
-            />
+            {/* Desktop Background Image (16:9) */}
+            <div className="hidden md:block absolute inset-0">
+              <Image
+                src={slide.image}
+                alt={slide.headline || 'Hero banner'}
+                fill
+                unoptimized={typeof slide.image === 'string' && (slide.image.startsWith('http') || slide.image.includes('/uploads/'))}
+                className="object-cover scale-105 transition-transform duration-1000"
+                style={{ objectPosition: slide.objectPosition || 'center' }}
+                priority={index === 0}
+                sizes="100vw"
+              />
+            </div>
+            {/* Mobile Background Image (4:3) */}
+            <div className="block md:hidden absolute inset-0">
+              <Image
+                src={slide.mobileImage || slide.image}
+                alt={slide.headline || 'Hero banner'}
+                fill
+                unoptimized={typeof (slide.mobileImage || slide.image) === 'string' && ((slide.mobileImage || slide.image).startsWith('http') || (slide.mobileImage || slide.image).includes('/uploads/'))}
+                className="object-cover scale-105 transition-transform duration-1000"
+                style={{ objectPosition: slide.objectPosition || 'center' }}
+                priority={index === 0}
+                sizes="100vw"
+              />
+            </div>
             {/* Dark overlay for text readability */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/35 to-transparent" />
 

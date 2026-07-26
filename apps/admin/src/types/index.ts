@@ -136,6 +136,7 @@ export interface HeroBanner {
   title: string;
   subtitle: string;
   imageUrl: string;
+  mobileImageUrl?: string;
   ctaText: string;
   ctaLink: string;
   badgeText?: string;

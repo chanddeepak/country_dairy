@@ -28,7 +28,7 @@ export default function HeroManager() {
             ctaLabel: b.ctaText || 'Shop All Products',
             ctaLink: b.ctaLink || '/products',
             desktopImageUrl: (b.imageUrl && (b.imageUrl.startsWith('/uploads/') || b.imageUrl.includes('/storage/v1/object/public/'))) ? b.imageUrl : '',
-            mobileImageUrl: (b.imageUrl && (b.imageUrl.startsWith('/uploads/') || b.imageUrl.includes('/storage/v1/object/public/'))) ? b.imageUrl : '',
+            mobileImageUrl: (b.mobileImageUrl && (b.mobileImageUrl.startsWith('/uploads/') || b.mobileImageUrl.includes('/storage/v1/object/public/'))) ? b.mobileImageUrl : '',
             overlayOpacity: 30,
             sortOrder: b.displayOrder || 1,
             isActive: b.isActive ?? true,
@@ -135,6 +135,7 @@ export default function HeroManager() {
         title: activeEditingSlide.title,
         subtitle: activeEditingSlide.subtitle,
         imageUrl: activeEditingSlide.desktopImageUrl || '/images/hero-banner.png',
+        mobileImageUrl: activeEditingSlide.mobileImageUrl || undefined,
         ctaText: activeEditingSlide.ctaLabel,
         ctaLink: activeEditingSlide.ctaLink,
         badgeText: activeEditingSlide.badgeText,
@@ -143,8 +144,10 @@ export default function HeroManager() {
       });
 
       if (saved?.id) {
-        setSlides(prev => prev.map(s => s.id === activeEditingSlide.id ? { ...s, id: saved.id, desktopImageUrl: saved.imageUrl, mobileImageUrl: saved.imageUrl } : s));
-        setActiveEditingSlide(prev => prev ? { ...prev, id: saved.id, desktopImageUrl: saved.imageUrl, mobileImageUrl: saved.imageUrl } : null);
+        const dUrl = (saved.imageUrl && (saved.imageUrl.startsWith('/uploads/') || saved.imageUrl.includes('/storage/v1/object/public/'))) ? saved.imageUrl : '';
+        const mUrl = (saved.mobileImageUrl && (saved.mobileImageUrl.startsWith('/uploads/') || saved.mobileImageUrl.includes('/storage/v1/object/public/'))) ? saved.mobileImageUrl : '';
+        setSlides(prev => prev.map(s => s.id === activeEditingSlide.id ? { ...s, id: saved.id, desktopImageUrl: dUrl, mobileImageUrl: mUrl } : s));
+        setActiveEditingSlide(prev => prev ? { ...prev, id: saved.id, desktopImageUrl: dUrl, mobileImageUrl: mUrl } : null);
       }
 
       showNotification('success', 'Hero slide banner saved successfully to Database!');
