@@ -45,6 +45,18 @@ const STATIC_HERO_SLIDES = [
   }
 ];
 
+function resolveStorefrontImageUrl(url?: string): string {
+  if (!url) return '/images/hero-banner.png';
+  if (url.startsWith('/storage/v1/object/public/')) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
+    return `${supabaseUrl}${url}`;
+  }
+  if (url.startsWith('/uploads/')) {
+    const apiHost = API_URL.replace(/\/api\/?$/, '');
+    return `${apiHost}${url}`;
+  }
+  return url;
+}
 export default function HeroSection() {
   const [slides, setSlides] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);

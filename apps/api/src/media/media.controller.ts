@@ -97,11 +97,11 @@ export class MediaController {
           });
 
         if (!sErr && sData?.path) {
-          const publicUrlData = supabase.storage.from('hero-banners').getPublicUrl(sData.path);
-          this.logger.log(`[Supabase Storage] File uploaded successfully: ${publicUrlData.data.publicUrl}`);
+          const relativeStoragePath = `/storage/v1/object/public/hero-banners/${sData.path}`;
+          this.logger.log(`[Supabase Storage] File uploaded successfully: ${relativeStoragePath}`);
           return {
             success: true,
-            url: publicUrlData.data.publicUrl,
+            url: relativeStoragePath,
             filename: file.filename,
           };
         }
@@ -140,6 +140,7 @@ export class MediaController {
         const timestamp = Date.now();
         const cleanFilename = filename ? filename.replace(/[^a-zA-Z0-9.-]/g, '_') : 'image.webp';
         const filePath = `${timestamp}-${cleanFilename}`;
+        const relativeStoragePath = `/storage/v1/object/public/${bucketName}/${filePath}`;
 
         const { data, error } = await supabase.storage
           .from(bucketName)
@@ -154,24 +155,19 @@ export class MediaController {
           }
           const retry = await supabase.storage.from(bucketName).createSignedUploadUrl(filePath);
           if (retry.data?.signedUrl) {
-            const publicUrlData = supabase.storage.from(bucketName).getPublicUrl(filePath);
             return {
               uploadUrl: retry.data.signedUrl,
-              fileUrl: publicUrlData.data.publicUrl,
+              fileUrl: relativeStoragePath,
               method: 'PUT',
             };
           }
         }
 
         if (data?.signedUrl) {
-          const publicUrlData = supabase.storage
-            .from(bucketName)
-            .getPublicUrl(filePath);
-
           this.logger.log(`Generated Supabase Storage pre-signed URL for bucket ${bucketName}: ${filePath}`);
           return {
             uploadUrl: data.signedUrl,
-            fileUrl: publicUrlData.data.publicUrl,
+            fileUrl: relativeStoragePath,
             method: 'PUT',
           };
         }

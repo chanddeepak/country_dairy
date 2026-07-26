@@ -12,6 +12,10 @@ interface ImageUploaderProps {
 
 export function resolveImageUrl(url?: string | null): string {
   if (!url || url.startsWith('blob:')) return '';
+  if (url.startsWith('/storage/v1/object/public/')) {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
+    return `${supabaseUrl}${url}`;
+  }
   if (url.startsWith('/uploads/')) {
     const apiHost = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api').replace(/\/api\/?$/, '');
     return `${apiHost}${url}`;

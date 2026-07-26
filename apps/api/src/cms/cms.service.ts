@@ -2,6 +2,14 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MediaService } from '../media/media.service';
 
+function sanitizeRelativeUrl(url?: string): string | undefined {
+  if (!url) return url;
+  if (url.includes('/storage/v1/object/public/')) {
+    return `/storage/v1/object/public/${url.split('/storage/v1/object/public/')[1]}`;
+  }
+  return url;
+}
+
 @Injectable()
 export class CmsService {
   private readonly logger = new Logger(CmsService.name);
@@ -20,11 +28,12 @@ export class CmsService {
   }
 
   async createHeroBanner(dto: any) {
+    const cleanUrl = sanitizeRelativeUrl(dto.imageUrl) || '/images/hero-banner.png';
     return this.prisma.heroBanner.create({
       data: {
         title: dto.title,
         subtitle: dto.subtitle || '',
-        imageUrl: dto.imageUrl,
+        imageUrl: cleanUrl,
         deviceType: dto.deviceType || 'DESKTOP',
         ctaText: dto.ctaText || 'Order Fresh Now',
         ctaLink: dto.ctaLink || '/products',
@@ -36,6 +45,7 @@ export class CmsService {
   }
 
   async updateHeroBanner(id: string, dto: any) {
+    const cleanUrl = sanitizeRelativeUrl(dto.imageUrl);
     const existing = await this.prisma.heroBanner.findUnique({ where: { id } });
     if (!existing) {
       this.logger.log(`HeroBanner id ${id} not found in DB. Creating new DB record...`);
@@ -44,7 +54,7 @@ export class CmsService {
           id: id.startsWith('slide-') ? undefined : id,
           title: dto.title || 'Hero Banner',
           subtitle: dto.subtitle || '',
-          imageUrl: dto.imageUrl || '/images/hero-banner.png',
+          imageUrl: cleanUrl || '/images/hero-banner.png',
           deviceType: dto.deviceType || 'DESKTOP',
           ctaText: dto.ctaText || 'Shop All Products',
           ctaLink: dto.ctaLink || '/products',
@@ -56,18 +66,18 @@ export class CmsService {
     }
 
     // Auto-cleanup old media file if updated with a new image URL
-    if (dto.imageUrl && existing.imageUrl && dto.imageUrl !== existing.imageUrl) {
+    if (cleanUrl && existing.imageUrl && cleanUrl !== existing.imageUrl) {
       this.logger.log(`Cleaning up old banner image: ${existing.imageUrl}`);
       await this.mediaService.deleteMediaFile(existing.imageUrl);
     }
 
-    this.logger.log(`Updating HeroBanner id ${id} in DB: title="${dto.title}", deviceType="${dto.deviceType || existing.deviceType}", imageUrl="${dto.imageUrl}"`);
+    this.logger.log(`Updating HeroBanner id ${id} in DB: title="${dto.title}", deviceType="${dto.deviceType || existing.deviceType}", imageUrl="${cleanUrl}"`);
     return this.prisma.heroBanner.update({
       where: { id },
       data: {
         title: dto.title,
         subtitle: dto.subtitle,
-        imageUrl: dto.imageUrl,
+        imageUrl: cleanUrl,
         deviceType: dto.deviceType || undefined,
         ctaText: dto.ctaText,
         ctaLink: dto.ctaLink,
