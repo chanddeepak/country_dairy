@@ -82,7 +82,7 @@ export interface Product {
 export const FALLBACK_PRODUCTS: Product[] = [
   {
     id: '30c195de-b5dd-4510-b236-fb8224a9d00e',
-    name: 'Country Dairy A2 Desi Cow Ghee',
+    name: 'A2 Desi Cow Ghee',
     slug: 'country-dairy-a2-vedic-ghee-1l',
     category: 'A2 Desi Ghee',
     description: 'Made in our farms, our A2 Desi Cow Ghee is bilona-churned in small batches from A2 cultured curd. Pure, aromatic, and easy to digest.',
@@ -140,7 +140,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
   },
   {
     id: 'f42dd18e-499b-4bc0-bb8e-8921a9db3621',
-    name: 'Country Dairy A2 Gir Cow Ghee',
+    name: 'A2 Gir Cow Ghee',
     slug: 'country-dairy-a2-gir-cow-ghee-1l',
     category: 'A2 Desi Ghee',
     description: 'Sourced exclusively from indigenous purebred Gir cows. Traditional bilona-churned in small batches from A2 cultured curd for golden purity.',

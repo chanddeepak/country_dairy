@@ -50,9 +50,8 @@ export default function ProductDetailPage() {
       p.slug === slug || 
       p.id === slug || 
       slug.startsWith(p.slug) || 
-      slug.includes(p.slug) ||
-      p.variants?.some((v) => v.id === slug || slug.includes(v.id))
-    ) || FALLBACK_PRODUCTS[0];
+      p.variants?.some((v) => v.id === slug || `${p.id}-${v.id}` === slug || `${p.slug}-${v.id}` === slug)
+    ) || FALLBACK_PRODUCTS.find((p) => slug.includes(p.slug)) || FALLBACK_PRODUCTS[0];
 
     setupProductData(fb);
   };
