@@ -92,7 +92,6 @@ export const FALLBACK_PRODUCTS: Product[] = [
     discountBadge: '9% OFF',
     badge: '★ Best Seller',
     imageUrls: [
-      '/images/products/a2-desi-ghee-v2.png',
       '/images/products/ghee-gallery-banner.png',
       '/images/products/ghee-gallery-purity.png',
       '/images/products/ghee-gallery-uses.png',
@@ -161,7 +160,6 @@ export const FALLBACK_PRODUCTS: Product[] = [
     discountBadge: '8% OFF',
     badge: '★ Premium Gir Breed',
     imageUrls: [
-      '/images/products/a2-gir-ghee-v2.png',
       '/images/products/ghee-gallery-banner.png',
       '/images/products/ghee-gallery-purity.png',
       '/images/products/ghee-gallery-uses.png',
