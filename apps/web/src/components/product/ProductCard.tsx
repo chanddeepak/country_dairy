@@ -13,8 +13,9 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, onAddToCart, onSubscribe }: ProductCardProps) {
-  // Prefer local image, fallback to product's first imageUrl
-  const imageSrc = PRODUCT_IMAGES[product.slug] || product.imageUrls?.[0] || '/images/products/ghee-jar.png';
+  // imageUrls[0] is set to the variant-specific image by getExpandedProducts — always use it first.
+  // Fall back to slug-level PRODUCT_IMAGES map only when no variant image is available.
+  const imageSrc = product.imageUrls?.[0] || PRODUCT_IMAGES[product.slug] || '/images/products/ghee-jar.png';
   const defaultVariant = product.variants?.find((v) => v.isDefault) || product.variants?.[0];
   const displayPrice = defaultVariant ? defaultVariant.price : product.price;
   const displayOriginalPrice = defaultVariant ? defaultVariant.originalPrice : product.originalPrice;
