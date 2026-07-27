@@ -8,7 +8,7 @@ import { ArrowRight } from 'lucide-react';
 const HERO_SLIDES = [
   {
     id: 1,
-    image: '/images/himalayan-hero-banner.png',
+    image: '/images/himalayan-hero-banner-v2.png',
     objectPosition: 'center 35%',
     headline: 'Nourishment from the Himalayan Foothills.',
     subtitle: 'Experience the purity of A2 Vedic Ghee & Wood-Pressed Oils, crafted in Tanakpur, Uttarakhand.',
