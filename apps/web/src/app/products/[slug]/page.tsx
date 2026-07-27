@@ -203,16 +203,15 @@ export default function ProductDetailPage() {
     'Storage Instructions': 'Store in a cool, dry place away from direct sunlight. Keep container tightly sealed after use.',
   };
 
-  // activeImage is the single source of truth for the displayed main image.
-  // Gallery thumbnails: active image first, then secondary gallery images (deduped).
-  const gallerySecondaryImages = [
+  // Always include the product's primary image in the gallery.
+  // activeImage is used only for highlight state — all images stay visible at all times.
+  const productPrimaryImage = selectedVariant?.image || PRODUCT_IMAGES[product.slug];
+  const galleryPool = [
+    productPrimaryImage,
     ...(product.imageUrls || []),
     ...(product.secondaryImages || []),
-  ].filter((img) => img !== activeImage);
-
-  const allImages = activeImage
-    ? [activeImage, ...Array.from(new Set(gallerySecondaryImages))]
-    : Array.from(new Set(gallerySecondaryImages));
+  ].filter(Boolean) as string[];
+  const allImages = Array.from(new Set(galleryPool));
 
   const galleryThumbnails = allImages.map((imgUrl, index) => ({
     id: `thumb-${index}`,
