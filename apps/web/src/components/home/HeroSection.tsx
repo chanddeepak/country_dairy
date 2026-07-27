@@ -26,7 +26,7 @@ const HERO_SLIDES = [
   },
   {
     id: 3,
-    image: '/images/hero-banner-3-wide.png',
+    image: '/images/hero-banner-3-v2.png',
     objectPosition: 'center',
     headline: 'Traditional Wood-Pressed Oils.',
     subtitle: 'Cold wood-pressed kachi ghani mustard oil. The way nature intended.',
