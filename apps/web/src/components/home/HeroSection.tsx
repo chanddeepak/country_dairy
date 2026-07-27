@@ -17,7 +17,7 @@ const HERO_SLIDES = [
   },
   {
     id: 2,
-    image: '/images/hero-banner-2-wide.png',
+    image: '/images/hero-banner-v2.png',
     objectPosition: 'center',
     headline: 'Pure A2 Vedic Ghee. Bilona Churned.',
     subtitle: 'Grass-fed Gir & Sahiwal cows grazing in pristine mountain pastures. Zero adulterants.',
