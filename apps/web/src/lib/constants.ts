@@ -95,13 +95,13 @@ export const FALLBACK_PRODUCTS: Product[] = [
       '/images/products/ghee-gallery-banner.png',
       '/images/products/ghee-gallery-purity.png',
       '/images/products/ghee-gallery-uses-v2.png',
-      '/images/products/ghee-gallery-nutrition.png',
+      '/images/products/ghee-gallery-nutrition-v2.png',
     ],
     secondaryImages: [
       '/images/products/ghee-gallery-banner.png',
       '/images/products/ghee-gallery-purity.png',
       '/images/products/ghee-gallery-uses-v2.png',
-      '/images/products/ghee-gallery-nutrition.png',
+      '/images/products/ghee-gallery-nutrition-v2.png',
     ],
     variants: [
       {
@@ -163,13 +163,13 @@ export const FALLBACK_PRODUCTS: Product[] = [
       '/images/products/ghee-gallery-banner.png',
       '/images/products/ghee-gallery-purity.png',
       '/images/products/ghee-gallery-uses-v2.png',
-      '/images/products/ghee-gallery-nutrition.png',
+      '/images/products/ghee-gallery-nutrition-v2.png',
     ],
     secondaryImages: [
       '/images/products/ghee-gallery-banner.png',
       '/images/products/ghee-gallery-purity.png',
       '/images/products/ghee-gallery-uses-v2.png',
-      '/images/products/ghee-gallery-nutrition.png',
+      '/images/products/ghee-gallery-nutrition-v2.png',
     ],
     variants: [
       {
