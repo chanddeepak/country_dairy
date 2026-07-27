@@ -92,13 +92,13 @@ export const FALLBACK_PRODUCTS: Product[] = [
     discountBadge: '9% OFF',
     badge: '★ Best Seller',
     imageUrls: [
-      '/images/products/ghee-gallery-banner.png',
+      '/images/products/ghee-gallery-banner-v2.png',
       '/images/products/ghee-gallery-purity-v2.png',
       '/images/products/ghee-gallery-uses-v2.png',
       '/images/products/ghee-gallery-nutrition-v2.png',
     ],
     secondaryImages: [
-      '/images/products/ghee-gallery-banner.png',
+      '/images/products/ghee-gallery-banner-v2.png',
       '/images/products/ghee-gallery-purity-v2.png',
       '/images/products/ghee-gallery-uses-v2.png',
       '/images/products/ghee-gallery-nutrition-v2.png',
@@ -160,13 +160,13 @@ export const FALLBACK_PRODUCTS: Product[] = [
     discountBadge: '8% OFF',
     badge: '★ Premium Gir Breed',
     imageUrls: [
-      '/images/products/ghee-gallery-banner.png',
+      '/images/products/ghee-gallery-banner-v2.png',
       '/images/products/ghee-gallery-purity-v2.png',
       '/images/products/ghee-gallery-uses-v2.png',
       '/images/products/ghee-gallery-nutrition-v2.png',
     ],
     secondaryImages: [
-      '/images/products/ghee-gallery-banner.png',
+      '/images/products/ghee-gallery-banner-v2.png',
       '/images/products/ghee-gallery-purity-v2.png',
       '/images/products/ghee-gallery-uses-v2.png',
       '/images/products/ghee-gallery-nutrition-v2.png',
