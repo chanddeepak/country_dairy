@@ -140,7 +140,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '6800',
         originalPrice: '7500',
         discountPercent: '9% OFF',
-        image: '/images/products/a2-desi-ghee-v2.png',
+        image: '/images/products/a2-desi-ghee-5l.png',
       },
     ],
     isSubscriptionAllowed: false,
