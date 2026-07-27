@@ -94,7 +94,7 @@ export default function ProductDetailPage() {
     setProduct(normalizedProd);
     setSelectedVariant(defaultVar);
 
-    const initialImg = PRODUCT_IMAGES[prod.slug] || defaultVar?.image || prod.galleryImages?.[0]?.imageUrl || prod.imageUrls?.[0] || '/images/products/ghee-jar.png';
+    const initialImg = defaultVar?.image || PRODUCT_IMAGES[prod.slug] || prod.galleryImages?.[0]?.imageUrl || prod.imageUrls?.[0] || '/images/products/ghee-jar.png';
     setActiveImage(resolveStorefrontImageUrl(initialImg));
 
     setRelatedProducts(FALLBACK_PRODUCTS.filter((p) => p.slug !== prod.slug).slice(0, 3));
@@ -111,10 +111,9 @@ export default function ProductDetailPage() {
 
   const handleVariantSelect = (variant: ProductVariant) => {
     setSelectedVariant(variant);
-    // Dynamic image switching: 1st main image changes with variant selection
-    if (variant.image) {
-      setActiveImage(variant.image);
-    }
+    // Use variant-specific image if available, otherwise fall back to product-level image
+    const newImage = variant.image || (product ? PRODUCT_IMAGES[product.slug] : undefined) || product?.imageUrls?.[0] || '/images/products/ghee-jar.png';
+    setActiveImage(resolveStorefrontImageUrl(newImage));
   };
 
   const handleShare = () => {
@@ -204,13 +203,16 @@ export default function ProductDetailPage() {
     'Storage Instructions': 'Store in a cool, dry place away from direct sunlight. Keep container tightly sealed after use.',
   };
 
-  // Build unique list of distinct gallery thumbnail images
-  const baseImage = PRODUCT_IMAGES[product.slug] || selectedVariant?.image || product.imageUrls?.[0] || '/images/products/milk-bottle.png';
-  const allImages = Array.from(new Set([
-    baseImage,
-    ...(product.imageUrls || []).filter((img) => img !== baseImage),
-    ...(product.secondaryImages || []).filter((img) => img !== baseImage),
-  ]));
+  // activeImage is the single source of truth for the displayed main image.
+  // Gallery thumbnails: active image first, then secondary gallery images (deduped).
+  const gallerySecondaryImages = [
+    ...(product.imageUrls || []),
+    ...(product.secondaryImages || []),
+  ].filter((img) => img !== activeImage);
+
+  const allImages = activeImage
+    ? [activeImage, ...Array.from(new Set(gallerySecondaryImages))]
+    : Array.from(new Set(gallerySecondaryImages));
 
   const galleryThumbnails = allImages.map((imgUrl, index) => ({
     id: `thumb-${index}`,
@@ -277,7 +279,7 @@ export default function ProductDetailPage() {
                   </span>
                 )}
                 <Image
-                  src={resolveStorefrontImageUrl(activeImage || baseImage)}
+                  src={resolveStorefrontImageUrl(activeImage)}
                   alt={product.name || 'Country Dairy Product Image'}
                   fill
                   className="object-cover p-6 transition-all duration-300"
