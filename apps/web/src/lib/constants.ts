@@ -200,7 +200,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
         price: '3950',
         originalPrice: '4300',
         discountPercent: '8% OFF',
-        image: '/images/products/a2-gir-ghee-v2.png',
+        image: '/images/products/a2-gir-ghee-2-5l.png',
       },
       {
         id: 'gir-ghee-5l',
