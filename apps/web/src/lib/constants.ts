@@ -43,7 +43,7 @@ export const PRODUCT_IMAGES: Record<string, string> = {
   'raw-wild-forest-honey-500g': '/images/products/wild-honey.png',
 };
 
-export const HERO_IMAGE = '/images/hero-banner.png';
+export const HERO_IMAGE = '/images/hero-banner-v2.png';
 
 // DB-Ready TypeScript Interfaces
 export interface ProductVariant {
