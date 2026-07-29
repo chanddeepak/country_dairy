@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-<<<<<<< HEAD
 import { FALLBACK_PRODUCTS, API_URL, Product, getExpandedProducts } from '../../lib/constants';
 import ProductCard from '../product/ProductCard';
 
