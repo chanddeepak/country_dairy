@@ -34,7 +34,7 @@ export default function ImageUploader({
   aspectRatio = 'square',
   label = 'Upload Photo',
   currentImageUrl: _currentImageUrl,
-  bucket = 'hero-banners',
+  bucket = 'products',
 }: ImageUploaderProps) {
   // Sync previewUrl when currentImageUrl prop updates or resets (e.g. switching slides or after save)
   const [previewUrl, setPreviewUrl] = useState<string | null>(_currentImageUrl || null);

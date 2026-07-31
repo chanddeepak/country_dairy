@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ProductStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MediaService } from '../media/media.service';
 
@@ -83,9 +84,7 @@ export class CatalogService {
       }
 
       if (status) {
-        whereClause.status = status;
-      } else {
-        whereClause.NOT = { status: 'ARCHIVED' };
+        whereClause.status = status as ProductStatus;
       }
 
       if (search) {
@@ -361,7 +360,7 @@ export class CatalogService {
   }
 
   async deleteProduct(id: string) {
-    this.logger.log(`Deleting product: ${id}`);
+    this.logger.log(`Hard deleting product and all related DB data: ${id}`);
     const existing = await this.prisma.product.findUnique({
       where: { id },
       include: { galleryImages: true, variants: true },
@@ -372,17 +371,23 @@ export class CatalogService {
       return { success: true, message: `Product ${id} deleted` };
     }
 
+    // 1. Clean up media storage files
     if (existing.galleryImages) {
       for (const img of existing.galleryImages) {
         await this.mediaService.deleteMediaFile(img.imageUrl);
       }
     }
 
-    // Delete relation records first to satisfy foreign key constraints
+    // 2. Cascade delete all dependent records across every database table
     await this.prisma.productImage.deleteMany({ where: { productId: id } });
     await this.prisma.productVariant.deleteMany({ where: { productId: id } });
-    
-    // Delete product record from DB
+    await this.prisma.labReport.deleteMany({ where: { productId: id } });
+    await this.prisma.cartItem.deleteMany({ where: { productId: id } });
+    await this.prisma.productReview.deleteMany({ where: { productId: id } });
+    await this.prisma.subscription.deleteMany({ where: { productId: id } });
+    await this.prisma.orderItem.deleteMany({ where: { productId: id } });
+
+    // 3. Delete product record from DB
     await this.prisma.product.delete({ where: { id } });
     return { success: true, id };
   }

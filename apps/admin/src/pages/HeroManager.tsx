@@ -406,6 +406,7 @@ export default function HeroManager() {
                   {activeDeviceType === 'DESKTOP' ? (
                     <ImageUploader
                       key={`${activeEditingSlide.id}-desktop-${activeEditingSlide.desktopImageUrl}`}
+                      bucket="hero-banners"
                       label="Desktop Banner Image (16:9 Aspect Ratio)"
                       aspectRatio="desktop"
                       currentImageUrl={activeEditingSlide.desktopImageUrl}
@@ -414,6 +415,7 @@ export default function HeroManager() {
                   ) : (
                     <ImageUploader
                       key={`${activeEditingSlide.id}-mobile-${activeEditingSlide.mobileImageUrl}`}
+                      bucket="hero-banners"
                       label="Mobile Banner Image (4:3 Aspect Ratio)"
                       aspectRatio="mobile"
                       currentImageUrl={activeEditingSlide.mobileImageUrl}

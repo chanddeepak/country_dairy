@@ -437,6 +437,7 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
           {galleryImages.length < 10 && (
             <div className="pt-4 border-t border-stone-800">
               <ImageUploader
+                bucket="products"
                 label="Add Photo to Product Gallery (Auto WebP Compressed)"
                 aspectRatio="square"
                 onImageUploaded={handleAddGalleryImage}

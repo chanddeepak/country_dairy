@@ -92,7 +92,7 @@ export default function Inventory({
   };
 
   const handleDeleteProduct = async (productId: string, title: string) => {
-    if (confirm(`Are you sure you want to delete "${title}" from the catalog?`)) {
+    if (confirm(`Are you sure you want to PERMANENTLY delete "${title}"?\n\nThis will completely remove the product and all associated variants, images, lab reports, and reviews from the database. This action cannot be undone.`)) {
       onUpdateProducts(products.filter(p => p.id !== productId));
       try {
         await adminApi.deleteProduct(productId);
@@ -245,7 +245,11 @@ export default function Inventory({
                         className="inline-flex items-center focus:outline-none cursor-pointer"
                         title={p.status === 'LIVE' ? 'Click to set status to DRAFT (Offline)' : 'Click to set status to LIVE (Published)'}
                       >
-                        {isOutOfStock ? (
+                        {p.status === 'ARCHIVED' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-stone-200 text-stone-700 border border-stone-300 hover:bg-stone-300 transition-colors shadow-xs">
+                            ⊘ ARCHIVED
+                          </span>
+                        ) : isOutOfStock ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-red-50 text-red-700 border border-red-200 shadow-xs">
                             ● OUT OF STOCK
                           </span>
