@@ -22,7 +22,8 @@ async function fetchJson<T>(endpoint: string, options: RequestInit = {}): Promis
     throw new Error(`API Error (${response.status}): ${errorText || response.statusText}`);
   }
 
-  return response.json();
+  const text = await response.text();
+  return text ? JSON.parse(text) : ({} as T);
 }
 
 export const adminApi = {

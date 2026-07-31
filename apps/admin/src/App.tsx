@@ -162,7 +162,9 @@ function AdminMainContent() {
     }
   }, [user?.role]);
 
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  // Product items initialized as empty array until DB fetch completes
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState<boolean>(true);
 
   // Seeded categories state
   const [categories, setCategories] = useState<CategoryItem[]>([
@@ -174,14 +176,17 @@ function AdminMainContent() {
 
   // Fetch live products & categories from NestJS API server
   useEffect(() => {
+    setIsLoadingProducts(true);
     adminApi.getProducts()
       .then(liveProducts => {
-        if (liveProducts && liveProducts.length > 0) {
-          setProducts(liveProducts);
-        }
+        setProducts(liveProducts || []);
       })
       .catch(err => {
         console.warn('API Server offline, using local seed catalog:', err);
+        setProducts(INITIAL_PRODUCTS);
+      })
+      .finally(() => {
+        setIsLoadingProducts(false);
       });
 
     adminApi.getCategories()
@@ -307,6 +312,7 @@ function AdminMainContent() {
             ) : (
               <Inventory
                 products={products}
+                isLoading={isLoadingProducts}
                 selectedProductId={selectedProductId}
                 setSelectedProductId={setSelectedProductId}
                 batchCodeInput={batchCodeInput}

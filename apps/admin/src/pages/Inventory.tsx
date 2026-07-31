@@ -6,6 +6,7 @@ import { adminApi } from '../services/apiClient';
 
 interface InventoryProps {
   products: Product[];
+  isLoading?: boolean;
   selectedProductId: string;
   setSelectedProductId: (id: string) => void;
   batchCodeInput: string;
@@ -23,6 +24,7 @@ interface InventoryProps {
 
 export default function Inventory({
   products,
+  isLoading = false,
   selectedProductId,
   setSelectedProductId,
   batchCodeInput,
@@ -143,7 +145,46 @@ export default function Inventory({
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 font-medium">
-              {products.map((p) => {
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, idx) => (
+                  <tr key={`skeleton-${idx}`} className="animate-pulse">
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-stone-200 rounded-xl shrink-0" />
+                        <div className="space-y-2 flex-1">
+                          <div className="w-40 h-4 bg-stone-200 rounded" />
+                          <div className="w-24 h-3 bg-stone-200 rounded" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4"><div className="w-16 h-5 bg-stone-200 rounded-lg" /></td>
+                    <td className="py-4 px-4"><div className="w-20 h-5 bg-stone-200 rounded-full" /></td>
+                    <td className="py-4 px-4"><div className="w-24 h-4 bg-stone-200 rounded" /></td>
+                    <td className="py-4 px-4"><div className="w-16 h-4 bg-stone-200 rounded" /></td>
+                    <td className="py-4 px-4"><div className="w-10 h-5 bg-stone-200 rounded-full mx-auto" /></td>
+                    <td className="py-4 px-4"><div className="w-24 h-4 bg-stone-200 rounded" /></td>
+                    <td className="py-4 px-4"><div className="w-20 h-5 bg-stone-200 rounded-full" /></td>
+                    <td className="py-4 px-4"><div className="w-16 h-4 bg-stone-200 rounded ml-auto" /></td>
+                  </tr>
+                ))
+              ) : products.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-12 px-4 text-center text-stone-500">
+                    <div className="max-w-xs mx-auto space-y-3">
+                      <Package className="h-10 w-10 text-stone-300 mx-auto" />
+                      <p className="font-semibold text-sm text-[#2A2A2A]">No products in database yet.</p>
+                      <p className="text-xs text-stone-400">Click "Add New Product" to create your first catalog item.</p>
+                      <button
+                        onClick={onOpenAddWizard}
+                        className="inline-flex items-center gap-1.5 bg-[#064e3b] text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs hover:bg-[#065f46] transition-colors"
+                      >
+                        <Plus className="h-4 w-4" /> Add Product
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                products.map((p) => {
                 const defaultVariant = p.variants?.[0];
                 const displayPrice = defaultVariant ? defaultVariant.sellingPrice : ((p as any).price || 0);
                 const totalStock = p.variants ? p.variants.reduce((acc, v) => acc + (v.stockQuantity || 0), 0) : ((p as any).stock || 0);
@@ -301,7 +342,7 @@ export default function Inventory({
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>

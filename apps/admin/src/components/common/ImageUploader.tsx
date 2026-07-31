@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Upload, X, Check, AlertCircle } from 'lucide-react';
 import { adminApi } from '../../services/apiClient';
 
@@ -36,14 +36,18 @@ export default function ImageUploader({
   currentImageUrl: _currentImageUrl,
   bucket = 'hero-banners',
 }: ImageUploaderProps) {
-  // Always default previewUrl to null on load/reload so the Upload Dropzone Box is rendered until user selects an image
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  // Sync previewUrl when currentImageUrl prop updates or resets (e.g. switching slides or after save)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(_currentImageUrl || null);
   const [isCompressing, setIsCompressing] = useState(false);
   const [originalSizeKB, setOriginalSizeKB] = useState<number | null>(null);
   const [compressedSizeKB, setCompressedSizeKB] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setPreviewUrl(_currentImageUrl || null);
+  }, [_currentImageUrl]);
 
   // Compress image on client side using HTML5 Canvas API (JPG/PNG -> WebP @ 85% quality)
   const compressToWebPBlob = (file: File): Promise<{ blob: Blob; sizeKB: number }> => {

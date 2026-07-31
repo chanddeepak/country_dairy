@@ -405,6 +405,7 @@ export default function HeroManager() {
                 <div className="space-y-4 pt-2 border-t border-stone-800">
                   {activeDeviceType === 'DESKTOP' ? (
                     <ImageUploader
+                      key={`${activeEditingSlide.id}-desktop-${activeEditingSlide.desktopImageUrl}`}
                       label="Desktop Banner Image (16:9 Aspect Ratio)"
                       aspectRatio="desktop"
                       currentImageUrl={activeEditingSlide.desktopImageUrl}
@@ -412,6 +413,7 @@ export default function HeroManager() {
                     />
                   ) : (
                     <ImageUploader
+                      key={`${activeEditingSlide.id}-mobile-${activeEditingSlide.mobileImageUrl}`}
                       label="Mobile Banner Image (4:3 Aspect Ratio)"
                       aspectRatio="mobile"
                       currentImageUrl={activeEditingSlide.mobileImageUrl}

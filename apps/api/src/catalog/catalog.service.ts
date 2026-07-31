@@ -84,6 +84,8 @@ export class CatalogService {
 
       if (status) {
         whereClause.status = status;
+      } else {
+        whereClause.NOT = { status: 'ARCHIVED' };
       }
 
       if (search) {
@@ -359,19 +361,29 @@ export class CatalogService {
   }
 
   async deleteProduct(id: string) {
-    this.logger.log(`Deleting/Archiving product: ${id}`);
+    this.logger.log(`Deleting product: ${id}`);
     const existing = await this.prisma.product.findUnique({
       where: { id },
-      include: { galleryImages: true },
+      include: { galleryImages: true, variants: true },
     });
-    if (existing?.galleryImages) {
+
+    if (!existing) {
+      this.logger.log(`Product ${id} not found in DB.`);
+      return { success: true, message: `Product ${id} deleted` };
+    }
+
+    if (existing.galleryImages) {
       for (const img of existing.galleryImages) {
         await this.mediaService.deleteMediaFile(img.imageUrl);
       }
     }
-    return await this.prisma.product.update({
-      where: { id },
-      data: { status: 'ARCHIVED' },
-    });
+
+    // Delete relation records first to satisfy foreign key constraints
+    await this.prisma.productImage.deleteMany({ where: { productId: id } });
+    await this.prisma.productVariant.deleteMany({ where: { productId: id } });
+    
+    // Delete product record from DB
+    await this.prisma.product.delete({ where: { id } });
+    return { success: true, id };
   }
 }
