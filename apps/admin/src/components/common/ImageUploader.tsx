@@ -30,7 +30,7 @@ export function resolveImageUrl(url?: string | null): string {
 
 export default function ImageUploader({
   onImageUploaded,
-  maxSizeBytes = 5 * 1024 * 1024, // 5MB
+  maxSizeBytes = 100 * 1024 * 1024, // 100MB (unrestricted limit)
   aspectRatio = 'square',
   label = 'Upload Photo',
   currentImageUrl: _currentImageUrl,
@@ -108,10 +108,10 @@ export default function ImageUploader({
   const handleFile = async (file: File) => {
     setError(null);
 
-    // 1. Strict 5MB File Size Guard
-    if (file.size > maxSizeBytes) {
+    // 1. File Size Guard (if maxSizeBytes set)
+    if (maxSizeBytes && file.size > maxSizeBytes) {
       const maxMB = (maxSizeBytes / (1024 * 1024)).toFixed(0);
-      setError(`File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds ${maxMB}MB limit. Please select a smaller photo.`);
+      setError(`File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds ${maxMB}MB limit.`);
       return;
     }
 
@@ -165,7 +165,7 @@ export default function ImageUploader({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <label className="text-xs font-semibold text-stone-300">{label}</label>
-        <span className="text-[10px] text-stone-400">Max 5MB • WebP Auto-Compressed</span>
+        <span className="text-[10px] text-stone-400">WebP Auto-Compressed</span>
       </div>
 
       {/* Error Alert */}
