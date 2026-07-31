@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight, Sparkles, Package } from 'lucide-react';
 import type { Product } from '../types';
 import { resolveImageUrl } from '../components/common/ImageUploader';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import { adminApi } from '../services/apiClient';
 
 interface InventoryProps {
@@ -41,6 +42,10 @@ export default function Inventory({
   const [starchDetected, setStarchDetected] = useState(false);
   const [detergentDetected, setDetergentDetected] = useState(false);
   const [dyesDetected, setDyesDetected] = useState(false);
+
+  // Deletion Modal states
+  const [deletingProduct, setDeletingProduct] = useState<{ id: string; title: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const hasAdulterants = ureaDetected || starchDetected || detergentDetected || dyesDetected;
 
@@ -91,14 +96,22 @@ export default function Inventory({
     }
   };
 
-  const handleDeleteProduct = async (productId: string, title: string) => {
-    if (confirm(`Are you sure you want to PERMANENTLY delete "${title}"?\n\nThis will completely remove the product and all associated variants, images, lab reports, and reviews from the database. This action cannot be undone.`)) {
-      onUpdateProducts(products.filter(p => p.id !== productId));
-      try {
-        await adminApi.deleteProduct(productId);
-      } catch (err) {
-        console.warn('Failed to delete product on API:', err);
-      }
+  const handleDeleteProduct = (productId: string, title: string) => {
+    setDeletingProduct({ id: productId, title });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingProduct) return;
+    const { id } = deletingProduct;
+    setIsDeleting(true);
+    onUpdateProducts(products.filter(p => p.id !== id));
+    try {
+      await adminApi.deleteProduct(id);
+    } catch (err) {
+      console.warn('Failed to delete product on API:', err);
+    } finally {
+      setIsDeleting(false);
+      setDeletingProduct(null);
     }
   };
 
@@ -436,6 +449,19 @@ export default function Inventory({
           </button>
         </form>
       </div>
+
+      {/* Modern Aesthetic Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!deletingProduct}
+        title="Permanently Delete Product?"
+        message={deletingProduct ? `Are you sure you want to PERMANENTLY delete "${deletingProduct.title}"?\n\nThis will completely remove the product and all associated variants, images, lab reports, and reviews from the database. This action cannot be undone.` : ''}
+        confirmLabel="Permanently Delete"
+        cancelLabel="Keep Product"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingProduct(null)}
+      />
     </div>
   );
 }

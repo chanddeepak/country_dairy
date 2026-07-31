@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Layout, Plus, Trash2, ArrowUp, ArrowDown, Save, AlertCircle, Loader2, CheckCircle2, X } from 'lucide-react';
 import ImageUploader from '../components/common/ImageUploader';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import HeroPreviewSimulator from '../components/cms/HeroPreviewSimulator';
 import type { HeroSlide } from '../types';
 import { adminApi } from '../services/apiClient';
@@ -122,21 +123,32 @@ export default function HeroManager() {
     setSlides(newSlides);
   };
 
-  const handleDelete = async (id: string) => {
+  const [deletingSlideId, setDeletingSlideId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = (id: string) => {
     if (slides.length <= 1) {
       alert('At least 1 hero slide must remain in the carousel.');
       return;
     }
-    if (confirm('Are you sure you want to delete this hero slide banner?')) {
-      setSlides(prev => prev.filter(s => s.id !== id));
-      if (activeEditingSlide?.id === id) {
-        setActiveEditingSlide(null);
-      }
-      try {
-        await adminApi.deleteHeroBanner(id);
-      } catch (err) {
-        console.warn('API deleteHeroBanner error:', err);
-      }
+    setDeletingSlideId(id);
+  };
+
+  const handleConfirmDeleteSlide = async () => {
+    if (!deletingSlideId) return;
+    const id = deletingSlideId;
+    setIsDeleting(true);
+    setSlides(prev => prev.filter(s => s.id !== id));
+    if (activeEditingSlide?.id === id) {
+      setActiveEditingSlide(null);
+    }
+    try {
+      await adminApi.deleteHeroBanner(id);
+    } catch (err) {
+      console.warn('API deleteHeroBanner error:', err);
+    } finally {
+      setIsDeleting(false);
+      setDeletingSlideId(null);
     }
   };
 
@@ -454,6 +466,19 @@ export default function HeroManager() {
           </button>
         </div>
       )}
+
+      {/* Modern Aesthetic Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!deletingSlideId}
+        title="Delete Hero Banner Slide?"
+        message="Are you sure you want to remove this hero slide from the homepage carousel? This change will be published immediately."
+        confirmLabel="Delete Banner"
+        cancelLabel="Keep Slide"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleConfirmDeleteSlide}
+        onCancel={() => setDeletingSlideId(null)}
+      />
     </div>
   );
 }
