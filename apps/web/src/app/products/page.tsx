@@ -11,7 +11,7 @@ import SubscriptionModal from '../../components/modals/SubscriptionModal';
 import CartDrawer from '../../components/cart/CartDrawer';
 import { FALLBACK_PRODUCTS, API_URL, ENABLE_PRODUCT_RATINGS, getExpandedProducts } from '../../lib/constants';
 
-const CATEGORIES = ['All', 'Ghee', 'Oils'];
+const CATEGORIES = ['All', 'Ghee'];
 const SORT_OPTIONS = [
   { label: 'Relevance', value: 'relevance' },
   { label: 'Price: Low → High', value: 'price-asc' },

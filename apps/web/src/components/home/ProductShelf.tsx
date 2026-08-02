@@ -14,7 +14,6 @@ interface ProductShelfProps {
 const CATEGORIES = [
   { id: 'All', label: 'All Products' },
   { id: 'A2 Desi Ghee', label: 'Ghee' },
-  { id: 'Wood-Pressed Oils', label: 'Oils' },
 ];
 
 export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
@@ -25,16 +24,7 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
 
   useEffect(() => {
     const expanded = getExpandedProducts(FALLBACK_PRODUCTS);
-    const primaryVariants = expanded.filter((p) => {
-      const vol = p.metadata?.volume || p.name;
-      if (vol.includes('2.5L')) return false;
-      const isOil = p.category === 'Wood-Pressed Oils' || p.slug.includes('mustard-oil');
-      if (isOil) {
-        return vol.includes('1L');
-      }
-      return vol.includes('1L') || vol.includes('5L');
-    });
-    setProducts(primaryVariants);
+    setProducts(expanded);
   }, []);
 
   const filteredProducts = activeCategory === 'All'
