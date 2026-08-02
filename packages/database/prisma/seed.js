@@ -73,7 +73,7 @@ async function main() {
     data: {
       name: 'Country Dairy A2 Vedic Ghee',
       slug: 'country-dairy-a2-vedic-ghee-1l',
-      description: 'Premium A2 Ghee made using traditional Bilona churning method from A2 curd.',
+      description: 'Nurtured in the serene Himalayan foothills of Tanakpur, Uttarakhand, our A2 Desi Cow Ghee is bilona-churned in small batches from A2 cultured curd. Pure, divine golden aroma, and rich in natural mountain goodness.',
       price: 1450.00,
       stock: 150,
       imageUrls: ['https://country-dairy-assets.s3.ap-south-1.amazonaws.com/products/ghee-jar.jpg'],
