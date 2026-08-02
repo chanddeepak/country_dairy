@@ -31,7 +31,7 @@ export default function Footer() {
         <div>
           <h4 className="text-white font-serif font-black text-xl mb-4 flex items-center">
             <ShieldCheck className="h-5 w-5 text-[#C59B27] mr-2" />
-            NABL Audited
+            Quality Assured
           </h4>
           <p className="text-xs leading-relaxed max-w-sm">
             All product batches are screened for adulterants and quality metrics before release. Zero contamination.

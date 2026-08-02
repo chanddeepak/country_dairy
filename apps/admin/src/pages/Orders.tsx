@@ -61,7 +61,7 @@ export default function Orders({ orders, onUpdateOrders }: OrdersProps) {
           <div class="header">
             <div>
               <div class="title">Country Dairy</div>
-              <div style="font-size: 12px; color: #6b6661; margin-top: 4px;">NABL Certified Organic Products</div>
+              <div style="font-size: 12px; color: #6b6661; margin-top: 4px;">Farm-Fresh & Quality Assured Products</div>
             </div>
             <div class="meta">
               <strong>Invoice #: ${order.id}</strong><br/>

@@ -18,9 +18,9 @@ const storyPoints = [
   },
   {
     icon: <Shield className="h-6 w-6" />,
-    title: 'NABL Lab Verified',
+    title: 'Quality & Purity Assured',
     description:
-      'Every batch is tested for 70+ quality parameters and adulterants at NABL-accredited laboratories before being shipped to your home.',
+      'Batch-tested for fat purity, aroma, and zero adulterants to deliver authentic farm-fresh Vedic A2 Bilona Ghee.',
   },
   {
     icon: <Truck className="h-6 w-6" />,
