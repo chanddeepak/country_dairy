@@ -61,6 +61,7 @@ export interface Product {
   slug: string;
   category: string;
   description: string;
+  tagline?: string;
   storyDescription?: string;
   price: string;
   originalPrice?: string;
@@ -83,7 +84,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
     name: 'A2 Desi Cow Ghee',
     slug: 'country-dairy-a2-vedic-ghee-1l',
     category: 'A2 Desi Ghee',
-    description: 'Handcrafted in the serene foothills of Uttarakhand, Country Dairy Desi Cow Ghee celebrates the timeless traditions of Devbhoomi. Made through the traditional curd-to-butter process and slowly simmered to perfection, carrying the rich aroma and wholesome goodness cherished in pahadi homes.',
+    description: 'Every Spoon Carries the Soul of Devbhoomi.',
     storyDescription: 'Handcrafted in the serene foothills of Uttarakhand, Country Dairy Desi Cow Ghee celebrates the timeless traditions of Devbhoomi. Made through the traditional curd-to-butter process and slowly simmered to perfection, every jar carries the rich aroma, authentic taste, and wholesome goodness that has been cherished in pahadi homes for generations.\n\nFrom nourishing daily meals to festive celebrations, this golden ghee brings the warmth of the mountains and the purity of nature to every kitchen.\n\nPure. Traditional. Himalayan.\n\nEvery Spoon Carries the Soul of Devbhoomi.',
     price: '1450',
     originalPrice: '1600',

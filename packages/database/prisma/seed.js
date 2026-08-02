@@ -73,7 +73,7 @@ async function main() {
     data: {
       name: 'Country Dairy A2 Vedic Ghee',
       slug: 'country-dairy-a2-vedic-ghee-1l',
-      description: 'Handcrafted in the serene foothills of Uttarakhand, Country Dairy Desi Cow Ghee celebrates the timeless traditions of Devbhoomi. Made through the traditional curd-to-butter process and slowly simmered to perfection, carrying the rich aroma and wholesome goodness cherished in pahadi homes.',
+      description: 'Every Spoon Carries the Soul of Devbhoomi.',
       price: 1450.00,
       stock: 150,
       imageUrls: ['https://country-dairy-assets.s3.ap-south-1.amazonaws.com/products/ghee-jar.jpg'],

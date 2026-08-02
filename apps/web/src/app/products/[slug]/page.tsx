@@ -359,8 +359,10 @@ export default function ProductDetailPage() {
                 )}
               </div>
 
-              {/* Short Summary Description */}
-              <p className="text-sm text-[#6b6661] leading-relaxed">{product.description}</p>
+              {/* Tagline / Short Subtitle */}
+              <p className="text-sm font-semibold italic text-[#3A6038] leading-relaxed flex items-center gap-2">
+                <span>✨</span> {product.tagline || product.description}
+              </p>
 
               {/* VARIANT SELECTOR */}
               {product.variants && product.variants.length > 0 && (
