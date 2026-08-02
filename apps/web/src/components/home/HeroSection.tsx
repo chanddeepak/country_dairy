@@ -26,7 +26,7 @@ const HERO_SLIDES = [
   },
   {
     id: 3,
-    image: '/images/hero-banner-3-v3.png',
+    image: '/images/hero-banner-3.png',
     objectPosition: 'center',
     headline: 'Raw Wild Forest Honey.',
     subtitle: '100% Raw, unfiltered, and ethically harvested from deep forest hives.',
