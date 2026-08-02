@@ -93,29 +93,7 @@ async function main() {
     },
   });
 
-  const mustardOil = await prisma.product.create({
-    data: {
-      name: 'Organic Wood-Pressed Mustard Oil',
-      slug: 'organic-wood-pressed-mustard-oil-1l',
-      description: 'Cold wood-pressed kachi ghani mustard oil, chemical-free and rich in natural nutrients.',
-      price: 320.00,
-      stock: 200,
-      imageUrls: ['https://country-dairy-assets.s3.ap-south-1.amazonaws.com/products/mustard-oil.jpg'],
-      videoUrls: [],
-      isSubscriptionAllowed: false,
-      categoryId: oilsCategory.id,
-      nutritionFacts: {
-        fat: '100g',
-        omega3: '11.6%',
-        energy: '884 kcal'
-      },
-      metadata: {
-        shelfLife: '9 months',
-        packaging: 'PET Bottle',
-        volume: '1 Litre'
-      }
-    },
-  });
+
 
   const honey = await prisma.product.create({
     data: {

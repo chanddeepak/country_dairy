@@ -28,8 +28,8 @@ const HERO_SLIDES = [
     id: 3,
     image: '/images/hero-banner-3-v3.png',
     objectPosition: 'center',
-    headline: 'Traditional Wood-Pressed Oils.',
-    subtitle: 'Cold wood-pressed kachi ghani mustard oil. The way nature intended.',
+    headline: 'Raw Wild Forest Honey.',
+    subtitle: '100% Raw, unfiltered, and ethically harvested from deep forest hives.',
     ctaText: 'Shop All Products',
     ctaHref: '/products'
   }
