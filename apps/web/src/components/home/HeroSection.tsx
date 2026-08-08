@@ -13,8 +13,8 @@ const HERO_SLIDES = [
     headline: 'Nourishment from the Himalayan Foothills.',
     subtitle: '',
     headlineSize: 'text-2xl sm:text-3xl md:text-4xl',
-    contentAlign: 'items-start pt-6 sm:pt-8 md:pt-10',
-    ctaMarginTop: 'pt-32 sm:pt-40 md:pt-48',
+    contentAlign: 'items-start pt-14 sm:pt-16 md:pt-20',
+    ctaMarginTop: 'pt-48 sm:pt-56 md:pt-64',
     ctaText: 'Shop All Products',
     ctaHref: '/products'
   },
