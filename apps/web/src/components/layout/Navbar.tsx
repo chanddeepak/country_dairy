@@ -122,13 +122,13 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
             }}
             className="flex items-center space-x-2.5 group cursor-pointer"
           >
-            <div className="relative w-14 h-14 flex items-center justify-center overflow-hidden">
+            <div className="relative w-14 h-14 flex items-center justify-center overflow-hidden rounded-xl">
               <Image
                 src="/images/logo-icon.png"
                 alt="Country Dairy Logo"
                 width={80}
                 height={80}
-                className="h-14 w-auto object-contain scale-140 mix-blend-multiply"
+                className="h-14 w-auto object-contain"
                 priority
               />
             </div>
