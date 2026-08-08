@@ -122,23 +122,15 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
             }}
             className="flex items-center space-x-2.5 group cursor-pointer"
           >
-            <div className="relative w-14 h-14 flex items-center justify-center overflow-hidden rounded-xl">
+            <div className="relative h-14 w-auto flex items-center justify-center overflow-hidden">
               <Image
                 src="/images/logo-icon.png"
                 alt="Country Dairy Logo"
-                width={80}
-                height={80}
+                width={200}
+                height={70}
                 className="h-14 w-auto object-contain"
                 priority
               />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-serif font-black text-xl md:text-2xl tracking-tight text-[#3A6038] leading-tight">
-                Country <span className="text-[#C59B27]">Dairy</span>
-              </span>
-              <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#6b6661] -mt-0.5">
-                Himalayan Purity
-              </span>
             </div>
           </Link>
         </div>

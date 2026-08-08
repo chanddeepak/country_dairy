@@ -10,18 +10,14 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
         <div>
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 flex items-center justify-center p-0.5 bg-white rounded-xl overflow-hidden shadow-sm">
+            <div className="flex items-center justify-center p-1.5 bg-white rounded-xl overflow-hidden shadow-sm">
               <Image
                 src="/images/logo-icon.png"
                 alt="Country Dairy Logo"
-                width={60}
-                height={60}
-                className="h-11 w-auto object-contain"
+                width={160}
+                height={55}
+                className="h-12 w-auto object-contain"
               />
-            </div>
-            <div>
-              <h4 className="text-white font-serif font-black text-xl leading-tight">Country Dairy</h4>
-              <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#C59B27] block">Devbhoomi Uttarakhand</span>
             </div>
           </div>
           <p className="text-xs leading-relaxed max-w-sm text-stone-400">
