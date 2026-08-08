@@ -541,7 +541,7 @@ export default function ProductDetailPage() {
                       </div>
                       <h4 className="font-serif font-bold text-[#2A2A2A] text-sm">Free-Range Grazing</h4>
                       <p className="text-xs text-[#6b6661] leading-relaxed">
-                        Native Gir & Sahiwal cows graze freely in pesticide-free mountain pastures, drinking fresh Himalayan spring water.
+                        Native Desi cows graze freely in pesticide-free mountain pastures, drinking fresh Himalayan spring water.
                       </p>
                     </div>
 

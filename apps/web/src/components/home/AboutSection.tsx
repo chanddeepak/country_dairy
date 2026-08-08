@@ -14,7 +14,7 @@ const storyPoints = [
     icon: <Heart className="h-6 w-6" />,
     title: 'Pure Spring Water & Pastures',
     description:
-      'Our native Gir & Sahiwal cows drink mountain spring water and feed on natural flora. Happy cows yield the highest quality A2 Bilona Ghee.',
+      'Our native Desi cows drink mountain spring water and feed on natural flora. Happy cows yield the highest quality A2 Bilona Ghee.',
   },
   {
     icon: <Shield className="h-6 w-6" />,
