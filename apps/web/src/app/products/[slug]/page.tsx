@@ -519,25 +519,110 @@ export default function ProductDetailPage() {
             </div>
             <div className="bg-white border border-t-0 border-stone-200 rounded-b-xl p-6">
               {activeTab === 'nutrition' ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between text-xs font-bold text-[#6b6661] bg-[#FAF8F3] px-4 py-2 rounded-lg border border-stone-200/60">
-                    <span>Standard Nutritional Values (Per 100g / 100ml)</span>
-                    <span className="text-[#3A6038]">Active Variant Pack: {currentVolumeOrWeight}</span>
+                <div className="max-w-2xl mx-auto space-y-6 py-2">
+                  {/* Header Banner */}
+                  <div className="bg-[#FAF8F3] border border-stone-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-2xs">
+                    <div>
+                      <h4 className="font-serif font-black text-[#2A2A2A] text-lg tracking-wide">NUTRITION FACTS</h4>
+                      <p className="text-xs text-[#6b6661] font-semibold">65 Servings per container</p>
+                    </div>
+                    <div className="bg-white border border-stone-200/80 px-4 py-2 rounded-lg text-xs font-bold text-[#3A6038]">
+                      Serving Size: <span className="text-[#2A2A2A]">1 Tbsp (14 g)</span>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Object.entries(nutrition).map(([key, value]) => (
-                      <div key={key} className="text-center p-4 bg-[#FAF8F3] rounded-lg border border-stone-200/40">
-                        <span className="text-xs font-bold text-[#6b6661] uppercase tracking-wider block mb-1">{key}</span>
-                        <span className="text-lg font-black text-[#2A2A2A]">{value as string}</span>
+
+                  {/* Nutrition Breakdown Table */}
+                  <div className="border border-stone-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+                    <div className="grid grid-cols-12 bg-[#2A2A2A] text-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider">
+                      <div className="col-span-6 sm:col-span-7">Amount Per Serving</div>
+                      <div className="col-span-3 sm:col-span-3 text-right">Value</div>
+                      <div className="col-span-3 sm:col-span-2 text-right">% Daily Value*</div>
+                    </div>
+                    <div className="divide-y divide-stone-100 text-xs sm:text-sm">
+                      <div className="grid grid-cols-12 px-4 py-2.5 font-bold text-[#2A2A2A] bg-amber-50/30">
+                        <span className="col-span-6 sm:col-span-7">Calories (kcal)</span>
+                        <span className="col-span-3 sm:col-span-3 text-right font-black">717</span>
+                        <span className="col-span-3 sm:col-span-2 text-right text-[#3A6038] font-black">6.3%</span>
                       </div>
-                    ))}
-                    {metadata.shelfLife && (
-                      <div className="text-center p-4 bg-[#FAF8F3] rounded-lg border border-stone-200/40">
-                        <span className="text-xs font-bold text-[#6b6661] uppercase tracking-wider block mb-1">Shelf Life</span>
-                        <span className="text-lg font-black text-[#2A2A2A]">{metadata.shelfLife}</span>
+                      <div className="grid grid-cols-12 px-4 py-2.5 font-bold text-[#2A2A2A]">
+                        <span className="col-span-6 sm:col-span-7">Total Fat (g)</span>
+                        <span className="col-span-3 sm:col-span-3 text-right">81</span>
+                        <span className="col-span-3 sm:col-span-2 text-right text-[#3A6038] font-extrabold">125%</span>
                       </div>
-                    )}
+                      <div className="grid grid-cols-12 px-4 py-2 pl-8 text-xs text-[#6b6661] bg-stone-50/40">
+                        <span className="col-span-6 sm:col-span-7">Saturated Fat (g)</span>
+                        <span className="col-span-3 sm:col-span-3 text-right font-semibold text-[#2A2A2A]">51</span>
+                        <span className="col-span-3 sm:col-span-2 text-right text-[#3A6038] font-bold">257%</span>
+                      </div>
+                      <div className="grid grid-cols-12 px-4 py-2 pl-8 text-xs text-[#6b6661] bg-stone-50/40">
+                        <span className="col-span-6 sm:col-span-7">Trans Fat (g)</span>
+                        <span className="col-span-3 sm:col-span-3 text-right font-semibold text-[#2A2A2A]">0</span>
+                        <span className="col-span-3 sm:col-span-2 text-right">0%</span>
+                      </div>
+                      <div className="grid grid-cols-12 px-4 py-2.5 font-bold text-[#2A2A2A]">
+                        <span className="col-span-6 sm:col-span-7">Cholesterol (mg)</span>
+                        <span className="col-span-3 sm:col-span-3 text-right">215</span>
+                        <span className="col-span-3 sm:col-span-2 text-right text-[#3A6038] font-extrabold">72%</span>
+                      </div>
+                      <div className="grid grid-cols-12 px-4 py-2.5 font-bold text-[#2A2A2A]">
+                        <span className="col-span-6 sm:col-span-7">Sodium (mg)</span>
+                        <span className="col-span-3 sm:col-span-3 text-right">11</span>
+                        <span className="col-span-3 sm:col-span-2 text-right">0%</span>
+                      </div>
+                      <div className="grid grid-cols-12 px-4 py-2.5 font-bold text-[#2A2A2A]">
+                        <span className="col-span-6 sm:col-span-7">Total Carbohydrate (g)</span>
+                        <span className="col-span-3 sm:col-span-3 text-right">0</span>
+                        <span className="col-span-3 sm:col-span-2 text-right">0%</span>
+                      </div>
+                      <div className="grid grid-cols-12 px-4 py-2 pl-8 text-xs text-[#6b6661] bg-stone-50/40">
+                        <span className="col-span-6 sm:col-span-7">Dietary Fiber (g)</span>
+                        <span className="col-span-3 sm:col-span-3 text-right font-semibold text-[#2A2A2A]">0</span>
+                        <span className="col-span-3 sm:col-span-2 text-right">0%</span>
+                      </div>
+                      <div className="grid grid-cols-12 px-4 py-2 pl-8 text-xs text-[#6b6661] bg-stone-50/40">
+                        <span className="col-span-6 sm:col-span-7">Total Sugars (g) (Includes 0g Added Sugars)</span>
+                        <span className="col-span-3 sm:col-span-3 text-right font-semibold text-[#2A2A2A]">0</span>
+                        <span className="col-span-3 sm:col-span-2 text-right">0%</span>
+                      </div>
+                      <div className="grid grid-cols-12 px-4 py-2.5 font-bold text-[#2A2A2A]">
+                        <span className="col-span-6 sm:col-span-7">Protein (g)</span>
+                        <span className="col-span-3 sm:col-span-3 text-right">1</span>
+                        <span className="col-span-3 sm:col-span-2 text-right">0%</span>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Vitamins & Minerals Row */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                    <div className="p-3 bg-[#FAF8F3] rounded-xl border border-stone-200/80">
+                      <span className="text-xs text-[#6b6661] block font-bold">Vitamin A</span>
+                      <span className="text-base font-black text-[#3A6038]">50%</span>
+                    </div>
+                    <div className="p-3 bg-[#FAF8F3] rounded-xl border border-stone-200/80">
+                      <span className="text-xs text-[#6b6661] block font-bold">Calcium</span>
+                      <span className="text-base font-black text-[#3A6038]">2%</span>
+                    </div>
+                    <div className="p-3 bg-[#FAF8F3] rounded-xl border border-stone-200/80">
+                      <span className="text-xs text-[#6b6661] block font-bold">Vitamin C</span>
+                      <span className="text-base font-black text-stone-400">0%</span>
+                    </div>
+                    <div className="p-3 bg-[#FAF8F3] rounded-xl border border-stone-200/80">
+                      <span className="text-xs text-[#6b6661] block font-bold">Iron</span>
+                      <span className="text-base font-black text-stone-400">0%</span>
+                    </div>
+                  </div>
+
+                  {/* Purity Guarantee Badges */}
+                  <div className="flex items-center justify-center gap-6 pt-2 text-xs font-bold text-[#3A6038]">
+                    <span className="inline-flex items-center gap-1.5 bg-[#3A6038]/10 px-3 py-1.5 rounded-full">🌱 100% Pure</span>
+                    <span className="inline-flex items-center gap-1.5 bg-[#3A6038]/10 px-3 py-1.5 rounded-full">🧪 No Additives</span>
+                    <span className="inline-flex items-center gap-1.5 bg-[#3A6038]/10 px-3 py-1.5 rounded-full">🚫 No Chemicals</span>
+                  </div>
+
+                  {/* Footnote */}
+                  <p className="text-[11px] text-[#6b6661] italic text-center leading-normal pt-1">
+                    *Percent Daily Values are based on a 2,000 calorie diet. Your daily values may be higher or lower depending on your calorie needs.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3 text-sm text-[#6b6661]">

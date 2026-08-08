@@ -79,11 +79,19 @@ async function main() {
       imageUrls: ['https://country-dairy-assets.s3.ap-south-1.amazonaws.com/products/ghee-jar.jpg'],
       videoUrls: ['https://country-dairy-assets.s3.ap-south-1.amazonaws.com/products/bilona-ghee-churn.mp4'],
       isSubscriptionAllowed: false,
-      categoryId: dairyCategory.id,
       nutritionFacts: {
-        fat: '99.8g',
-        cholesterol: '256mg',
-        energy: '897 kcal'
+        servingSize: '1 Tbsp (14g)',
+        servingsPerContainer: '65',
+        calories: '717 kcal',
+        totalFat: '81g',
+        saturatedFat: '51g',
+        transFat: '0g',
+        cholesterol: '215mg',
+        sodium: '11mg',
+        carbohydrates: '0g',
+        protein: '1g',
+        vitaminA: '50%',
+        calcium: '2%'
       },
       metadata: {
         shelfLife: '12 months',
