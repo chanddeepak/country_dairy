@@ -49,7 +49,7 @@ export default function HeroSection() {
     if (!isPaused) {
       interval = setInterval(() => {
         setActiveIndex((prev) => (prev + 1) % HERO_SLIDES.length);
-      }, 4000);
+      }, 10000);
     }
     return () => {
       if (interval) clearInterval(interval);
