@@ -19,7 +19,6 @@ export default function App() {
 
   // Seeded mock product items
   const [products, setProducts] = useState<Product[]>([
-    { id: '1', name: 'Country Dairy A2 Cow Milk', price: 95, stock: 500, category: 'Dairy', batchCode: 'BATCH-2026-MILK01', verified: true, isSubscriptionAllowed: true },
     { id: '2', name: 'Country Dairy A2 Vedic Ghee', price: 1450, stock: 150, category: 'Dairy', batchCode: 'BATCH-2026-GHEE03', verified: true, isSubscriptionAllowed: true },
   ]);
 
