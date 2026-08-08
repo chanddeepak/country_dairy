@@ -21,7 +21,6 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([
     { id: '1', name: 'Country Dairy A2 Cow Milk', price: 95, stock: 500, category: 'Dairy', batchCode: 'BATCH-2026-MILK01', verified: true, isSubscriptionAllowed: true },
     { id: '2', name: 'Country Dairy A2 Vedic Ghee', price: 1450, stock: 150, category: 'Dairy', batchCode: 'BATCH-2026-GHEE03', verified: true, isSubscriptionAllowed: true },
-    { id: '4', name: 'Raw Wild Forest Honey', price: 450, stock: 100, category: 'Honey', batchCode: 'BATCH-2026-HONEY01', verified: false, isSubscriptionAllowed: false },
   ]);
 
   // Seeded mock order database records
