@@ -41,6 +41,25 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
 
   // Navigation link generator with clean route/hash handling
   const navLink = (target: string, label: string, className: string) => {
+    // For "Home" link
+    if (target === 'home') {
+      return (
+        <Link
+          href="/"
+          className={className}
+          onClick={(e) => {
+            setMobileMenuOpen(false);
+            if (pathname === '/') {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
+        >
+          {label}
+        </Link>
+      );
+    }
+
     // For "Shop" link
     if (target === 'shop') {
       if (pathname === '/') {
@@ -126,6 +145,7 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
 
         {/* Desktop Nav Links */}
         <div className="hidden md:flex flex-none items-center justify-center space-x-8 text-sm font-semibold text-[#2A2A2A]">
+          {navLink('home', 'Home', 'hover:text-[#3A6038] transition')}
           {navLink('shop', 'Shop', 'hover:text-[#3A6038] transition')}
           {navLink('about', 'About', 'hover:text-[#3A6038] transition')}
           {navLink('values', 'Farm', 'hover:text-[#3A6038] transition')}
@@ -251,6 +271,7 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-t border-stone-100 px-4 py-4 space-y-3">
+          {navLink('home', 'Home', 'block text-sm font-semibold text-[#2A2A2A]')}
           {navLink('shop', 'Shop', 'block text-sm font-semibold text-[#2A2A2A]')}
           {navLink('about', 'About', 'block text-sm font-semibold text-[#2A2A2A]')}
           {navLink('values', 'Farm', 'block text-sm font-semibold text-[#2A2A2A]')}
