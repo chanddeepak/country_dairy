@@ -11,7 +11,8 @@ const HERO_SLIDES = [
     image: '/images/himalayan-hero-banner-v2.png',
     objectPosition: 'center 35%',
     headline: 'Nourishment from the Himalayan Foothills.',
-    subtitle: 'Experience the purity of A2 Vedic Ghee & Wood-Pressed Oils, crafted in Tanakpur, Uttarakhand.',
+    subtitle: '',
+    headlineSize: 'text-2xl sm:text-3xl md:text-4xl',
     ctaText: 'Shop All Products',
     ctaHref: '/products'
   },
@@ -21,6 +22,7 @@ const HERO_SLIDES = [
     objectPosition: 'center',
     headline: 'Pure A2 Vedic Ghee. Bilona Churned.',
     subtitle: 'Grass-fed Gir & Sahiwal cows grazing in pristine mountain pastures. Zero adulterants.',
+    headlineSize: 'text-3xl sm:text-4xl md:text-5xl',
     ctaText: 'Shop All Products',
     ctaHref: '/products'
   },
@@ -30,6 +32,7 @@ const HERO_SLIDES = [
     objectPosition: 'center',
     headline: 'Raw Wild Forest Honey.',
     subtitle: '100% Raw, unfiltered, and ethically harvested from deep forest hives.',
+    headlineSize: 'text-3xl sm:text-4xl md:text-5xl',
     ctaText: 'Shop All Products',
     ctaHref: '/products'
   }
@@ -76,21 +79,21 @@ export default function HeroSection() {
               src={slide.image}
               alt={slide.headline}
               fill
-              className="object-cover scale-110 sm:scale-105 transition-transform duration-1000"
+              className="object-cover scale-105 transition-transform duration-1000"
               style={{ objectPosition: slide.objectPosition || 'center' }}
               priority={index === 0}
               sizes="100vw"
             />
             {/* Dark overlay for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/35 to-transparent" />
 
             {/* Hero content overlay */}
             <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
-              <div className="max-w-xl space-y-6">
-                <div className="inline-flex items-center gap-1.5 bg-[#3A6038]/80 backdrop-blur-xs text-amber-200 border border-amber-300/30 px-3.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-widest shadow-sm">
+              <div className="max-w-lg space-y-4">
+                <div className="inline-flex items-center gap-1 bg-[#3A6038]/85 backdrop-blur-xs text-amber-200 border border-amber-300/30 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider shadow-sm">
                   <span>⛰️ Devbhoomi Uttarakhand Origin</span>
                 </div>
-                <h1 className="font-serif font-black text-4xl sm:text-5xl md:text-6xl leading-tight text-white drop-shadow-lg">
+                <h1 className={`font-serif font-black leading-tight text-white drop-shadow-lg ${slide.headlineSize || 'text-3xl sm:text-4xl md:text-5xl'}`}>
                   {slide.headline.split('. ').map((part, i, arr) => (
                     <React.Fragment key={i}>
                       {part}{i < arr.length - 1 ? '.' : ''}
@@ -98,16 +101,20 @@ export default function HeroSection() {
                     </React.Fragment>
                   ))}
                 </h1>
-                <p className="text-white/90 text-base md:text-lg max-w-md leading-relaxed drop-shadow">
-                  {slide.subtitle}
-                </p>
-                <Link
-                  href={slide.ctaHref}
-                  className="inline-flex items-center bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold px-8 py-4 rounded-sm uppercase tracking-wider text-sm shadow-lg transition-all hover:shadow-xl"
-                >
-                  {slide.ctaText}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+                {slide.subtitle && (
+                  <p className="text-white/90 text-sm md:text-base max-w-md leading-relaxed drop-shadow">
+                    {slide.subtitle}
+                  </p>
+                )}
+                <div>
+                  <Link
+                    href={slide.ctaHref}
+                    className="inline-flex items-center bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold px-6 py-3 rounded-sm uppercase tracking-wider text-xs sm:text-sm shadow-lg transition-all hover:shadow-xl"
+                  >
+                    {slide.ctaText}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
