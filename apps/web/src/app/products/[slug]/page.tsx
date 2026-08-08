@@ -30,7 +30,7 @@ export default function ProductDetailPage() {
   const [activeImage, setActiveImage] = useState<string>('');
   const [reviews, setReviews] = useState<any[]>([]);
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState<'nutrition' | 'details'>('nutrition');
+  const [activeTab, setActiveTab] = useState<'bilonaProcess' | 'details'>('bilonaProcess');
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -500,10 +500,10 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Tabs: Nutrition / Details */}
+          {/* Tabs: Vedic Bilona Process / Details */}
           <div className="mt-16">
             <div className="flex border-b border-stone-200">
-              {(['nutrition', 'details'] as const).map((tab) => (
+              {(['bilonaProcess', 'details'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -513,116 +513,103 @@ export default function ProductDetailPage() {
                       : 'border-transparent text-[#6b6661] hover:text-[#2A2A2A]'
                   }`}
                 >
-                  {tab === 'nutrition' ? 'Nutrition Facts' : 'Details'}
+                  {tab === 'bilonaProcess' ? 'Traditional Vedic Process' : 'Product Details'}
                 </button>
               ))}
             </div>
             <div className="bg-white border border-t-0 border-stone-200 rounded-b-xl p-6">
-              {activeTab === 'nutrition' ? (
-                <div className="max-w-2xl mx-auto space-y-6 py-2">
+              {activeTab === 'bilonaProcess' ? (
+                <div className="max-w-4xl mx-auto space-y-8 py-2">
                   {/* Header Banner */}
-                  <div className="bg-[#FAF8F3] border border-stone-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-2xs">
-                    <div>
-                      <h4 className="font-serif font-black text-[#2A2A2A] text-lg tracking-wide">NUTRITION FACTS</h4>
-                      <p className="text-xs text-[#6b6661] font-semibold">65 Servings per container</p>
+                  <div className="bg-[#FAF8F3] border border-stone-200/80 rounded-2xl p-6 text-center space-y-2 shadow-2xs">
+                    <span className="text-xs font-extrabold uppercase tracking-widest text-[#3A6038] bg-[#3A6038]/10 px-3 py-1 rounded-full">
+                      ⛰️ Himalayan Heritage & Craftsmanship
+                    </span>
+                    <h3 className="font-serif font-black text-2xl md:text-3xl text-[#2A2A2A]">
+                      The 5-Step Traditional Vedic Bilona Process
+                    </h3>
+                    <p className="text-xs sm:text-sm text-[#6b6661] max-w-2xl mx-auto leading-relaxed">
+                      Handcrafted in Tanakpur, Uttarakhand using authentic curd-churning techniques. Unlike commercial cream-churned ghee, Vedic Bilona Ghee retains maximum natural aroma, A2 beta-casein purity, and granular Pahadi texture.
+                    </p>
+                  </div>
+
+                  {/* 5 Steps Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="bg-[#FAF8F3]/60 border border-stone-200/80 rounded-xl p-4 flex flex-col items-center text-center space-y-2.5 shadow-2xs hover:border-[#3A6038] transition">
+                      <div className="w-10 h-10 rounded-full bg-[#3A6038] text-amber-200 font-serif font-black text-lg flex items-center justify-center shadow-sm">
+                        1
+                      </div>
+                      <h4 className="font-serif font-bold text-[#2A2A2A] text-sm">Free-Range Grazing</h4>
+                      <p className="text-xs text-[#6b6661] leading-relaxed">
+                        Native Gir & Sahiwal cows graze freely in pesticide-free mountain pastures, drinking fresh Himalayan spring water.
+                      </p>
                     </div>
-                    <div className="bg-white border border-stone-200/80 px-4 py-2 rounded-lg text-xs font-bold text-[#3A6038]">
-                      Serving Size: <span className="text-[#2A2A2A]">1 Tbsp (14 g)</span>
+
+                    <div className="bg-[#FAF8F3]/60 border border-stone-200/80 rounded-xl p-4 flex flex-col items-center text-center space-y-2.5 shadow-2xs hover:border-[#3A6038] transition">
+                      <div className="w-10 h-10 rounded-full bg-[#3A6038] text-amber-200 font-serif font-black text-lg flex items-center justify-center shadow-sm">
+                        2
+                      </div>
+                      <h4 className="font-serif font-bold text-[#2A2A2A] text-sm">Whole Curd Culturing</h4>
+                      <p className="text-xs text-[#6b6661] leading-relaxed">
+                        Fresh A2 milk is boiled slowly in traditional vessels and naturally cultured into thick whole curd overnight.
+                      </p>
+                    </div>
+
+                    <div className="bg-[#FAF8F3]/60 border border-stone-200/80 rounded-xl p-4 flex flex-col items-center text-center space-y-2.5 shadow-2xs hover:border-[#3A6038] transition">
+                      <div className="w-10 h-10 rounded-full bg-[#3A6038] text-amber-200 font-serif font-black text-lg flex items-center justify-center shadow-sm">
+                        3
+                      </div>
+                      <h4 className="font-serif font-bold text-[#2A2A2A] text-sm">Wooden Bilona Churning</h4>
+                      <p className="text-xs text-[#6b6661] leading-relaxed">
+                        Curd is churned bi-directionally with a wooden bilona to gently separate pure Makhan (butter) from buttermilk.
+                      </p>
+                    </div>
+
+                    <div className="bg-[#FAF8F3]/60 border border-stone-200/80 rounded-xl p-4 flex flex-col items-center text-center space-y-2.5 shadow-2xs hover:border-[#3A6038] transition">
+                      <div className="w-10 h-10 rounded-full bg-[#3A6038] text-amber-200 font-serif font-black text-lg flex items-center justify-center shadow-sm">
+                        4
+                      </div>
+                      <h4 className="font-serif font-bold text-[#2A2A2A] text-sm">Slow Fire Simmering</h4>
+                      <p className="text-xs text-[#6b6661] leading-relaxed">
+                        Makhan is slowly simmered on low heat to yield golden liquid ghee with its signature granular (danedar) texture.
+                      </p>
+                    </div>
+
+                    <div className="bg-[#FAF8F3]/60 border border-stone-200/80 rounded-xl p-4 flex flex-col items-center text-center space-y-2.5 shadow-2xs hover:border-[#3A6038] transition">
+                      <div className="w-10 h-10 rounded-full bg-[#3A6038] text-amber-200 font-serif font-black text-lg flex items-center justify-center shadow-sm">
+                        5
+                      </div>
+                      <h4 className="font-serif font-bold text-[#2A2A2A] text-sm">Hand-Poured Purity</h4>
+                      <p className="text-xs text-[#6b6661] leading-relaxed">
+                        Strained through fine cloth and hand-poured into glass jars & traditional stainless-steel dolchis for dispatch.
+                      </p>
                     </div>
                   </div>
 
-                  {/* Nutrition Breakdown Table */}
-                  <div className="border border-stone-200 rounded-xl overflow-hidden bg-white shadow-2xs">
-                    <div className="grid grid-cols-12 bg-[#2A2A2A] text-white px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider">
-                      <div className="col-span-6 sm:col-span-7">Amount Per Serving</div>
-                      <div className="col-span-3 sm:col-span-3 text-right">Value</div>
-                      <div className="col-span-3 sm:col-span-2 text-right">% Daily Value*</div>
+                  {/* Purity Comparison Highlights */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                    <div className="p-4 bg-emerald-50/50 border border-emerald-200/60 rounded-xl flex items-start gap-3">
+                      <span className="text-xl">✨</span>
+                      <div>
+                        <h5 className="font-bold text-xs text-[#3A6038] uppercase tracking-wider mb-0.5">100% Curd Churned</h5>
+                        <p className="text-xs text-[#6b6661] leading-relaxed">Never made from raw industrial cream. 25-30 litres of A2 milk yields just 1 litre of Bilona ghee.</p>
+                      </div>
                     </div>
-                    <div className="divide-y divide-stone-100 text-xs sm:text-sm">
-                      <div className="grid grid-cols-12 px-4 py-2.5 font-bold text-[#2A2A2A] bg-amber-50/30">
-                        <span className="col-span-6 sm:col-span-7">Calories (kcal)</span>
-                        <span className="col-span-3 sm:col-span-3 text-right font-black">717</span>
-                        <span className="col-span-3 sm:col-span-2 text-right text-[#3A6038] font-black">6.3%</span>
+                    <div className="p-4 bg-amber-50/50 border border-amber-200/60 rounded-xl flex items-start gap-3">
+                      <span className="text-xl">🏺</span>
+                      <div>
+                        <h5 className="font-bold text-xs text-[#C59B27] uppercase tracking-wider mb-0.5">Rich Granular Aroma</h5>
+                        <p className="text-xs text-[#6b6661] leading-relaxed">Natural golden colour, nutty Pahadi aroma, and bio-available nutrients intact.</p>
                       </div>
-                      <div className="grid grid-cols-12 px-4 py-2.5 font-bold text-[#2A2A2A]">
-                        <span className="col-span-6 sm:col-span-7">Total Fat (g)</span>
-                        <span className="col-span-3 sm:col-span-3 text-right">81</span>
-                        <span className="col-span-3 sm:col-span-2 text-right text-[#3A6038] font-extrabold">125%</span>
-                      </div>
-                      <div className="grid grid-cols-12 px-4 py-2 pl-8 text-xs text-[#6b6661] bg-stone-50/40">
-                        <span className="col-span-6 sm:col-span-7">Saturated Fat (g)</span>
-                        <span className="col-span-3 sm:col-span-3 text-right font-semibold text-[#2A2A2A]">51</span>
-                        <span className="col-span-3 sm:col-span-2 text-right text-[#3A6038] font-bold">257%</span>
-                      </div>
-                      <div className="grid grid-cols-12 px-4 py-2 pl-8 text-xs text-[#6b6661] bg-stone-50/40">
-                        <span className="col-span-6 sm:col-span-7">Trans Fat (g)</span>
-                        <span className="col-span-3 sm:col-span-3 text-right font-semibold text-[#2A2A2A]">0</span>
-                        <span className="col-span-3 sm:col-span-2 text-right">0%</span>
-                      </div>
-                      <div className="grid grid-cols-12 px-4 py-2.5 font-bold text-[#2A2A2A]">
-                        <span className="col-span-6 sm:col-span-7">Cholesterol (mg)</span>
-                        <span className="col-span-3 sm:col-span-3 text-right">215</span>
-                        <span className="col-span-3 sm:col-span-2 text-right text-[#3A6038] font-extrabold">72%</span>
-                      </div>
-                      <div className="grid grid-cols-12 px-4 py-2.5 font-bold text-[#2A2A2A]">
-                        <span className="col-span-6 sm:col-span-7">Sodium (mg)</span>
-                        <span className="col-span-3 sm:col-span-3 text-right">11</span>
-                        <span className="col-span-3 sm:col-span-2 text-right">0%</span>
-                      </div>
-                      <div className="grid grid-cols-12 px-4 py-2.5 font-bold text-[#2A2A2A]">
-                        <span className="col-span-6 sm:col-span-7">Total Carbohydrate (g)</span>
-                        <span className="col-span-3 sm:col-span-3 text-right">0</span>
-                        <span className="col-span-3 sm:col-span-2 text-right">0%</span>
-                      </div>
-                      <div className="grid grid-cols-12 px-4 py-2 pl-8 text-xs text-[#6b6661] bg-stone-50/40">
-                        <span className="col-span-6 sm:col-span-7">Dietary Fiber (g)</span>
-                        <span className="col-span-3 sm:col-span-3 text-right font-semibold text-[#2A2A2A]">0</span>
-                        <span className="col-span-3 sm:col-span-2 text-right">0%</span>
-                      </div>
-                      <div className="grid grid-cols-12 px-4 py-2 pl-8 text-xs text-[#6b6661] bg-stone-50/40">
-                        <span className="col-span-6 sm:col-span-7">Total Sugars (g) (Includes 0g Added Sugars)</span>
-                        <span className="col-span-3 sm:col-span-3 text-right font-semibold text-[#2A2A2A]">0</span>
-                        <span className="col-span-3 sm:col-span-2 text-right">0%</span>
-                      </div>
-                      <div className="grid grid-cols-12 px-4 py-2.5 font-bold text-[#2A2A2A]">
-                        <span className="col-span-6 sm:col-span-7">Protein (g)</span>
-                        <span className="col-span-3 sm:col-span-3 text-right">1</span>
-                        <span className="col-span-3 sm:col-span-2 text-right">0%</span>
+                    </div>
+                    <div className="p-4 bg-stone-50 border border-stone-200/80 rounded-xl flex items-start gap-3">
+                      <span className="text-xl">🛡️</span>
+                      <div>
+                        <h5 className="font-bold text-xs text-[#2A2A2A] uppercase tracking-wider mb-0.5">Zero Additives</h5>
+                        <p className="text-xs text-[#6b6661] leading-relaxed">No preservatives, synthetic colours, or chemical solvents. Certified 100% pure.</p>
                       </div>
                     </div>
                   </div>
-
-                  {/* Vitamins & Minerals Row */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                    <div className="p-3 bg-[#FAF8F3] rounded-xl border border-stone-200/80">
-                      <span className="text-xs text-[#6b6661] block font-bold">Vitamin A</span>
-                      <span className="text-base font-black text-[#3A6038]">50%</span>
-                    </div>
-                    <div className="p-3 bg-[#FAF8F3] rounded-xl border border-stone-200/80">
-                      <span className="text-xs text-[#6b6661] block font-bold">Calcium</span>
-                      <span className="text-base font-black text-[#3A6038]">2%</span>
-                    </div>
-                    <div className="p-3 bg-[#FAF8F3] rounded-xl border border-stone-200/80">
-                      <span className="text-xs text-[#6b6661] block font-bold">Vitamin C</span>
-                      <span className="text-base font-black text-stone-400">0%</span>
-                    </div>
-                    <div className="p-3 bg-[#FAF8F3] rounded-xl border border-stone-200/80">
-                      <span className="text-xs text-[#6b6661] block font-bold">Iron</span>
-                      <span className="text-base font-black text-stone-400">0%</span>
-                    </div>
-                  </div>
-
-                  {/* Purity Guarantee Badges */}
-                  <div className="flex items-center justify-center gap-6 pt-2 text-xs font-bold text-[#3A6038]">
-                    <span className="inline-flex items-center gap-1.5 bg-[#3A6038]/10 px-3 py-1.5 rounded-full">🌱 100% Pure</span>
-                    <span className="inline-flex items-center gap-1.5 bg-[#3A6038]/10 px-3 py-1.5 rounded-full">🧪 No Additives</span>
-                    <span className="inline-flex items-center gap-1.5 bg-[#3A6038]/10 px-3 py-1.5 rounded-full">🚫 No Chemicals</span>
-                  </div>
-
-                  {/* Footnote */}
-                  <p className="text-[11px] text-[#6b6661] italic text-center leading-normal pt-1">
-                    *Percent Daily Values are based on a 2,000 calorie diet. Your daily values may be higher or lower depending on your calorie needs.
-                  </p>
                 </div>
               ) : (
                 <div className="space-y-3 text-sm text-[#6b6661]">
