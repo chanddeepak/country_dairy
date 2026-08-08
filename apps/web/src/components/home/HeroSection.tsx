@@ -13,6 +13,8 @@ const HERO_SLIDES = [
     headline: 'Nourishment from the Himalayan Foothills.',
     subtitle: '',
     headlineSize: 'text-2xl sm:text-3xl md:text-4xl',
+    contentAlign: 'items-start pt-6 sm:pt-8 md:pt-10',
+    ctaMarginTop: 'pt-32 sm:pt-40 md:pt-48',
     ctaText: 'Shop All Products',
     ctaHref: '/products'
   },
@@ -23,6 +25,8 @@ const HERO_SLIDES = [
     headline: 'Pure A2 Vedic Ghee. Bilona Churned.',
     subtitle: 'Grass-fed Gir & Sahiwal cows grazing in pristine mountain pastures. Zero adulterants.',
     headlineSize: 'text-3xl sm:text-4xl md:text-5xl',
+    contentAlign: 'items-center',
+    ctaMarginTop: '',
     ctaText: 'Shop All Products',
     ctaHref: '/products'
   },
@@ -33,6 +37,8 @@ const HERO_SLIDES = [
     headline: 'Raw Wild Forest Honey.',
     subtitle: '100% Raw, unfiltered, and ethically harvested from deep forest hives.',
     headlineSize: 'text-3xl sm:text-4xl md:text-5xl',
+    contentAlign: 'items-center',
+    ctaMarginTop: '',
     ctaText: 'Shop All Products',
     ctaHref: '/products'
   }
@@ -88,8 +94,8 @@ export default function HeroSection() {
             <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/35 to-transparent" />
 
             {/* Hero content overlay */}
-            <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
-              <div className="max-w-lg space-y-4">
+            <div className={`relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex ${slide.contentAlign || 'items-center'}`}>
+              <div className="max-w-lg space-y-3.5">
                 <div className="inline-flex items-center gap-1 bg-[#3A6038]/85 backdrop-blur-xs text-amber-200 border border-amber-300/30 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider shadow-sm">
                   <span>⛰️ Devbhoomi Uttarakhand Origin</span>
                 </div>
@@ -106,7 +112,7 @@ export default function HeroSection() {
                     {slide.subtitle}
                   </p>
                 )}
-                <div>
+                <div className={slide.ctaMarginTop || ''}>
                   <Link
                     href={slide.ctaHref}
                     className="inline-flex items-center bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold px-6 py-3 rounded-sm uppercase tracking-wider text-xs sm:text-sm shadow-lg transition-all hover:shadow-xl"
