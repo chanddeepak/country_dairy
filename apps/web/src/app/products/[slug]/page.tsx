@@ -281,7 +281,7 @@ export default function ProductDetailPage() {
                   src={resolveStorefrontImageUrl(activeImage)}
                   alt={product.name || 'Country Dairy Product Image'}
                   fill
-                  className="object-cover p-6 transition-all duration-300"
+                  className="object-contain p-2 sm:p-4 transition-all duration-300"
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   priority
                   loading="eager"
@@ -306,7 +306,7 @@ export default function ProductDetailPage() {
                         src={resolveStorefrontImageUrl(thumb.url)}
                         alt={`${product.name || 'Product'} thumbnail - ${thumb.label}`}
                         fill
-                        className="object-cover p-1"
+                        className="object-contain p-1"
                         sizes="80px"
                       />
                     </button>
