@@ -46,6 +46,21 @@ export default function ProductDetailPage() {
   }, [slug, variantIdFromQuery]);
 
   const fetchProduct = async () => {
+    try {
+      // 1. Fetch live product details from backend API
+      const res = await fetch(`${API_URL}/catalog/products/${encodeURIComponent(slug)}`);
+      if (res.ok) {
+        const liveProd = await res.json();
+        if (liveProd && (liveProd.id || liveProd.title)) {
+          setupProductData(liveProd);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('[Storefront] Failed to fetch live product by slug/id, using fallback catalog:', err);
+    }
+
+    // 2. Fallback matching for static demo items
     const fb = FALLBACK_PRODUCTS.find((p) => 
       p.slug === slug || 
       p.id === slug || 
