@@ -30,7 +30,7 @@ export default function ProductDetailPage() {
   const [activeImage, setActiveImage] = useState<string>('');
   const [reviews, setReviews] = useState<any[]>([]);
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState<'bilonaProcess' | 'details'>('bilonaProcess');
+  const [activeTab, setActiveTab] = useState<'bilonaProcess' | 'details'>('details');
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -547,24 +547,33 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Tabs: Vedic Bilona Process / Details */}
-          <div className="mt-16">
-            <div className="flex border-b border-stone-200">
-              {(['bilonaProcess', 'details'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-3 text-sm font-bold transition border-b-2 -mb-px ${
-                    activeTab === tab
-                      ? 'border-[#3A6038] text-[#3A6038]'
-                      : 'border-transparent text-[#6b6661] hover:text-[#2A2A2A]'
-                  }`}
-                >
-                  {tab === 'bilonaProcess' ? 'Traditional Vedic Process' : 'Product Details'}
-                </button>
-              ))}
-            </div>
-            <div className="bg-white border border-t-0 border-stone-200 rounded-b-xl p-6">
-              {activeTab === 'bilonaProcess' ? (
+          {(() => {
+            const isGheeProduct = product.slug?.includes('ghee') || 
+              product.name?.toLowerCase().includes('ghee') || 
+              (product as any).categoryName?.toLowerCase().includes('ghee') ||
+              (product as any).categoryLabel?.toLowerCase().includes('ghee');
+
+            const tabsToRender = isGheeProduct ? (['bilonaProcess', 'details'] as const) : (['details'] as const);
+
+            return (
+              <div className="mt-16">
+                <div className="flex border-b border-stone-200">
+                  {tabsToRender.map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`px-6 py-3 text-sm font-bold transition border-b-2 -mb-px ${
+                        activeTab === tab
+                          ? 'border-[#3A6038] text-[#3A6038]'
+                          : 'border-transparent text-[#6b6661] hover:text-[#2A2A2A]'
+                      }`}
+                    >
+                      {tab === 'bilonaProcess' ? 'Traditional Vedic Process' : 'Product Details'}
+                    </button>
+                  ))}
+                </div>
+                <div className="bg-white border border-t-0 border-stone-200 rounded-b-xl p-6">
+                  {isGheeProduct && activeTab === 'bilonaProcess' ? (
                 <div className="max-w-4xl mx-auto space-y-8 py-2">
                   {/* Header Banner */}
                   <div className="bg-[#FAF8F3] border border-stone-200/80 rounded-2xl p-6 text-center space-y-2 shadow-2xs">
@@ -667,8 +676,10 @@ export default function ProductDetailPage() {
                   ))}
                 </div>
               )}
-            </div>
-          </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Reviews Section */}
           {ENABLE_PRODUCT_RATINGS && (

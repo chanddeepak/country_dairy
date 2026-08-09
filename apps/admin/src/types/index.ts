@@ -64,6 +64,7 @@ export interface ProductImage {
   variantId?: string;
   displayOrder: number;
   isPrimary: boolean;
+  isVariantPrimary?: boolean;
   createdAt?: string;
 }
 

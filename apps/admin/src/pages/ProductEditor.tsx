@@ -43,12 +43,6 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
     'Store in a cool, dry place away from direct sunlight. Keep container tightly sealed after use.'
   );
 
-  // Gallery state (Min 1, Max 10)
-  const [galleryImages, setGalleryImages] = useState<ProductImage[]>(initialProduct?.galleryImages || [
-    { id: 'img-1', productId: 'p1', imageUrl: 'https://images.unsplash.com/photo-1527153857715-3908f2bae5da?auto=format&fit=crop&w=800&q=80', displayOrder: 1, isPrimary: true },
-    { id: 'img-2', productId: 'p1', imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80', displayOrder: 2, isPrimary: false },
-  ]);
-
   // Variant Matrix state
   const [variants, setVariants] = useState<ProductVariant[]>(initialProduct?.variants || [
     {
@@ -97,6 +91,23 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
       updatedAt: new Date().toISOString(),
     },
   ]);
+
+  // Gallery state (Min 1, Max 10)
+  const [galleryImages, setGalleryImages] = useState<ProductImage[]>(() => {
+    const rawImgs = initialProduct?.galleryImages || [
+      { id: 'img-1', productId: 'p1', imageUrl: 'https://images.unsplash.com/photo-1527153857715-3908f2bae5da?auto=format&fit=crop&w=800&q=80', displayOrder: 1, isPrimary: true },
+      { id: 'img-2', productId: 'p1', imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80', displayOrder: 2, isPrimary: false },
+    ];
+    const initialVars = initialProduct?.variants || [];
+    return rawImgs.map(img => {
+      const matchingVar = initialVars.find(v => v.imageUrl && v.imageUrl === img.imageUrl);
+      return {
+        ...img,
+        variantId: img.variantId || (matchingVar ? matchingVar.sizeLabel : undefined),
+        isVariantPrimary: img.isVariantPrimary ?? (matchingVar ? true : false),
+      };
+    });
+  });
 
   // Nutrition Facts key-value pairs
   const [nutritionFacts, setNutritionFacts] = useState<Array<{ key: string; value: string }>>([
@@ -311,20 +322,6 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
         </button>
 
         <button
-          onClick={() => setActiveTab('gallery')}
-          className={`px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 ${
-            activeTab === 'gallery'
-              ? 'bg-amber-500 text-stone-950 shadow-md'
-              : 'bg-stone-900 text-stone-400 hover:text-stone-200 border border-stone-800'
-          }`}
-        >
-          <span>2. Image Gallery</span>
-          <span className="font-mono text-[10px] bg-stone-950/40 px-1.5 py-0.5 rounded">
-            {galleryImages.length}/10
-          </span>
-        </button>
-
-        <button
           onClick={() => setActiveTab('variants')}
           className={`px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 ${
             activeTab === 'variants'
@@ -332,9 +329,23 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
               : 'bg-stone-900 text-stone-400 hover:text-stone-200 border border-stone-800'
           }`}
         >
-          <span>3. Variant Matrix & Stock</span>
+          <span>2. Variant Matrix & Stock</span>
           <span className="font-mono text-[10px] bg-stone-950/40 px-1.5 py-0.5 rounded">
             {variants.length} Sizes
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('gallery')}
+          className={`px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 ${
+            activeTab === 'gallery'
+              ? 'bg-amber-500 text-stone-950 shadow-md'
+              : 'bg-stone-900 text-stone-400 hover:text-stone-200 border border-stone-800'
+          }`}
+        >
+          <span>3. Product Image Gallery</span>
+          <span className="font-mono text-[10px] bg-stone-950/40 px-1.5 py-0.5 rounded">
+            {galleryImages.length}/10
           </span>
         </button>
 
@@ -530,7 +541,7 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
                   >
                     <option value="">🌐 Shared (All Variants)</option>
                     {variants.map(v => (
-                      <option key={v.id} value={v.id}>
+                      <option key={v.id} value={v.sizeLabel}>
                         🏷️ {v.sizeLabel}
                       </option>
                     ))}
