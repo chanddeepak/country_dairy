@@ -6,9 +6,11 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
-    "db:seed": "prisma db seed",
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "db:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
+    "db:status": "dotenv -e ../../.env -- prisma migrate status",
+    "db:studio": "dotenv -e ../../.env -- prisma studio",
+    "db:seed": "dotenv -e ../../.env -- prisma db seed",
     "build": "tsc --build && prisma generate",
     "clean": "tsc --build --clean"
   },
@@ -17,6 +19,7 @@
   },
   "devDependencies": {
     "@country-dairy/tsconfig": "*",
+    "dotenv-cli": "^11.0.0",
     "prisma": "^5.16.1",
     "typescript": "^5.0.0"
   },

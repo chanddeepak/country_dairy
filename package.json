@@ -11,7 +11,13 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "clean": "git clean -xdf node_modules"
+    "clean": "git clean -xdf node_modules",
+    "db:migrate": "npm run db:migrate --workspace packages/database --",
+    "db:deploy": "npm run db:deploy --workspace packages/database",
+    "db:status": "npm run db:status --workspace packages/database",
+    "db:studio": "npm run db:studio --workspace packages/database",
+    "db:seed": "npm run db:seed --workspace packages/database",
+    "db:generate": "npm run db:generate --workspace packages/database"
   },
   "prisma": {
     "seed": "node packages/database/prisma/seed.js"
