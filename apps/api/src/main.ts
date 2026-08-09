@@ -10,21 +10,20 @@ import { NestFactory } from '@nestjs/core';
 import * as express from 'express';
 import { AppModule } from './app.module';
 
-const DEV_ORIGINS = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:5173',
-];
-
 const PROD_ORIGINS = ['https://countrydairy.in', 'https://www.countrydairy.in'];
+
+/**
+ * Any localhost or 127.0.0.1 port. Vite picks the next free port when its
+ * default is taken (5173 -> 5174 -> 5175...), so pinning an explicit list
+ * produces a "Failed to fetch" that looks like the API is down.
+ */
+const LOCALHOST_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 function resolveAllowedOrigins(isProduction: boolean): string[] {
   if (process.env.ALLOWED_ORIGINS) {
     return process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim());
   }
-  return isProduction ? PROD_ORIGINS : [...DEV_ORIGINS, ...PROD_ORIGINS];
+  return PROD_ORIGINS;
 }
 
 async function bootstrap() {
@@ -42,12 +41,28 @@ async function bootstrap() {
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       // Server-to-server calls and curl send no Origin header.
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) {
         callback(null, true);
         return;
       }
-      // Previously both branches allowed the request, so this check did nothing.
-      callback(new Error(`Origin ${origin} is not permitted by CORS policy`));
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      // Outside production, trust any local dev server whatever port it landed on.
+      if (!isProduction && LOCALHOST_ORIGIN.test(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      // Deny by omitting the CORS headers rather than throwing: the browser
+      // blocks the response either way, and this avoids logging a 500 for
+      // what is a routine rejection. Previously both branches allowed the
+      // request, so this check did nothing at all.
+      console.warn(`[CORS] blocked origin: ${origin}`);
+      callback(null, false);
     },
     credentials: true,
   });
@@ -65,7 +80,20 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 4000;
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}/api`);
+
+  console.log(`\nCountry Dairy API — http://localhost:${port}/api`);
+  console.log(`  env:     ${process.env.NODE_ENV || 'development'}`);
+  console.log(
+    `  origins: ${allowedOrigins.join(', ')}${isProduction ? '' : ' (+ any localhost port)'}`,
+  );
+  console.log(`  db:      ${process.env.DATABASE_URL ? 'configured' : 'MISSING DATABASE_URL'}`);
+  console.log(
+    `  payments: ${
+      process.env.RAZORPAY_KEY_ID && !process.env.RAZORPAY_KEY_ID.startsWith('rzp_mock')
+        ? 'live Razorpay'
+        : 'MOCK MODE — no real charges'
+    }\n`,
+  );
 }
 
 bootstrap();

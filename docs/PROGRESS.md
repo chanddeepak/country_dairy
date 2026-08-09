@@ -27,6 +27,9 @@ Seed a different admin password:
 SEED_ADMIN_PASSWORD='your-password' npm run db:seed
 ```
 
+See [RUNNING.md](./RUNNING.md) for how to start the apps and diagnose
+"Could not reach the API server".
+
 ### Database commands (run from repo root)
 
 | Command | Purpose |
