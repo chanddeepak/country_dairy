@@ -3,6 +3,7 @@ import { Outfit, Inter } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "../context/AppContext";
 import PageViewTracker from "../components/analytics/PageViewTracker";
+import { StoreConfigProvider } from "../context/StoreConfigContext";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -35,10 +36,12 @@ export default function RootLayout({
       className={`${outfit.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#FAF8F3] text-[#2A2A2A] font-sans">
-        <AppProvider>
-          <PageViewTracker />
-          {children}
-        </AppProvider>
+        <StoreConfigProvider>
+          <AppProvider>
+            <PageViewTracker />
+            {children}
+          </AppProvider>
+        </StoreConfigProvider>
       </body>
     </html>
   );

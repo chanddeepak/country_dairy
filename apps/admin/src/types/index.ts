@@ -122,6 +122,13 @@ export interface AdminCustomer extends UserProfile {
   }[];
 }
 
+export interface WhatsAppConfig {
+  isEnabled: boolean;
+  phoneNumber: string;
+  messageTemplate: string;
+  cartMessageTemplate: string;
+}
+
 export interface ChartPoint {
   label: string;
   value: number;

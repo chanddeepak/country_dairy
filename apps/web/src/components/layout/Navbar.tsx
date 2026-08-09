@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { ShoppingBag, Search, User, Menu, X, Wallet, LogOut, Package, ChevronDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { ENABLE_USER_ACCOUNTS, ENABLE_CART } from '../../lib/constants';
+import { useStoreConfig } from '../../context/StoreConfigContext';
 
 interface NavbarProps {
   onCartOpen: () => void;
@@ -14,6 +14,9 @@ interface NavbarProps {
 }
 
 export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
+  const { isFlagOn } = useStoreConfig();
+  const ENABLE_CART = isFlagOn('ENABLE_CART');
+  const ENABLE_USER_ACCOUNTS = isFlagOn('ENABLE_USER_ACCOUNTS');
   const { user, cart, walletBalance, logout } = useApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);

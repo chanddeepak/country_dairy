@@ -17,7 +17,11 @@
     "db:status": "npm run db:status --workspace packages/database",
     "db:studio": "npm run db:studio --workspace packages/database",
     "db:seed": "npm run db:seed --workspace packages/database",
-    "db:generate": "npm run db:generate --workspace packages/database"
+    "db:generate": "npm run db:generate --workspace packages/database",
+    "smoke": "node scripts/smoke-test.js",
+    "test": "npm run test --workspace apps/api",
+    "test:contract": "node scripts/storefront-contract-test.js",
+    "verify": "npm test && npm run smoke && npm run test:contract"
   },
   "prisma": {
     "seed": "node packages/database/prisma/seed.js"

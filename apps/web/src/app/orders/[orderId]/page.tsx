@@ -128,7 +128,7 @@ export default function OrderDetailPage() {
               <p><span className="font-bold text-[#2A2A2A]">Type:</span> {order.deliveryType || 'LOCAL DELIVERY'}</p>
               {order.address && (
                 <p>
-                  <span className="font-bold text-[#2A2A2A]">Address:</span> {order.address.street}, {order.address.city} {order.address.postalCode}
+                  <span className="font-bold text-[#2A2A2A]">Address:</span> {order.shippingAddress?.line1}, {order.shippingAddress?.city} {order.shippingAddress?.postalCode}
                   {order.address.phone && <span className="block text-xs font-semibold text-[#3A6038] mt-1">📞 Contact: {order.address.phone}</span>}
                 </p>
               )}

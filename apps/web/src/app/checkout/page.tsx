@@ -6,10 +6,12 @@ import { MapPin, CreditCard, Wallet, ShieldCheck, Plus, CheckCircle2, UserCheck,
 import { useApp } from '../../context/AppContext';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
-import { ENABLE_WALLET_PAYMENTS } from '../../lib/constants';
+import { useStoreConfig } from '../../context/StoreConfigContext';
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const { isFlagOn } = useStoreConfig();
+  const ENABLE_WALLET_PAYMENTS = isFlagOn('ENABLE_WALLET');
   const { user, cart, walletBalance, checkout, verifyPayment, addAddress, sendOtp, verifyOtp, loginPhone, setLoginPhone, loginWithEmail, registerWithEmail } = useApp();
 
   const [selectedAddress, setSelectedAddress] = useState<string>('');
@@ -302,7 +304,7 @@ export default function CheckoutPage() {
                           />
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-[#2A2A2A]">{addr.street}, {addr.city}</span>
+                              <span className="text-sm font-bold text-[#2A2A2A]">{addr.line1}, {addr.city}</span>
                               {addr.isDefault && (
                                 <span className="text-[9px] font-bold text-[#3A6038] bg-[#3A6038]/10 px-2 py-0.5 rounded-full">DEFAULT</span>
                               )}

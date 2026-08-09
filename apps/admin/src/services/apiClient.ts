@@ -12,6 +12,7 @@ import type {
   PackagingOption,
   DashboardData,
   StockAlert,
+  WhatsAppConfig,
 } from '../types';
 
 // Accepts either name: .env.staging defines VITE_API_URL while the original
@@ -324,6 +325,18 @@ export const adminApi = {
 
   async getCustomer(id: string): Promise<AdminCustomer> {
     return fetchJson<AdminCustomer>(`/users/customers/${id}`);
+  },
+
+  // WhatsApp ordering config
+  async getWhatsAppConfig(): Promise<WhatsAppConfig> {
+    return fetchJson<WhatsAppConfig>('/cms/whatsapp');
+  },
+
+  async setWhatsAppConfig(config: WhatsAppConfig): Promise<WhatsAppConfig> {
+    return fetchJson<WhatsAppConfig>('/cms/whatsapp', {
+      method: 'PUT',
+      body: JSON.stringify(config),
+    });
   },
 
   // Analytics API

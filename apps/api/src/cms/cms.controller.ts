@@ -16,6 +16,8 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CmsService } from './cms.service';
 import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { WhatsAppConfigDto } from './dto/cms.dto';
 
 const CMS_STAFF = [Role.SUPER_ADMIN, Role.CATALOG_MANAGER] as const;
 
@@ -55,6 +57,30 @@ export class CmsController {
   @Get('settings/:key')
   async getSetting(@Param('key') key: string) {
     return this.cmsService.getSetting(key);
+  }
+
+  /** Public: the storefront reads the number and templates from here. */
+  @Get('whatsapp')
+  async getWhatsAppConfig() {
+    return this.cmsService.getWhatsAppConfig();
+  }
+
+  @Put('whatsapp')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(...CMS_STAFF)
+  async setWhatsAppConfig(
+    @CurrentUser() user: { id: string },
+    @Body() dto: WhatsAppConfigDto,
+  ) {
+    return this.cmsService.setWhatsAppConfig(
+      {
+        isEnabled: dto.isEnabled,
+        phoneNumber: dto.phoneNumber,
+        messageTemplate: dto.messageTemplate,
+        cartMessageTemplate: dto.cartMessageTemplate ?? dto.messageTemplate,
+      },
+      user.id,
+    );
   }
 
   // --- Admin CMS management ---

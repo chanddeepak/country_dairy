@@ -3,12 +3,15 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Calendar, MessageCircle, AlertCircle } from 'lucide-react';
-import { PRODUCT_IMAGES, ENABLE_SUBSCRIPTIONS, ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER, WHATSAPP_MESSAGE_TEMPLATE, ENABLE_PRODUCT_RATINGS, Product, resolveStorefrontImageUrl } from '../../lib/constants';
+import { PRODUCT_IMAGES, Product, resolveStorefrontImageUrl } from '../../lib/constants';
+import { useStoreConfig } from '../../context/StoreConfigContext';
+import { buildProductMessage, whatsAppUrl } from '../../lib/storeConfig';
 import { trackStorefrontEvent } from '../../lib/analytics';
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart: (productId: string, quantity: number) => void;
+  /** Takes a variant id — price, SKU and stock all live on the variant. */
+  onAddToCart: (variantId: string, quantity: number) => void;
   onSubscribe?: (product: Product) => void;
 }
 
@@ -32,6 +35,25 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
     (product as any).status === 'ARCHIVED' ||
     (defaultVariant && (defaultVariant as any).stockQuantity === 0) ||
     (product as any).stock === 0;
+
+  const { whatsapp, isFlagOn } = useStoreConfig();
+  const cartEnabled = isFlagOn('ENABLE_CART');
+  const ENABLE_PRODUCT_RATINGS = isFlagOn('ENABLE_PRODUCT_RATINGS');
+  const ENABLE_SUBSCRIPTIONS = isFlagOn('ENABLE_SUBSCRIPTIONS');
+
+  // Shown while there is no cart, and as a secondary option once there is.
+  const whatsappHref =
+    whatsapp?.isEnabled
+      ? whatsAppUrl(
+          whatsapp,
+          buildProductMessage(whatsapp, {
+            productName: product.name,
+            variantLabel: defaultVariant?.volumeOrWeight,
+            quantity: 1,
+            unitPrice: Number(displayPrice) || 0,
+          }),
+        )
+      : null;
 
   const handleWhatsAppClick = () => {
     trackStorefrontEvent({
@@ -125,22 +147,28 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
             </button>
           ) : (
             <>
-              {ENABLE_WEBSITE_PAYMENT && (
+              {/* Gated on the cart, not on online payment — a cart is useful
+                  even when checkout collects cash on delivery. */}
+              {cartEnabled && (
                 <button
-                  onClick={() => onAddToCart(product.id, 1)}
+                  onClick={() => defaultVariant?.id && onAddToCart(defaultVariant.id, 1)}
                   className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider transition shadow-sm"
                 >
                   Add to Cart
                 </button>
               )}
               
-              {!ENABLE_WEBSITE_PAYMENT && (
+              {whatsappHref && (
                 <a
-                  href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE_TEMPLATE(product.name, displayPrice, defaultVariant?.volumeOrWeight))}`}
+                  href={whatsappHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={handleWhatsAppClick}
-                  className="w-full bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider transition flex items-center justify-center shadow-sm"
+                  className={
+                    cartEnabled
+                      ? 'w-full border border-[#25D366] text-[#1DA851] hover:bg-[#25D366]/5 font-bold py-2 rounded-lg text-xs uppercase tracking-wider transition flex items-center justify-center'
+                      : 'w-full bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider transition flex items-center justify-center shadow-sm'
+                  }
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Order on WhatsApp

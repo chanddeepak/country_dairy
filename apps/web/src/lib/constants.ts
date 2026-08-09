@@ -11,18 +11,13 @@ export const COLORS = {
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
-// Feature flags
-export const ENABLE_SUBSCRIPTIONS = false;
-export const ENABLE_WEBSITE_PAYMENT = true;
-export const ENABLE_USER_ACCOUNTS = true;
-export const ENABLE_CART = true;
-export const ENABLE_PRODUCT_RATINGS = true;
-export const ENABLE_WALLET_PAYMENTS = false; // Kept behind feature flag as requested
+// Feature flags live in the database (FeatureFlag table) and are read through
+// StoreConfigContext. Hardcoding them here meant the storefront and the admin
+// console could disagree about what was switched on.
 
-// WhatsApp ordering
-export const WHATSAPP_NUMBER = '919997801112';
-export const WHATSAPP_MESSAGE_TEMPLATE = (productName: string, price: string, variantName?: string, quantity: number = 1) =>
-  `Hi! I'd like to order:\n- ${quantity} x ${productName}${variantName ? ` (${variantName})` : ''} — ₹${price} each\nTotal Amount: ₹${Number(price) * quantity}\n\nPlease help me place this order. Thank you!`;
+// WhatsApp ordering config now lives in the database (StoreSetting) and is
+// read via StoreConfigContext, so the number is editable from the admin
+// console and cannot diverge between the web and mobile apps.
 
 export function resolveStorefrontImageUrl(url?: string | null): string {
   if (!url) return '/images/products/ghee-jar.png';

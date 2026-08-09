@@ -3,7 +3,9 @@
 import React from 'react';
 import { X, ShoppingBag, Minus, Plus, MessageCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER } from '../../lib/constants';
+import { useStoreConfig } from '../../context/StoreConfigContext';
+import { buildCartMessage, whatsAppUrl } from '../../lib/storeConfig';
+import { trackStorefrontEvent } from '../../lib/analytics';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -17,6 +19,31 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
   if (!isOpen) return null;
 
   const subtotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
+
+  const { whatsapp, isFlagOn } = useStoreConfig();
+  const checkoutEnabled = isFlagOn('ENABLE_CART');
+
+  // The whole cart as one message. This is the most valuable placement for
+  // WhatsApp ordering — it catches a shopper who is about to abandon.
+  const whatsappHref = whatsapp?.isEnabled
+    ? whatsAppUrl(
+        whatsapp,
+        buildCartMessage(
+          whatsapp,
+          cart.map((i) => ({
+            productName: i.product.name,
+            variantLabel: (i as any).variant?.sizeLabel,
+            quantity: i.quantity,
+            unitPrice: Number(i.product.price) || 0,
+          })),
+        ),
+      )
+    : null;
+
+  const handleWhatsAppOrder = () => {
+    trackStorefrontEvent({ eventName: 'whatsapp_order_click' });
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end" onClick={onClose}>
@@ -97,25 +124,29 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
               <span>Total:</span>
               <span>₹{subtotal}</span>
             </div>
-            {ENABLE_WEBSITE_PAYMENT ? (
+            {checkoutEnabled && (
               <button
                 onClick={onCheckout}
                 className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl transition"
               >
                 Checkout Now
               </button>
-            ) : (
+            )}
+
+            {whatsappHref && (
               <a
-                href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-                  `Hi! I'd like to order the following items:\n${cart.map(i => `📦 ${i.product.name} × ${i.quantity} — ₹${Number(i.product.price) * i.quantity}`).join('\n')}\n💰 Total: ₹${subtotal}\n\nPlease help me place this order. Thank you!`
-                )}`}
+                href={whatsappHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={onClose}
-                className="w-full flex items-center justify-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-3.5 rounded-xl transition"
+                onClick={handleWhatsAppOrder}
+                className={
+                  checkoutEnabled
+                    ? 'w-full flex items-center justify-center border-2 border-[#25D366] text-[#1DA851] hover:bg-[#25D366]/5 font-bold py-3 rounded-xl transition mt-2.5'
+                    : 'w-full flex items-center justify-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-3.5 rounded-xl transition'
+                }
               >
                 <MessageCircle className="h-5 w-5 mr-2" />
-                Complete Order on WhatsApp
+                {checkoutEnabled ? 'Prefer to order on WhatsApp?' : 'Complete Order on WhatsApp'}
               </a>
             )}
             <button

@@ -1,6 +1,36 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+
+export const SETTING_KEYS = {
+  WHATSAPP: 'whatsapp_ordering',
+} as const;
+
+export interface WhatsAppConfig {
+  isEnabled: boolean;
+  phoneNumber: string;
+  messageTemplate: string;
+  cartMessageTemplate: string;
+}
+
+/**
+ * Used until staff save their own. Placeholders are substituted client-side:
+ * {quantity} {product_name} {variant} {price} {total_amount} {items}
+ */
+export const DEFAULT_WHATSAPP_CONFIG: WhatsAppConfig = {
+  isEnabled: true,
+  phoneNumber: '919997801112',
+  messageTemplate:
+    "Hi Country Dairy! I'd like to order:\n" +
+    '- {quantity} x {product_name} ({variant}) — ₹{price} each\n' +
+    'Total: ₹{total_amount}\n\n' +
+    'Please confirm my order and share the delivery timing. Thank you!',
+  cartMessageTemplate:
+    "Hi Country Dairy! I'd like to order:\n" +
+    '{items}\n' +
+    'Total: ₹{total_amount}\n\n' +
+    'Please confirm my order and share the delivery timing. Thank you!',
+};
 import { MediaService } from '../media/media.service';
 
 function sanitizeRelativeUrl(url?: string): string | undefined {
@@ -156,6 +186,32 @@ export class CmsService {
   async getSetting(key: string) {
     const setting = await this.prisma.storeSetting.findUnique({ where: { key } });
     return setting ?? { key, value: null };
+  }
+
+  // --- WhatsApp ordering ---
+
+  async getWhatsAppConfig(): Promise<WhatsAppConfig> {
+    const setting = await this.prisma.storeSetting.findUnique({
+      where: { key: SETTING_KEYS.WHATSAPP },
+    });
+
+    return { ...DEFAULT_WHATSAPP_CONFIG, ...((setting?.value as Partial<WhatsAppConfig>) ?? {}) };
+  }
+
+  async setWhatsAppConfig(config: WhatsAppConfig, updatedBy?: string) {
+    const saved = await this.prisma.storeSetting.upsert({
+      where: { key: SETTING_KEYS.WHATSAPP },
+      update: { value: config as unknown as Prisma.InputJsonValue, updatedBy },
+      create: {
+        key: SETTING_KEYS.WHATSAPP,
+        value: config as unknown as Prisma.InputJsonValue,
+        description: 'WhatsApp ordering number and message templates',
+        updatedBy,
+      },
+    });
+
+    this.logger.log(`WhatsApp config updated by ${updatedBy ?? 'system'}`);
+    return saved.value;
   }
 
   async setSetting(key: string, value: unknown, description?: string) {

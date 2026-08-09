@@ -9,7 +9,8 @@ import ProductCard from '../../components/product/ProductCard';
 import AuthModal from '../../components/modals/AuthModal';
 import SubscriptionModal from '../../components/modals/SubscriptionModal';
 import CartDrawer from '../../components/cart/CartDrawer';
-import { FALLBACK_PRODUCTS, API_URL, ENABLE_PRODUCT_RATINGS, getExpandedProducts } from '../../lib/constants';
+import { FALLBACK_PRODUCTS, API_URL, getExpandedProducts } from '../../lib/constants';
+import { useStoreConfig } from '../../context/StoreConfigContext';
 
 const CATEGORIES = ['All', 'Ghee'];
 const SORT_OPTIONS = [
@@ -20,6 +21,8 @@ const SORT_OPTIONS = [
 ];
 
 export default function ProductsPage() {
+  const { isFlagOn } = useStoreConfig();
+  const ENABLE_PRODUCT_RATINGS = isFlagOn('ENABLE_PRODUCT_RATINGS');
   const { user, addToCart } = useApp();
   const [products, setProducts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');

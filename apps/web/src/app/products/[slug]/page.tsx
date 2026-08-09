@@ -17,7 +17,9 @@ import ProductCard from '../../../components/product/ProductCard';
 import AuthModal from '../../../components/modals/AuthModal';
 import SubscriptionModal from '../../../components/modals/SubscriptionModal';
 import CartDrawer from '../../../components/cart/CartDrawer';
-import { FALLBACK_PRODUCTS, API_URL, PRODUCT_IMAGES, HERO_IMAGE, ENABLE_SUBSCRIPTIONS, ENABLE_WEBSITE_PAYMENT, WHATSAPP_NUMBER, WHATSAPP_MESSAGE_TEMPLATE, ENABLE_PRODUCT_RATINGS, Product, ProductVariant, resolveStorefrontImageUrl } from '../../../lib/constants';
+import { FALLBACK_PRODUCTS, API_URL, PRODUCT_IMAGES, HERO_IMAGE, Product, ProductVariant, resolveStorefrontImageUrl } from '../../../lib/constants';
+import { useStoreConfig } from '../../../context/StoreConfigContext';
+import { buildProductMessage, whatsAppUrl } from '../../../lib/storeConfig';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -25,6 +27,10 @@ export default function ProductDetailPage() {
   const slug = params?.slug as string;
   const variantIdFromQuery = searchParams?.get('variant');
   const { user, token, addToCart } = useApp();
+  const { whatsapp, isFlagOn } = useStoreConfig();
+  const cartEnabled = isFlagOn('ENABLE_CART');
+  const ENABLE_PRODUCT_RATINGS = isFlagOn('ENABLE_PRODUCT_RATINGS');
+  const ENABLE_SUBSCRIPTIONS = isFlagOn('ENABLE_SUBSCRIPTIONS');
 
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
@@ -279,15 +285,21 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (!user) { setIsAuthOpen(true); return; }
-    addToCart(product.id, quantity);
+    if (!selectedVariant?.id) return;
+    addToCart(selectedVariant.id, quantity);
   };
 
-  const whatsappMessage = WHATSAPP_MESSAGE_TEMPLATE(
-    product.name,
-    currentPrice,
-    selectedVariant?.volumeOrWeight || selectedVariant?.name,
-    quantity
-  );
+  const whatsappHref = whatsapp?.isEnabled
+    ? whatsAppUrl(
+        whatsapp,
+        buildProductMessage(whatsapp, {
+          productName: product.name,
+          variantLabel: selectedVariant?.volumeOrWeight || selectedVariant?.name,
+          quantity,
+          unitPrice: Number(currentPrice) || 0,
+        }),
+      )
+    : null;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -482,7 +494,7 @@ export default function ProductDetailPage() {
 
               {/* CTA Buttons */}
               <div className="space-y-3 pt-4">
-                {ENABLE_WEBSITE_PAYMENT && (
+                {cartEnabled && (
                   <button
                     onClick={handleAddToCart}
                     className="w-full flex items-center justify-center bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg"
@@ -492,12 +504,25 @@ export default function ProductDetailPage() {
                   </button>
                 )}
                 
-                {!ENABLE_WEBSITE_PAYMENT && (
+                {whatsappHref && (
                   <a
-                    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappMessage)}`}
+                    href={whatsappHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg"
+                    onClick={() =>
+                      trackStorefrontEvent({
+                        eventName: 'whatsapp_order_click',
+                        productId: product.id,
+                        productName: product.name,
+                        variantLabel: selectedVariant?.volumeOrWeight,
+                        price: Number(currentPrice) || 0,
+                      })
+                    }
+                    className={
+                      cartEnabled
+                        ? 'w-full flex items-center justify-center border-2 border-[#25D366] text-[#1DA851] hover:bg-[#25D366]/5 font-bold py-3 rounded-xl text-sm uppercase tracking-wider transition'
+                        : 'w-full flex items-center justify-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg'
+                    }
                   >
                     <MessageCircle className="h-5 w-5 mr-2" />
                     Order on WhatsApp — ₹{Number(currentPrice) * quantity}

@@ -18,7 +18,7 @@ interface AppContextType {
   loginWithGoogle: (idToken: string) => Promise<boolean>;
   logout: () => void;
   fetchCart: () => Promise<void>;
-  addToCart: (productId: string, quantity: number) => Promise<void>;
+  addToCart: (variantId: string, quantity: number) => Promise<void>;
   updateCartQty: (itemId: string, quantity: number) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
   checkout: (addressId: string) => Promise<any>;
@@ -79,11 +79,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ phone }),
       });
       const data = await res.json();
-      return data.success;
+      return res.ok && data.success === true;
     } catch (err) {
       console.error('Failed to send OTP:', err);
-      // Mock mode fallback for standalone frontend review
-      return true;
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -105,24 +104,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return false;
     } catch (err) {
       console.error('Failed to verify OTP:', err);
-      // Mock mode fallback
-      const mockUser = {
-        id: 'mock-user-123',
-        name: 'Amit Sharma',
-        phone: loginPhone,
-        email: 'amit.sharma@example.com',
-        walletBalance: 1500,
-        addresses: [{ id: 'mock-addr-123', street: 'Flat 402, Oakwood Apartments, Sector 56', city: 'Noida', postalCode: '201301', phone: '+919876543210', isDefault: true }]
-      };
-      setToken('mock-jwt-token');
-      setUser(mockUser);
-      setWalletBalance(1500);
-      localStorage.setItem('cd_token', 'mock-jwt-token');
-      localStorage.setItem('cd_user', JSON.stringify(mockUser));
-
-      // Clear local guest cart on mock login too
-      localStorage.removeItem('cd_guest_cart');
-      return true;
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -145,7 +127,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             Authorization: `Bearer ${data.accessToken}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ productId: item.product.id, quantity: item.quantity }),
+          body: JSON.stringify({ variantId: item.variantId ?? item.product.id, quantity: item.quantity }),
         });
       }
       localStorage.removeItem('cd_guest_cart');
@@ -161,7 +143,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email, password: pass }),
       });
       const data = await res.json();
-      if (data.success && data.accessToken) {
+      if (res.ok && data.accessToken) {
         await handleAuthSuccess(data);
         return true;
       }
@@ -183,7 +165,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email, password: pass, name }),
       });
       const data = await res.json();
-      if (data.success && data.accessToken) {
+      if (res.ok && data.accessToken) {
         await handleAuthSuccess(data);
         return true;
       }
@@ -205,7 +187,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ idToken }),
       });
       const data = await res.json();
-      if (data.success && data.accessToken) {
+      if (res.ok && data.accessToken) {
         await handleAuthSuccess(data);
         return true;
       }
@@ -243,21 +225,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addToCart = async (productId: string, quantity: number) => {
+  /**
+   * Resolves a variant from the live catalog so a guest cart shows real
+   * prices. Reading them from the static fallback catalogue would show one
+   * price in the drawer and charge another at checkout.
+   */
+  const resolveVariant = async (variantId: string) => {
+    try {
+      const res = await fetch(`${API_URL}/catalog/products`);
+      if (!res.ok) return null;
+      const products = await res.json();
+
+      for (const product of products) {
+        const variant = (product.variants || []).find((v: any) => v.id === variantId);
+        if (variant) return { product, variant };
+      }
+    } catch (err) {
+      console.error('Failed to resolve variant for guest cart:', err);
+    }
+    return null;
+  };
+
+  const addToCart = async (variantId: string, quantity: number) => {
     if (!token) {
+      const resolved = await resolveVariant(variantId);
+      if (!resolved) return;
+
+      const { product, variant } = resolved;
+
       setCart(prev => {
-        const existing = prev.find(item => item.product.id === productId);
-        let next;
-        if (existing) {
-          next = prev.map(item => item.product.id === productId ? { ...item, quantity: item.quantity + quantity } : item);
-        } else {
-          const prodObj = FALLBACK_PRODUCTS.find(p => p.id === productId);
-          if (prodObj) {
-            next = [...prev, { id: `guest-${Date.now()}-${Math.random()}`, product: prodObj, quantity }];
-          } else {
-            next = prev;
-          }
-        }
+        const existing = prev.find(item => item.variantId === variantId);
+        const next = existing
+          ? prev.map(item =>
+              item.variantId === variantId
+                ? { ...item, quantity: item.quantity + quantity }
+                : item,
+            )
+          : [
+              ...prev,
+              {
+                id: `guest-${Date.now()}-${Math.random()}`,
+                variantId,
+                product: {
+                  ...product,
+                  name: product.title ?? product.name,
+                  price: String(variant.sellingPrice),
+                },
+                variant: { id: variant.id, sizeLabel: variant.sizeLabel },
+                quantity,
+              },
+            ];
+
         localStorage.setItem('cd_guest_cart', JSON.stringify(next));
         return next;
       });
@@ -270,7 +288,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ productId, quantity }),
+        // Cart lines reference a variant: price, SKU and stock all live there.
+        body: JSON.stringify({ variantId, quantity }),
       });
       if (res.ok) {
         await fetchCart();
@@ -399,7 +418,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ line1, city, state, pincode, phone }),
+        // The API field is postalCode; sending `pincode` fails validation
+        // outright now that unknown properties are rejected.
+        body: JSON.stringify({ line1, city, state, postalCode: pincode, phone }),
       });
       if (res.ok) {
         const data = await res.json();
