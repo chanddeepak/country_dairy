@@ -7,6 +7,7 @@ import type {
   UserProfile,
   AdminOrder,
   AdminCustomer,
+  AdminReview,
   OrderStats,
   PackagingOption,
 } from '../types';
@@ -265,6 +266,11 @@ export const adminApi = {
     return fetchJson<FeatureFlag[]>('/cms/feature-flags');
   },
 
+  /** Flat { KEY: boolean } map, for gating UI without matching on rows. */
+  async getFeatureFlagMap(): Promise<Record<string, boolean>> {
+    return fetchJson<Record<string, boolean>>('/cms/feature-flags/map');
+  },
+
   async toggleFeatureFlag(key: string): Promise<FeatureFlag> {
     return fetchJson<FeatureFlag>(`/cms/feature-flags/${key}/toggle`, {
       method: 'PATCH',
@@ -316,6 +322,30 @@ export const adminApi = {
 
   async getCustomer(id: string): Promise<AdminCustomer> {
     return fetchJson<AdminCustomer>(`/users/customers/${id}`);
+  },
+
+  // Reviews moderation API
+  async getReviewsAdmin(status?: string, search?: string): Promise<AdminReview[]> {
+    const query = new URLSearchParams();
+    if (status) query.append('status', status);
+    if (search) query.append('search', search);
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    return fetchJson<AdminReview[]>(`/reviews/admin${queryString}`);
+  },
+
+  async getReviewStats(): Promise<{ pending: number; approved: number; rejected: number }> {
+    return fetchJson<{ pending: number; approved: number; rejected: number }>('/reviews/admin/stats');
+  },
+
+  async moderateReview(id: string, status: 'APPROVED' | 'REJECTED'): Promise<AdminReview> {
+    return fetchJson<AdminReview>(`/reviews/admin/${id}/moderate`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  async deleteReview(id: string): Promise<void> {
+    return fetchJson<void>(`/reviews/admin/${id}`, { method: 'DELETE' });
   },
 
   // Admin Orders API

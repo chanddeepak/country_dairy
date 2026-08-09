@@ -1,25 +1,15 @@
 import { useState } from 'react';
 import { Truck, Box, Scale, Ruler, CheckCircle, X, Download } from 'lucide-react';
 
-interface Order {
-  id: string;
-  customer: string;
-  items: string;
-  total: number;
-  deliveryType: string;
-  status: string;
-  paymentStatus: string;
-  date: string;
-  waybill: string;
-}
+import type { AdminOrder } from '../types';
 
 interface LogisticsProps {
-  orders: Order[];
+  orders: AdminOrder[];
   handleDelhiveryBooking: (orderId: string, waybillNum: string) => void;
 }
 
 export default function Logistics({ orders, handleDelhiveryBooking }: LogisticsProps) {
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [weight, setWeight] = useState('1.2');
   const [length, setLength] = useState('15');
   const [width, setWidth] = useState('15');
@@ -42,14 +32,14 @@ export default function Logistics({ orders, handleDelhiveryBooking }: LogisticsP
     }, 800);
   };
 
-  const handleDownloadLabel = (order: Order) => {
+  const handleDownloadLabel = (order: AdminOrder) => {
     const labelWindow = window.open('', '_blank');
     if (!labelWindow) return;
 
     labelWindow.document.write(`
       <html>
         <head>
-          <title>Delhivery Label - ${order.id}</title>
+          <title>Delhivery Label - ${order.orderNumber}</title>
           <style>
             body { font-family: monospace; padding: 20px; color: #000; }
             .label-border { border: 4px solid #000; padding: 15px; width: 380px; margin: 0 auto; }
@@ -71,12 +61,12 @@ export default function Logistics({ orders, handleDelhiveryBooking }: LogisticsP
             
             <div class="waybill-section">
               <div class="barcode">||||| | ||||| | ||| ||||</div>
-              <div class="awb-text">AWB: ${order.waybill}</div>
+              <div class="awb-text">AWB: ${order.trackingNumber ?? ''}</div>
             </div>
 
             <div class="details">
               <strong>SHIP TO:</strong><br/>
-              ${order.customer}<br/>
+              ${order.user.name ?? order.user.email ?? 'Customer'}<br/>
               Delhi NCR, India<br/>
               Phone: +91 98765 43210
             </div>
@@ -124,16 +114,16 @@ export default function Logistics({ orders, handleDelhiveryBooking }: LogisticsP
           </thead>
           <tbody>
             {courierOrders.map(o => (
-              <tr key={o.id} className="border-b border-stone-100 last:border-0 hover:bg-stone-50/30 transition-colors text-sm">
-                <td className="p-4 font-bold text-stone-800">{o.id}</td>
-                <td className="p-4 text-stone-700">{o.customer}</td>
-                <td className="p-4 text-stone-600 line-clamp-1 max-w-[200px]">{o.items}</td>
+              <tr key={o.orderNumber} className="border-b border-stone-100 last:border-0 hover:bg-stone-50/30 transition-colors text-sm">
+                <td className="p-4 font-bold text-stone-800">{o.orderNumber}</td>
+                <td className="p-4 text-stone-700">{o.user.name ?? o.user.email ?? 'Customer'}</td>
+                <td className="p-4 text-stone-600 line-clamp-1 max-w-[200px]">{o.orderItems.map(i => `${i.productTitle} x ${i.quantity}`).join(', ')}</td>
                 <td className="p-4 text-stone-550">Delhi NCR, India</td>
                 <td className="p-4 font-mono text-xs">
-                  {o.waybill ? (
+                  {o.trackingNumber ? (
                     <span className="text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100 flex items-center gap-1.5 w-fit">
                       <CheckCircle className="h-3.5 w-3.5" />
-                      {o.waybill}
+                      {o.trackingNumber}
                     </span>
                   ) : (
                     <span className="text-stone-400 font-bold bg-stone-50 px-2.5 py-1 rounded-md border border-stone-100 flex items-center gap-1.5 w-fit">
@@ -142,7 +132,7 @@ export default function Logistics({ orders, handleDelhiveryBooking }: LogisticsP
                   )}
                 </td>
                 <td className="p-4 text-right">
-                  {o.waybill ? (
+                  {o.trackingNumber ? (
                     <button 
                       onClick={() => handleDownloadLabel(o)}
                       className="btn-accent bg-emerald-50 hover:bg-emerald-100 border border-emerald-250 text-emerald-800 font-bold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5 ml-auto transition"
@@ -176,7 +166,7 @@ export default function Logistics({ orders, handleDelhiveryBooking }: LogisticsP
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h3 className="font-bold text-stone-900 text-base">Book Delhivery Dispatch</h3>
-                <p className="text-xs text-stone-500 mt-0.5">{selectedOrder.id}</p>
+                <p className="text-xs text-stone-500 mt-0.5">{selectedOrder.orderNumber}</p>
               </div>
               <button onClick={() => setSelectedOrder(null)} className="text-stone-400 hover:text-stone-600 transition"><X className="h-5 w-5" /></button>
             </div>

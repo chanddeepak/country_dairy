@@ -122,6 +122,22 @@ export interface AdminCustomer extends UserProfile {
   }[];
 }
 
+export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface AdminReview {
+  id: string;
+  rating: number;
+  title?: string | null;
+  comment?: string | null;
+  mediaUrls: string[];
+  status: ReviewStatus;
+  isVerifiedPurchase: boolean;
+  createdAt: string;
+  moderatedAt?: string | null;
+  user: { id: string; name: string | null; email: string | null };
+  product: { id: string; title: string; slug: string };
+}
+
 export interface OrderStats {
   byStatus: Partial<Record<OrderStatus, number>>;
   totalRevenue: number;

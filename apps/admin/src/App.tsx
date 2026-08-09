@@ -9,12 +9,11 @@ import Inventory from './pages/Inventory';
 import ProductEditor from './pages/ProductEditor';
 import AddProductWizard from './pages/AddProductWizard';
 import HeroManager from './pages/HeroManager';
-import type { Product } from './types';
+import type { AdminOrder, Product } from './types';
 import Orders from './pages/Orders';
 import Logistics from './pages/Logistics';
 import Routes from './pages/Routes';
 import Customers from './pages/Customers';
-import type { Customer } from './pages/Customers';
 import Wallets from './pages/Wallets';
 import Reviews from './pages/Reviews';
 import UserManagement from './pages/UserManagement';
@@ -23,108 +22,6 @@ import CMSManager from './pages/CMSManager';
 import DriverView from './pages/DriverView';
 import type { CategoryItem } from './pages/CategoryCMS';
 import { adminApi } from './services/apiClient';
-
-export const INITIAL_PRODUCTS: Product[] = [
-  {
-    id: 'prod-1',
-    title: 'Country Dairy A2 Cow Milk',
-    slug: 'a2-cow-milk',
-    categoryName: 'Dairy',
-    status: 'LIVE',
-    storyDescription: 'Pure A2 Gir & Sahiwal Cow Milk. Freshly collected from grass-fed cows and delivered in chilled glass bottles.',
-    badgeText: 'FARM FRESH',
-    isFeatured: true,
-    displayOrder: 1,
-    isSubscriptionAllowed: false, // Default OFF
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    variants: [
-      { id: 'var-1a', productId: 'prod-1', sku: 'CD-MILK-1L', sizeLabel: '1 Litre Glass Bottle', sellingPrice: 95, mrpPrice: 110, stockQuantity: 500, lowStockThreshold: 20, packagingType: 'GLASS_JAR', isActive: true, displayOrder: 1, createdAt: '', updatedAt: '' },
-      { id: 'var-1b', productId: 'prod-1', sku: 'CD-MILK-2L', sizeLabel: '2 Litre Family Pack', sellingPrice: 185, mrpPrice: 210, stockQuantity: 250, lowStockThreshold: 10, packagingType: 'GLASS_JAR', isActive: true, displayOrder: 2, createdAt: '', updatedAt: '' },
-    ],
-    galleryImages: [
-      { id: 'img-1', productId: 'prod-1', imageUrl: '/images/products/milk-bottle.png', displayOrder: 1, isPrimary: true },
-    ],
-    specifications: { 'Milk Type': 'A2 Beta-Casein Protein', 'Processing': 'Pasteurized (Non-Homogenized)', 'Fat Content': '3.8% - 4.2%' },
-    nutritionFacts: { 'Energy': '68 kcal', 'Protein': '3.4g', 'Calcium': '120mg' },
-    batchCode: 'BATCH-2026-MILK01',
-    verified: true,
-  },
-  {
-    id: 'prod-2',
-    title: 'Country Dairy A2 Vedic Ghee',
-    slug: 'a2-vedic-ghee',
-    categoryName: 'Dairy',
-    status: 'LIVE',
-    storyDescription: 'Traditional Hand-Churned Bilona Ghee made from A2 curd of free-grazing Gir Cows. Rich golden granular texture.',
-    badgeText: 'VEDIC BILONA',
-    isFeatured: true,
-    displayOrder: 2,
-    isSubscriptionAllowed: false, // Default OFF
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    variants: [
-      { id: 'var-2a', productId: 'prod-2', sku: 'CD-GHEE-500ML', sizeLabel: '500ml Glass Jar', sellingPrice: 780, mrpPrice: 900, stockQuantity: 100, lowStockThreshold: 10, packagingType: 'GLASS_JAR', isActive: true, displayOrder: 1, createdAt: '', updatedAt: '' },
-      { id: 'var-2b', productId: 'prod-2', sku: 'CD-GHEE-1L', sizeLabel: '1 Litre Glass Jar', sellingPrice: 1450, mrpPrice: 1650, stockQuantity: 150, lowStockThreshold: 15, packagingType: 'GLASS_JAR', isActive: true, displayOrder: 2, createdAt: '', updatedAt: '' },
-      { id: 'var-2c', productId: 'prod-2', sku: 'CD-GHEE-2.5L-DOLCHI', sizeLabel: '2.5L Traditional Metal Dolchi', sellingPrice: 3500, mrpPrice: 3999, stockQuantity: 0, lowStockThreshold: 5, packagingType: 'METAL_DOLCHI', isActive: true, displayOrder: 3, createdAt: '', updatedAt: '' },
-    ],
-    galleryImages: [
-      { id: 'img-2', productId: 'prod-2', imageUrl: '/images/products/ghee-jar.png', displayOrder: 1, isPrimary: true },
-    ],
-    specifications: { 'Method': 'Traditional 2-Way Churned Bilona', 'Aroma': 'Nutty Golden Granular', 'Shelf Life': '12 Months' },
-    nutritionFacts: { 'Energy': '898 kcal', 'Total Fat': '99.8g', 'Vitamin A': '840mcg' },
-    batchCode: 'BATCH-2026-GHEE03',
-    verified: true,
-  },
-  {
-    id: 'prod-3',
-    title: 'Organic Wood-Pressed Mustard Oil',
-    slug: 'wood-pressed-mustard-oil',
-    categoryName: 'Oils',
-    status: 'LIVE',
-    storyDescription: 'Cold Kachi Ghani pressed from organic yellow mustard seeds. Retains natural pungent aroma and essential Omega-3 fatty acids.',
-    badgeText: 'COLD PRESSED',
-    isFeatured: false,
-    displayOrder: 3,
-    isSubscriptionAllowed: false, // Default OFF
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    variants: [
-      { id: 'var-3a', productId: 'prod-3', sku: 'CD-OIL-1L', sizeLabel: '1 Litre Pet Bottle', sellingPrice: 320, mrpPrice: 380, stockQuantity: 200, lowStockThreshold: 20, packagingType: 'PET_BOTTLE', isActive: true, displayOrder: 1, createdAt: '', updatedAt: '' },
-    ],
-    galleryImages: [
-      { id: 'img-3', productId: 'prod-3', imageUrl: '/images/products/mustard-oil.png', displayOrder: 1, isPrimary: true },
-    ],
-    specifications: { 'Pressing': 'Wood Pressed Kachi Ghani (30°C)', 'Seed Origin': 'Organic Rajasthan Yellow Mustard' },
-    nutritionFacts: { 'Energy': '884 kcal', 'MUFA': '65g', 'PUFA': '21g' },
-    batchCode: 'BATCH-2026-OIL02',
-    verified: false,
-  },
-  {
-    id: 'prod-4',
-    title: 'Raw Wild Forest Honey',
-    slug: 'raw-wild-forest-honey',
-    categoryName: 'Honey',
-    status: 'LIVE',
-    storyDescription: 'Unfiltered, unheated wild flora honey harvested ethically from deep forest beehives. Natural enzyme rich.',
-    badgeText: 'UNFILTERED',
-    isFeatured: false,
-    displayOrder: 4,
-    isSubscriptionAllowed: false, // Default OFF
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    variants: [
-      { id: 'var-4a', productId: 'prod-4', sku: 'CD-HONEY-500G', sizeLabel: '500g Glass Jar', sellingPrice: 450, mrpPrice: 520, stockQuantity: 100, lowStockThreshold: 10, packagingType: 'GLASS_JAR', isActive: true, displayOrder: 1, createdAt: '', updatedAt: '' },
-    ],
-    galleryImages: [
-      { id: 'img-4', productId: 'prod-4', imageUrl: '/images/products/forest-honey.png', displayOrder: 1, isPrimary: true },
-    ],
-    specifications: { 'Processing': 'Zero Heating / Raw Unprocessed', 'Purity': '100% Wild Multiflora' },
-    nutritionFacts: { 'Energy': '304 kcal', 'Natural Carbohydrates': '82g' },
-    batchCode: 'BATCH-2026-HONEY01',
-    verified: false,
-  },
-];
 
 const TAB_STORAGE_KEY = 'country_dairy_admin_active_tab';
 
@@ -166,72 +63,48 @@ function AdminMainContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState<boolean>(true);
 
-  // Seeded categories state
-  const [categories, setCategories] = useState<CategoryItem[]>([
-    { id: 'cat-1', name: 'Dairy', slug: 'dairy', description: 'Fresh A2 Cow Milk, Vedic Bilona Ghee, Cottage Cheese & Paneer', iconName: 'Milk', displayOrder: 1, isActive: true },
-    { id: 'cat-2', name: 'Oils', slug: 'oils', description: 'Cold-pressed organic mustard oil & sesame cooking oils', iconName: 'Droplet', displayOrder: 2, isActive: true },
-    { id: 'cat-3', name: 'Honey', slug: 'honey', description: 'Unprocessed wild forest raw honey', iconName: 'Sun', displayOrder: 3, isActive: true },
-    { id: 'cat-4', name: 'Spices & Staples', slug: 'spices-staples', description: 'Organic rock salt, turmeric powder & traditional grains', iconName: 'Sparkles', displayOrder: 4, isActive: false },
-  ]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({});
+  const [catalogError, setCatalogError] = useState('');
 
-  // Fetch live products & categories from NestJS API server
+  // Fetch live catalog from the API. There is deliberately no fallback to seed
+  // data: showing invented products when the API is down hides the outage and
+  // invites edits against rows that do not exist.
   useEffect(() => {
     setIsLoadingProducts(true);
+    setCatalogError('');
+
     adminApi.getProducts()
       .then(liveProducts => {
         setProducts(liveProducts || []);
       })
       .catch(err => {
-        console.warn('API Server offline, using local seed catalog:', err);
-        setProducts(INITIAL_PRODUCTS);
+        setCatalogError(err instanceof Error ? err.message : 'Could not reach the API server');
+        setProducts([]);
       })
       .finally(() => {
         setIsLoadingProducts(false);
       });
 
     adminApi.getCategories()
-      .then(liveCats => {
-        if (liveCats && liveCats.length > 0) {
-          setCategories(liveCats);
-        }
-      })
-      .catch(err => {
-        console.warn('API Server offline, using local seed categories:', err);
-      });
+      .then(setCategories)
+      .catch(() => setCategories([]));
 
-    adminApi.getOrdersAdmin()
-      .then(liveOrders => {
-        if (liveOrders && liveOrders.length > 0) {
-          const mapped = liveOrders.map((o: any) => ({
-            id: o.id,
-            customer: o.user?.name || o.user?.email || o.user?.phone || 'Customer',
-            items: o.orderItems?.map((item: any) => `${item.product?.title || 'Product'} × ${item.quantity}`).join(', ') || 'Item',
-            total: Number(o.totalAmount || 0),
-            deliveryType: o.deliveryType || 'LOCAL',
-            status: o.status || 'PENDING',
-            paymentStatus: o.paymentStatus || 'PENDING',
-            date: new Date(o.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            waybill: o.trackingNumber || '',
-            assignedDriver: o.driverName || 'Vikram Singh',
-            address: o.address ? `${o.address.street}, ${o.address.city}, ${o.address.postalCode}` : 'Local Delivery Address',
-            phone: o.user?.phone || o.address?.phone || '+91 98765 43210',
-          }));
-          setOrders(mapped);
-        }
-      })
-      .catch(err => console.warn('Could not load live admin orders:', err));
+    adminApi.getFeatureFlagMap()
+      .then(setFeatureFlags)
+      .catch(() => setFeatureFlags({}));
+
   }, []);
 
-  // Seeded mock order database records
-  const [orders, setOrders] = useState<any[]>([]);
+  // Orders and customers are fetched by their own pages, which need the full
+  // API shape rather than the flattened summary this component used to build.
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
 
-  // Seeded mock customers list
-  const [customers, setCustomers] = useState<Customer[]>([
-    { id: 'CUST-001', name: 'Amit Sharma', phone: '+91 98765 43210', email: 'amit.sharma@example.com', walletBalance: 1500, ordersCount: 12, activeSubscriptions: 2 },
-    { id: 'CUST-002', name: 'Priya Sen', phone: '+91 98123 45678', email: 'priya.sen@example.com', walletBalance: 2400, ordersCount: 8, activeSubscriptions: 1 },
-    { id: 'CUST-003', name: 'Rohan Malhotra', phone: '+91 99999 88888', email: 'rohan.m@example.com', walletBalance: 450, ordersCount: 22, activeSubscriptions: 3 },
-    { id: 'CUST-004', name: 'Deepak Chand', phone: '+91 97777 66666', email: 'deepak.c@example.com', walletBalance: 0, ordersCount: 1, activeSubscriptions: 0 },
-  ]);
+  useEffect(() => {
+    adminApi.getOrdersAdmin()
+      .then(setOrders)
+      .catch(() => setOrders([]));
+  }, []);
 
   // Form states
   const [batchCodeInput, setBatchCodeInput] = useState('');
@@ -282,6 +155,17 @@ function AdminMainContent() {
             <p className="text-xs text-[#6b6661] mt-1 font-medium">Country Dairy D2C Management Console & Farm Logistics Controller</p>
           </div>
         </header>
+
+        {/* Surfaced rather than swallowed: a silent fallback to seed data used
+            to make an unreachable API look like an empty-but-working catalog. */}
+        {catalogError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium">
+            <strong>Could not reach the API server.</strong> {catalogError}
+            <div className="mt-1 text-red-600/80">
+              Catalog data is unavailable — changes cannot be saved until the connection is restored.
+            </div>
+          </div>
+        )}
 
         {activeTab === 'overview' && (
           <ProtectedRoute requiredRole={['SUPER_ADMIN', 'ORDER_MANAGER']}>
@@ -362,10 +246,7 @@ function AdminMainContent() {
 
         {activeTab === 'orders' && (
           <ProtectedRoute requiredRole={['SUPER_ADMIN', 'ORDER_MANAGER']}>
-            <Orders 
-              orders={orders} 
-              onUpdateOrders={setOrders}
-            />
+            <Orders />
           </ProtectedRoute>
         )}
 
@@ -392,13 +273,13 @@ function AdminMainContent() {
 
         {activeTab === 'customers' && (
           <ProtectedRoute requiredRole={['SUPER_ADMIN', 'ORDER_MANAGER']}>
-            <Customers customers={customers} />
+            <Customers walletEnabled={featureFlags.ENABLE_WALLET === true} />
           </ProtectedRoute>
         )}
 
         {activeTab === 'wallets' && (
           <ProtectedRoute requiredRole={['SUPER_ADMIN', 'ORDER_MANAGER']}>
-            <Wallets customers={customers} onUpdateCustomers={setCustomers} />
+            <Wallets customers={[]} onUpdateCustomers={() => {}} />
           </ProtectedRoute>
         )}
 

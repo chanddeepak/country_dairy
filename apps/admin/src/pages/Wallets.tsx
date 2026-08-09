@@ -1,6 +1,19 @@
 import { useState } from 'react';
 import { Wallet, Plus, History, Search, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import type { Customer } from './Customers';
+
+/**
+ * Local shape while the wallet backend is still to be built. The feature sits
+ * behind ENABLE_WALLET, so this page is not reachable in a default install.
+ */
+interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  walletBalance: number;
+  ordersCount: number;
+  activeSubscriptions: number;
+}
 
 interface WalletLog {
   id: string;
