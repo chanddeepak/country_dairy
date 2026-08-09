@@ -205,6 +205,7 @@ export class CatalogService {
         imageUrl: sanitizeProductStoragePath(urlStr) || '/images/products/milk-bottle.png',
         variantId: typeof img === 'object' ? img.variantId || null : null,
         isPrimary: typeof img === 'object' && img.isPrimary !== undefined ? img.isPrimary : idx === 0,
+        isVariantPrimary: typeof img === 'object' && img.isVariantPrimary !== undefined ? img.isVariantPrimary : false,
         displayOrder: idx + 1,
       };
     });
@@ -300,6 +301,7 @@ export class CatalogService {
             imageUrl: sanitizeProductStoragePath(urlStr) || '/images/products/milk-bottle.png',
             variantId: typeof img === 'object' ? img.variantId || null : null,
             isPrimary: typeof img === 'object' && img.isPrimary !== undefined ? img.isPrimary : idx === 0,
+            isVariantPrimary: typeof img === 'object' && img.isVariantPrimary !== undefined ? img.isVariantPrimary : false,
             displayOrder: idx + 1,
           };
         }),
