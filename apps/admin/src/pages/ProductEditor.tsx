@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { 
-  Package, Star, Plus, Trash2, ArrowLeft, Save, Tag, Upload
+  Package, Star, Plus, Trash2, ArrowLeft, Save, Tag, Upload, Check
 } from 'lucide-react';
 import ImageUploader, { resolveImageUrl } from '../components/common/ImageUploader';
 import type { Product, ProductVariant, ProductImage, ProductStatus, PackagingType } from '../types';
@@ -157,6 +157,15 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
         return { ...img, variantId: variantIdOrLabel };
       }
       return img;
+    }));
+  };
+
+  const handleSetVariantPrimary = (variantIdOrLabel: string, imageUrl: string) => {
+    setVariants(prev => prev.map(v => {
+      if (v.id === variantIdOrLabel || v.sizeLabel === variantIdOrLabel) {
+        return { ...v, imageUrl };
+      }
+      return v;
     }));
   };
 
@@ -442,13 +451,31 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
                       </button>
                     )}
 
-                    {/* Variant Cover Badge */}
-                    {img.variantId && (
-                      <div className="bg-emerald-500 text-stone-950 text-[9px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md">
-                        <Tag className="h-3 w-3 fill-stone-950" />
-                        <span>Variant Cover</span>
-                      </div>
-                    )}
+                    {/* Variant Cover Badge or Set Primary for Variant Button */}
+                    {img.variantId && (() => {
+                      const linkedVariant = variants.find(v => v.id === img.variantId || v.sizeLabel === img.variantId);
+                      const isVarPrimary = linkedVariant && (linkedVariant.imageUrl === img.imageUrl || !linkedVariant.imageUrl);
+
+                      if (isVarPrimary) {
+                        return (
+                          <div className="bg-emerald-500 text-stone-950 text-[9px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md truncate max-w-full">
+                            <Check className="h-3 w-3 stroke-[3]" />
+                            <span className="truncate">Primary for {linkedVariant?.sizeLabel || img.variantId}</span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => handleSetVariantPrimary(img.variantId!, img.imageUrl)}
+                          className="bg-stone-900/90 text-emerald-400 hover:bg-emerald-500 hover:text-stone-950 text-[9px] font-bold px-2 py-0.5 rounded-md transition-colors backdrop-blur-sm border border-emerald-600/60 truncate max-w-full"
+                          title={`Make this the primary photo for ${linkedVariant?.sizeLabel || img.variantId}`}
+                        >
+                          Set Primary for {linkedVariant?.sizeLabel || img.variantId}
+                        </button>
+                      );
+                    })()}
                   </div>
 
                   {/* Delete Button */}

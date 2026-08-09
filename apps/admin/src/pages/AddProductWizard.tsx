@@ -123,7 +123,7 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
     const targetImg = galleryImages[imageIndex];
     if (!targetImg) return;
 
-    // Update variant object imageUrl
+    // Update variant object imageUrl if not set or if changing
     setVariants(prev => prev.map(v => {
       if (v.sizeLabel === variantSizeLabel) {
         return { ...v, imageUrl: targetImg.imageUrl };
@@ -137,6 +137,15 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
         return { ...img, variantId: variantSizeLabel };
       }
       return img;
+    }));
+  };
+
+  const handleSetVariantPrimary = (variantSizeLabel: string, imageUrl: string) => {
+    setVariants(prev => prev.map(v => {
+      if (v.sizeLabel === variantSizeLabel) {
+        return { ...v, imageUrl };
+      }
+      return v;
     }));
   };
 
@@ -536,7 +545,7 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
                     <img src={resolveImageUrl(img.imageUrl)} alt="" className="w-full h-full object-cover" />
 
                     {/* Badges Container */}
-                    <div className="absolute top-1.5 left-1.5 flex flex-col gap-1 items-start">
+                    <div className="absolute top-1.5 left-1.5 flex flex-col gap-1 items-start max-w-[85%]">
                       {/* Main Product Catalog Cover Badge */}
                       {img.isPrimary ? (
                         <div className="bg-amber-500 text-stone-950 text-[9px] font-extrabold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md">
@@ -553,13 +562,31 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
                         </button>
                       )}
 
-                      {/* Variant Cover Badge */}
-                      {img.variantId && (
-                        <div className="bg-emerald-500 text-stone-950 text-[9px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md">
-                          <Tag className="h-3 w-3 fill-stone-950" />
-                          <span>{img.variantId} Cover</span>
-                        </div>
-                      )}
+                      {/* Variant Cover Badge or Set Primary for Variant Button */}
+                      {img.variantId && (() => {
+                        const linkedVariant = variants.find(v => v.sizeLabel === img.variantId);
+                        const isVarPrimary = linkedVariant && (linkedVariant.imageUrl === img.imageUrl || !linkedVariant.imageUrl);
+
+                        if (isVarPrimary) {
+                          return (
+                            <div className="bg-emerald-500 text-stone-950 text-[9px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md truncate max-w-full">
+                              <Check className="h-3 w-3 stroke-[3]" />
+                              <span className="truncate">Primary for {img.variantId}</span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => handleSetVariantPrimary(img.variantId!, img.imageUrl)}
+                            className="bg-stone-900/90 text-emerald-400 hover:bg-emerald-500 hover:text-stone-950 text-[9px] font-bold px-2 py-0.5 rounded-md transition-colors backdrop-blur-sm border border-emerald-600/60 truncate max-w-full"
+                            title={`Make this the primary photo for ${img.variantId}`}
+                          >
+                            Set Primary for {img.variantId}
+                          </button>
+                        );
+                      })()}
                     </div>
 
                     {/* Delete Image Button */}
