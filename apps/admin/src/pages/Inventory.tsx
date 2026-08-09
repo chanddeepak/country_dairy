@@ -246,7 +246,7 @@ export default function Inventory({
                     {/* Category */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <span className="font-bold text-xs text-[#064e3b] bg-[#064e3b]/10 px-2.5 py-1 rounded-lg border border-[#064e3b]/20">
-                        {p.categoryName || (p as any).category || 'Dairy'}
+                        {p.categoryName || (typeof (p as any).category === 'object' ? (p as any).category?.name : (p as any).category) || 'Dairy'}
                       </span>
                     </td>
 

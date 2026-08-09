@@ -281,7 +281,11 @@ function AdminMainContent() {
                 onComplete={async (newProd) => {
                   try {
                     const created = await adminApi.createProduct(newProd);
-                    setProducts(prev => [created || newProd, ...prev.filter(p => p.id !== newProd.id)]);
+                    const normalized = {
+                      ...(created || newProd),
+                      categoryName: created?.categoryName || (created as any)?.category?.name || newProd.categoryName || 'Dairy',
+                    };
+                    setProducts(prev => [normalized, ...prev.filter(p => p.id !== newProd.id && p.id !== normalized.id)]);
                   } catch (err) {
                     console.warn('API save warning:', err);
                     setProducts(prev => [newProd, ...prev]);
@@ -298,11 +302,11 @@ function AdminMainContent() {
                 onSave={async (updated) => {
                   try {
                     const saved = await adminApi.updateProduct(updated.id, updated);
-                    if (saved?.id) {
-                      setProducts(prev => prev.map(p => (p.id === updated.id || p.id === saved.id) ? saved : p));
-                    } else {
-                      setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
-                    }
+                    const normalized = {
+                      ...(saved || updated),
+                      categoryName: saved?.categoryName || (saved as any)?.category?.name || updated.categoryName || 'Dairy',
+                    };
+                    setProducts(prev => prev.map(p => (p.id === updated.id || p.id === normalized.id) ? normalized : p));
                   } catch (err) {
                     console.warn('API update warning:', err);
                     setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
