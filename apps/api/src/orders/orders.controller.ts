@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, Param, UseGuards } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -25,6 +25,22 @@ export class OrdersController {
     @Body('signature') signature: string,
   ) {
     return this.ordersService.verifyPayment(user.id, orderId, razorpayPaymentId, signature);
+  }
+
+  // --- ADMIN ENDPOINTS ---
+  @Get('admin/all')
+  async getAllOrdersAdmin() {
+    return this.ordersService.getAllOrdersAdmin();
+  }
+
+  @Patch('admin/:id/status')
+  async updateOrderStatusAdmin(
+    @Param('id') id: string,
+    @Body('status') status: any,
+    @Body('driverName') driverName?: string,
+    @Body('trackingNumber') trackingNumber?: string,
+  ) {
+    return this.ordersService.updateOrderStatusAdmin(id, status, driverName, trackingNumber);
   }
 
   @Get()

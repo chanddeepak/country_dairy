@@ -2,21 +2,32 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, CreditCard, Wallet, ShieldCheck, Plus, CheckCircle2, UserCheck, KeyRound, PhoneCall, AlertCircle } from 'lucide-react';
+import { MapPin, CreditCard, Wallet, ShieldCheck, Plus, CheckCircle2, UserCheck, KeyRound, PhoneCall, AlertCircle, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import { ENABLE_WALLET_PAYMENTS } from '../../lib/constants';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { user, cart, walletBalance, checkout, verifyPayment, addAddress, sendOtp, verifyOtp, setLoginPhone } = useApp();
+  const { user, cart, walletBalance, checkout, verifyPayment, addAddress, sendOtp, verifyOtp, loginPhone, setLoginPhone, loginWithEmail, registerWithEmail } = useApp();
 
   const [selectedAddress, setSelectedAddress] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'wallet'>('razorpay');
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
 
-  // Inline Auth Form States for Guest Checkout
+  // Mock Razorpay Modal state
+  const [showMockRazorpay, setShowMockRazorpay] = useState(false);
+  const [pendingOrderData, setPendingOrderData] = useState<{ orderId: string; amount: number } | null>(null);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+
+  // Inline Auth Form States for Guest Checkout (Mobile vs Email)
+  const [authTab, setAuthTab] = useState<'mobile' | 'email'>('email');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authName, setAuthName] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
   const [authPhone, setAuthPhone] = useState('+919876543210');
   const [authOtp, setAuthOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -39,6 +50,27 @@ export default function CheckoutPage() {
   const subtotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
   const shipping = 0;
   const total = subtotal + shipping;
+
+  const handleGuestEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setAuthLoading(true);
+    try {
+      let success = false;
+      if (isRegistering) {
+        success = await registerWithEmail(authEmail, authPassword, authName);
+      } else {
+        success = await loginWithEmail(authEmail, authPassword);
+      }
+      if (!success) {
+        setAuthError(isRegistering ? 'Registration failed. Email may already be registered.' : 'Invalid email or password.');
+      }
+    } catch {
+      setAuthError('Authentication error occurred.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   const handleGuestRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,9 +97,7 @@ export default function CheckoutPage() {
     setAuthLoading(true);
     try {
       const verified = await verifyOtp(authOtp);
-      if (verified) {
-        // Logged in successfully, useEffect will update the UI
-      } else {
+      if (!verified) {
         setAuthError('Invalid OTP code. Please use: 123456');
       }
     } catch {
@@ -90,7 +120,6 @@ export default function CheckoutPage() {
       if (success) {
         setShowNewAddr(false);
         setNewAddr({ line1: '', city: '', state: '', pincode: '', phone: '' });
-        // Selected address will be updated by useEffect
       } else {
         setAddrError('Failed to save address. Please try again.');
       }
@@ -110,26 +139,13 @@ export default function CheckoutPage() {
     try {
       const orderResult = await checkout(selectedAddress);
 
-      if (orderResult?.razorpayOrderId) {
-        if (paymentMethod === 'razorpay') {
-          // Simulate payment success
-          const verified = await verifyPayment(orderResult.orderId, 'mock-pay-id');
-          if (verified) {
-            router.push(`/orders/${orderResult.orderId}?status=success`);
-          } else {
-            setError('Payment verification failed. Please try again.');
-          }
-        } else {
-          // Wallet payment
-          const verified = await verifyPayment(orderResult.orderId, 'wallet-pay');
-          if (verified) {
-            router.push(`/orders/${orderResult.orderId}?status=success`);
-          } else {
-            setError('Wallet payment failed. Insufficient balance?');
-          }
-        }
-      } else if (orderResult?.orderId) {
-        router.push(`/orders/${orderResult.orderId}?status=success`);
+      if (orderResult?.orderId) {
+        // Trigger Mock Razorpay Payment Modal
+        setPendingOrderData({
+          orderId: orderResult.orderId,
+          amount: total,
+        });
+        setShowMockRazorpay(true);
       } else {
         setError(orderResult?.message || 'Checkout failed. Please try again.');
       }
@@ -137,6 +153,25 @@ export default function CheckoutPage() {
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const handleConfirmMockPayment = async () => {
+    if (!pendingOrderData) return;
+    setVerifyingPayment(true);
+    try {
+      const mockPayId = `pay_mock_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const verified = await verifyPayment(pendingOrderData.orderId, mockPayId);
+      if (verified) {
+        setShowMockRazorpay(false);
+        router.push(`/orders/${pendingOrderData.orderId}?status=success`);
+      } else {
+        setError('Payment verification failed on server.');
+      }
+    } catch (err) {
+      setError('Error verifying payment signature.');
+    } finally {
+      setVerifyingPayment(false);
     }
   };
 

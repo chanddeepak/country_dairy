@@ -83,6 +83,19 @@ export class OrdersService {
       where: { id: order.id },
       data: {
         paymentGatewayId: gatewayOrder.id,
+        razorpayOrderId: gatewayOrder.id,
+      },
+    });
+
+    // Record Payment transaction attempt in Payment table
+    await this.prisma.payment.create({
+      data: {
+        orderId: order.id,
+        amount: totalAmount,
+        currency: 'INR',
+        provider: 'RAZORPAY',
+        status: 'PENDING',
+        razorpayOrderId: gatewayOrder.id,
       },
     });
 
@@ -133,6 +146,18 @@ export class OrdersService {
           paymentStatus: 'FAILED',
         },
       });
+      await this.prisma.payment.create({
+        data: {
+          orderId: order.id,
+          amount: order.totalAmount,
+          currency: 'INR',
+          provider: 'RAZORPAY',
+          status: 'FAILED',
+          razorpayOrderId: order.paymentGatewayId || order.razorpayOrderId,
+          razorpayPaymentId,
+          razorpaySignature: signature,
+        },
+      });
       throw new BadRequestException('Payment verification failed');
     }
 
@@ -143,6 +168,22 @@ export class OrdersService {
       data: {
         status: 'CONFIRMED',
         paymentStatus: 'PAID',
+        razorpayPaymentId: razorpayPaymentId || 'pay_mock',
+        razorpaySignature: signature || 'sig_mock',
+      },
+    });
+
+    // Record successful payment entry in Payment table
+    await this.prisma.payment.create({
+      data: {
+        orderId: order.id,
+        amount: order.totalAmount,
+        currency: 'INR',
+        provider: 'RAZORPAY',
+        status: 'PAID',
+        razorpayOrderId: order.paymentGatewayId || order.razorpayOrderId,
+        razorpayPaymentId,
+        razorpaySignature: signature,
       },
     });
 
@@ -197,5 +238,45 @@ export class OrdersService {
     }
 
     return order;
+  }
+
+  // --- ADMIN ORDER MANAGEMENT ---
+  async getAllOrdersAdmin() {
+    this.logger.log(`[Admin] Retrieving all customer orders across database`);
+    return this.prisma.order.findMany({
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, phone: true },
+        },
+        address: true,
+        orderItems: {
+          include: {
+            product: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async updateOrderStatusAdmin(orderId: string, status: any, driverName?: string, trackingNumber?: string) {
+    this.logger.log(`[Admin] Updating order ${orderId} status to ${status}`);
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status,
+        ...(driverName ? { driverName } : {}),
+        ...(trackingNumber ? { trackingNumber } : {}),
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, phone: true },
+        },
+        address: true,
+        orderItems: {
+          include: { product: true },
+        },
+      },
+    });
   }
 }

@@ -198,15 +198,32 @@ function AdminMainContent() {
       .catch(err => {
         console.warn('API Server offline, using local seed categories:', err);
       });
+
+    adminApi.getOrdersAdmin()
+      .then(liveOrders => {
+        if (liveOrders && liveOrders.length > 0) {
+          const mapped = liveOrders.map((o: any) => ({
+            id: o.id,
+            customer: o.user?.name || o.user?.email || o.user?.phone || 'Customer',
+            items: o.orderItems?.map((item: any) => `${item.product?.title || 'Product'} × ${item.quantity}`).join(', ') || 'Item',
+            total: Number(o.totalAmount || 0),
+            deliveryType: o.deliveryType || 'LOCAL',
+            status: o.status || 'PENDING',
+            paymentStatus: o.paymentStatus || 'PENDING',
+            date: new Date(o.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            waybill: o.trackingNumber || '',
+            assignedDriver: o.driverName || 'Vikram Singh',
+            address: o.address ? `${o.address.street}, ${o.address.city}, ${o.address.postalCode}` : 'Local Delivery Address',
+            phone: o.user?.phone || o.address?.phone || '+91 98765 43210',
+          }));
+          setOrders(mapped);
+        }
+      })
+      .catch(err => console.warn('Could not load live admin orders:', err));
   }, []);
 
   // Seeded mock order database records
-  const [orders, setOrders] = useState([
-    { id: 'ORD-10492', customer: 'Amit Sharma', items: 'A2 Cow Milk (6L)', total: 570, deliveryType: 'LOCAL', status: 'CONFIRMED', paymentStatus: 'PAID', date: 'July 5, 2026', waybill: '' },
-    { id: 'ORD-10493', customer: 'Priyanjali Roy', items: 'A2 Vedic Ghee (1L)', total: 1450, deliveryType: 'COURIER', status: 'CONFIRMED', paymentStatus: 'PAID', date: 'July 5, 2026', waybill: '' },
-    { id: 'ORD-10494', customer: 'Rahul Verma', items: 'Mustard Oil (2L), Forest Honey (500g)', total: 1090, deliveryType: 'COURIER', status: 'CONFIRMED', paymentStatus: 'PAID', date: 'July 5, 2026', waybill: 'DELHIVERY-9831948123' },
-    { id: 'ORD-10495', customer: 'Deepak Chand', items: 'A2 Cow Milk (2L)', total: 190, deliveryType: 'LOCAL', status: 'PENDING', paymentStatus: 'PENDING', date: 'July 5, 2026', waybill: '' },
-  ]);
+  const [orders, setOrders] = useState<any[]>([]);
 
   // Seeded mock customers list
   const [customers, setCustomers] = useState<Customer[]>([

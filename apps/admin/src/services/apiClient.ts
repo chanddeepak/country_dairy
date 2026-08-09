@@ -193,4 +193,16 @@ export const adminApi = {
       method: 'PATCH',
     });
   },
+
+  // Admin Orders API
+  async getOrdersAdmin(): Promise<any[]> {
+    return fetchJson<any[]>('/orders/admin/all');
+  },
+
+  async updateOrderStatusAdmin(orderId: string, status: string, driverName?: string, trackingNumber?: string): Promise<any> {
+    return fetchJson<any>(`/orders/admin/${orderId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, driverName, trackingNumber }),
+    });
+  },
 };

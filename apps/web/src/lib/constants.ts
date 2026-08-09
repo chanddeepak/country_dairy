@@ -13,10 +13,11 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000
 
 // Feature flags
 export const ENABLE_SUBSCRIPTIONS = false;
-export const ENABLE_WEBSITE_PAYMENT = false;
-export const ENABLE_USER_ACCOUNTS = false;
-export const ENABLE_CART = false;
-export const ENABLE_PRODUCT_RATINGS = false;
+export const ENABLE_WEBSITE_PAYMENT = true;
+export const ENABLE_USER_ACCOUNTS = true;
+export const ENABLE_CART = true;
+export const ENABLE_PRODUCT_RATINGS = true;
+export const ENABLE_WALLET_PAYMENTS = false; // Kept behind feature flag as requested
 
 // WhatsApp ordering
 export const WHATSAPP_NUMBER = '919997801112';

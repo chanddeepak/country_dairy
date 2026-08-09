@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Printer, Phone, MapPin, Calendar, Clock, ShoppingBag } from 'lucide-react';
 import StatusBadge from '../components/ui/StatusBadge';
+import { adminApi } from '../services/apiClient';
 
 interface Order {
   id: string;
@@ -23,7 +24,7 @@ interface OrdersProps {
 export default function Orders({ orders, onUpdateOrders }: OrdersProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  const handleStatusChange = (orderId: string, newStatus: string) => {
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
     const updated = orders.map(o => {
       if (o.id === orderId) {
         return { ...o, status: newStatus };
@@ -33,6 +34,12 @@ export default function Orders({ orders, onUpdateOrders }: OrdersProps) {
     onUpdateOrders(updated);
     if (selectedOrder?.id === orderId) {
       setSelectedOrder({ ...selectedOrder, status: newStatus });
+    }
+
+    try {
+      await adminApi.updateOrderStatusAdmin(orderId, newStatus);
+    } catch (err) {
+      console.warn('Failed to update status on server:', err);
     }
   };
 
