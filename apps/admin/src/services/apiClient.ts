@@ -81,6 +81,18 @@ export const adminApi = {
     return fileUrl;
   },
 
+  async deleteMedia(url: string): Promise<void> {
+    if (!url) return;
+    try {
+      await fetchJson<void>('/media/delete', {
+        method: 'POST',
+        body: JSON.stringify({ url }),
+      });
+    } catch (err) {
+      console.warn('adminApi.deleteMedia warning:', err);
+    }
+  },
+
   // Products API
   async getProducts(categoryId?: string, search?: string, status?: string): Promise<Product[]> {
     const query = new URLSearchParams();

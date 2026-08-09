@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { 
-  Package, Star, Plus, Trash2, ArrowLeft, Save
+  Package, Star, Plus, Trash2, ArrowLeft, Save, Tag
 } from 'lucide-react';
-import ImageUploader from '../components/common/ImageUploader';
+import ImageUploader, { resolveImageUrl } from '../components/common/ImageUploader';
 import type { Product, ProductVariant, ProductImage, ProductStatus, PackagingType } from '../types';
+import { adminApi } from '../services/apiClient';
 
 import type { CategoryItem } from './CategoryCMS';
 
@@ -134,7 +135,29 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
       alert('At least 1 primary thumbnail image must remain in the gallery.');
       return;
     }
+    const target = galleryImages.find(i => i.id === id);
+    if (target?.imageUrl) {
+      adminApi.deleteMedia(target.imageUrl).catch(() => {});
+    }
     setGalleryImages(prev => prev.filter(img => img.id !== id));
+  };
+
+  const handleAssignVariantToImage = (imageId: string, variantIdOrLabel: string) => {
+    // Assign image to variant
+    setVariants(prev => prev.map(v => {
+      if (v.id === variantIdOrLabel || v.sizeLabel === variantIdOrLabel) {
+        const targetImg = galleryImages.find(i => i.id === imageId);
+        return { ...v, imageUrl: targetImg?.imageUrl || v.imageUrl };
+      }
+      return v;
+    }));
+
+    setGalleryImages(prev => prev.map(img => {
+      if (img.id === imageId) {
+        return { ...img, variantId: variantIdOrLabel };
+      }
+      return img;
+    }));
   };
 
   const handleAddVariant = () => {
@@ -387,7 +410,7 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
           <div className="flex items-center justify-between border-b border-stone-800 pb-3">
             <div>
               <h2 className="text-sm font-bold text-amber-400">Product Gallery Manager</h2>
-              <p className="text-xs text-stone-400">Upload 1 to 10 photos. Star icon marks the Primary Thumbnail.</p>
+              <p className="text-xs text-stone-400">Upload 1 to 10 photos. Star icon marks Primary Thumbnail. Link photos to specific variants.</p>
             </div>
             <div className="text-xs font-mono font-bold text-amber-400 bg-stone-950 px-3 py-1 rounded-lg border border-stone-700">
               Uploaded: {galleryImages.length} / 10
@@ -397,38 +420,60 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
           {/* Gallery Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {galleryImages.map((img) => (
-              <div key={img.id} className="relative group rounded-xl overflow-hidden border border-stone-700 bg-stone-950">
-                <img src={img.imageUrl} alt="Gallery item" className="w-full h-36 object-cover" />
-                
-                {/* Primary Marker */}
-                <button
-                  type="button"
-                  onClick={() => handleSetPrimaryImage(img.id)}
-                  className={`absolute top-2 left-2 p-1.5 rounded-full transition-all backdrop-blur-sm ${
-                    img.isPrimary
-                      ? 'bg-amber-500 text-stone-950 shadow-md font-bold'
-                      : 'bg-stone-950/70 text-stone-400 hover:text-amber-400'
-                  }`}
-                  title={img.isPrimary ? 'Primary Thumbnail' : 'Click to set as Primary'}
-                >
-                  <Star className="h-4 w-4 fill-current" />
-                </button>
+              <div key={img.id} className="relative group rounded-xl overflow-hidden border border-stone-700 bg-stone-950 flex flex-col justify-between">
+                <div className="relative aspect-square bg-stone-900">
+                  <img src={resolveImageUrl(img.imageUrl)} alt="Gallery item" className="w-full h-full object-cover" />
+                  
+                  {/* Primary Marker */}
+                  <button
+                    type="button"
+                    onClick={() => handleSetPrimaryImage(img.id)}
+                    className={`absolute top-2 left-2 p-1.5 rounded-full transition-all backdrop-blur-sm ${
+                      img.isPrimary
+                        ? 'bg-amber-500 text-stone-950 shadow-md font-bold'
+                        : 'bg-stone-950/70 text-stone-400 hover:text-amber-400'
+                    }`}
+                    title={img.isPrimary ? 'Primary Thumbnail' : 'Click to set as Primary'}
+                  >
+                    <Star className="h-4 w-4 fill-current" />
+                  </button>
 
-                {/* Delete Button */}
-                <button
-                  type="button"
-                  onClick={() => handleDeleteGalleryImage(img.id)}
-                  className="absolute top-2 right-2 p-1.5 bg-stone-950/80 text-stone-300 hover:text-red-400 rounded-full transition-colors backdrop-blur-sm"
-                  title="Remove Image"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                  {/* Delete Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteGalleryImage(img.id)}
+                    className="absolute top-2 right-2 p-1.5 bg-stone-950/80 text-stone-300 hover:text-red-400 rounded-full transition-colors backdrop-blur-sm"
+                    title="Remove Image"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
 
-                {img.isPrimary && (
-                  <div className="absolute bottom-2 left-2 right-2 bg-amber-500 text-stone-950 text-[10px] font-black uppercase text-center py-0.5 rounded shadow">
-                    Primary Thumbnail
-                  </div>
-                )}
+                  {img.isPrimary && (
+                    <div className="absolute bottom-2 left-2 right-2 bg-amber-500 text-stone-950 text-[10px] font-black uppercase text-center py-0.5 rounded shadow">
+                      Primary Thumbnail
+                    </div>
+                  )}
+                </div>
+
+                {/* Variant Selector */}
+                <div className="p-2 bg-stone-950 border-t border-stone-800 space-y-1">
+                  <label className="text-[9px] font-semibold text-stone-400 flex items-center gap-1">
+                    <Tag className="h-3 w-3 text-amber-400" />
+                    <span>Variant Link:</span>
+                  </label>
+                  <select
+                    value={img.variantId || ''}
+                    onChange={(e) => handleAssignVariantToImage(img.id, e.target.value)}
+                    className="w-full text-[10px] bg-stone-900 border border-stone-800 rounded px-2 py-1 text-stone-200 focus:border-amber-400"
+                  >
+                    <option value="">🌐 Shared (All Variants)</option>
+                    {variants.map(v => (
+                      <option key={v.id} value={v.id}>
+                        🏷️ {v.sizeLabel}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             ))}
           </div>
@@ -438,8 +483,9 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
             <div className="pt-4 border-t border-stone-800">
               <ImageUploader
                 bucket="products"
-                label="Add Photo to Product Gallery (Auto WebP Compressed)"
+                label={`Upload Gallery Photo #${galleryImages.length + 1} (Auto WebP Compressed)`}
                 aspectRatio="square"
+                clearOnUpload={true}
                 onImageUploaded={handleAddGalleryImage}
               />
             </div>
@@ -453,7 +499,7 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
           <div className="flex items-center justify-between border-b border-stone-800 pb-3">
             <div>
               <h2 className="text-sm font-bold text-amber-400">Universal Variant Matrix & Stock</h2>
-              <p className="text-xs text-stone-400">Manage size options, prices, stock levels, and packaging types.</p>
+              <p className="text-xs text-stone-400">Manage size options, prices, stock levels, variant images, and packaging types.</p>
             </div>
             <button
               type="button"
@@ -468,6 +514,7 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
             <table className="w-full text-left text-xs text-stone-300">
               <thead className="bg-stone-950 text-stone-400 font-semibold border-b border-stone-800 uppercase tracking-wider">
                 <tr>
+                  <th className="p-3">Variant Image</th>
                   <th className="p-3">Size / Option</th>
                   <th className="p-3">SKU</th>
                   <th className="p-3">Selling Price (₹)</th>
@@ -480,6 +527,42 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
               <tbody className="divide-y divide-stone-800">
                 {variants.map((v, idx) => (
                   <tr key={v.id} className={v.stockQuantity === 0 ? 'bg-red-500/10' : ''}>
+                    <td className="p-3">
+                      {v.imageUrl ? (
+                        <div className="flex items-center gap-1.5">
+                          <img src={resolveImageUrl(v.imageUrl)} alt="" className="w-8 h-8 rounded object-cover border border-stone-700" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...variants];
+                              updated[idx].imageUrl = '';
+                              setVariants(updated);
+                            }}
+                            className="text-stone-400 hover:text-red-400 p-0.5"
+                            title="Remove image"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <select
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              const updated = [...variants];
+                              updated[idx].imageUrl = e.target.value;
+                              setVariants(updated);
+                            }
+                          }}
+                          className="px-2 py-1 bg-stone-950 border border-stone-800 rounded text-[10px] text-stone-400 max-w-[120px]"
+                        >
+                          <option value="">Link Photo...</option>
+                          {galleryImages.map(img => (
+                            <option key={img.id} value={img.imageUrl}>Photo #{img.displayOrder}</option>
+                          ))}
+                        </select>
+                      )}
+                    </td>
+
                     <td className="p-3">
                       <input
                         type="text"

@@ -61,6 +61,7 @@ export interface ProductImage {
   productId: string;
   imageUrl: string;
   altText?: string;
+  variantId?: string;
   displayOrder: number;
   isPrimary: boolean;
   createdAt?: string;

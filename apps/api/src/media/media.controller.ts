@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query, UseGuards, UseInterceptors, UploadedFile, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, UseInterceptors, UploadedFile, Logger } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';
@@ -221,5 +221,58 @@ export class MediaController {
       success: true,
       message: 'Mock file uploaded successfully',
     };
+  }
+
+  @Post('delete')
+  async deleteMedia(@Body() body: { url: string }) {
+    const url = body?.url;
+    if (!url) {
+      return { success: false, message: 'URL is required' };
+    }
+
+    this.logger.log(`Received request to delete media: ${url}`);
+    const supabase = this.getSupabaseClient();
+
+    // 1. Delete from Supabase Storage if URL points to Supabase bucket
+    if (supabase && (url.startsWith('/hero-banners/') || url.startsWith('/products/') || url.includes('/storage/v1/object/public/'))) {
+      try {
+        let bucket = 'hero-banners';
+        let filePath = url.replace(/^\/hero-banners\//, '');
+        if (url.startsWith('/products/')) {
+          bucket = 'products';
+          filePath = url.replace(/^\/products\//, '');
+        } else if (url.includes('/storage/v1/object/public/')) {
+          const parts = url.split('/storage/v1/object/public/')[1]?.split('/');
+          if (parts && parts.length >= 2) {
+            bucket = parts[0];
+            filePath = parts.slice(1).join('/');
+          }
+        }
+        const { error } = await supabase.storage.from(bucket).remove([filePath]);
+        if (error) {
+          this.logger.warn(`Supabase Storage remove warning (${bucket}/${filePath}): ${error.message}`);
+        } else {
+          this.logger.log(`[Supabase Storage] Deleted file (${bucket}/${filePath}) successfully!`);
+        }
+      } catch (err: any) {
+        this.logger.warn(`Supabase Storage remove error: ${err?.message || err}`);
+      }
+    }
+
+    // 2. Delete local file if stored locally in uploads/
+    if (url.startsWith('/uploads/')) {
+      try {
+        const filename = path.basename(url);
+        const localPath = path.join(uploadDir, filename);
+        if (fs.existsSync(localPath)) {
+          fs.unlinkSync(localPath);
+          this.logger.log(`[Local Disk] Deleted file (${localPath}) successfully!`);
+        }
+      } catch (err: any) {
+        this.logger.warn(`Local file deletion error: ${err?.message || err}`);
+      }
+    }
+
+    return { success: true, message: 'Media deleted successfully' };
   }
 }

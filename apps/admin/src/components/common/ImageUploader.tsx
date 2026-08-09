@@ -9,6 +9,7 @@ interface ImageUploaderProps {
   label?: string;
   currentImageUrl?: string;
   bucket?: 'hero-banners' | 'products';
+  clearOnUpload?: boolean;
 }
 
 export function resolveImageUrl(url?: string | null): string {
@@ -35,6 +36,7 @@ export default function ImageUploader({
   label = 'Upload Photo',
   currentImageUrl: _currentImageUrl,
   bucket = 'products',
+  clearOnUpload = false,
 }: ImageUploaderProps) {
   // Sync previewUrl when currentImageUrl prop updates or resets (e.g. switching slides or after save)
   const [previewUrl, setPreviewUrl] = useState<string | null>(_currentImageUrl || null);
@@ -133,7 +135,11 @@ export default function ImageUploader({
       const webpFilename = file.name.replace(/\.[^/.]+$/, '') + '.webp';
       const relativeUrl = await adminApi.uploadMedia(blob, webpFilename, bucket);
 
-      setPreviewUrl(relativeUrl);
+      if (clearOnUpload) {
+        setPreviewUrl(null);
+      } else {
+        setPreviewUrl(relativeUrl);
+      }
       onImageUploaded(relativeUrl);
     } catch (err: any) {
       setError(err.message || 'Image processing failed');
@@ -151,6 +157,9 @@ export default function ImageUploader({
   };
 
   const handleRemove = () => {
+    if (previewUrl) {
+      adminApi.deleteMedia(previewUrl).catch(() => {});
+    }
     setPreviewUrl(null);
     setOriginalSizeKB(null);
     setCompressedSizeKB(null);

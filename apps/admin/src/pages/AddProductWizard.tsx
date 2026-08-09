@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Plus, Trash2, ArrowRight, Check, X } from 'lucide-react';
+import { Plus, Trash2, ArrowRight, Check, X, Star, Tag } from 'lucide-react';
 import ImageUploader, { resolveImageUrl } from '../components/common/ImageUploader';
 import type { Product, ProductStatus, PackagingType, ProductImage } from '../types';
 import type { CategoryItem } from './CategoryCMS';
+import { adminApi } from '../services/apiClient';
 
 interface AddProductWizardProps {
   onCancel: () => void;
@@ -14,18 +15,18 @@ const VARIANT_PRESETS = [
   {
     name: 'Ghee Sizes (500ml, 1L, 2.5L, 5L)',
     variants: [
-      { sizeLabel: '500 ml Glass Jar', sellingPrice: 799, mrpPrice: 950, stockQuantity: 100, packagingType: 'GLASS_JAR' as PackagingType },
-      { sizeLabel: '1 Litre Glass Jar', sellingPrice: 1499, mrpPrice: 1800, stockQuantity: 100, packagingType: 'GLASS_JAR' as PackagingType },
-      { sizeLabel: '2.5L Metal Dolchi', sellingPrice: 3650, mrpPrice: 4200, stockQuantity: 50, packagingType: 'METAL_DOLCHI' as PackagingType },
-      { sizeLabel: '5L Traditional Metal Dolchi', sellingPrice: 6999, mrpPrice: 8000, stockQuantity: 25, packagingType: 'METAL_DOLCHI' as PackagingType },
+      { sizeLabel: '500 ml Glass Jar', sellingPrice: 799, mrpPrice: 950, stockQuantity: 100, packagingType: 'GLASS_JAR' as PackagingType, imageUrl: '' },
+      { sizeLabel: '1 Litre Glass Jar', sellingPrice: 1499, mrpPrice: 1800, stockQuantity: 100, packagingType: 'GLASS_JAR' as PackagingType, imageUrl: '' },
+      { sizeLabel: '2.5L Metal Dolchi', sellingPrice: 3650, mrpPrice: 4200, stockQuantity: 50, packagingType: 'METAL_DOLCHI' as PackagingType, imageUrl: '' },
+      { sizeLabel: '5L Traditional Metal Dolchi', sellingPrice: 6999, mrpPrice: 8000, stockQuantity: 25, packagingType: 'METAL_DOLCHI' as PackagingType, imageUrl: '' },
     ]
   },
   {
     name: 'Milk Sizes (500ml, 1L, 2L, 5L)',
     variants: [
-      { sizeLabel: '500 ml Pouch', sellingPrice: 48, mrpPrice: 50, stockQuantity: 500, packagingType: 'ECO_POUCH' as PackagingType },
-      { sizeLabel: '1 Litre Glass Bottle', sellingPrice: 95, mrpPrice: 100, stockQuantity: 300, packagingType: 'GLASS_JAR' as PackagingType },
-      { sizeLabel: '2 Litre Family Pack', sellingPrice: 185, mrpPrice: 195, stockQuantity: 200, packagingType: 'PET_BOTTLE' as PackagingType },
+      { sizeLabel: '500 ml Pouch', sellingPrice: 48, mrpPrice: 50, stockQuantity: 500, packagingType: 'ECO_POUCH' as PackagingType, imageUrl: '' },
+      { sizeLabel: '1 Litre Glass Bottle', sellingPrice: 95, mrpPrice: 100, stockQuantity: 300, packagingType: 'GLASS_JAR' as PackagingType, imageUrl: '' },
+      { sizeLabel: '2 Litre Family Pack', sellingPrice: 185, mrpPrice: 195, stockQuantity: 200, packagingType: 'PET_BOTTLE' as PackagingType, imageUrl: '' },
     ]
   }
 ];
@@ -46,9 +47,9 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
   const [tagline, setTagline] = useState('');
   const [storyDescription, setStoryDescription] = useState('');
 
-  // Step 2: Variants Matrix
-  const [variants, setVariants] = useState<Array<{ sizeLabel: string; sellingPrice: number; mrpPrice: number; stockQuantity: number; packagingType: PackagingType }>>([
-    { sizeLabel: '1 Litre Pack', sellingPrice: 500, mrpPrice: 600, stockQuantity: 50, packagingType: 'GLASS_JAR' }
+  // Step 2: Variants Matrix (with variant-specific imageUrl)
+  const [variants, setVariants] = useState<Array<{ sizeLabel: string; sellingPrice: number; mrpPrice: number; stockQuantity: number; packagingType: PackagingType; imageUrl?: string }>>([
+    { sizeLabel: '1 Litre Pack', sellingPrice: 500, mrpPrice: 600, stockQuantity: 50, packagingType: 'GLASS_JAR', imageUrl: '' }
   ]);
 
   // Step 3: Gallery (1-10)
@@ -77,7 +78,7 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
 
   const applyPreset = (presetIndex: number) => {
     const selected = VARIANT_PRESETS[presetIndex];
-    setVariants(selected.variants);
+    setVariants(selected.variants.map(v => ({ ...v })));
   };
 
   const handleAddImage = (url: string) => {
@@ -93,7 +94,50 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
       displayOrder: galleryImages.length + 1,
       isPrimary: galleryImages.length === 0,
     };
-    setGalleryImages([...galleryImages, newImg]);
+    setGalleryImages(prev => [...prev, newImg]);
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    const imgToRemove = galleryImages[indexToRemove];
+    if (imgToRemove?.imageUrl) {
+      // Trigger background deletion from Supabase Storage / Disk
+      adminApi.deleteMedia(imgToRemove.imageUrl).catch(() => {});
+    }
+
+    const updated = galleryImages.filter((_, idx) => idx !== indexToRemove);
+    // Ensure primary flag remains valid
+    if (imgToRemove?.isPrimary && updated.length > 0) {
+      updated[0].isPrimary = true;
+    }
+    setGalleryImages(updated);
+  };
+
+  const handleSetPrimaryImage = (targetIndex: number) => {
+    setGalleryImages(prev => prev.map((img, idx) => ({
+      ...img,
+      isPrimary: idx === targetIndex
+    })));
+  };
+
+  const handleAssignVariantToImage = (imageIndex: number, variantSizeLabel: string) => {
+    const targetImg = galleryImages[imageIndex];
+    if (!targetImg) return;
+
+    // Update variant object imageUrl
+    setVariants(prev => prev.map(v => {
+      if (v.sizeLabel === variantSizeLabel) {
+        return { ...v, imageUrl: targetImg.imageUrl };
+      }
+      return v;
+    }));
+
+    // Update image variantId tag
+    setGalleryImages(prev => prev.map((img, idx) => {
+      if (idx === imageIndex) {
+        return { ...img, variantId: variantSizeLabel };
+      }
+      return img;
+    }));
   };
 
   const handleFinish = () => {
@@ -271,7 +315,10 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
       {currentStep === 2 && (
         <div className="bg-stone-900 p-6 rounded-2xl border border-stone-800 space-y-4 text-xs text-stone-200">
           <div className="flex justify-between items-center border-b border-stone-800 pb-2">
-            <h2 className="text-sm font-bold text-amber-400">Step 2: Variant Matrix & Stock Quantities</h2>
+            <div>
+              <h2 className="text-sm font-bold text-amber-400">Step 2: Variant Matrix, Prices & Variant Images</h2>
+              <p className="text-[10px] text-stone-400">Assign specific images to each size variant or share general gallery photos.</p>
+            </div>
             <div className="flex gap-2">
               {VARIANT_PRESETS.map((preset, pIdx) => (
                 <button
@@ -288,60 +335,114 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
 
           <div className="space-y-3">
             {variants.map((variant, idx) => (
-              <div key={idx} className="p-3 bg-stone-950 rounded-xl border border-stone-800 grid grid-cols-5 gap-2 items-center">
-                <div className="col-span-2">
-                  <label className="block text-[10px] text-stone-400 mb-0.5">Size / Variant Label</label>
-                  <input
-                    type="text"
-                    value={variant.sizeLabel}
-                    onChange={(e) => {
-                      const updated = [...variants];
-                      updated[idx].sizeLabel = e.target.value;
-                      setVariants(updated);
-                    }}
-                    className="w-full px-2.5 py-1.5 bg-stone-900 border border-stone-700 rounded font-semibold text-stone-100"
-                  />
+              <div key={idx} className="p-3.5 bg-stone-950 rounded-xl border border-stone-800 space-y-3">
+                <div className="grid grid-cols-12 gap-3 items-center">
+                  {/* Size Label */}
+                  <div className="col-span-4">
+                    <label className="block text-[10px] text-stone-400 mb-0.5">Size / Variant Label *</label>
+                    <input
+                      type="text"
+                      value={variant.sizeLabel}
+                      onChange={(e) => {
+                        const updated = [...variants];
+                        updated[idx].sizeLabel = e.target.value;
+                        setVariants(updated);
+                      }}
+                      className="w-full px-2.5 py-1.5 bg-stone-900 border border-stone-700 rounded font-semibold text-stone-100"
+                      placeholder="e.g. 1 Litre Glass Jar"
+                    />
+                  </div>
+
+                  {/* Selling Price */}
+                  <div className="col-span-3">
+                    <label className="block text-[10px] text-stone-400 mb-0.5">Selling Price (₹)</label>
+                    <input
+                      type="number"
+                      value={variant.sellingPrice}
+                      onChange={(e) => {
+                        const updated = [...variants];
+                        updated[idx].sellingPrice = Number(e.target.value);
+                        setVariants(updated);
+                      }}
+                      className="w-full px-2.5 py-1.5 bg-stone-900 border border-stone-700 rounded font-mono text-stone-100 font-bold"
+                    />
+                  </div>
+
+                  {/* Stock Units */}
+                  <div className="col-span-3">
+                    <label className="block text-[10px] text-stone-400 mb-0.5">Stock Units</label>
+                    <input
+                      type="number"
+                      value={variant.stockQuantity}
+                      onChange={(e) => {
+                        const updated = [...variants];
+                        updated[idx].stockQuantity = Number(e.target.value);
+                        setVariants(updated);
+                      }}
+                      className="w-full px-2.5 py-1.5 bg-stone-900 border border-stone-700 rounded font-mono text-amber-400 font-bold"
+                    />
+                  </div>
+
+                  {/* Actions */}
+                  <div className="col-span-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (variants.length <= 1) { alert('Minimum 1 variant required'); return; }
+                        setVariants(variants.filter((_, i) => i !== idx));
+                      }}
+                      className="p-1.5 text-stone-500 hover:text-red-400 rounded-lg hover:bg-stone-900 transition-colors"
+                      title="Delete Variant"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-[10px] text-stone-400 mb-0.5">Selling Price (₹)</label>
-                  <input
-                    type="number"
-                    value={variant.sellingPrice}
-                    onChange={(e) => {
-                      const updated = [...variants];
-                      updated[idx].sellingPrice = Number(e.target.value);
-                      setVariants(updated);
-                    }}
-                    className="w-full px-2.5 py-1.5 bg-stone-900 border border-stone-700 rounded font-mono text-stone-100 font-bold"
-                  />
-                </div>
+                {/* Dedicated Variant Image Selection / Upload */}
+                <div className="flex items-center gap-3 pt-2 border-t border-stone-900">
+                  <div className="text-[10px] font-semibold text-stone-400 shrink-0 flex items-center gap-1">
+                    <Tag className="h-3 w-3 text-amber-400" />
+                    <span>Variant Specific Image:</span>
+                  </div>
 
-                <div>
-                  <label className="block text-[10px] text-stone-400 mb-0.5">Stock Units</label>
-                  <input
-                    type="number"
-                    value={variant.stockQuantity}
-                    onChange={(e) => {
-                      const updated = [...variants];
-                      updated[idx].stockQuantity = Number(e.target.value);
-                      setVariants(updated);
-                    }}
-                    className="w-full px-2.5 py-1.5 bg-stone-900 border border-stone-700 rounded font-mono text-amber-400 font-bold"
-                  />
-                </div>
-
-                <div className="text-right">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (variants.length <= 1) { alert('Minimum 1 variant required'); return; }
-                      setVariants(variants.filter((_, i) => i !== idx));
-                    }}
-                    className="p-1.5 text-stone-500 hover:text-red-400"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {variant.imageUrl ? (
+                    <div className="flex items-center gap-2 bg-stone-900 px-2.5 py-1 rounded-lg border border-stone-800">
+                      <img src={resolveImageUrl(variant.imageUrl)} alt="" className="w-6 h-6 rounded object-cover" />
+                      <span className="text-[10px] text-stone-300 truncate max-w-[160px]">Image assigned</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = [...variants];
+                          updated[idx].imageUrl = '';
+                          setVariants(updated);
+                        }}
+                        className="text-stone-400 hover:text-red-400 p-0.5"
+                        title="Clear variant image"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            const updated = [...variants];
+                            updated[idx].imageUrl = e.target.value;
+                            setVariants(updated);
+                          }
+                        }}
+                        className="px-2 py-1 bg-stone-900 border border-stone-800 rounded text-[10px] text-stone-300"
+                      >
+                        <option value="">Choose from Gallery Photos...</option>
+                        {galleryImages.map(img => (
+                          <option key={img.id} value={img.imageUrl}>Gallery Photo #{img.displayOrder}</option>
+                        ))}
+                      </select>
+                      <span className="text-[10px] text-stone-500">or link in Step 3</span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -349,7 +450,7 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
 
           <button
             type="button"
-            onClick={() => setVariants([...variants, { sizeLabel: 'New Pack Size', sellingPrice: 500, mrpPrice: 600, stockQuantity: 50, packagingType: 'GLASS_JAR' }])}
+            onClick={() => setVariants([...variants, { sizeLabel: 'New Pack Size', sellingPrice: 500, mrpPrice: 600, stockQuantity: 50, packagingType: 'GLASS_JAR', imageUrl: '' }])}
             className="flex items-center gap-1 px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg text-xs font-semibold"
           >
             <Plus className="h-3.5 w-3.5" /> Add Size Variant
@@ -366,33 +467,91 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
 
       {/* STEP 3: GALLERY */}
       {currentStep === 3 && (
-        <div className="bg-stone-900 p-6 rounded-2xl border border-stone-800 space-y-4 text-xs text-stone-200">
+        <div className="bg-stone-900 p-6 rounded-2xl border border-stone-800 space-y-5 text-xs text-stone-200">
           <div className="flex justify-between items-center border-b border-stone-800 pb-2">
-            <h2 className="text-sm font-bold text-amber-400">Step 3: Product Image Gallery (1-10 Photos)</h2>
-            <span className="font-mono text-xs text-stone-400">{galleryImages.length}/10 Images Uploaded</span>
+            <div>
+              <h2 className="text-sm font-bold text-amber-400">Step 3: Product Image Gallery (Up to 10 Photos)</h2>
+              <p className="text-[10px] text-stone-400">Upload product photos, set the primary thumbnail, and assign photos to specific variants.</p>
+            </div>
+            <span className="font-mono text-xs px-2.5 py-1 bg-stone-950 border border-stone-800 rounded-lg text-amber-400 font-bold">
+              {galleryImages.length}/10 Images Uploaded
+            </span>
           </div>
 
-          <div className="grid grid-cols-4 gap-3">
-            {galleryImages.map((img, idx) => (
-              <div key={img.id} className="relative aspect-square bg-stone-950 border border-stone-800 rounded-xl overflow-hidden group">
-                <img src={resolveImageUrl(img.imageUrl)} alt="" className="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => setGalleryImages(galleryImages.filter((_, i) => i !== idx))}
-                  className="absolute top-1 right-1 p-1 bg-red-600/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          {/* Uploaded Gallery Grid */}
+          {galleryImages.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+              {galleryImages.map((img, idx) => (
+                <div
+                  key={img.id}
+                  className={`relative bg-stone-950 border rounded-xl overflow-hidden group flex flex-col justify-between transition-all ${
+                    img.isPrimary ? 'border-amber-400 ring-2 ring-amber-400/20' : 'border-stone-800'
+                  }`}
                 >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-          </div>
+                  <div className="relative aspect-square bg-stone-900">
+                    <img src={resolveImageUrl(img.imageUrl)} alt="" className="w-full h-full object-cover" />
 
-          <ImageUploader
-            bucket="products"
-            label="Upload Product Photo (Auto WebP Compressed)"
-            aspectRatio="square"
-            onImageUploaded={handleAddImage}
-          />
+                    {/* Primary Badge */}
+                    {img.isPrimary ? (
+                      <div className="absolute top-1.5 left-1.5 bg-amber-500 text-stone-950 text-[9px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md">
+                        <Star className="h-3 w-3 fill-stone-950" />
+                        <span>PRIMARY</span>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleSetPrimaryImage(idx)}
+                        className="absolute top-1.5 left-1.5 bg-stone-900/80 hover:bg-amber-500 hover:text-stone-950 text-stone-300 text-[9px] font-bold px-2 py-0.5 rounded-md transition-colors backdrop-blur-sm border border-stone-700"
+                      >
+                        Set Primary
+                      </button>
+                    )}
+
+                    {/* Delete Image Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(idx)}
+                      className="absolute top-1.5 right-1.5 p-1.5 bg-stone-950/80 hover:bg-red-600 text-stone-300 hover:text-white rounded-lg transition-colors border border-stone-700 cursor-pointer"
+                      title="Delete image & remove from storage"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Variant Linking Selector */}
+                  <div className="p-2 bg-stone-950 border-t border-stone-800 space-y-1">
+                    <label className="text-[9px] font-semibold text-stone-400 flex items-center gap-1">
+                      <Tag className="h-3 w-3 text-amber-400" />
+                      <span>Variant Link:</span>
+                    </label>
+                    <select
+                      value={img.variantId || ''}
+                      onChange={(e) => handleAssignVariantToImage(idx, e.target.value)}
+                      className="w-full text-[10px] bg-stone-900 border border-stone-800 rounded px-2 py-1 text-stone-200 focus:border-amber-400"
+                    >
+                      <option value="">🌐 Shared (All Variants)</option>
+                      {variants.map(v => (
+                        <option key={v.sizeLabel} value={v.sizeLabel}>
+                          🏷️ {v.sizeLabel}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Multi-Photo Uploader */}
+          {galleryImages.length < 10 && (
+            <ImageUploader
+              bucket="products"
+              label={`Upload Gallery Photo #${galleryImages.length + 1} (Auto WebP Compressed)`}
+              aspectRatio="square"
+              clearOnUpload={true}
+              onImageUploaded={handleAddImage}
+            />
+          )}
 
           <div className="flex justify-between pt-4">
             <button onClick={() => setCurrentStep(2)} className="px-4 py-2 bg-stone-800 rounded-xl">Back</button>
