@@ -669,13 +669,47 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3 text-sm text-[#6b6661]">
-                  {Object.entries(dynamicDetails).map(([key, value]) => (
-                    <div key={key} className="flex justify-between border-b border-stone-100 pb-2.5 items-center">
-                      <span className="font-bold text-[#2A2A2A]">{key}</span>
-                      <span className="font-medium text-[#2A2A2A]">{value as string}</span>
+                <div className="space-y-8 text-sm text-[#6b6661]">
+                  {/* Nutritional Facts Table from DB */}
+                  {(product as any).nutritionFacts && Object.keys((product as any).nutritionFacts).length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-serif font-black text-sm text-[#2A2A2A] uppercase tracking-wider flex items-center gap-2 border-b border-stone-200 pb-2">
+                        <span>🥗</span> Nutritional Facts & Metrics
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {Object.entries((product as any).nutritionFacts).map(([key, val]) => (
+                          <div key={key} className="flex justify-between items-center p-3 rounded-xl bg-[#FAF8F3]/80 border border-stone-200/80 shadow-2xs">
+                            <span className="font-bold text-[#2A2A2A] text-xs">{key}</span>
+                            <span className="font-extrabold text-[#3A6038] text-xs font-mono">{String(val)}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Product Specifications & Packaging Details */}
+                  <div className="space-y-3">
+                    <h4 className="font-serif font-black text-sm text-[#2A2A2A] uppercase tracking-wider flex items-center gap-2 border-b border-stone-200 pb-2">
+                      <span>📋</span> Product Specifications & Packaging
+                    </h4>
+                    <div className="space-y-2.5">
+                      {Object.entries(dynamicDetails).map(([key, value]) => (
+                        <div key={key} className="flex justify-between border-b border-stone-100 pb-2 items-center text-xs">
+                          <span className="font-bold text-[#2A2A2A]">{key}</span>
+                          <span className="font-medium text-[#2A2A2A]">{value as string}</span>
+                        </div>
+                      ))}
+                      {(product as any).specifications && Object.entries((product as any).specifications).map(([key, val]) => {
+                        if (dynamicDetails[key as keyof typeof dynamicDetails]) return null;
+                        return (
+                          <div key={key} className="flex justify-between border-b border-stone-100 pb-2 items-center text-xs">
+                            <span className="font-bold text-[#2A2A2A]">{key}</span>
+                            <span className="font-medium text-[#2A2A2A]">{String(val)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
                 </div>

@@ -109,13 +109,21 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
     });
   });
 
-  // Nutrition Facts key-value pairs
-  const [nutritionFacts, setNutritionFacts] = useState<Array<{ key: string; value: string }>>([
-    { key: 'Energy', value: '897 kcal per 100g' },
-    { key: 'Total Fat', value: '99.8g' },
-    { key: 'Saturated Fat', value: '65g' },
-    { key: 'Vitamin A', value: '300 mcg' },
-  ]);
+  // Nutrition Facts key-value pairs (loaded dynamically from database product record)
+  const [nutritionFacts, setNutritionFacts] = useState<Array<{ key: string; value: string }>>(() => {
+    if (initialProduct?.nutritionFacts && Object.keys(initialProduct.nutritionFacts).length > 0) {
+      return Object.entries(initialProduct.nutritionFacts).map(([key, value]) => ({
+        key,
+        value: String(value),
+      }));
+    }
+    return [
+      { key: 'Energy', value: '65 kcal per 100ml' },
+      { key: 'Protein', value: '3.2g per 100ml' },
+      { key: 'Total Fat', value: '3.5g' },
+      { key: 'Calcium', value: '120mg' },
+    ];
+  });
 
   // Handle adding image to gallery (Max 10 limit)
   const handleAddGalleryImage = (url: string) => {
