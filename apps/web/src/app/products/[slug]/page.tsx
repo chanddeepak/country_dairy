@@ -130,17 +130,20 @@ export default function ProductDetailPage() {
     const vImg = variant.image || (variant as any).imageUrl;
     const variantLabel = variant.volumeOrWeight || (variant as any).name || (variant as any).sizeLabel;
 
-    // 1. Check if variant has direct image assigned
-    // 2. Or check if galleryImages has an image tagged with this variantId
-    const taggedGalleryImg = (product as any)?.galleryImages?.find((g: any) => 
+    // 1. Check if variant has direct primary image assigned
+    // 2. Or check if galleryImages has an image tagged with this variantId & isVariantPrimary
+    const variantPrimaryGalleryImg = (product as any)?.galleryImages?.find((g: any) => 
+      (g.variantId === variant.id || (variantLabel && g.variantId === variantLabel)) && g.isVariantPrimary
+    )?.imageUrl;
+
+    const anyVariantGalleryImg = (product as any)?.galleryImages?.find((g: any) => 
       g.variantId === variant.id || (variantLabel && g.variantId === variantLabel)
     )?.imageUrl;
 
-    const primaryProductImg = (product as any)?.galleryImages?.find((g: any) => g.isPrimary)?.imageUrl 
-      || (product as any)?.galleryImages?.[0]?.imageUrl
-      || (product ? PRODUCT_IMAGES[product.slug] : undefined);
+    const sharedPrimaryImg = (product as any)?.galleryImages?.find((g: any) => g.isPrimary && !g.variantId)?.imageUrl 
+      || (product as any)?.galleryImages?.find((g: any) => g.isPrimary)?.imageUrl;
 
-    const targetImg = vImg || taggedGalleryImg || primaryProductImg || product?.imageUrls?.[0] || '/images/products/milk-bottle.png';
+    const targetImg = vImg || variantPrimaryGalleryImg || anyVariantGalleryImg || sharedPrimaryImg || '/images/products/milk-bottle.png';
     setActiveImage(resolveStorefrontImageUrl(targetImg));
   };
 
@@ -244,13 +247,15 @@ export default function ProductDetailPage() {
   });
 
   const variantPrimaryImg = selectedVariant?.image || (selectedVariant as any)?.imageUrl;
-  const productPrimaryImg = rawGallery.find((g: any) => g.isPrimary)?.imageUrl || (product as any)?.imageUrl;
+  const rawPrimary = rawGallery.find((g: any) => g.isPrimary);
+  const productPrimaryImg = (!rawPrimary?.variantId || rawPrimary?.variantId === selectedVariant?.id || rawPrimary?.variantId === selectedVariantLabel)
+    ? rawPrimary?.imageUrl
+    : null;
 
   const galleryPool = [
     variantPrimaryImg,
     productPrimaryImg,
     ...relevantGallery.map((g: any) => g.imageUrl),
-    ...(product.imageUrls || []),
   ].filter(Boolean) as string[];
   const allImages = Array.from(new Set(galleryPool));
 
