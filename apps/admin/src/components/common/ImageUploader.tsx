@@ -176,9 +176,9 @@ export default function ImageUploader({
         </div>
       )}
 
-      {/* Upload Box or Image Preview */}
-      {previewUrl ? (
-        <div className="relative group rounded-xl overflow-hidden border border-stone-700 bg-stone-900">
+      {/* Current Image Preview */}
+      {previewUrl && (
+        <div className="relative group rounded-xl overflow-hidden border border-stone-700 bg-stone-900 shadow-md">
           <img
             src={resolveImageUrl(previewUrl)}
             alt="Uploaded preview"
@@ -188,15 +188,26 @@ export default function ImageUploader({
             }`}
           />
 
-          {/* Remove Overlay Button */}
-          <button
-            type="button"
-            onClick={handleRemove}
-            className="absolute top-2 right-2 p-1.5 bg-stone-950/80 text-stone-300 hover:text-red-400 rounded-full transition-colors backdrop-blur-sm"
-            title="Remove image"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          {/* Action Overlay */}
+          <div className="absolute top-2 right-2 flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-2.5 py-1 bg-stone-950/80 hover:bg-[#C59B27] text-stone-200 hover:text-stone-950 font-bold text-[10px] rounded-lg transition-colors backdrop-blur-sm border border-stone-700 flex items-center gap-1 cursor-pointer"
+              title="Replace image"
+            >
+              <Upload className="h-3 w-3" />
+              <span>Change Image</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleRemove}
+              className="p-1.5 bg-stone-950/80 text-stone-300 hover:text-red-400 rounded-lg transition-colors backdrop-blur-sm border border-stone-700 cursor-pointer"
+              title="Remove image"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
 
           {/* Compression Badge */}
           {originalSizeKB !== null && compressedSizeKB !== null && (
@@ -208,46 +219,51 @@ export default function ImageUploader({
             </div>
           )}
         </div>
-      ) : (
-        <div
-          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-          onDragLeave={() => setIsDragOver(false)}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
-            isDragOver
-              ? 'border-amber-400 bg-amber-500/10'
-              : 'border-stone-700 bg-stone-900/50 hover:bg-stone-800/50 hover:border-stone-600'
-          }`}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-          />
+      )}
 
-          {isCompressing ? (
-            <div className="space-y-2 py-2">
-              <div className="animate-spin text-amber-400 text-2xl mx-auto">⏳</div>
-              <div className="text-xs text-stone-300 font-semibold">Auto-compressing to WebP...</div>
+      {/* Upload Drop Zone (Always available for uploading/replacing) */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
+          isDragOver
+            ? 'border-amber-400 bg-amber-500/10'
+            : previewUrl
+            ? 'border-stone-800 bg-stone-900/40 hover:bg-stone-800/40 hover:border-stone-700'
+            : 'border-stone-700 bg-stone-900/50 hover:bg-stone-800/50 hover:border-stone-600'
+        }`}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+        />
+
+        {isCompressing ? (
+          <div className="space-y-1.5 py-1">
+            <div className="animate-spin text-amber-400 text-xl mx-auto">⏳</div>
+            <div className="text-xs text-stone-300 font-semibold">Auto-compressing to WebP...</div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-3 py-1">
+            <div className="w-8 h-8 rounded-full bg-stone-800 text-amber-400 flex items-center justify-center border border-stone-700 shrink-0">
+              <Upload className="h-4 w-4" />
             </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="w-10 h-10 rounded-full bg-stone-800 text-amber-400 flex items-center justify-center mx-auto border border-stone-700">
-                <Upload className="h-5 w-5" />
-              </div>
+            <div className="text-left">
               <div className="text-xs font-semibold text-stone-200">
-                Click or drag image here
+                {previewUrl ? 'Click or drag new image to replace' : 'Click or drag image here'}
               </div>
               <div className="text-[10px] text-stone-400">
-                JPG, PNG, or WebP up to 5MB
+                JPG, PNG, or WebP up to 5MB (Auto-WebP)
               </div>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
