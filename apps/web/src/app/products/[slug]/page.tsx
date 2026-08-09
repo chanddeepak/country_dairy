@@ -337,7 +337,9 @@ export default function ProductDetailPage() {
               {/* Gallery Thumbnails Row */}
               <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none">
                 {galleryThumbnails.map((thumb) => {
-                  const isSelected = activeImage === thumb.url;
+                  const resolvedActive = resolveStorefrontImageUrl(activeImage);
+                  const resolvedThumb = resolveStorefrontImageUrl(thumb.url);
+                  const isSelected = resolvedActive === resolvedThumb || activeImage === thumb.url;
                   return (
                     <button
                       key={thumb.id}
