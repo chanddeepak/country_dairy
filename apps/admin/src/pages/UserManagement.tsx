@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
-import { DEMO_ACCOUNTS, useAuth } from '../context/AuthContext';
-import type { UserProfile, UserRole } from '../types';
-import { ShieldCheck, UserPlus, Key, UserX, UserCheck } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { adminApi } from '../services/apiClient';
+import { displayName, type UserProfile, type UserRole } from '../types';
+import { ShieldCheck, UserPlus, Key, UserX, UserCheck, Loader2 } from 'lucide-react';
 
 export default function UserManagement() {
   const { user: currentUser } = useAuth();
-  const [users, setUsers] = useState<UserProfile[]>(DEMO_ACCOUNTS);
-  
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
   // Create User Modal Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newEmail, setNewEmail] = useState('');
@@ -18,54 +22,72 @@ export default function UserManagement() {
   const [resetModalUser, setResetModalUser] = useState<UserProfile | null>(null);
   const [resetPasswordInput, setResetPasswordInput] = useState('');
 
-  const handleCreateUser = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newEmail || !newName || !newPassword) {
-      alert('Please fill all required fields');
-      return;
+  const loadStaff = useCallback(async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      setUsers(await adminApi.getStaff());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load staff accounts');
+    } finally {
+      setIsLoading(false);
     }
+  }, []);
 
-    const newUser: UserProfile = {
-      id: `usr-${Date.now()}`,
-      email: newEmail.trim(),
-      fullName: newName.trim(),
-      role: newRole,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+  useEffect(() => {
+    loadStaff();
+  }, [loadStaff]);
 
-    setUsers(prev => [newUser, ...prev]);
-    setIsModalOpen(false);
-    setNewEmail('');
-    setNewName('');
-    setNewPassword('');
-    alert(`Account created successfully for ${newUser.fullName} (${newUser.role})`);
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setError('');
+    try {
+      const created = await adminApi.createStaff({
+        email: newEmail.trim(),
+        name: newName.trim(),
+        password: newPassword,
+        role: newRole,
+      });
+      setUsers((prev) => [created, ...prev]);
+      setIsModalOpen(false);
+      setNewEmail('');
+      setNewName('');
+      setNewPassword('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not create the account');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const toggleUserActiveStatus = (targetUser: UserProfile) => {
-    if (targetUser.id === currentUser?.id) {
-      alert('You cannot deactivate your own Super Admin account.');
-      return;
+  // The API enforces this too — it refuses to deactivate your own account or
+  // the last active Super Admin.
+  const toggleUserActiveStatus = async (targetUser: UserProfile) => {
+    setError('');
+    try {
+      const updated = await adminApi.updateStaff(targetUser.id, { isActive: !targetUser.isActive });
+      setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update the account');
     }
-
-    setUsers(prev => prev.map(u => {
-      if (u.id === targetUser.id) {
-        const nextStatus = !u.isActive;
-        alert(`Account ${u.email} has been ${nextStatus ? 'Activated' : 'Deactivated (All active sessions revoked)'}`);
-        return { ...u, isActive: nextStatus };
-      }
-      return u;
-    }));
   };
 
-  const handleResetPasswordSubmit = (e: React.FormEvent) => {
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resetPasswordInput || !resetModalUser) return;
+    if (!resetModalUser) return;
 
-    alert(`Password successfully updated for ${resetModalUser.fullName} (${resetModalUser.email}). Mandatory password change flagged on next login.`);
-    setResetModalUser(null);
-    setResetPasswordInput('');
+    setIsSaving(true);
+    setError('');
+    try {
+      await adminApi.resetStaffPassword(resetModalUser.id, resetPasswordInput);
+      setResetModalUser(null);
+      setResetPasswordInput('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not reset the password');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -90,8 +112,23 @@ export default function UserManagement() {
         </button>
       </div>
 
+      {error && (
+        <div className="p-3.5 text-xs bg-red-50 border border-red-200 text-red-700 rounded-xl font-medium">
+          {error}
+        </div>
+      )}
+
       {/* Directory Table */}
       <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm overflow-hidden">
+        {isLoading ? (
+          <div className="flex items-center justify-center gap-2 py-16 text-xs text-[#6b6661] font-medium">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading staff accounts…
+          </div>
+        ) : users.length === 0 ? (
+          <div className="py-16 text-center text-xs text-[#6b6661] font-medium">
+            No staff accounts yet.
+          </div>
+        ) : (
         <table className="w-full text-left text-xs text-[#2A2A2A]">
           <thead className="bg-[#FAF8F3] text-[#6b6661] font-bold border-b border-stone-200 uppercase tracking-wider">
             <tr>
@@ -106,7 +143,7 @@ export default function UserManagement() {
             {users.map((u) => (
               <tr key={u.id} className="hover:bg-[#FAF8F3]/60 transition-colors">
                 <td className="px-5 py-4">
-                  <div className="font-bold text-[#2A2A2A]">{u.fullName}</div>
+                  <div className="font-bold text-[#2A2A2A]">{displayName(u)}</div>
                   <div className="text-[10px] text-[#6b6661] font-mono">{u.id}</div>
                 </td>
                 <td className="px-5 py-4 font-mono text-[#2A2A2A]">{u.email}</td>
@@ -154,6 +191,7 @@ export default function UserManagement() {
             ))}
           </tbody>
         </table>
+        )}
       </div>
 
       {/* Create User Modal */}
@@ -226,9 +264,10 @@ export default function UserManagement() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#064e3b] hover:bg-[#065f46] text-white rounded-xl font-bold shadow-sm"
+                  disabled={isSaving}
+                  className="px-5 py-2 bg-[#064e3b] hover:bg-[#065f46] text-white rounded-xl font-bold shadow-sm disabled:opacity-50"
                 >
-                  Create Account
+                  {isSaving ? 'Creating…' : 'Create Account'}
                 </button>
               </div>
             </form>
@@ -246,7 +285,7 @@ export default function UserManagement() {
             </div>
 
             <p className="text-xs text-[#6b6661]">
-              Set a new temporary password for <strong className="text-[#064e3b]">{resetModalUser.fullName}</strong> ({resetModalUser.email}).
+              Set a new temporary password for <strong className="text-[#064e3b]">{displayName(resetModalUser)}</strong> ({resetModalUser.email}).
             </p>
 
             <form onSubmit={handleResetPasswordSubmit} className="space-y-3 text-xs">
@@ -272,9 +311,10 @@ export default function UserManagement() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#064e3b] hover:bg-[#065f46] text-white rounded-xl font-bold shadow-sm"
+                  disabled={isSaving}
+                  className="px-5 py-2 bg-[#064e3b] hover:bg-[#065f46] text-white rounded-xl font-bold shadow-sm disabled:opacity-50"
                 >
-                  Update Password
+                  {isSaving ? 'Updating…' : 'Update Password'}
                 </button>
               </div>
             </form>

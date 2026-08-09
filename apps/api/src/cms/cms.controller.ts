@@ -15,7 +15,7 @@ import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CmsService } from './cms.service';
-import { FeatureFlagsService } from './feature-flags.service';
+import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
 
 const CMS_STAFF = [Role.SUPER_ADMIN, Role.CATALOG_MANAGER] as const;
 

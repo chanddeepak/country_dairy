@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -10,9 +11,11 @@ import { MediaModule } from './media/media.module';
 import { OrdersModule } from './orders/orders.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { CmsModule } from './cms/cms.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
+    FeatureFlagsModule,
     PrismaModule,
     AuthModule,
     CatalogModule,
@@ -22,6 +25,7 @@ import { CmsModule } from './cms/cms.module';
     OrdersModule,
     SubscriptionsModule,
     CmsModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

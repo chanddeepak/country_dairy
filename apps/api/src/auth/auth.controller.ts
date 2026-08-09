@@ -7,6 +7,8 @@ import {
   GoogleLoginDto,
   LoginEmailDto,
   RegisterEmailDto,
+  SendOtpDto,
+  VerifyOtpDto,
 } from './dto/auth.dto';
 
 @Controller('auth')
@@ -36,6 +38,20 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async loginWithGoogle(@Body() dto: GoogleLoginDto) {
     return this.authService.loginWithGoogle(dto.idToken);
+  }
+
+  // Phone sign-in — gated behind ENABLE_OTP_LOGIN until an SMS provider is wired up.
+
+  @Post('send-otp')
+  @HttpCode(HttpStatus.OK)
+  async sendOtp(@Body() dto: SendOtpDto) {
+    return this.authService.sendOtp(dto.phone);
+  }
+
+  @Post('verify-otp')
+  @HttpCode(HttpStatus.OK)
+  async verifyOtp(@Body() dto: VerifyOtpDto) {
+    return this.authService.verifyOtp(dto.phone, dto.otp);
   }
 
   /** Lets a client validate a stored token and rehydrate the session. */

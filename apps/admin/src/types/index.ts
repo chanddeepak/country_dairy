@@ -5,27 +5,128 @@ export type UserRole =
   | 'DELIVERY_DRIVER' 
   | 'CUSTOMER';
 
+/** Mirrors what GET /auth/me returns. */
 export interface UserProfile {
   id: string;
-  email: string;
-  fullName: string;
-  phoneNumber?: string;
+  email: string | null;
+  name: string | null;
+  phone?: string | null;
   role: UserRole;
   isActive: boolean;
-  metadata?: Record<string, any>;
-  lastLoginAt?: string;
-  createdAt: string;
-  updatedAt: string;
+  walletBalance?: string | number;
+  lastLoginAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export type ProductStatus = 'DRAFT' | 'LIVE' | 'ARCHIVED' | 'OUT_OF_STOCK';
+/** Display helper — the API stores a single optional name. */
+export function displayName(user: Pick<UserProfile, 'name' | 'email'>): string {
+  return user.name || user.email?.split('@')[0] || 'Unknown user';
+}
 
-export type PackagingType = 
-  | 'GLASS_JAR' 
-  | 'METAL_DOLCHI' 
-  | 'FOOD_GRADE_TIN' 
-  | 'PET_BOTTLE' 
-  | 'ECO_POUCH';
+// Availability is derived from variant stock, so OUT_OF_STOCK is no longer a
+// lifecycle status. Use Product.forceOutOfStock for a manual override.
+export type ProductStatus = 'DRAFT' | 'LIVE' | 'ARCHIVED';
+
+/**
+ * Packaging is a database lookup table now, so new vessels (amber bottles for
+ * oil, squeeze bottles for honey) are added from the admin rather than by
+ * editing this union. Kept as a string for that reason.
+ */
+export type PackagingType = string;
+
+export interface PackagingOption {
+  code: string;
+  label: string;
+  displayOrder?: number;
+}
+
+export type OrderStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'PROCESSING'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'CANCELLED'
+  | 'RETURNED';
+
+export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
+
+export interface AdminOrderItem {
+  id: string;
+  productTitle: string;
+  variantSizeLabel: string;
+  sku: string;
+  imageUrl?: string | null;
+  hsnCode?: string | null;
+  quantity: number;
+  unitPrice: string | number;
+  mrpPrice: string | number;
+  gstRate: string | number;
+  taxAmount: string | number;
+  lineTotal: string | number;
+}
+
+export interface AdminOrder {
+  id: string;
+  orderNumber: string;
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  deliveryType: 'LOCAL' | 'COURIER';
+  subtotal: string | number;
+  taxAmount: string | number;
+  discountAmount: string | number;
+  deliveryCharges: string | number;
+  totalAmount: string | number;
+  couponCode?: string | null;
+  trackingNumber?: string | null;
+  shippingAddress: {
+    line1: string;
+    line2?: string | null;
+    city: string;
+    state: string;
+    postalCode: string;
+    country?: string;
+    phone?: string | null;
+  };
+  user: { id: string; name: string | null; email: string | null; phone: string | null };
+  driver?: { id: string; name: string | null } | null;
+  orderItems: AdminOrderItem[];
+  createdAt: string;
+  confirmedAt?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
+}
+
+export interface AdminCustomer extends UserProfile {
+  walletBalance?: string | number;
+  totalOrders?: number;
+  totalSpent?: number;
+  addresses?: {
+    id: string;
+    line1: string;
+    line2?: string | null;
+    city: string;
+    state: string;
+    postalCode: string;
+    phone?: string | null;
+    isDefault: boolean;
+  }[];
+  orders?: {
+    id: string;
+    orderNumber: string;
+    status: OrderStatus;
+    paymentStatus: PaymentStatus;
+    totalAmount: string | number;
+    createdAt: string;
+  }[];
+}
+
+export interface OrderStats {
+  byStatus: Partial<Record<OrderStatus, number>>;
+  totalRevenue: number;
+  ordersToday: number;
+}
 
 export interface Category {
   id: string;
@@ -77,12 +178,19 @@ export interface Product {
   tagline?: string;
   storyDescription?: string;
   status: ProductStatus;
+  /** Manual storefront override, independent of the lifecycle status. */
+  forceOutOfStock?: boolean;
   badgeText?: string;
   isFeatured: boolean;
   displayOrder: number;
   isSubscriptionAllowed?: boolean;
   batchCode?: string;
   verified?: boolean;
+  /** Indian GST compliance — differs per product line. */
+  hsnCode?: string | null;
+  gstRate?: string | number;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
   nutritionFacts?: Record<string, string>;
   specifications?: Record<string, string>;
   metadata?: Record<string, any>;

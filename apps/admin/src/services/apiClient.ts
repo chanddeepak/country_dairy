@@ -1,9 +1,58 @@
-import type { Product, CategoryItem, HeroBanner, TrustBadge, FeatureFlag } from '../types';
+import type {
+  Product,
+  CategoryItem,
+  HeroBanner,
+  TrustBadge,
+  FeatureFlag,
+  UserProfile,
+  AdminOrder,
+  AdminCustomer,
+  OrderStats,
+  PackagingOption,
+} from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+// Accepts either name: .env.staging defines VITE_API_URL while the original
+// code read VITE_API_BASE_URL, so staging silently fell back to localhost.
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+
+const TOKEN_KEY = 'country_dairy_admin_token';
+
+export function getAdminToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setAdminToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearAdminToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+/** Thrown for non-2xx responses, carrying the status so callers can branch. */
+export class ApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+function extractMessage(body: string, fallback: string): string {
+  try {
+    const parsed = JSON.parse(body);
+    if (Array.isArray(parsed?.message)) return parsed.message.join('. ');
+    return parsed?.message || fallback;
+  } catch {
+    return body || fallback;
+  }
+}
 
 async function fetchJson<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem('country_dairy_admin_token');
+  const token = getAdminToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
@@ -18,8 +67,15 @@ async function fetchJson<T>(endpoint: string, options: RequestInit = {}): Promis
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`API Error (${response.status}): ${errorText || response.statusText}`);
+    const body = await response.text();
+
+    // An expired or revoked token should drop the session rather than leave
+    // the console in a half-authenticated state.
+    if (response.status === 401) {
+      clearAdminToken();
+    }
+
+    throw new ApiError(response.status, extractMessage(body, response.statusText));
   }
 
   const text = await response.text();
@@ -27,6 +83,18 @@ async function fetchJson<T>(endpoint: string, options: RequestInit = {}): Promis
 }
 
 export const adminApi = {
+  // Auth API
+  async login(email: string, password: string): Promise<{ accessToken: string; user: UserProfile }> {
+    return fetchJson<{ accessToken: string; user: UserProfile }>('/auth/admin/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  },
+
+  async getCurrentUser(): Promise<UserProfile> {
+    return fetchJson<UserProfile>('/auth/me');
+  },
+
   // Media Upload API (Pre-Signed URL Object Storage Pattern)
   async uploadMedia(file: Blob, filename: string = 'image.webp', bucket: string = 'hero-banners'): Promise<string> {
     // 1. Fetch pre-signed upload URL from backend API
@@ -93,14 +161,23 @@ export const adminApi = {
     }
   },
 
-  // Products API
+  // Products API — the admin routes return every status. The public
+  // /catalog/products endpoint is pinned to LIVE so drafts stay unlisted.
   async getProducts(categoryId?: string, search?: string, status?: string): Promise<Product[]> {
     const query = new URLSearchParams();
     if (categoryId) query.append('categoryId', categoryId);
     if (search) query.append('search', search);
     if (status) query.append('status', status);
     const queryString = query.toString() ? `?${query.toString()}` : '';
-    return fetchJson<Product[]>(`/catalog/products${queryString}`);
+    return fetchJson<Product[]>(`/catalog/admin/products${queryString}`);
+  },
+
+  async getProduct(slugOrId: string): Promise<Product> {
+    return fetchJson<Product>(`/catalog/admin/products/${slugOrId}`);
+  },
+
+  async getPackagingOptions(): Promise<PackagingOption[]> {
+    return fetchJson<PackagingOption[]>('/catalog/packaging-options');
   },
 
   async createProduct(product: Product): Promise<Product> {
@@ -131,7 +208,7 @@ export const adminApi = {
 
   // Categories API
   async getCategories(): Promise<CategoryItem[]> {
-    return fetchJson<CategoryItem[]>('/catalog/categories');
+    return fetchJson<CategoryItem[]>('/catalog/admin/categories');
   },
 
   async createCategory(category: Partial<CategoryItem>): Promise<CategoryItem> {
@@ -194,15 +271,74 @@ export const adminApi = {
     });
   },
 
-  // Admin Orders API
-  async getOrdersAdmin(): Promise<any[]> {
-    return fetchJson<any[]>('/orders/admin/all');
+  // Staff & Customers API
+  async getStaff(): Promise<UserProfile[]> {
+    return fetchJson<UserProfile[]>('/users/staff');
   },
 
-  async updateOrderStatusAdmin(orderId: string, status: string, driverName?: string, trackingNumber?: string): Promise<any> {
-    return fetchJson<any>(`/orders/admin/${orderId}/status`, {
+  async createStaff(payload: {
+    email: string;
+    name: string;
+    password: string;
+    role: string;
+  }): Promise<UserProfile> {
+    return fetchJson<UserProfile>('/users/staff', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updateStaff(
+    id: string,
+    payload: { name?: string; role?: string; isActive?: boolean },
+  ): Promise<UserProfile> {
+    return fetchJson<UserProfile>(`/users/staff/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ status, driverName, trackingNumber }),
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async resetStaffPassword(id: string, password: string): Promise<{ success: boolean }> {
+    return fetchJson<{ success: boolean }>(`/users/staff/${id}/password`, {
+      method: 'PATCH',
+      body: JSON.stringify({ password }),
+    });
+  },
+
+  async getDrivers(): Promise<{ id: string; name: string | null; phone: string | null }[]> {
+    return fetchJson<{ id: string; name: string | null; phone: string | null }[]>('/users/drivers');
+  },
+
+  async getCustomers(search?: string): Promise<AdminCustomer[]> {
+    const query = search ? `?search=${encodeURIComponent(search)}` : '';
+    return fetchJson<AdminCustomer[]>(`/users/customers${query}`);
+  },
+
+  async getCustomer(id: string): Promise<AdminCustomer> {
+    return fetchJson<AdminCustomer>(`/users/customers/${id}`);
+  },
+
+  // Admin Orders API
+  async getOrdersAdmin(status?: string, search?: string): Promise<AdminOrder[]> {
+    const query = new URLSearchParams();
+    if (status) query.append('status', status);
+    if (search) query.append('search', search);
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    return fetchJson<AdminOrder[]>(`/orders/admin/all${queryString}`);
+  },
+
+  async getOrderStatsAdmin(): Promise<OrderStats> {
+    return fetchJson<OrderStats>('/orders/admin/stats');
+  },
+
+  async updateOrderStatusAdmin(
+    orderId: string,
+    status: string,
+    options: { driverId?: string; trackingNumber?: string; note?: string } = {},
+  ): Promise<AdminOrder> {
+    return fetchJson<AdminOrder>(`/orders/admin/${orderId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, ...options }),
     });
   },
 };

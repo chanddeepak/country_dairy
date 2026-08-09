@@ -11,7 +11,7 @@ import {
   TransactionType,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { FLAG, FeatureFlagsService } from '../cms/feature-flags.service';
+import { FLAG, FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import { round2 } from '../orders/pricing';
 
 @Injectable()

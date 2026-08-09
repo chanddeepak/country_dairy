@@ -10,6 +10,7 @@ import { AuthProvider, Role, User } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { PrismaService } from '../prisma/prisma.service';
+import { FLAG, FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import { CreateAddressDto } from './dto/auth.dto';
 
 const BCRYPT_ROUNDS = 12;
@@ -32,6 +33,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private featureFlags: FeatureFlagsService,
   ) {
     this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
   }
@@ -120,9 +122,84 @@ export class AuthService {
     return this.buildAuthResponse(user);
   }
 
+  // --- PHONE OTP ---
+  //
+  // Behind ENABLE_OTP_LOGIN and not yet wired to an SMS provider. The codes
+  // are stored hashed in OtpVerification rather than in memory, so this works
+  // across instances and survives a redeploy once a provider is connected.
+
+  async sendOtp(phone: string): Promise<{ success: boolean }> {
+    await this.assertOtpEnabled();
+
+    const recentCount = await this.prisma.otpVerification.count({
+      where: { phone, createdAt: { gt: new Date(Date.now() - 15 * 60 * 1000) } },
+    });
+
+    if (recentCount >= 5) {
+      throw new BadRequestException('Too many verification attempts. Try again later.');
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await this.prisma.otpVerification.create({
+      data: {
+        phone,
+        codeHash: await bcrypt.hash(code, 10),
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      },
+    });
+
+    // TODO: dispatch via MSG91 once the SMS provider is configured.
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.debug(`[dev] OTP for ${phone} is ${code}`);
+    }
+
+    return { success: true };
+  }
+
+  async verifyOtp(phone: string, code: string) {
+    await this.assertOtpEnabled();
+
+    const record = await this.prisma.otpVerification.findFirst({
+      where: { phone, consumedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!record || record.attempts >= 5) {
+      throw new UnauthorizedException('Verification code expired or not requested');
+    }
+
+    if (!(await bcrypt.compare(code, record.codeHash))) {
+      await this.prisma.otpVerification.update({
+        where: { id: record.id },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new UnauthorizedException('Invalid verification code');
+    }
+
+    await this.prisma.otpVerification.update({
+      where: { id: record.id },
+      data: { consumedAt: new Date() },
+    });
+
+    const user = await this.resolveUserForIdentity(AuthProvider.PHONE, phone, { phone });
+    await this.touchLastLogin(user.id);
+    return this.buildAuthResponse(user);
+  }
+
+  private async assertOtpEnabled() {
+    if (!(await this.featureFlags.isEnabled(FLAG.OTP_LOGIN))) {
+      throw new ForbiddenException('Phone sign-in is currently unavailable');
+    }
+  }
+
   // --- GOOGLE ---
 
   async loginWithGoogle(idToken: string) {
+    if (!(await this.featureFlags.isEnabled(FLAG.GOOGLE_LOGIN))) {
+      throw new ForbiddenException('Google sign-in is currently unavailable');
+    }
+
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) {
       throw new BadRequestException('Google sign-in is not configured');

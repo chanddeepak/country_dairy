@@ -6,10 +6,16 @@
  *
  * Safe to re-run: every write is an upsert keyed on a natural key.
  */
+const path = require('path');
+
+// Loaded explicitly rather than relying on Prisma to discover .env, which
+// depends on the working directory the script happens to be run from.
+require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
+require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
+
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
-const path = require('path');
 
 const prisma = new PrismaClient();
 
@@ -32,6 +38,8 @@ const FEATURE_FLAGS = [
   { key: 'ENABLE_SUBSCRIPTIONS', description: 'Recurring subscription orders' },
   { key: 'ENABLE_PRODUCT_RATINGS', description: 'Customer ratings and reviews' },
   { key: 'ENABLE_WALLET', description: 'Customer wallet balance and subscription auto-debit' },
+  { key: 'ENABLE_OTP_LOGIN', description: 'Phone OTP sign-in (needs an SMS provider)' },
+  { key: 'ENABLE_GOOGLE_LOGIN', description: 'Google sign-in (needs GOOGLE_CLIENT_ID)' },
 ];
 
 // GST and HSN differ per product line, which is exactly why they sit on the

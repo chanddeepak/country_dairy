@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import { useAuth, DEMO_ACCOUNTS } from '../context/AuthContext';
-import type { UserRole } from '../types';
-import { Lock, Mail, Shield, Sparkles, ArrowRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Lock, Mail, ArrowRight } from 'lucide-react';
 
 export default function Login() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('admin@countrydairy.in');
-  const [password, setPassword] = useState('password123');
-  const [selectedRole, setSelectedRole] = useState<UserRole>('SUPER_ADMIN');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -17,21 +15,14 @@ export default function Login() {
     setIsSubmitting(true);
 
     try {
-      const success = await login(email, selectedRole);
-      if (!success) {
-        setErrorMessage('Invalid credentials or account deactivated.');
-      }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Authentication failed. Please try again.');
+      await login(email, password);
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : 'Authentication failed. Please try again.',
+      );
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const fillQuickDemo = (demo: typeof DEMO_ACCOUNTS[0]) => {
-    setEmail(demo.email);
-    setSelectedRole(demo.role);
-    setErrorMessage('');
   };
 
   return (
@@ -103,25 +94,6 @@ export default function Login() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-[#2A2A2A] mb-1.5 uppercase tracking-wider">
-              Target Role Scope
-            </label>
-            <div className="relative">
-              <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#064e3b]" />
-              <select
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value as UserRole)}
-                className="w-full pl-10 pr-4 py-3 bg-[#FAF8F3] border border-stone-200 rounded-xl text-xs text-[#2A2A2A] font-bold focus:outline-none focus:ring-2 focus:ring-[#064e3b]/20 focus:border-[#064e3b] transition-all appearance-none cursor-pointer"
-              >
-                <option value="SUPER_ADMIN">👑 Super Admin (Full Root Access)</option>
-                <option value="CATALOG_MANAGER">📦 Catalog Manager (Products & Banners)</option>
-                <option value="ORDER_MANAGER">🚚 Order Manager (Orders & Courier)</option>
-                <option value="DELIVERY_DRIVER">🛵 Delivery Driver (Local Deliveries)</option>
-              </select>
-            </div>
-          </div>
-
           <button
             type="submit"
             disabled={isSubmitting}
@@ -132,31 +104,10 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Quick Demo Shortcuts */}
-        <div className="pt-5 border-t border-stone-100 space-y-3">
-          <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-[#6b6661] uppercase tracking-wider">
-            <Sparkles className="h-3.5 w-3.5 text-[#C59B27]" />
-            <span>Quick Login Presets (Development):</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            {DEMO_ACCOUNTS.map((acc) => (
-              <button
-                key={acc.id}
-                type="button"
-                onClick={() => fillQuickDemo(acc)}
-                className="p-2.5 text-left bg-[#FAF8F3] hover:bg-[#064e3b]/5 border border-stone-200/80 rounded-xl transition-all hover:border-[#064e3b]/30 group"
-              >
-                <div className="text-[10px] font-extrabold text-[#064e3b] uppercase tracking-wide group-hover:text-[#C59B27]">
-                  {acc.role.replace('_', ' ')}
-                </div>
-                <div className="text-[10px] text-[#6b6661] truncate mt-0.5 font-medium">
-                  {acc.email}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+        <p className="text-[10px] text-center text-[#6b6661] pt-4 border-t border-stone-100 leading-relaxed">
+          Access is granted by your assigned role. Contact a Super Admin if you need an
+          account or a password reset.
+        </p>
 
       </div>
     </div>

@@ -3,7 +3,7 @@ import {
   Package, ShoppingCart, Truck, Map, BarChart3, Users, Wallet, Star, ShieldCheck, LogOut, Sliders, Layout
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import type { UserRole } from '../../types';
+import { displayName, type UserRole } from '../../types';
 
 export type TabType = 
   | 'overview' 
@@ -169,7 +169,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                 {user.role.replace('_', ' ')}
               </span>
             </div>
-            <div className="text-xs font-bold text-white truncate">{user.fullName}</div>
+            <div className="text-xs font-bold text-white truncate">{displayName(user)}</div>
             <div className="text-[10px] text-emerald-200/70 truncate">{user.email}</div>
             
             <button

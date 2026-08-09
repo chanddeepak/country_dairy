@@ -4,9 +4,13 @@
  *
  *   node packages/database/prisma/backup-content.js
  */
+const path = require('path');
+
+require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
+require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
+
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
-const path = require('path');
 
 const prisma = new PrismaClient();
 

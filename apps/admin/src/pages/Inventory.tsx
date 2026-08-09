@@ -201,7 +201,9 @@ export default function Inventory({
                 const defaultVariant = p.variants?.[0];
                 const displayPrice = defaultVariant ? defaultVariant.sellingPrice : ((p as any).price || 0);
                 const totalStock = p.variants ? p.variants.reduce((acc, v) => acc + (v.stockQuantity || 0), 0) : ((p as any).stock || 0);
-                const isOutOfStock = p.status === 'OUT_OF_STOCK' || totalStock === 0;
+                // Availability is derived from stock, with forceOutOfStock as
+                // the explicit manual override.
+                const isOutOfStock = p.forceOutOfStock === true || totalStock === 0;
                 
                 const rawImg = p.galleryImages?.find(img => img.isPrimary)?.imageUrl 
                   || p.galleryImages?.[0]?.imageUrl 

@@ -39,6 +39,21 @@ export class GoogleLoginDto {
   idToken: string;
 }
 
+export class SendOtpDto {
+  @Matches(/^\+91[6-9][0-9]{9}$/, {
+    message: 'Enter a valid Indian mobile number in +91XXXXXXXXXX format',
+  })
+  phone: string;
+}
+
+export class VerifyOtpDto {
+  @Matches(/^\+91[6-9][0-9]{9}$/, { message: 'Enter a valid Indian mobile number' })
+  phone: string;
+
+  @Length(6, 6, { message: 'The verification code is 6 digits' })
+  otp: string;
+}
+
 export class CreateAddressDto {
   @IsOptional()
   @IsString()
