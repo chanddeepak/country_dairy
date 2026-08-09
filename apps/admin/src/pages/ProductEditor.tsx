@@ -424,35 +424,42 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
                 <div className="relative aspect-square bg-stone-900">
                   <img src={resolveImageUrl(img.imageUrl)} alt="Gallery item" className="w-full h-full object-cover" />
                   
-                  {/* Primary Marker */}
-                  <button
-                    type="button"
-                    onClick={() => handleSetPrimaryImage(img.id)}
-                    className={`absolute top-2 left-2 p-1.5 rounded-full transition-all backdrop-blur-sm ${
-                      img.isPrimary
-                        ? 'bg-amber-500 text-stone-950 shadow-md font-bold'
-                        : 'bg-stone-950/70 text-stone-400 hover:text-amber-400'
-                    }`}
-                    title={img.isPrimary ? 'Primary Thumbnail' : 'Click to set as Primary'}
-                  >
-                    <Star className="h-4 w-4 fill-current" />
-                  </button>
+                  {/* Badges Container */}
+                  <div className="absolute top-1.5 left-1.5 flex flex-col gap-1 items-start">
+                    {/* Main Product Catalog Cover Badge */}
+                    {img.isPrimary ? (
+                      <div className="bg-amber-500 text-stone-950 text-[9px] font-extrabold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md">
+                        <Star className="h-3 w-3 fill-stone-950" />
+                        <span>MAIN CATALOG COVER</span>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleSetPrimaryImage(img.id)}
+                        className="bg-stone-900/80 hover:bg-amber-500 hover:text-stone-950 text-stone-300 text-[9px] font-bold px-2 py-0.5 rounded-md transition-colors backdrop-blur-sm border border-stone-700"
+                      >
+                        Set Main Cover
+                      </button>
+                    )}
+
+                    {/* Variant Cover Badge */}
+                    {img.variantId && (
+                      <div className="bg-emerald-500 text-stone-950 text-[9px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md">
+                        <Tag className="h-3 w-3 fill-stone-950" />
+                        <span>Variant Cover</span>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Delete Button */}
                   <button
                     type="button"
                     onClick={() => handleDeleteGalleryImage(img.id)}
-                    className="absolute top-2 right-2 p-1.5 bg-stone-950/80 text-stone-300 hover:text-red-400 rounded-full transition-colors backdrop-blur-sm"
+                    className="absolute top-1.5 right-1.5 p-1.5 bg-stone-950/80 hover:bg-red-600 text-stone-300 hover:text-white rounded-lg transition-colors border border-stone-700 cursor-pointer"
                     title="Remove Image"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
-
-                  {img.isPrimary && (
-                    <div className="absolute bottom-2 left-2 right-2 bg-amber-500 text-stone-950 text-[10px] font-black uppercase text-center py-0.5 rounded shadow">
-                      Primary Thumbnail
-                    </div>
-                  )}
                 </div>
 
                 {/* Variant Selector */}

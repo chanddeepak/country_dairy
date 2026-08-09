@@ -535,21 +535,32 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
                   <div className="relative aspect-square bg-stone-900">
                     <img src={resolveImageUrl(img.imageUrl)} alt="" className="w-full h-full object-cover" />
 
-                    {/* Primary Badge */}
-                    {img.isPrimary ? (
-                      <div className="absolute top-1.5 left-1.5 bg-amber-500 text-stone-950 text-[9px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md">
-                        <Star className="h-3 w-3 fill-stone-950" />
-                        <span>PRIMARY</span>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleSetPrimaryImage(idx)}
-                        className="absolute top-1.5 left-1.5 bg-stone-900/80 hover:bg-amber-500 hover:text-stone-950 text-stone-300 text-[9px] font-bold px-2 py-0.5 rounded-md transition-colors backdrop-blur-sm border border-stone-700"
-                      >
-                        Set Primary
-                      </button>
-                    )}
+                    {/* Badges Container */}
+                    <div className="absolute top-1.5 left-1.5 flex flex-col gap-1 items-start">
+                      {/* Main Product Catalog Cover Badge */}
+                      {img.isPrimary ? (
+                        <div className="bg-amber-500 text-stone-950 text-[9px] font-extrabold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md">
+                          <Star className="h-3 w-3 fill-stone-950" />
+                          <span>MAIN CATALOG COVER</span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSetPrimaryImage(idx)}
+                          className="bg-stone-900/80 hover:bg-amber-500 hover:text-stone-950 text-stone-300 text-[9px] font-bold px-2 py-0.5 rounded-md transition-colors backdrop-blur-sm border border-stone-700"
+                        >
+                          Set Main Cover
+                        </button>
+                      )}
+
+                      {/* Variant Cover Badge */}
+                      {img.variantId && (
+                        <div className="bg-emerald-500 text-stone-950 text-[9px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md">
+                          <Tag className="h-3 w-3 fill-stone-950" />
+                          <span>{img.variantId} Cover</span>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Delete Image Button */}
                     <button
