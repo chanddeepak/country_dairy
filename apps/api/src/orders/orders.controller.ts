@@ -1,55 +1,90 @@
-import { Controller, Post, Get, Patch, Body, Param, UseGuards } from '@nestjs/common';
-import { OrdersService } from './orders.service';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { DeliveryType, OrderStatus, Role } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { OrdersService } from './orders.service';
+import {
+  CancelOrderDto,
+  CheckoutDto,
+  UpdateOrderStatusDto,
+  VerifyPaymentDto,
+} from './dto/orders.dto';
+
+const ORDER_STAFF = [Role.SUPER_ADMIN, Role.ORDER_MANAGER] as const;
 
 @Controller('orders')
 @UseGuards(AuthGuard)
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  @Post('checkout')
-  async checkout(
-    @CurrentUser() user: any,
-    @Body('addressId') addressId: string,
-    @Body('deliveryType') deliveryType: 'LOCAL' | 'COURIER',
-  ) {
-    return this.ordersService.checkout(user.id, addressId, deliveryType);
-  }
+  // --- Admin routes are declared before ':id' so that "admin" is never
+  // mistaken for an order id by the router. ---
 
-  @Post('verify-payment')
-  async verifyPayment(
-    @CurrentUser() user: any,
-    @Body('orderId') orderId: string,
-    @Body('razorpayPaymentId') razorpayPaymentId: string,
-    @Body('signature') signature: string,
-  ) {
-    return this.ordersService.verifyPayment(user.id, orderId, razorpayPaymentId, signature);
-  }
-
-  // --- ADMIN ENDPOINTS ---
   @Get('admin/all')
-  async getAllOrdersAdmin() {
-    return this.ordersService.getAllOrdersAdmin();
+  @UseGuards(RolesGuard)
+  @Roles(...ORDER_STAFF)
+  async getAllOrders(@Query('status') status?: OrderStatus, @Query('search') search?: string) {
+    return this.ordersService.getAllOrdersAdmin({ status, search });
+  }
+
+  @Get('admin/stats')
+  @UseGuards(RolesGuard)
+  @Roles(...ORDER_STAFF)
+  async getStats() {
+    return this.ordersService.getOrderStatsAdmin();
   }
 
   @Patch('admin/:id/status')
-  async updateOrderStatusAdmin(
-    @Param('id') id: string,
-    @Body('status') status: any,
-    @Body('driverName') driverName?: string,
-    @Body('trackingNumber') trackingNumber?: string,
-  ) {
-    return this.ordersService.updateOrderStatusAdmin(id, status, driverName, trackingNumber);
+  @UseGuards(RolesGuard)
+  @Roles(...ORDER_STAFF)
+  async updateStatus(@Param('id') id: string, @Body() dto: UpdateOrderStatusDto) {
+    return this.ordersService.updateOrderStatusAdmin(id, dto.status, {
+      driverId: dto.driverId,
+      trackingNumber: dto.trackingNumber,
+      note: dto.note,
+    });
+  }
+
+  // --- Customer routes ---
+
+  @Post('checkout')
+  async checkout(@CurrentUser() user: { id: string }, @Body() dto: CheckoutDto) {
+    return this.ordersService.checkout(
+      user.id,
+      dto.addressId,
+      dto.deliveryType ?? DeliveryType.LOCAL,
+      dto.couponCode,
+    );
+  }
+
+  @Post('verify-payment')
+  async verifyPayment(@CurrentUser() user: { id: string }, @Body() dto: VerifyPaymentDto) {
+    return this.ordersService.verifyPayment(
+      user.id,
+      dto.orderId,
+      dto.razorpayPaymentId,
+      dto.signature,
+    );
   }
 
   @Get()
-  async getUserOrders(@CurrentUser() user: any) {
+  async getUserOrders(@CurrentUser() user: { id: string }) {
     return this.ordersService.getUserOrders(user.id);
   }
 
   @Get(':id')
-  async getOrderById(@CurrentUser() user: any, @Param('id') orderId: string) {
-    return this.ordersService.getOrderById(user.id, orderId);
+  async getOrderById(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+    return this.ordersService.getOrderById(user.id, id);
+  }
+
+  @Patch(':id/cancel')
+  async cancelOrder(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+    @Body() dto: CancelOrderDto,
+  ) {
+    return this.ordersService.cancelOrder(user.id, id, dto.reason);
   }
 }

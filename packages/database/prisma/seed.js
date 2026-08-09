@@ -1,355 +1,276 @@
+/**
+ * Seeds reference data and restores catalog content captured by
+ * backup-content.js before the baseline migration.
+ *
+ *   node packages/database/prisma/seed.js
+ *
+ * Safe to re-run: every write is an upsert keyed on a natural key.
+ */
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
+
 const prisma = new PrismaClient();
 
+// Packaging lives in a table now, so this list is a starting point rather than
+// a fixed set — the catalog manager adds to it from the admin console.
+const PACKAGING_OPTIONS = [
+  { code: 'GLASS_JAR', label: 'Glass Jar', displayOrder: 1 },
+  { code: 'METAL_DOLCHI', label: 'Traditional Metal Dolchi', displayOrder: 2 },
+  { code: 'FOOD_GRADE_TIN', label: 'Food Grade Tin', displayOrder: 3 },
+  { code: 'PET_BOTTLE', label: 'PET Bottle', displayOrder: 4 },
+  { code: 'ECO_POUCH', label: 'Eco Pouch', displayOrder: 5 },
+  { code: 'AMBER_GLASS_BOTTLE', label: 'Amber Glass Bottle', displayOrder: 6 },
+  { code: 'SQUEEZE_BOTTLE', label: 'Squeeze Bottle', displayOrder: 7 },
+];
+
+const FEATURE_FLAGS = [
+  { key: 'ENABLE_CART', description: 'Storefront shopping cart' },
+  { key: 'ENABLE_USER_ACCOUNTS', description: 'Customer accounts and login' },
+  { key: 'ENABLE_WEBSITE_PAYMENT', description: 'Online payment at checkout' },
+  { key: 'ENABLE_SUBSCRIPTIONS', description: 'Recurring subscription orders' },
+  { key: 'ENABLE_PRODUCT_RATINGS', description: 'Customer ratings and reviews' },
+  { key: 'ENABLE_WALLET', description: 'Customer wallet balance and subscription auto-debit' },
+];
+
+// GST and HSN differ per product line, which is exactly why they sit on the
+// product rather than in a shared constant.
+const TAX_DEFAULTS = [
+  { match: /ghee/i, hsnCode: '0405', gstRate: 12.0 },
+  { match: /milk|curd|paneer/i, hsnCode: '0401', gstRate: 0.0 },
+  { match: /honey/i, hsnCode: '0409', gstRate: 5.0 },
+  { match: /oil/i, hsnCode: '1515', gstRate: 5.0 },
+];
+
+function taxFor(title) {
+  const hit = TAX_DEFAULTS.find((t) => t.match.test(title));
+  return hit ? { hsnCode: hit.hsnCode, gstRate: hit.gstRate } : { hsnCode: null, gstRate: 0.0 };
+}
+
+async function seedPackaging() {
+  for (const opt of PACKAGING_OPTIONS) {
+    await prisma.packagingOption.upsert({
+      where: { code: opt.code },
+      update: { label: opt.label, displayOrder: opt.displayOrder },
+      create: opt,
+    });
+  }
+  console.log(`  packaging options: ${PACKAGING_OPTIONS.length}`);
+}
+
+async function seedFeatureFlags(backupFlags) {
+  for (const flag of FEATURE_FLAGS) {
+    const previous = backupFlags?.find((f) => f.key === flag.key);
+    await prisma.featureFlag.upsert({
+      where: { key: flag.key },
+      update: { description: flag.description },
+      create: {
+        key: flag.key,
+        description: flag.description,
+        isEnabled: previous ? previous.isEnabled : false,
+      },
+    });
+  }
+  console.log(`  feature flags: ${FEATURE_FLAGS.length}`);
+}
+
+async function seedAdminUser() {
+  const email = process.env.SEED_ADMIN_EMAIL || 'admin@countrydairy.in';
+  const password = process.env.SEED_ADMIN_PASSWORD;
+
+  if (!password) {
+    console.log('  admin user: skipped (set SEED_ADMIN_PASSWORD to create one)');
+    return;
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: { passwordHash, role: 'SUPER_ADMIN', isActive: true },
+    create: {
+      email,
+      name: 'Super Admin',
+      passwordHash,
+      role: 'SUPER_ADMIN',
+      isActive: true,
+    },
+  });
+
+  await prisma.authIdentity.upsert({
+    where: { provider_providerId: { provider: 'EMAIL', providerId: email } },
+    update: { userId: user.id, verifiedAt: new Date() },
+    create: {
+      userId: user.id,
+      provider: 'EMAIL',
+      providerId: email,
+      verifiedAt: new Date(),
+    },
+  });
+
+  console.log(`  admin user: ${email}`);
+}
+
+async function restoreContent(backup) {
+  for (const c of backup.categories) {
+    await prisma.category.upsert({
+      where: { slug: c.slug },
+      update: {},
+      create: {
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        description: c.description,
+        imageUrl: c.imageUrl,
+        iconName: c.iconName,
+        displayOrder: c.displayOrder,
+        isActive: c.isActive,
+        parentId: c.parentId,
+      },
+    });
+  }
+  console.log(`  categories: ${backup.categories.length}`);
+
+  let variantCount = 0;
+  let imageCount = 0;
+
+  for (const p of backup.products) {
+    const tax = taxFor(p.title);
+
+    // OUT_OF_STOCK is no longer a lifecycle status; it is derived from stock.
+    const status = ['DRAFT', 'LIVE', 'ARCHIVED'].includes(p.status) ? p.status : 'LIVE';
+
+    await prisma.product.upsert({
+      where: { slug: p.slug },
+      update: {},
+      create: {
+        id: p.id,
+        categoryId: p.categoryId,
+        title: p.title,
+        slug: p.slug,
+        tagline: p.tagline,
+        storyDescription: p.storyDescription,
+        status,
+        forceOutOfStock: p.status === 'OUT_OF_STOCK',
+        badgeText: p.badgeText,
+        isFeatured: p.isFeatured,
+        displayOrder: p.displayOrder,
+        isSubscriptionAllowed: p.isSubscriptionAllowed,
+        batchCode: p.batchCode,
+        verified: p.verified,
+        hsnCode: tax.hsnCode,
+        gstRate: tax.gstRate,
+        specifications: p.specifications ?? undefined,
+        nutritionFacts: p.nutritionFacts ?? undefined,
+        metadata: p.metadata ?? undefined,
+      },
+    });
+
+    for (const v of p.variants) {
+      await prisma.productVariant.upsert({
+        where: { sku: v.sku },
+        update: {},
+        create: {
+          id: v.id,
+          productId: p.id,
+          sku: v.sku,
+          sizeLabel: v.sizeLabel,
+          sellingPrice: v.sellingPrice,
+          mrpPrice: v.mrpPrice,
+          stockQuantity: v.stockQuantity,
+          lowStockThreshold: v.lowStockThreshold,
+          // The old enum value becomes a lookup-table code.
+          packagingCode: v.packagingType || null,
+          imageUrl: v.imageUrl,
+          isActive: v.isActive,
+          displayOrder: v.displayOrder,
+        },
+      });
+      variantCount++;
+    }
+
+    for (const img of p.galleryImages) {
+      await prisma.productImage.upsert({
+        where: { id: img.id },
+        update: {},
+        create: {
+          id: img.id,
+          productId: p.id,
+          imageUrl: img.imageUrl,
+          variantId: img.variantId,
+          isPrimary: img.isPrimary,
+          isVariantPrimary: img.isVariantPrimary,
+          displayOrder: img.displayOrder,
+        },
+      });
+      imageCount++;
+    }
+  }
+  console.log(`  products: ${backup.products.length} (variants: ${variantCount}, images: ${imageCount})`);
+
+  for (const h of backup.heroBanners) {
+    await prisma.heroBanner.upsert({
+      where: { id: h.id },
+      update: {},
+      create: {
+        id: h.id,
+        title: h.title,
+        subtitle: h.subtitle,
+        imageUrl: h.imageUrl,
+        deviceType: h.deviceType,
+        ctaText: h.ctaText,
+        ctaLink: h.ctaLink,
+        badgeText: h.badgeText,
+        displayOrder: h.displayOrder,
+        isActive: h.isActive,
+      },
+    });
+  }
+  console.log(`  hero banners: ${backup.heroBanners.length}`);
+
+  for (const b of backup.trustBadges) {
+    await prisma.trustBadge.upsert({
+      where: { id: b.id },
+      update: {},
+      create: {
+        id: b.id,
+        title: b.title,
+        subtitle: b.subtitle,
+        iconName: b.iconName,
+        displayOrder: b.displayOrder,
+        isActive: b.isActive,
+      },
+    });
+  }
+  console.log(`  trust badges: ${backup.trustBadges.length}`);
+}
+
 async function main() {
-  console.log('Clearing existing database records...');
-  await prisma.productReview.deleteMany();
-  await prisma.labReport.deleteMany();
-  await prisma.cartItem.deleteMany();
-  await prisma.orderItem.deleteMany();
-  await prisma.order.deleteMany();
-  await prisma.subscriptionDelivery.deleteMany();
-  await prisma.subscription.deleteMany();
-  await prisma.walletTransaction.deleteMany();
-  await prisma.address.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.productVariant.deleteMany();
-  await prisma.productImage.deleteMany();
-  await prisma.product.deleteMany();
-  await prisma.category.deleteMany();
-  await prisma.heroBanner.deleteMany();
-  await prisma.trustBadge.deleteMany();
-  await prisma.featureFlag.deleteMany();
+  console.log('Seeding Country Dairy database...');
 
-  console.log('Seeding categories...');
-  const dairyCategory = await prisma.category.create({
-    data: {
-      name: 'Dairy',
-      slug: 'dairy',
-      description: 'Fresh A2 Cow Milk, Vedic Bilona Ghee, Cottage Cheese & Paneer',
-      iconName: 'Milk',
-      displayOrder: 1,
-      isActive: true,
-    },
-  });
+  await seedPackaging();
 
-  const oilsCategory = await prisma.category.create({
-    data: {
-      name: 'Oils',
-      slug: 'oils',
-      description: 'Cold-pressed organic mustard oil & sesame cooking oils',
-      iconName: 'Droplet',
-      displayOrder: 2,
-      isActive: true,
-    },
-  });
+  const backupPath = path.join(__dirname, 'content-backup.json');
+  const backup = fs.existsSync(backupPath)
+    ? JSON.parse(fs.readFileSync(backupPath, 'utf8'))
+    : null;
 
-  const honeyCategory = await prisma.category.create({
-    data: {
-      name: 'Honey',
-      slug: 'honey',
-      description: 'Unprocessed wild forest raw honey',
-      iconName: 'Sun',
-      displayOrder: 3,
-      isActive: true,
-    },
-  });
+  if (backup) {
+    console.log(`Restoring content captured ${backup.exportedAt}`);
+    await restoreContent(backup);
+  } else {
+    console.log('  no content-backup.json found, skipping content restore');
+  }
 
-  console.log('Seeding products & multi-variant packaging...');
+  await seedFeatureFlags(backup?.featureFlags);
+  await seedAdminUser();
 
-  const milk = await prisma.product.create({
-    data: {
-      title: 'Country Dairy A2 Cow Milk',
-      slug: 'country-dairy-a2-cow-milk-1l',
-      tagline: 'Farm fresh A2 milk from grass-fed cows',
-      storyDescription: 'Pure A2 milk sourced from happy grass-fed Gir & Sahiwal cows. NABL lab-verified with zero adulterants.',
-      status: 'LIVE',
-      badgeText: '★ BESTSELLER',
-      isSubscriptionAllowed: true,
-      categoryId: dairyCategory.id,
-      specifications: {
-        'Net Quantity': '1L Bottle',
-        'Packaging Type': 'Glass Bottle',
-        'Serving Size': '100g / 100ml',
-        'Shelf Life': '2 days',
-        'Storage Instructions': 'Store in a cool, dry place away from direct sunlight. Keep container tightly sealed after use.',
-      },
-      nutritionFacts: {
-        fat: '4.2%',
-        protein: '3.3g',
-        calcium: '120mg',
-        energy: '64 kcal',
-      },
-      variants: {
-        create: [
-          {
-            sku: 'CD-MILK-1L',
-            sizeLabel: '1 Litre Bottle',
-            sellingPrice: 95.00,
-            mrpPrice: 110.00,
-            stockQuantity: 200,
-            packagingType: 'GLASS_JAR',
-            isActive: true,
-            displayOrder: 1,
-          },
-          {
-            sku: 'CD-MILK-500ML',
-            sizeLabel: '500ml Bottle',
-            sellingPrice: 50.00,
-            mrpPrice: 60.00,
-            stockQuantity: 150,
-            packagingType: 'GLASS_JAR',
-            isActive: true,
-            displayOrder: 2,
-          },
-        ],
-      },
-      galleryImages: {
-        create: [
-          { imageUrl: '/images/products/milk-bottle.png', isPrimary: true, displayOrder: 1 },
-        ],
-      },
-    },
-  });
-
-  const ghee = await prisma.product.create({
-    data: {
-      title: 'Country Dairy A2 Vedic Ghee',
-      slug: 'country-dairy-a2-vedic-ghee-1l',
-      tagline: 'Traditional Bilona method A2 ghee',
-      storyDescription: 'Premium A2 Ghee made using traditional Bilona churning method from A2 curd. Rich aroma and granular texture.',
-      status: 'LIVE',
-      badgeText: '👑 VEDIC BILONA',
-      isSubscriptionAllowed: false,
-      categoryId: dairyCategory.id,
-      specifications: {
-        'Net Quantity': '1L Jar',
-        'Packaging Type': 'Glass Jar',
-        'Serving Size': '10g',
-        'Shelf Life': '12 Months',
-        'Storage Instructions': 'Store in a cool dry place. Do not refrigerate.',
-      },
-      nutritionFacts: {
-        fat: '99.8g',
-        cholesterol: '256mg',
-        energy: '897 kcal',
-      },
-      variants: {
-        create: [
-          {
-            sku: 'CD-GHEE-1L',
-            sizeLabel: '1 Litre Glass Jar',
-            sellingPrice: 1450.00,
-            mrpPrice: 1650.00,
-            stockQuantity: 100,
-            packagingType: 'GLASS_JAR',
-            isActive: true,
-            displayOrder: 1,
-          },
-          {
-            sku: 'CD-GHEE-500ML',
-            sizeLabel: '500ml Glass Jar',
-            sellingPrice: 780.00,
-            mrpPrice: 890.00,
-            stockQuantity: 80,
-            packagingType: 'GLASS_JAR',
-            isActive: true,
-            displayOrder: 2,
-          },
-        ],
-      },
-      galleryImages: {
-        create: [
-          { imageUrl: '/images/products/ghee-jar.png', isPrimary: true, displayOrder: 1 },
-        ],
-      },
-    },
-  });
-
-  const mustardOil = await prisma.product.create({
-    data: {
-      title: 'Organic Wood-Pressed Mustard Oil',
-      slug: 'organic-wood-pressed-mustard-oil-1l',
-      tagline: 'Traditional kachi ghani cold pressed oil',
-      storyDescription: 'Cold wood-pressed kachi ghani mustard oil, chemical-free and rich in natural nutrients.',
-      status: 'LIVE',
-      badgeText: '🌿 ORGANIC',
-      isSubscriptionAllowed: false,
-      categoryId: oilsCategory.id,
-      specifications: {
-        'Net Quantity': '1L Bottle',
-        'Packaging Type': 'PET Bottle',
-        'Serving Size': '15ml',
-        'Shelf Life': '9 Months',
-        'Storage Instructions': 'Store in a cool dry place away from sunlight.',
-      },
-      nutritionFacts: {
-        fat: '100g',
-        omega3: '11.6%',
-        energy: '884 kcal',
-      },
-      variants: {
-        create: [
-          {
-            sku: 'CD-OIL-1L',
-            sizeLabel: '1 Litre Bottle',
-            sellingPrice: 320.00,
-            mrpPrice: 380.00,
-            stockQuantity: 120,
-            packagingType: 'PET_BOTTLE',
-            isActive: true,
-            displayOrder: 1,
-          },
-        ],
-      },
-      galleryImages: {
-        create: [
-          { imageUrl: '/images/products/mustard-oil.png', isPrimary: true, displayOrder: 1 },
-        ],
-      },
-    },
-  });
->>>>>>> 7d44958 (fix(web): add safe volumeOrWeight property access and variant normalization in ProductDetailPage)
-
-  const honey = await prisma.product.create({
-    data: {
-      title: 'Raw Wild Forest Honey',
-      slug: 'raw-wild-forest-honey-500g',
-      tagline: 'Unpasteurized 100% natural forest honey',
-      storyDescription: 'Unprocessed, unpasteurized honey collected by native tribes from deep forest hives.',
-      status: 'LIVE',
-      badgeText: '🍯 100% RAW',
-      isSubscriptionAllowed: false,
-      categoryId: honeyCategory.id,
-      specifications: {
-        'Net Quantity': '500g Jar',
-        'Packaging Type': 'Glass Jar',
-        'Serving Size': '20g',
-        'Shelf Life': '18 Months',
-        'Storage Instructions': 'Store at room temperature. Natural crystallization may occur.',
-      },
-      nutritionFacts: {
-        carbohydrates: '82.4g',
-        sugar: '82.1g',
-        energy: '304 kcal',
-      },
-      variants: {
-        create: [
-          {
-            sku: 'CD-HONEY-500G',
-            sizeLabel: '500g Jar',
-            sellingPrice: 450.00,
-            mrpPrice: 520.00,
-            stockQuantity: 90,
-            packagingType: 'GLASS_JAR',
-            isActive: true,
-            displayOrder: 1,
-          },
-        ],
-      },
-      galleryImages: {
-        create: [
-          { imageUrl: '/images/products/wild-honey.png', isPrimary: true, displayOrder: 1 },
-        ],
-      },
-    },
-  });
-
-  console.log('Seeding Hero Banners...');
-  await prisma.heroBanner.createMany({
-    data: [
-      {
-        title: 'Farm Fresh. Organic. Pure Happiness.',
-        subtitle: 'Experience the finest A2 Milk & Organic Ghee, sourced directly from our happy cows.',
-        imageUrl: '/images/hero-banner.png',
-        ctaText: 'Shop All Products',
-        ctaLink: '/products',
-        badgeText: 'FARM FRESH',
-        displayOrder: 1,
-        isActive: true,
-      },
-      {
-        title: 'Pure A2 Milk. From Happy Cows.',
-        subtitle: 'Grass-fed, free-range Gir & Sahiwal cows. NABL lab-verified. Zero adulterants.',
-        imageUrl: '/images/hero-banner-2-wide.png',
-        ctaText: 'Shop All Products',
-        ctaLink: '/products',
-        badgeText: 'A2 MILK',
-        displayOrder: 2,
-        isActive: true,
-      },
-    ],
-  });
-
-  console.log('Seeding Trust Badges...');
-  await prisma.trustBadge.createMany({
-    data: [
-      {
-        title: 'Guaranteed 100% Pure',
-        subtitle: 'Every batch tested & certified',
-        iconName: 'ShieldCheck',
-        displayOrder: 1,
-        isActive: true,
-      },
-      {
-        title: 'Express Morning Delivery',
-        subtitle: 'Fresh at your doorstep by 7 AM',
-        iconName: 'Truck',
-        displayOrder: 2,
-        isActive: true,
-      },
-      {
-        title: 'No Added Preservatives',
-        subtitle: 'Zero chemicals, zero processing',
-        iconName: 'Sparkles',
-        displayOrder: 3,
-        isActive: true,
-      },
-    ],
-  });
-
-  console.log('Seeding Feature Flags...');
-  await prisma.featureFlag.createMany({
-    data: [
-      { key: 'ENABLE_WEBSITE_PAYMENT', description: 'Direct online payment checkout', isEnabled: false },
-      { key: 'ENABLE_PRODUCT_RATINGS', description: 'Product customer ratings & reviews', isEnabled: true },
-      { key: 'ENABLE_SUBSCRIPTIONS', description: 'Daily subscription deliveries', isEnabled: true },
-      { key: 'ENABLE_CART', description: 'Multi-item shopping cart', isEnabled: true },
-      { key: 'ENABLE_USER_ACCOUNTS', description: 'User accounts and sign in', isEnabled: true },
-    ],
-  });
-
-  console.log('Seeding initial customers...');
-  const customer = await prisma.user.create({
-    data: {
-      name: 'Amit Sharma',
-      phone: '+919876543210',
-      email: 'amit.sharma@example.com',
-      role: 'CUSTOMER',
-      walletBalance: 1500.00,
-    },
-  });
-
-  await prisma.address.create({
-    data: {
-      userId: customer.id,
-      street: 'Flat 402, Oakwood Apartments, Sector 56',
-      city: 'Gurugram',
-      state: 'Haryana',
-      postalCode: '122011',
-      country: 'India',
-      isDefault: true,
-    },
-  });
-
-  console.log('Database seeding completed successfully!');
+  console.log('Seed complete.');
 }
 
 main()
   .catch((e) => {
-    console.error('Error during seeding:', e);
+    console.error(e);
     process.exit(1);
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .finally(() => prisma.$disconnect());

@@ -1,149 +1,273 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  UnauthorizedException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../prisma/prisma.service';
+import { AuthProvider, Role, User } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import { OAuth2Client } from 'google-auth-library';
+import { OAuth2Client, TokenPayload } from 'google-auth-library';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateAddressDto } from './dto/auth.dto';
+
+const BCRYPT_ROUNDS = 12;
+
+// Roles allowed to sign in to the admin console.
+const STAFF_ROLES: Role[] = [
+  Role.SUPER_ADMIN,
+  Role.CATALOG_MANAGER,
+  Role.ORDER_MANAGER,
+  Role.DELIVERY_DRIVER,
+];
+
+type SafeUser = Omit<User, 'passwordHash'>;
 
 @Injectable()
 export class AuthService {
-  // Simple in-memory cache to store OTP codes during development
-  private otpStore = new Map<string, { code: string; expiresAt: number }>();
-  private googleClient: OAuth2Client;
+  private readonly logger = new Logger(AuthService.name);
+  private readonly googleClient: OAuth2Client;
 
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
   ) {
-    this.googleClient = new OAuth2Client(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'dummy');
+    this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
   }
 
-  // --- MOBILE OTP AUTH ---
-  async sendOtp(phone: string): Promise<boolean> {
-    const code = process.env.NODE_ENV === 'development' || phone === '+919876543210' ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 5 * 60 * 1000;
+  // --- EMAIL + PASSWORD ---
 
-    this.otpStore.set(phone, { code, expiresAt });
-    console.log(`[OTP Verification] Code for ${phone} is: ${code}`);
-    return true;
-  }
+  async registerWithEmail(email: string, password: string, name: string) {
+    const normalizedEmail = email.trim().toLowerCase();
 
-  async verifyOtp(phone: string, otp: string): Promise<{ accessToken: string; user: any }> {
-    const cached = this.otpStore.get(phone);
-    if (!cached || cached.expiresAt < Date.now()) {
-      if (cached) this.otpStore.delete(phone);
-      throw new UnauthorizedException('OTP verification code not requested or expired');
-    }
-    if (cached.code !== otp) {
-      throw new UnauthorizedException('Invalid verification code');
-    }
-    this.otpStore.delete(phone);
-
-    let user = await this.prisma.user.findUnique({ where: { phone } });
-    if (!user) {
-      user = await this.prisma.user.create({
-        data: {
-          phone,
-          authProvider: 'PHONE',
-          role: 'CUSTOMER',
-          walletBalance: 0.00,
-        },
-      });
-    }
-
-    return this.generateAuthResponse(user);
-  }
-
-  // --- EMAIL AUTH ---
-  async registerWithEmail(email: string, password: string, name: string): Promise<{ accessToken: string; user: any }> {
-    const existing = await this.prisma.user.findUnique({ where: { email } });
+    const existing = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
     if (existing) {
       throw new BadRequestException('Email already in use');
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
     const user = await this.prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         name,
         passwordHash,
-        authProvider: 'EMAIL',
-        role: 'CUSTOMER',
-        walletBalance: 0.00,
-      }
+        role: Role.CUSTOMER,
+        identities: {
+          create: {
+            provider: AuthProvider.EMAIL,
+            providerId: normalizedEmail,
+            verifiedAt: new Date(),
+          },
+        },
+      },
     });
 
-    return this.generateAuthResponse(user);
+    this.logger.log(`Registered customer ${user.id}`);
+    return this.buildAuthResponse(user);
   }
 
-  async loginWithEmail(email: string, password: string): Promise<{ accessToken: string; user: any }> {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user || !user.passwordHash) {
+  async loginWithEmail(email: string, password: string) {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    // Same error for "no such user" and "wrong password" so the response
+    // cannot be used to enumerate registered addresses.
+    if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const isValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isValid) {
+    if (!user.isActive) {
+      throw new ForbiddenException('This account has been deactivated');
+    }
+
+    await this.touchLastLogin(user.id);
+    return this.buildAuthResponse(user);
+  }
+
+  /**
+   * Admin console login. Separate from the customer path so that a customer
+   * account can never receive a staff token, whatever its stored role.
+   */
+  async loginStaff(email: string, password: string) {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    return this.generateAuthResponse(user);
+    if (!STAFF_ROLES.includes(user.role)) {
+      this.logger.warn(`Non-staff account ${user.id} attempted admin login`);
+      throw new ForbiddenException('This account cannot access the admin console');
+    }
+
+    if (!user.isActive) {
+      throw new ForbiddenException('This account has been deactivated');
+    }
+
+    await this.touchLastLogin(user.id);
+    this.logger.log(`Staff login: ${user.id} (${user.role})`);
+    return this.buildAuthResponse(user);
   }
 
-  // --- GOOGLE AUTH ---
-  async loginWithGoogle(idToken: string): Promise<{ accessToken: string; user: any }> {
+  // --- GOOGLE ---
+
+  async loginWithGoogle(idToken: string) {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      throw new BadRequestException('Google sign-in is not configured');
+    }
+
+    let payload: TokenPayload | undefined;
     try {
       const ticket = await this.googleClient.verifyIdToken({
         idToken,
-        audience: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+        audience: clientId,
       });
-      const payload = ticket.getPayload();
-      
-      if (!payload || !payload.email) {
-        throw new UnauthorizedException('Invalid Google token');
-      }
-
-      const { email, name } = payload;
-      let user = await this.prisma.user.findUnique({ where: { email } });
-      
-      if (!user) {
-        user = await this.prisma.user.create({
-          data: {
-            email,
-            name,
-            authProvider: 'GOOGLE',
-            role: 'CUSTOMER',
-            walletBalance: 0.00,
-          }
-        });
-      }
-
-      return this.generateAuthResponse(user);
+      payload = ticket.getPayload();
     } catch (e) {
-      console.error('Google Auth Error:', e);
+      this.logger.warn(`Google token verification failed: ${(e as Error).message}`);
       throw new UnauthorizedException('Failed to authenticate with Google');
     }
+
+    if (!payload?.sub || !payload.email) {
+      throw new UnauthorizedException('Invalid Google token');
+    }
+
+    const user = await this.resolveUserForIdentity(AuthProvider.GOOGLE, payload.sub, {
+      email: payload.email.toLowerCase(),
+      name: payload.name,
+    });
+
+    await this.touchLastLogin(user.id);
+    return this.buildAuthResponse(user);
   }
 
-  private generateAuthResponse(user: any) {
-    const payload = { sub: user.id, role: user.role };
-    const accessToken = this.jwtService.sign(payload);
-    
-    // Omit sensitive fields
-    const { passwordHash, ...safeUser } = user;
+  /**
+   * Finds the user behind a provider identity, linking it to an existing
+   * account where one already owns the same email.
+   *
+   * Without this, signing up by one method and later signing in by another
+   * silently created a second account with its own wallet and order history.
+   */
+  private async resolveUserForIdentity(
+    provider: AuthProvider,
+    providerId: string,
+    profile: { email?: string; phone?: string; name?: string },
+  ): Promise<User> {
+    const identity = await this.prisma.authIdentity.findUnique({
+      where: { provider_providerId: { provider, providerId } },
+      include: { user: true },
+    });
+
+    if (identity) {
+      if (!identity.user.isActive) {
+        throw new ForbiddenException('This account has been deactivated');
+      }
+      return identity.user;
+    }
+
+    const existing = profile.email
+      ? await this.prisma.user.findUnique({ where: { email: profile.email } })
+      : profile.phone
+        ? await this.prisma.user.findUnique({ where: { phone: profile.phone } })
+        : null;
+
+    if (existing) {
+      if (!existing.isActive) {
+        throw new ForbiddenException('This account has been deactivated');
+      }
+      await this.prisma.authIdentity.create({
+        data: { userId: existing.id, provider, providerId, verifiedAt: new Date() },
+      });
+      this.logger.log(`Linked ${provider} identity to existing user ${existing.id}`);
+      return existing;
+    }
+
+    return this.prisma.user.create({
+      data: {
+        email: profile.email,
+        phone: profile.phone,
+        name: profile.name,
+        role: Role.CUSTOMER,
+        identities: {
+          create: { provider, providerId, verifiedAt: new Date() },
+        },
+      },
+    });
+  }
+
+  // --- SHARED ---
+
+  private async touchLastLogin(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { lastLoginAt: new Date() },
+    });
+  }
+
+  private buildAuthResponse(user: User): { accessToken: string; user: SafeUser } {
+    const accessToken = this.jwtService.sign({
+      sub: user.id,
+      role: user.role,
+      email: user.email,
+    });
+
+    const { passwordHash: _passwordHash, ...safeUser } = user;
     return { accessToken, user: safeUser };
   }
 
   async validateUserById(userId: string) {
     return this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, phone: true, email: true, role: true, walletBalance: true, addresses: true },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        role: true,
+        isActive: true,
+        walletBalance: true,
+        addresses: true,
+      },
     });
   }
 
-  async addAddress(userId: string, line1: string, city: string, state: string, pincode: string, phone: string) {
+  // --- ADDRESSES ---
+
+  async addAddress(userId: string, dto: CreateAddressDto) {
+    const existingCount = await this.prisma.address.count({ where: { userId } });
+    const shouldBeDefault = existingCount === 0 || dto.isDefault === true;
+
+    if (shouldBeDefault) {
+      await this.prisma.address.updateMany({
+        where: { userId, isDefault: true },
+        data: { isDefault: false },
+      });
+    }
+
     await this.prisma.address.create({
-      data: { userId, street: line1, city, state, postalCode: pincode, phone },
+      data: {
+        ...dto,
+        userId,
+        // First address a customer saves becomes their default.
+        isDefault: shouldBeDefault,
+      },
     });
-    return this.prisma.address.findMany({ where: { userId } });
+
+    return this.prisma.address.findMany({
+      where: { userId },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+    });
   }
 }

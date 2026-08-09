@@ -1,0 +1,452 @@
+{
+  "exportedAt": "2026-08-09T16:13:12.138Z",
+  "categories": [
+    {
+      "id": "519a29f5-ab19-4820-ac21-fdfb56eb730e",
+      "name": "Dairy",
+      "slug": "dairy",
+      "description": "Fresh A2 Cow Milk, Vedic Bilona Ghee, Cottage Cheese & Paneer",
+      "imageUrl": null,
+      "iconName": "Milk",
+      "displayOrder": 1,
+      "isActive": true,
+      "parentId": null,
+      "createdAt": "2026-07-24T20:30:14.440Z",
+      "updatedAt": "2026-07-24T20:30:14.440Z"
+    },
+    {
+      "id": "4403bf25-ffe2-4a33-8afa-1b9909d7b9af",
+      "name": "Oils",
+      "slug": "oils",
+      "description": "Cold-pressed organic mustard oil & sesame cooking oils",
+      "imageUrl": null,
+      "iconName": "Droplet",
+      "displayOrder": 2,
+      "isActive": true,
+      "parentId": null,
+      "createdAt": "2026-07-24T20:30:15.103Z",
+      "updatedAt": "2026-07-24T20:30:15.103Z"
+    },
+    {
+      "id": "84a54f64-de8a-4886-a14f-05202c5967c3",
+      "name": "Honey",
+      "slug": "honey",
+      "description": "Unprocessed wild forest raw honey",
+      "imageUrl": null,
+      "iconName": "Sun",
+      "displayOrder": 3,
+      "isActive": true,
+      "parentId": null,
+      "createdAt": "2026-07-24T20:30:15.693Z",
+      "updatedAt": "2026-07-24T20:30:15.693Z"
+    }
+  ],
+  "products": [
+    {
+      "id": "8a9fdee5-4bdb-484d-8556-98616daefebe",
+      "categoryId": "519a29f5-ab19-4820-ac21-fdfb56eb730e",
+      "title": "milk",
+      "slug": "milk",
+      "tagline": "fxgsdfds",
+      "storyDescription": "dsfdsg dsfdsbgd dsfdsfgds",
+      "status": "LIVE",
+      "badgeText": "★ FRESH ARRIVAL",
+      "isFeatured": true,
+      "displayOrder": 1,
+      "isSubscriptionAllowed": false,
+      "batchCode": "",
+      "verified": false,
+      "specifications": {
+        "Shelf Life": "2 days",
+        "Serving Size": "100g / 100ml",
+        "Storage Instructions": "Store in a cool, dry place away from direct sunlight. Keep container tightly sealed after use."
+      },
+      "nutritionFacts": {
+        "Energy": "897 kcal per 100g",
+        "Total Fat": "99.8g",
+        "Vitamin A": "300 mcg",
+        "Saturated Fat": "65g"
+      },
+      "metadata": null,
+      "createdAt": "2026-08-09T14:57:11.801Z",
+      "updatedAt": "2026-08-09T15:15:37.404Z",
+      "variants": [
+        {
+          "id": "891fc63f-2350-4840-bd20-739c598b0a93",
+          "productId": "8a9fdee5-4bdb-484d-8556-98616daefebe",
+          "sku": "CD-MILK-1",
+          "sizeLabel": "500 ml Pouch",
+          "sellingPrice": "48",
+          "mrpPrice": "50",
+          "stockQuantity": 500,
+          "lowStockThreshold": 10,
+          "packagingType": "ECO_POUCH",
+          "imageUrl": "/products/1786288161673-1lamnic6.webp",
+          "isActive": true,
+          "displayOrder": 1,
+          "createdAt": "2026-08-09T15:15:36.815Z",
+          "updatedAt": "2026-08-09T15:15:36.815Z"
+        },
+        {
+          "id": "b61bed53-4f17-4fdc-b6a5-c5f31711d0f9",
+          "productId": "8a9fdee5-4bdb-484d-8556-98616daefebe",
+          "sku": "CD-MILK-2",
+          "sizeLabel": "1 Litre Glass Bottle",
+          "sellingPrice": "95",
+          "mrpPrice": "100",
+          "stockQuantity": 300,
+          "lowStockThreshold": 10,
+          "packagingType": "GLASS_JAR",
+          "imageUrl": null,
+          "isActive": true,
+          "displayOrder": 2,
+          "createdAt": "2026-08-09T15:15:36.815Z",
+          "updatedAt": "2026-08-09T15:15:36.815Z"
+        },
+        {
+          "id": "19642b23-a2fc-497e-b410-af4a1df05496",
+          "productId": "8a9fdee5-4bdb-484d-8556-98616daefebe",
+          "sku": "CD-MILK-3",
+          "sizeLabel": "2 Litre Family Pack",
+          "sellingPrice": "185",
+          "mrpPrice": "195",
+          "stockQuantity": 200,
+          "lowStockThreshold": 10,
+          "packagingType": "PET_BOTTLE",
+          "imageUrl": "/products/1786288161673-1lamnic6.webp",
+          "isActive": true,
+          "displayOrder": 3,
+          "createdAt": "2026-08-09T15:15:36.815Z",
+          "updatedAt": "2026-08-09T15:15:36.815Z"
+        },
+        {
+          "id": "8c2ad62c-9548-4d2f-8ad1-360449930e1a",
+          "productId": "8a9fdee5-4bdb-484d-8556-98616daefebe",
+          "sku": "CD-SKU-2193",
+          "sizeLabel": "5 Litre Pack",
+          "sellingPrice": "500",
+          "mrpPrice": "600",
+          "stockQuantity": 50,
+          "lowStockThreshold": 10,
+          "packagingType": "GLASS_JAR",
+          "imageUrl": "/products/1786288161673-1lamnic6.webp",
+          "isActive": true,
+          "displayOrder": 4,
+          "createdAt": "2026-08-09T15:15:36.815Z",
+          "updatedAt": "2026-08-09T15:15:36.815Z"
+        }
+      ],
+      "galleryImages": [
+        {
+          "id": "af0a656e-d2b8-428c-8187-7b2feffe150b",
+          "productId": "8a9fdee5-4bdb-484d-8556-98616daefebe",
+          "imageUrl": "/products/1786287354784-auadn02g.webp",
+          "variantId": "500 ml Pouch",
+          "isPrimary": true,
+          "isVariantPrimary": false,
+          "displayOrder": 1,
+          "createdAt": "2026-08-09T15:15:35.634Z"
+        },
+        {
+          "id": "b3b1c2a5-f4cb-44c2-ad60-da6af122bd76",
+          "productId": "8a9fdee5-4bdb-484d-8556-98616daefebe",
+          "imageUrl": "/products/1786287361090-rtehwto1.webp",
+          "variantId": "1 Litre Glass Bottle",
+          "isPrimary": false,
+          "isVariantPrimary": false,
+          "displayOrder": 2,
+          "createdAt": "2026-08-09T15:15:35.634Z"
+        },
+        {
+          "id": "a0258c2f-93e1-46ed-b90e-7f4214610182",
+          "productId": "8a9fdee5-4bdb-484d-8556-98616daefebe",
+          "imageUrl": "/products/1786287371091-bx6l4cmd.webp",
+          "variantId": "2 Litre Family Pack",
+          "isPrimary": false,
+          "isVariantPrimary": false,
+          "displayOrder": 3,
+          "createdAt": "2026-08-09T15:15:35.634Z"
+        },
+        {
+          "id": "3405053e-66d7-40bc-9b89-82cff90cbbf5",
+          "productId": "8a9fdee5-4bdb-484d-8556-98616daefebe",
+          "imageUrl": "/products/1786287391398-2biddc84.webp",
+          "variantId": null,
+          "isPrimary": false,
+          "isVariantPrimary": false,
+          "displayOrder": 4,
+          "createdAt": "2026-08-09T15:15:35.634Z"
+        },
+        {
+          "id": "486c5565-2dd3-4ea2-b7b4-96fc0fb24ca6",
+          "productId": "8a9fdee5-4bdb-484d-8556-98616daefebe",
+          "imageUrl": "/products/1786288161673-1lamnic6.webp",
+          "variantId": "5 Litre Pack",
+          "isPrimary": false,
+          "isVariantPrimary": false,
+          "displayOrder": 5,
+          "createdAt": "2026-08-09T15:15:35.634Z"
+        }
+      ]
+    },
+    {
+      "id": "0bd64070-d42e-4d51-82ab-e2921f985156",
+      "categoryId": "519a29f5-ab19-4820-ac21-fdfb56eb730e",
+      "title": "Country Dairy A2 Vedic Ghee",
+      "slug": "country-dairy-a2-vedic-ghee-1l",
+      "tagline": "Every Spoon Carries the Soul of Devbhoomi.",
+      "storyDescription": "Handcrafted in the serene foothills of Uttarakhand, Country Dairy Desi Cow Ghee celebrates the timeless traditions of Devbhoomi. Made through the traditional curd-to-butter process and slowly simmered to perfection, every jar carries the rich aroma, authentic taste, and wholesome goodness that has been cherished in pahadi homes for generations.\n\nFrom nourishing daily meals to festive celebrations, this golden ghee brings the warmth of the mountains and the purity of nature to every kitchen.\n\nPure. Traditional. Himalayan.\n\nEvery Spoon Carries the Soul of Devbhoomi.",
+      "status": "LIVE",
+      "badgeText": "👑 VEDIC BILONA",
+      "isFeatured": true,
+      "displayOrder": 1,
+      "isSubscriptionAllowed": false,
+      "batchCode": null,
+      "verified": false,
+      "specifications": {
+        "Shelf Life": "12 Months",
+        "Net Quantity": "1L Jar",
+        "Serving Size": "10g",
+        "Packaging Type": "Glass Jar",
+        "Storage Instructions": "Store in a cool dry place. Do not refrigerate."
+      },
+      "nutritionFacts": {},
+      "metadata": null,
+      "createdAt": "2026-07-24T20:30:18.197Z",
+      "updatedAt": "2026-08-09T15:28:48.213Z",
+      "variants": [
+        {
+          "id": "62f150aa-6de6-4330-bcde-239d39b772a5",
+          "productId": "0bd64070-d42e-4d51-82ab-e2921f985156",
+          "sku": "CD-GHEE-1L",
+          "sizeLabel": "1 Litre Glass Jar",
+          "sellingPrice": "1450",
+          "mrpPrice": "1650",
+          "stockQuantity": 100,
+          "lowStockThreshold": 10,
+          "packagingType": "GLASS_JAR",
+          "imageUrl": "/products/1786289018578-gszg3ew8.webp",
+          "isActive": true,
+          "displayOrder": 1,
+          "createdAt": "2026-08-09T15:28:47.601Z",
+          "updatedAt": "2026-08-09T15:28:47.601Z"
+        },
+        {
+          "id": "9b4117c5-ba69-4cf9-9140-9e53bf25962b",
+          "productId": "0bd64070-d42e-4d51-82ab-e2921f985156",
+          "sku": "CD-GHEE-500ML",
+          "sizeLabel": "500ml Glass Jar",
+          "sellingPrice": "780",
+          "mrpPrice": "890",
+          "stockQuantity": 80,
+          "lowStockThreshold": 10,
+          "packagingType": "GLASS_JAR",
+          "imageUrl": "/products/1786289048434-y9jjteun.webp",
+          "isActive": true,
+          "displayOrder": 2,
+          "createdAt": "2026-08-09T15:28:47.601Z",
+          "updatedAt": "2026-08-09T15:28:47.601Z"
+        }
+      ],
+      "galleryImages": [
+        {
+          "id": "bf890899-9bf1-4381-9885-532a50b835da",
+          "productId": "0bd64070-d42e-4d51-82ab-e2921f985156",
+          "imageUrl": "/products/1786289018578-gszg3ew8.webp",
+          "variantId": "1 Litre Glass Jar",
+          "isPrimary": false,
+          "isVariantPrimary": false,
+          "displayOrder": 1,
+          "createdAt": "2026-08-09T15:28:46.392Z"
+        },
+        {
+          "id": "8b6bef13-3496-4505-bfb1-3d7e21d20b80",
+          "productId": "0bd64070-d42e-4d51-82ab-e2921f985156",
+          "imageUrl": "/products/1786289048434-y9jjteun.webp",
+          "variantId": "500ml Glass Jar",
+          "isPrimary": false,
+          "isVariantPrimary": false,
+          "displayOrder": 2,
+          "createdAt": "2026-08-09T15:28:46.392Z"
+        },
+        {
+          "id": "37b225f0-8eb3-4d23-bfba-0008673575b8",
+          "productId": "0bd64070-d42e-4d51-82ab-e2921f985156",
+          "imageUrl": "/products/1786289076530-5nlsclkt.webp",
+          "variantId": null,
+          "isPrimary": false,
+          "isVariantPrimary": false,
+          "displayOrder": 3,
+          "createdAt": "2026-08-09T15:28:46.392Z"
+        },
+        {
+          "id": "c256f78f-a959-4cb6-876b-8c634180c6a3",
+          "productId": "0bd64070-d42e-4d51-82ab-e2921f985156",
+          "imageUrl": "/products/1786289101209-bwc0f3af.webp",
+          "variantId": null,
+          "isPrimary": false,
+          "isVariantPrimary": false,
+          "displayOrder": 4,
+          "createdAt": "2026-08-09T15:28:46.392Z"
+        },
+        {
+          "id": "edc20c03-7043-442d-98ed-1657f093438e",
+          "productId": "0bd64070-d42e-4d51-82ab-e2921f985156",
+          "imageUrl": "/products/1786289117074-jtbgnyi2.webp",
+          "variantId": null,
+          "isPrimary": false,
+          "isVariantPrimary": false,
+          "displayOrder": 5,
+          "createdAt": "2026-08-09T15:28:46.392Z"
+        },
+        {
+          "id": "b1c90d4d-dc70-4eda-926e-2fdc9eeb36b0",
+          "productId": "0bd64070-d42e-4d51-82ab-e2921f985156",
+          "imageUrl": "/products/1786289140534-c9bczu5b.webp",
+          "variantId": null,
+          "isPrimary": false,
+          "isVariantPrimary": false,
+          "displayOrder": 6,
+          "createdAt": "2026-08-09T15:28:46.392Z"
+        }
+      ]
+    }
+  ],
+  "heroBanners": [
+    {
+      "id": "369993f6-24da-4ce6-9d59-0cbc1a5ee666",
+      "title": "Pure A2 Milk. From Happy Cows.",
+      "subtitle": "Grass-fed, free-range Gir & Sahiwal cows. NABL lab-verified. Zero adulterants.",
+      "imageUrl": "/hero-banners/1785424812688-87ruu2yo.webp",
+      "deviceType": "DESKTOP",
+      "ctaText": "Shop All Products",
+      "ctaLink": "/products",
+      "badgeText": "A2 MILK",
+      "displayOrder": 2,
+      "isActive": true,
+      "createdAt": "2026-07-24T20:30:22.798Z",
+      "updatedAt": "2026-07-30T15:20:19.542Z"
+    },
+    {
+      "id": "d42373ce-41db-4efc-890f-96b506c8c072",
+      "title": "Desktop Storefront Banner",
+      "subtitle": "Add compelling subtitle text here",
+      "imageUrl": "/hero-banners/1785470030299-32pxr7n6.webp",
+      "deviceType": "DESKTOP",
+      "ctaText": "Explore Shop",
+      "ctaLink": "/products",
+      "badgeText": "Special Offer",
+      "displayOrder": 3,
+      "isActive": true,
+      "createdAt": "2026-07-31T03:37:39.763Z",
+      "updatedAt": "2026-07-31T03:53:56.571Z"
+    },
+    {
+      "id": "339981d2-2631-4373-87d6-f31b850c6c12",
+      "title": "Nourishment from the Himalayan Foothills.",
+      "subtitle": "",
+      "imageUrl": "/hero-banners/1786269102827-zag3fym1.webp",
+      "deviceType": "DESKTOP",
+      "ctaText": "Shop All Products",
+      "ctaLink": "/products",
+      "badgeText": "Devbhoomi Uttarakhand Origin",
+      "displayOrder": 1,
+      "isActive": true,
+      "createdAt": "2026-07-24T20:30:22.798Z",
+      "updatedAt": "2026-08-09T09:54:49.454Z"
+    },
+    {
+      "id": "104461e0-c157-4f25-ad69-39089dade297",
+      "title": "Mobile Storefront Banner",
+      "subtitle": "Add compelling subtitle text here",
+      "imageUrl": "/images/hero-banner.png",
+      "deviceType": "MOBILE",
+      "ctaText": "Explore Shop",
+      "ctaLink": "/products",
+      "badgeText": "Special Offer",
+      "displayOrder": 1,
+      "isActive": true,
+      "createdAt": "2026-07-26T08:45:52.022Z",
+      "updatedAt": "2026-07-26T08:45:52.022Z"
+    }
+  ],
+  "trustBadges": [
+    {
+      "id": "553c6364-affd-4e00-9f03-03156919c2b7",
+      "title": "Guaranteed 100% Pure",
+      "subtitle": "Every batch tested & certified",
+      "iconName": "ShieldCheck",
+      "displayOrder": 1,
+      "isActive": true,
+      "createdAt": "2026-07-24T20:30:23.468Z",
+      "updatedAt": "2026-07-24T20:30:23.468Z"
+    },
+    {
+      "id": "089672bd-618e-4248-9ead-ca279d025013",
+      "title": "Express Morning Delivery",
+      "subtitle": "Fresh at your doorstep by 7 AM",
+      "iconName": "Truck",
+      "displayOrder": 2,
+      "isActive": true,
+      "createdAt": "2026-07-24T20:30:23.468Z",
+      "updatedAt": "2026-07-24T20:30:23.468Z"
+    },
+    {
+      "id": "907ab2e2-252c-4474-93c0-18ed81b34010",
+      "title": "No Added Preservatives",
+      "subtitle": "Zero chemicals, zero processing",
+      "iconName": "Sparkles",
+      "displayOrder": 3,
+      "isActive": true,
+      "createdAt": "2026-07-24T20:30:23.468Z",
+      "updatedAt": "2026-07-24T20:30:23.468Z"
+    }
+  ],
+  "featureFlags": [
+    {
+      "id": "5a02bc71-4725-463f-a717-651b52bcbe3a",
+      "key": "ENABLE_WEBSITE_PAYMENT",
+      "description": "Direct online payment checkout",
+      "isEnabled": false,
+      "rolloutPercentage": 100,
+      "createdAt": "2026-07-24T20:30:24.079Z",
+      "updatedAt": "2026-07-24T20:30:24.079Z"
+    },
+    {
+      "id": "d546ce39-9e4c-4980-b434-6371bb9ff620",
+      "key": "ENABLE_PRODUCT_RATINGS",
+      "description": "Product customer ratings & reviews",
+      "isEnabled": false,
+      "rolloutPercentage": 100,
+      "createdAt": "2026-07-24T20:30:24.079Z",
+      "updatedAt": "2026-07-26T09:11:34.155Z"
+    },
+    {
+      "id": "d24c2188-24bb-4b62-9caf-f362606110f7",
+      "key": "ENABLE_SUBSCRIPTIONS",
+      "description": "Daily subscription deliveries",
+      "isEnabled": false,
+      "rolloutPercentage": 100,
+      "createdAt": "2026-07-24T20:30:24.079Z",
+      "updatedAt": "2026-07-26T09:11:35.962Z"
+    },
+    {
+      "id": "7fc58a8e-f3ad-4936-8546-c7c982ccefaf",
+      "key": "ENABLE_CART",
+      "description": "Multi-item shopping cart",
+      "isEnabled": false,
+      "rolloutPercentage": 100,
+      "createdAt": "2026-07-24T20:30:24.079Z",
+      "updatedAt": "2026-07-26T09:11:36.365Z"
+    },
+    {
+      "id": "41fc8d4c-fed0-403e-b36f-4009a45996ca",
+      "key": "ENABLE_USER_ACCOUNTS",
+      "description": "User accounts and sign in",
+      "isEnabled": false,
+      "rolloutPercentage": 100,
+      "createdAt": "2026-07-24T20:30:24.079Z",
+      "updatedAt": "2026-07-26T09:11:37.306Z"
+    }
+  ]
+}

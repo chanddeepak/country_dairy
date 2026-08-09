@@ -1,7 +1,8 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Role } from '@country-dairy/types';
+import { Role } from '@prisma/client';
 import { ROLES_KEY } from './roles.decorator';
+import { AuthenticatedUser } from './auth.guard';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -13,15 +14,25 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    if (!requiredRoles) {
+    if (!requiredRoles?.length) {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest();
+    const { user } = context.switchToHttp().getRequest<{ user?: AuthenticatedUser }>();
     if (!user) {
-      return false;
+      throw new ForbiddenException('Insufficient permissions');
     }
 
-    return requiredRoles.includes(user.role);
+    // Super admin is implicitly granted every role, matching the admin
+    // console's own permission model.
+    if (user.role === Role.SUPER_ADMIN) {
+      return true;
+    }
+
+    if (!requiredRoles.includes(user.role as Role)) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    return true;
   }
 }

@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MediaService } from '../media/media.service';
 
@@ -147,6 +148,21 @@ export class CmsService {
     return this.prisma.featureFlag.update({
       where: { key },
       data: { isEnabled: !existing.isEnabled },
+    });
+  }
+
+  // Store settings — key/value so new knobs (WhatsApp number, order message
+  // template, support hours) do not each need a migration.
+  async getSetting(key: string) {
+    const setting = await this.prisma.storeSetting.findUnique({ where: { key } });
+    return setting ?? { key, value: null };
+  }
+
+  async setSetting(key: string, value: unknown, description?: string) {
+    return this.prisma.storeSetting.upsert({
+      where: { key },
+      update: { value: value as Prisma.InputJsonValue, description },
+      create: { key, value: value as Prisma.InputJsonValue, description },
     });
   }
 }

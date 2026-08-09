@@ -21,10 +21,11 @@ export class CatalogService {
     private mediaService: MediaService,
   ) {}
 
-  async getCategories() {
-    this.logger.log('Fetching all product categories');
+  async getCategories(options: { activeOnly?: boolean } = {}) {
+    this.logger.log(`Fetching product categories (activeOnly: ${!!options.activeOnly})`);
     try {
       return await this.prisma.category.findMany({
+        where: options.activeOnly ? { isActive: true } : undefined,
         orderBy: { displayOrder: 'asc' },
         include: {
           subCategories: true,
@@ -34,6 +35,13 @@ export class CatalogService {
       this.logger.error('Failed to fetch categories', error.stack);
       throw error;
     }
+  }
+
+  async getPackagingOptions() {
+    return this.prisma.packagingOption.findMany({
+      where: { isActive: true },
+      orderBy: { displayOrder: 'asc' },
+    });
   }
 
   async createCategory(dto: any) {
@@ -140,12 +148,13 @@ export class CatalogService {
     }
   }
 
-  async getProductBySlugOrId(slugOrId: string) {
+  async getProductBySlugOrId(slugOrId: string, options: { liveOnly?: boolean } = {}) {
     this.logger.log(`Fetching detailed product profile for: ${slugOrId}`);
     try {
       const product = await this.prisma.product.findFirst({
         where: {
           OR: [{ id: slugOrId }, { slug: slugOrId }],
+          ...(options.liveOnly ? { status: ProductStatus.LIVE } : {}),
         },
         include: {
           category: true,
@@ -156,6 +165,8 @@ export class CatalogService {
             take: 1,
           },
           reviews: {
+            // Only moderated reviews reach the storefront.
+            where: options.liveOnly ? { status: 'APPROVED' } : undefined,
             include: {
               user: {
                 select: { name: true },
@@ -377,24 +388,60 @@ export class CatalogService {
       return { success: true, message: `Product ${id} deleted` };
     }
 
-    // 1. Clean up media storage files
-    if (existing.galleryImages) {
-      for (const img of existing.galleryImages) {
-        await this.mediaService.deleteMediaFile(img.imageUrl);
-      }
+    // A product that has ever been sold, or that someone is subscribed to, is
+    // archived rather than destroyed. Deleting it would take order history and
+    // active subscriptions with it — the previous implementation ran
+    // orderItem.deleteMany here, erasing the revenue record along with it.
+    const [orderedCount, subscribedCount] = await Promise.all([
+      this.prisma.orderItem.count({ where: { productId: id } }),
+      this.prisma.subscription.count({
+        where: { productId: id, status: { in: ['ACTIVE', 'PAUSED'] } },
+      }),
+    ]);
+
+    if (orderedCount > 0 || subscribedCount > 0) {
+      this.logger.log(
+        `Archiving product ${id} instead of deleting ` +
+          `(${orderedCount} order lines, ${subscribedCount} live subscriptions)`,
+      );
+
+      await this.prisma.$transaction([
+        this.prisma.product.update({
+          where: { id },
+          data: { status: ProductStatus.ARCHIVED, isFeatured: false },
+        }),
+        this.prisma.productVariant.updateMany({
+          where: { productId: id },
+          data: { isActive: false },
+        }),
+        this.prisma.cartItem.deleteMany({ where: { productId: id } }),
+      ]);
+
+      return {
+        success: true,
+        id,
+        archived: true,
+        message:
+          'Product has sales or subscription history, so it was archived and hidden ' +
+          'from the storefront rather than deleted.',
+      };
     }
 
-    // 2. Cascade delete all dependent records across every database table
-    await this.prisma.productImage.deleteMany({ where: { productId: id } });
-    await this.prisma.productVariant.deleteMany({ where: { productId: id } });
-    await this.prisma.labReport.deleteMany({ where: { productId: id } });
-    await this.prisma.cartItem.deleteMany({ where: { productId: id } });
-    await this.prisma.productReview.deleteMany({ where: { productId: id } });
-    await this.prisma.subscription.deleteMany({ where: { productId: id } });
-    await this.prisma.orderItem.deleteMany({ where: { productId: id } });
+    // Never sold: safe to remove outright.
+    for (const img of existing.galleryImages) {
+      await this.mediaService.deleteMediaFile(img.imageUrl);
+    }
 
-    // 3. Delete product record from DB
-    await this.prisma.product.delete({ where: { id } });
-    return { success: true, id };
+    await this.prisma.$transaction([
+      this.prisma.productImage.deleteMany({ where: { productId: id } }),
+      this.prisma.labReport.deleteMany({ where: { productId: id } }),
+      this.prisma.cartItem.deleteMany({ where: { productId: id } }),
+      this.prisma.productReview.deleteMany({ where: { productId: id } }),
+      this.prisma.subscription.deleteMany({ where: { productId: id } }),
+      this.prisma.productVariant.deleteMany({ where: { productId: id } }),
+      this.prisma.product.delete({ where: { id } }),
+    ]);
+
+    return { success: true, id, archived: false };
   }
 }

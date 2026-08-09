@@ -1,112 +1,108 @@
-import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  DeliveryStatus,
+  SubscriptionFrequency,
+  SubscriptionStatus,
+  TransactionType,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { FLAG, FeatureFlagsService } from '../cms/feature-flags.service';
+import { round2 } from '../orders/pricing';
 
 @Injectable()
 export class SubscriptionsService {
   private readonly logger = new Logger(SubscriptionsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private featureFlags: FeatureFlagsService,
+  ) {}
 
   async createSubscription(
     userId: string,
-    productId: string,
+    variantId: string,
     quantity: number,
-    frequency: string, // "DAILY", "ALTERNATE", "CUSTOM"
-    daysOfWeek: number[], // 0 = Sunday, 6 = Saturday
+    frequency: SubscriptionFrequency,
+    daysOfWeek: number[],
     startDateStr: string,
   ) {
-    this.logger.log(`Creating subscription: user=${userId}, product=${productId}, freq=${frequency}`);
-
-    // Validate product subscription availability
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
+    const variant = await this.prisma.productVariant.findUnique({
+      where: { id: variantId },
+      include: { product: true },
     });
 
-    if (!product) {
-      throw new NotFoundException('Product not found');
+    if (!variant || !variant.isActive) {
+      throw new NotFoundException('Product option not found');
     }
 
-    if (!product.isSubscriptionAllowed) {
-      throw new BadRequestException('Subscriptions are not allowed for this product');
-    }
-
-    if (quantity <= 0) {
-      throw new BadRequestException('Quantity must be greater than 0');
+    if (!variant.product.isSubscriptionAllowed) {
+      throw new BadRequestException('Subscriptions are not available for this product');
     }
 
     const startDate = new Date(startDateStr);
-    if (isNaN(startDate.getTime())) {
+    if (Number.isNaN(startDate.getTime())) {
       throw new BadRequestException('Invalid start date');
+    }
+
+    if (frequency === SubscriptionFrequency.CUSTOM_DAYS && !daysOfWeek?.length) {
+      throw new BadRequestException('Select at least one delivery day');
     }
 
     const nextDelivery = this.calculateNextDelivery(frequency, daysOfWeek, startDate);
 
-    try {
-      return await this.prisma.subscription.create({
-        data: {
-          userId,
-          productId,
-          quantity,
-          frequency,
-          daysOfWeek: daysOfWeek || [],
-          startDate,
-          nextDelivery,
-          status: 'ACTIVE',
-        },
-        include: {
-          product: {
-            select: {
-              title: true,
-              galleryImages: true,
-              variants: true,
-            },
-          },
-        },
-      });
-    } catch (error) {
-      this.logger.error(`Failed to create subscription for user ${userId}`, error.stack);
-      throw error;
-    }
+    return this.prisma.subscription.create({
+      data: {
+        userId,
+        productId: variant.productId,
+        variantId,
+        quantity,
+        frequency,
+        daysOfWeek: daysOfWeek ?? [],
+        startDate,
+        nextDelivery,
+        status: SubscriptionStatus.ACTIVE,
+      },
+      include: {
+        variant: true,
+        product: { select: { title: true, slug: true, galleryImages: true } },
+      },
+    });
   }
 
   async pauseSubscription(userId: string, subscriptionId: string) {
-    this.logger.log(`Pausing subscription: ${subscriptionId} for user ${userId}`);
-    const sub = await this.prisma.subscription.findUnique({
-      where: { id: subscriptionId },
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
     });
 
-    if (!sub || sub.userId !== userId) {
+    if (!sub) {
       throw new NotFoundException('Subscription not found');
     }
 
     return this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: {
-        status: 'PAUSED',
-      },
+      data: { status: SubscriptionStatus.PAUSED },
     });
   }
 
   async resumeSubscription(userId: string, subscriptionId: string) {
-    this.logger.log(`Resuming subscription: ${subscriptionId} for user ${userId}`);
-    const sub = await this.prisma.subscription.findUnique({
-      where: { id: subscriptionId },
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
     });
 
-    if (!sub || sub.userId !== userId) {
+    if (!sub) {
       throw new NotFoundException('Subscription not found');
     }
 
-    // Recalculate next delivery from today's date
-    const today = new Date();
-    const nextDelivery = this.calculateNextDelivery(sub.frequency, sub.daysOfWeek, today);
+    const nextDelivery = this.calculateNextDelivery(sub.frequency, sub.daysOfWeek, new Date());
 
     return this.prisma.subscription.update({
       where: { id: subscriptionId },
-      data: {
-        status: 'ACTIVE',
-        nextDelivery,
-      },
+      data: { status: SubscriptionStatus.ACTIVE, nextDelivery },
     });
   }
 
@@ -114,23 +110,11 @@ export class SubscriptionsService {
     return this.prisma.subscription.findMany({
       where: { userId },
       include: {
-        product: {
-          select: {
-            title: true,
-            galleryImages: true,
-            variants: true,
-          },
-        },
-        deliveries: {
-          orderBy: {
-            deliveryDate: 'desc',
-          },
-          take: 5, // Return last 5 delivery history records
-        },
+        variant: true,
+        product: { select: { title: true, slug: true, galleryImages: true } },
+        deliveries: { orderBy: { deliveryDate: 'desc' }, take: 5 },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -138,146 +122,190 @@ export class SubscriptionsService {
     const searchDate = date ? new Date(date) : new Date();
     searchDate.setHours(0, 0, 0, 0);
 
-    this.logger.log(`[Scheduler] Running daily subscription processing for date: ${searchDate.toISOString()}`);
-
-    try {
-      const activeSubs = await this.prisma.subscription.findMany({
-        where: {
-          status: 'ACTIVE',
-          nextDelivery: {
-            gte: searchDate,
-            lt: new Date(searchDate.getTime() + 24 * 60 * 60 * 1000),
-          },
+    const activeSubs = await this.prisma.subscription.findMany({
+      where: {
+        status: SubscriptionStatus.ACTIVE,
+        nextDelivery: {
+          gte: searchDate,
+          lt: new Date(searchDate.getTime() + 24 * 60 * 60 * 1000),
         },
-        include: {
-          product: {
-            include: { variants: true },
-          },
-          user: true,
-        },
-      });
+      },
+      include: { variant: true, product: true, user: true },
+    });
 
-      this.logger.log(`Found ${activeSubs.length} active deliveries scheduled for matching date`);
+    this.logger.log(`[Scheduler] ${activeSubs.length} subscriptions due on ${searchDate.toDateString()}`);
 
-      let successCount = 0;
-      let failCount = 0;
+    // Wallet billing is behind a flag until the wallet feature is built out.
+    // With it off, deliveries are still scheduled but nothing is charged.
+    const walletEnabled = await this.featureFlags.isEnabled(FLAG.WALLET);
 
-      for (const sub of activeSubs) {
-        const cost = Number((sub.product as any).variants?.[0]?.sellingPrice || 100) * sub.quantity;
-        const balance = Number(sub.user.walletBalance);
+    let successCount = 0;
+    let failCount = 0;
 
-        if (balance >= cost) {
-          // 1. Transactional wallet deduction
-          await this.prisma.$transaction(async (tx) => {
-            await tx.user.update({
-              where: { id: sub.userId },
-              data: {
-                walletBalance: {
-                  decrement: cost,
-                },
-              },
-            });
+    for (const sub of activeSubs) {
+      // Price comes from the subscribed variant. This previously read
+      // `product.variants[0]` with a `|| 100` fallback, so it billed an
+      // arbitrary size at a flat ₹100.
+      const cost = round2(Number(sub.variant.sellingPrice) * sub.quantity);
 
-            // 2. Log ledger debit transaction
-            await tx.walletTransaction.create({
-              data: {
-                userId: sub.userId,
-                amount: cost,
-                type: 'DEBIT',
-                description: `Daily subscription delivery: ${sub.quantity}x ${sub.product.title}`,
-                referenceId: sub.id,
-              },
-            });
-
-            // 3. Create delivery entry
-            await tx.subscriptionDelivery.create({
-              data: {
-                subscriptionId: sub.id,
-                deliveryDate: searchDate,
-                status: 'PENDING',
-                quantity: sub.quantity,
-                priceCharged: cost,
-              },
-            });
-
-            // 4. Calculate and set next delivery date
-            const tomorrow = new Date(searchDate);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const nextDelivery = this.calculateNextDelivery(sub.frequency, sub.daysOfWeek, tomorrow);
-
-            await tx.subscription.update({
-              where: { id: sub.id },
-              data: {
-                nextDelivery,
-              },
-            });
-          });
-
-          this.logger.log(`[Scheduler] SUCCESS: Scheduled delivery of ${sub.product.title} to user: ${sub.user.name ?? sub.user.phone}`);
-          successCount++;
+      try {
+        if (walletEnabled) {
+          await this.chargeAndSchedule(sub, cost, searchDate);
         } else {
-          // Insufficient Balance: Log failed delivery, do not deduct, pause subscription
-          await this.prisma.$transaction(async (tx) => {
-            await tx.subscriptionDelivery.create({
-              data: {
-                subscriptionId: sub.id,
-                deliveryDate: searchDate,
-                status: 'FAILED_INSUFFICIENT_BALANCE',
-                quantity: sub.quantity,
-                priceCharged: 0.00,
-              },
-            });
-
-            // Auto-pause to prevent recurring failures
-            await tx.subscription.update({
-              where: { id: sub.id },
-              data: {
-                status: 'PAUSED',
-              },
-            });
-          });
-
-          this.logger.warn(`[Scheduler] FAILED: Insufficient balance (${balance} INR < ${cost} INR) for user: ${sub.user.name ?? sub.user.phone}. Subscription paused.`);
-          failCount++;
+          await this.scheduleWithoutCharge(sub, cost, searchDate);
         }
+        successCount++;
+      } catch (error) {
+        this.logger.warn(
+          `[Scheduler] Could not process subscription ${sub.id}: ${(error as Error).message}`,
+        );
+        await this.recordFailedDelivery(sub.id, searchDate, sub.quantity);
+        failCount++;
       }
-
-      this.logger.log(`[Scheduler Completed] Success: ${successCount}, Failed: ${failCount}`);
-      return { successCount, failCount };
-    } catch (error) {
-      this.logger.error('Failed to run daily subscription delivery processing loop', error.stack);
-      throw error;
     }
+
+    this.logger.log(`[Scheduler] success=${successCount} failed=${failCount}`);
+    return { successCount, failCount };
   }
 
   /**
-   * Helper utility to calculate the next delivery date based on frequency rules.
+   * Schedules the delivery without touching the wallet, for while the wallet
+   * feature is disabled. Collection happens out of band (cash on delivery).
    */
-  private calculateNextDelivery(frequency: string, daysOfWeek: number[], fromDate: Date): Date {
+  private async scheduleWithoutCharge(
+    sub: { id: string; frequency: SubscriptionFrequency; daysOfWeek: number[]; quantity: number },
+    cost: number,
+    searchDate: Date,
+  ) {
+    const tomorrow = new Date(searchDate);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    await this.prisma.$transaction([
+      this.prisma.subscriptionDelivery.create({
+        data: {
+          subscriptionId: sub.id,
+          deliveryDate: searchDate,
+          status: DeliveryStatus.SCHEDULED,
+          quantity: sub.quantity,
+          priceCharged: cost,
+        },
+      }),
+      this.prisma.subscription.update({
+        where: { id: sub.id },
+        data: {
+          nextDelivery: this.calculateNextDelivery(sub.frequency, sub.daysOfWeek, tomorrow),
+        },
+      }),
+    ]);
+  }
+
+  private async chargeAndSchedule(
+    sub: { id: string; userId: string; quantity: number; frequency: SubscriptionFrequency; daysOfWeek: number[]; product: { title: string } },
+    cost: number,
+    searchDate: Date,
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      // Conditional update rather than read-then-write: two concurrent
+      // scheduler runs cannot both pass a balance check and overdraw.
+      const debited = await tx.user.updateMany({
+        where: { id: sub.userId, walletBalance: { gte: cost } },
+        data: { walletBalance: { decrement: cost } },
+      });
+
+      if (debited.count === 0) {
+        throw new BadRequestException('Insufficient wallet balance');
+      }
+
+      const user = await tx.user.findUniqueOrThrow({
+        where: { id: sub.userId },
+        select: { walletBalance: true },
+      });
+
+      await tx.walletTransaction.create({
+        data: {
+          userId: sub.userId,
+          amount: cost,
+          type: TransactionType.DEBIT,
+          balanceAfter: user.walletBalance,
+          description: `Subscription delivery: ${sub.quantity}x ${sub.product.title}`,
+          referenceId: sub.id,
+        },
+      });
+
+      await tx.subscriptionDelivery.create({
+        data: {
+          subscriptionId: sub.id,
+          deliveryDate: searchDate,
+          status: DeliveryStatus.SCHEDULED,
+          quantity: sub.quantity,
+          priceCharged: cost,
+        },
+      });
+
+      const tomorrow = new Date(searchDate);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      await tx.subscription.update({
+        where: { id: sub.id },
+        data: {
+          nextDelivery: this.calculateNextDelivery(sub.frequency, sub.daysOfWeek, tomorrow),
+        },
+      });
+    });
+  }
+
+  private async recordFailedDelivery(subscriptionId: string, deliveryDate: Date, quantity: number) {
+    await this.prisma.$transaction([
+      this.prisma.subscriptionDelivery.create({
+        data: {
+          subscriptionId,
+          deliveryDate,
+          status: DeliveryStatus.FAILED,
+          quantity,
+          priceCharged: 0,
+          skipReason: 'Insufficient wallet balance',
+        },
+      }),
+      // Auto-pause so the same failure does not repeat every day.
+      this.prisma.subscription.update({
+        where: { id: subscriptionId },
+        data: { status: SubscriptionStatus.PAUSED },
+      }),
+    ]);
+  }
+
+  /** Next delivery date implied by the subscription's frequency rule. */
+  private calculateNextDelivery(
+    frequency: SubscriptionFrequency,
+    daysOfWeek: number[],
+    fromDate: Date,
+  ): Date {
     const next = new Date(fromDate);
     next.setHours(0, 0, 0, 0);
 
-    if (frequency === 'DAILY') {
-      return next;
-    }
+    switch (frequency) {
+      case SubscriptionFrequency.DAILY:
+        return next;
 
-    if (frequency === 'ALTERNATE') {
-      next.setDate(next.getDate() + 1);
-      return next;
-    }
-
-    if (frequency === 'CUSTOM' && daysOfWeek && daysOfWeek.length > 0) {
-      // Loop up to 7 days ahead to find the next matching day of the week
-      for (let i = 0; i < 7; i++) {
-        const currentDay = next.getDay();
-        if (daysOfWeek.includes(currentDay)) {
-          return next;
-        }
+      case SubscriptionFrequency.ALTERNATE_DAYS:
         next.setDate(next.getDate() + 1);
-      }
-    }
+        return next;
 
-    // Default fallback to next day
-    return next;
+      case SubscriptionFrequency.WEEKLY:
+        next.setDate(next.getDate() + 7);
+        return next;
+
+      case SubscriptionFrequency.CUSTOM_DAYS: {
+        if (!daysOfWeek?.length) return next;
+        for (let i = 0; i < 7; i++) {
+          if (daysOfWeek.includes(next.getDay())) return next;
+          next.setDate(next.getDate() + 1);
+        }
+        return next;
+      }
+
+      default:
+        return next;
+    }
   }
 }
