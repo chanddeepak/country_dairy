@@ -126,9 +126,22 @@ export default function ProductDetailPage() {
 
   const handleVariantSelect = (variant: ProductVariant) => {
     setSelectedVariant(variant);
-    // Use variant-specific image if available, otherwise fall back to product-level image
-    const newImage = variant.image || (product ? PRODUCT_IMAGES[product.slug] : undefined) || product?.imageUrls?.[0] || '/images/products/ghee-jar.png';
-    setActiveImage(resolveStorefrontImageUrl(newImage));
+
+    const vImg = variant.image || (variant as any).imageUrl;
+    const variantLabel = variant.volumeOrWeight || (variant as any).name || (variant as any).sizeLabel;
+
+    // 1. Check if variant has direct image assigned
+    // 2. Or check if galleryImages has an image tagged with this variantId
+    const taggedGalleryImg = (product as any)?.galleryImages?.find((g: any) => 
+      g.variantId === variant.id || (variantLabel && g.variantId === variantLabel)
+    )?.imageUrl;
+
+    const primaryProductImg = (product as any)?.galleryImages?.find((g: any) => g.isPrimary)?.imageUrl 
+      || (product as any)?.galleryImages?.[0]?.imageUrl
+      || (product ? PRODUCT_IMAGES[product.slug] : undefined);
+
+    const targetImg = vImg || taggedGalleryImg || primaryProductImg || product?.imageUrls?.[0] || '/images/products/milk-bottle.png';
+    setActiveImage(resolveStorefrontImageUrl(targetImg));
   };
 
   const handleShare = () => {
@@ -219,15 +232,25 @@ export default function ProductDetailPage() {
     'Storage Instructions': 'Store in a cool, dry place away from direct sunlight. Keep container tightly sealed after use.',
   };
 
-  // Always include the product's primary image in the gallery.
-  // activeImage is used only for highlight state — all images stay visible at all times.
-  const productPrimaryImage = selectedVariant?.image || PRODUCT_IMAGES[product.slug];
-  const dbImages = ((product as any).galleryImages || []).map((gi: any) => gi.imageUrl);
+  // Filter gallery images specific to current selected variant + shared/unlinked photos
+  const selectedVariantLabel = selectedVariant?.volumeOrWeight || (selectedVariant as any)?.name || (selectedVariant as any)?.sizeLabel;
+  const rawGallery = (product as any)?.galleryImages || [];
+  
+  const relevantGallery = rawGallery.filter((gi: any) => {
+    if (!gi.variantId) return true; // Shared photo across all variants
+    if (gi.variantId === selectedVariant?.id) return true;
+    if (selectedVariantLabel && gi.variantId === selectedVariantLabel) return true;
+    return false; // Skip photos linked specifically to OTHER variants
+  });
+
+  const variantPrimaryImg = selectedVariant?.image || (selectedVariant as any)?.imageUrl;
+  const productPrimaryImg = rawGallery.find((g: any) => g.isPrimary)?.imageUrl || (product as any)?.imageUrl;
+
   const galleryPool = [
-    productPrimaryImage,
-    ...dbImages,
+    variantPrimaryImg,
+    productPrimaryImg,
+    ...relevantGallery.map((g: any) => g.imageUrl),
     ...(product.imageUrls || []),
-    ...(product.secondaryImages || []),
   ].filter(Boolean) as string[];
   const allImages = Array.from(new Set(galleryPool));
 

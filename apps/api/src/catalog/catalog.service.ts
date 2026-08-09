@@ -203,6 +203,7 @@ export class CatalogService {
       const urlStr = typeof img === 'string' ? img : img.imageUrl;
       return {
         imageUrl: sanitizeProductStoragePath(urlStr) || '/images/products/milk-bottle.png',
+        variantId: typeof img === 'object' ? img.variantId || null : null,
         isPrimary: typeof img === 'object' && img.isPrimary !== undefined ? img.isPrimary : idx === 0,
         displayOrder: idx + 1,
       };
@@ -233,6 +234,7 @@ export class CatalogService {
             stockQuantity: v.stockQuantity || 50,
             lowStockThreshold: v.lowStockThreshold || 10,
             packagingType: v.packagingType || 'GLASS_JAR',
+            imageUrl: v.imageUrl ? sanitizeProductStoragePath(v.imageUrl) : null,
             isActive: v.isActive ?? true,
             displayOrder: idx + 1,
           })),
@@ -249,7 +251,7 @@ export class CatalogService {
   }
 
   async updateProduct(id: string, dto: any) {
-    this.logger.log(`Updating product: ${id}`);
+    this.logger.log(`Updating product profile: ${id}`);
     
     // Resolve category if categoryName passed
     let categoryId = dto.categoryId;
@@ -296,6 +298,7 @@ export class CatalogService {
           return {
             productId: id,
             imageUrl: sanitizeProductStoragePath(urlStr) || '/images/products/milk-bottle.png',
+            variantId: typeof img === 'object' ? img.variantId || null : null,
             isPrimary: typeof img === 'object' && img.isPrimary !== undefined ? img.isPrimary : idx === 0,
             displayOrder: idx + 1,
           };
@@ -317,6 +320,7 @@ export class CatalogService {
           stockQuantity: Number(v.stockQuantity ?? 50),
           lowStockThreshold: Number(v.lowStockThreshold ?? 10),
           packagingType: v.packagingType || 'GLASS_JAR',
+          imageUrl: v.imageUrl ? sanitizeProductStoragePath(v.imageUrl) : null,
           isActive: v.isActive ?? true,
           displayOrder: idx + 1,
         })),
