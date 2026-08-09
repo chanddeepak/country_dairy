@@ -25,10 +25,12 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
   const discountBadge = defaultVariant?.discountPercent || product.discountBadge;
   const productUrl = defaultVariant ? `/products/${product.slug}?variant=${defaultVariant.id}` : `/products/${product.slug}`;
 
-  // Out of Stock calculation
-  const isOutOfStock = 
-    (product as any).status === 'OUT_OF_STOCK' || 
-    (defaultVariant && (defaultVariant as any).stockQuantity === 0) || 
+  // Availability is derived from stock, with forceOutOfStock as the manual
+  // override. OUT_OF_STOCK is no longer a product status.
+  const isOutOfStock =
+    (product as any).forceOutOfStock === true ||
+    (product as any).status === 'ARCHIVED' ||
+    (defaultVariant && (defaultVariant as any).stockQuantity === 0) ||
     (product as any).stock === 0;
 
   const handleWhatsAppClick = () => {

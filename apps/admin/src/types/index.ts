@@ -122,6 +122,40 @@ export interface AdminCustomer extends UserProfile {
   }[];
 }
 
+export interface ChartPoint {
+  label: string;
+  value: number;
+}
+
+export interface StockAlert {
+  id: string;
+  productId: string;
+  productName: string;
+  variantLabel: string;
+  sku: string;
+  currentStock: number;
+  threshold: number;
+  type: 'OUT_OF_STOCK' | 'LOW_STOCK';
+  updatedAt: string;
+}
+
+export interface DashboardData {
+  periodDays: number;
+  totals: {
+    pageViews: number;
+    productViews: number;
+    whatsappClicks: number;
+    addToCart: number;
+    orders: number;
+  };
+  pageViewsByDay: ChartPoint[];
+  whatsappClicksByDay: ChartPoint[];
+  revenueByDay: ChartPoint[];
+  deviceSplit: ChartPoint[];
+  topProducts: { productId: string | null; title: string; views: number }[];
+  stockAlerts: StockAlert[];
+}
+
 export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface AdminReview {

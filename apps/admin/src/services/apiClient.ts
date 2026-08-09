@@ -10,6 +10,8 @@ import type {
   AdminReview,
   OrderStats,
   PackagingOption,
+  DashboardData,
+  StockAlert,
 } from '../types';
 
 // Accepts either name: .env.staging defines VITE_API_URL while the original
@@ -322,6 +324,15 @@ export const adminApi = {
 
   async getCustomer(id: string): Promise<AdminCustomer> {
     return fetchJson<AdminCustomer>(`/users/customers/${id}`);
+  },
+
+  // Analytics API
+  async getDashboard(days = 7): Promise<DashboardData> {
+    return fetchJson<DashboardData>(`/analytics/dashboard?days=${days}`);
+  },
+
+  async getStockAlerts(): Promise<StockAlert[]> {
+    return fetchJson<StockAlert[]>('/analytics/stock-alerts');
   },
 
   // Reviews moderation API

@@ -12,6 +12,7 @@ import StarRating from '../../../components/ui/StarRating';
 import ReviewSummary from '../../../components/product/ReviewSummary';
 import ReviewCard from '../../../components/product/ReviewCard';
 import ReviewForm from '../../../components/product/ReviewForm';
+import { trackStorefrontEvent } from '../../../lib/analytics';
 import ProductCard from '../../../components/product/ProductCard';
 import AuthModal from '../../../components/modals/AuthModal';
 import SubscriptionModal from '../../../components/modals/SubscriptionModal';
@@ -118,11 +119,22 @@ export default function ProductDetailPage() {
   useEffect(() => {
     if (product?.id && ENABLE_PRODUCT_RATINGS) {
       fetch(`${API_URL}/products/${product.id}/reviews`)
-        .then((r) => r.ok ? r.json() : [])
-        .then((data) => setReviews(Array.isArray(data) ? data : []))
+        .then((r) => (r.ok ? r.json() : null))
+        // The endpoint returns a summary object; older code expected a bare array.
+        .then((data) => setReviews(Array.isArray(data?.reviews) ? data.reviews : []))
         .catch(() => setReviews([]));
     }
   }, [product?.id]);
+
+  // Feeds the "Most Viewed Products" panel on the admin dashboard.
+  useEffect(() => {
+    if (!product?.id) return;
+    trackStorefrontEvent({
+      eventName: 'product_view',
+      productId: product.id,
+      productName: product.name,
+    });
+  }, [product?.id, product?.name]);
 
   const handleVariantSelect = (variant: ProductVariant) => {
     setSelectedVariant(variant);

@@ -12,6 +12,7 @@ import { OrdersModule } from './orders/orders.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { CmsModule } from './cms/cms.module';
 import { UsersModule } from './users/users.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { UsersModule } from './users/users.module';
     SubscriptionsModule,
     CmsModule,
     UsersModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

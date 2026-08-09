@@ -1,88 +1,116 @@
-import { ShoppingCart, ShieldCheck, AlertTriangle, Eye, MessageCircle } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { ShoppingCart, AlertTriangle, Eye, MessageCircle, Loader2, PackageSearch } from 'lucide-react';
 import StatCard from '../components/ui/StatCard';
 import ChartView from '../components/ui/ChartView';
+import { adminApi } from '../services/apiClient';
+import type { DashboardData } from '../types';
+
+const RANGES = [7, 30] as const;
 
 export default function Overview() {
-  const salesHistory = [
-    { label: 'Mon', value: 1200 },
-    { label: 'Tue', value: 2400 },
-    { label: 'Wed', value: 1800 },
-    { label: 'Thu', value: 3100 },
-    { label: 'Fri', value: 2900 },
-    { label: 'Sat', value: 4300 },
-    { label: 'Sun', value: 3300 },
-  ];
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [days, setDays] = useState<(typeof RANGES)[number]>(7);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const whatsappClicksHistory = [
-    { label: 'Mon', value: 28 },
-    { label: 'Tue', value: 42 },
-    { label: 'Wed', value: 35 },
-    { label: 'Thu', value: 58 },
-    { label: 'Fri', value: 64 },
-    { label: 'Sat', value: 89 },
-    { label: 'Sun', value: 72 },
-  ];
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      setData(await adminApi.getDashboard(days));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load dashboard data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [days]);
 
-  // Stock Alerts seed data (low stock <= 10 units, out of stock = 0)
-  const stockAlerts = [
-    {
-      id: 'alt-1',
-      productName: 'Country Dairy A2 Vedic Ghee',
-      variantLabel: '2.5L Traditional Metal Dolchi',
-      sku: 'CD-GHEE-2.5L-DOLCHI',
-      currentStock: 0,
-      threshold: 5,
-      type: 'OUT_OF_STOCK' as const,
-      updatedAt: '10 minutes ago',
-    },
-    {
-      id: 'alt-2',
-      productName: 'Country Dairy A2 Vedic Ghee',
-      variantLabel: '1 Litre Glass Jar',
-      sku: 'CD-GHEE-1L',
-      currentStock: 6,
-      threshold: 10,
-      type: 'LOW_STOCK' as const,
-      updatedAt: '1 hour ago',
-    },
-  ];
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const handleSendWhatsAppStockAlert = (alertItem: typeof stockAlerts[0]) => {
-    const text = encodeURIComponent(`⚠️ STOCK ALERT: ${alertItem.productName} (${alertItem.variantLabel}) is ${alertItem.type === 'OUT_OF_STOCK' ? 'OUT OF STOCK (0 units)' : `LOW STOCK (${alertItem.currentStock} units remaining)`}. Please restock.`);
-    window.open(`https://wa.me/919777766666?text=${text}`, '_blank');
+  const handleSendWhatsAppStockAlert = (alert: DashboardData['stockAlerts'][number]) => {
+    const text = encodeURIComponent(
+      `⚠️ STOCK ALERT: ${alert.productName} (${alert.variantLabel}) is ${
+        alert.type === 'OUT_OF_STOCK'
+          ? 'OUT OF STOCK (0 units)'
+          : `LOW STOCK (${alert.currentStock} units remaining)`
+      }. Please restock.`,
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
   };
+
+  if (isLoading && !data) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-24 text-xs text-[#6b6661] font-medium">
+        <Loader2 className="h-4 w-4 animate-spin" /> Loading dashboard…
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium">
+        {error}
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const outOfStockCount = data.stockAlerts.filter((a) => a.type === 'OUT_OF_STOCK').length;
+  const lowStockCount = data.stockAlerts.length - outOfStockCount;
+  const revenueInPeriod = data.revenueByDay.reduce((sum, d) => sum + d.value, 0);
 
   return (
     <div className="space-y-8 text-[#2A2A2A]">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-[#6b6661] font-medium">
+          Showing the last {data.periodDays} days.
+        </p>
+        <div className="flex gap-1.5">
+          {RANGES.map((r) => (
+            <button
+              key={r}
+              onClick={() => setDays(r)}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${
+                days === r
+                  ? 'bg-[#064e3b] text-white border-[#064e3b]'
+                  : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'
+              }`}
+            >
+              {r} days
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Top Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="Gross Sales Today"
-          value="₹3,300"
-          subtext="From 4 order transactions today"
+          title={`Revenue (${data.periodDays}d)`}
+          value={`₹${revenueInPeriod.toLocaleString('en-IN')}`}
+          subtext={`From ${data.totals.orders} order${data.totals.orders === 1 ? '' : 's'}`}
           icon={<ShoppingCart className="h-5 w-5 text-[#064e3b]" />}
-          trend={{ value: '+18.5%', type: 'positive' }}
         />
         <StatCard
           title="WhatsApp Order Clicks"
-          value="72"
+          value={String(data.totals.whatsappClicks)}
           subtext="Storefront pre-filled order clicks"
           icon={<MessageCircle className="h-5 w-5 text-[#25D366]" />}
-          trend={{ value: '+24.1%', type: 'positive' }}
         />
         <StatCard
-          title="Total Store Visits"
-          value="1,420"
-          subtext="Unique page views today (Vercel)"
+          title="Store Visits"
+          value={data.totals.pageViews.toLocaleString('en-IN')}
+          subtext={`${data.totals.productViews.toLocaleString('en-IN')} product views`}
           icon={<Eye className="h-5 w-5 text-blue-600" />}
-          trend={{ value: '+12.3%', type: 'positive' }}
         />
         <StatCard
           title="Stock Alerts"
-          value="2 Items"
-          subtext="1 Out of Stock • 1 Low Stock"
+          value={`${data.stockAlerts.length} item${data.stockAlerts.length === 1 ? '' : 's'}`}
+          subtext={`${outOfStockCount} out of stock • ${lowStockCount} low stock`}
           icon={<AlertTriangle className="h-5 w-5 text-red-600" />}
-          trend={{ value: 'Attention', type: 'negative' }}
+          trend={data.stockAlerts.length > 0 ? { value: 'Attention', type: 'negative' } : undefined}
         />
       </div>
 
@@ -91,90 +119,129 @@ export default function Overview() {
         <div className="flex items-center justify-between border-b border-stone-100 pb-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-red-600" />
-            <h2 className="text-base font-serif font-bold text-[#2A2A2A]">Inventory Stock Alerts & WhatsApp Notifications</h2>
+            <h2 className="text-base font-serif font-bold text-[#2A2A2A]">
+              Inventory Stock Alerts
+            </h2>
           </div>
-          <span className="text-xs font-mono bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded-full font-bold">
-            2 Action Items
-          </span>
+          {data.stockAlerts.length > 0 && (
+            <span className="text-xs font-mono bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded-full font-bold">
+              {data.stockAlerts.length} action item{data.stockAlerts.length === 1 ? '' : 's'}
+            </span>
+          )}
         </div>
 
-        <div className="space-y-3 text-xs">
-          {stockAlerts.map((item) => (
-            <div
-              key={item.id}
-              className={`p-4 rounded-xl border flex items-center justify-between transition-colors ${
-                item.type === 'OUT_OF_STOCK'
-                  ? 'bg-red-50/60 border-red-200 text-red-900'
-                  : 'bg-amber-50/60 border-amber-200 text-amber-900'
-              }`}
-            >
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`px-2 py-0.5 rounded font-mono text-[10px] font-black uppercase ${
-                    item.type === 'OUT_OF_STOCK' ? 'bg-red-600 text-white' : 'bg-[#C59B27] text-white'
-                  }`}>
-                    {item.type.replace('_', ' ')}
-                  </span>
-                  <span className="font-bold text-[#2A2A2A]">{item.productName}</span>
-                  <span className="text-[#6b6661]">({item.variantLabel})</span>
-                </div>
-                <div className="text-[11px] text-[#6b6661] font-mono">
-                  SKU: {item.sku} • Current Stock: <strong className="text-[#2A2A2A]">{item.currentStock} units</strong> (Threshold: ≤{item.threshold}) • {item.updatedAt}
-                </div>
-              </div>
-
-              <button
-                onClick={() => handleSendWhatsAppStockAlert(item)}
-                className="px-3.5 py-2 bg-[#25D366] hover:bg-[#1DA851] text-white font-bold rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+        {data.stockAlerts.length === 0 ? (
+          <p className="text-xs text-[#6b6661] font-medium py-6 text-center">
+            Every live variant is above its restock threshold.
+          </p>
+        ) : (
+          <div className="space-y-3 text-xs">
+            {data.stockAlerts.map((item) => (
+              <div
+                key={item.id}
+                className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                  item.type === 'OUT_OF_STOCK'
+                    ? 'bg-red-50/60 border-red-200 text-red-900'
+                    : 'bg-amber-50/60 border-amber-200 text-amber-900'
+                }`}
               >
-                <MessageCircle className="h-3.5 w-3.5" />
-                <span>Alert Super Admin</span>
-              </button>
-            </div>
-          ))}
-        </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span
+                      className={`px-2 py-0.5 rounded font-mono text-[10px] font-black uppercase ${
+                        item.type === 'OUT_OF_STOCK'
+                          ? 'bg-red-600 text-white'
+                          : 'bg-[#C59B27] text-white'
+                      }`}
+                    >
+                      {item.type.replace('_', ' ')}
+                    </span>
+                    <span className="font-bold text-[#2A2A2A]">{item.productName}</span>
+                    <span className="text-[#6b6661]">({item.variantLabel})</span>
+                  </div>
+                  <div className="text-[11px] text-[#6b6661] font-mono">
+                    SKU: {item.sku} • Stock:{' '}
+                    <strong className="text-[#2A2A2A]">{item.currentStock} units</strong> (threshold
+                    ≤{item.threshold})
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleSendWhatsAppStockAlert(item)}
+                  className="px-3.5 py-2 bg-[#25D366] hover:bg-[#1DA851] text-white font-bold rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition-colors shrink-0"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  <span>Share Alert</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartView
-          type="line"
-          title="Sales Trend Log (INR)"
-          data={salesHistory}
-        />
+        <ChartView type="line" title="Revenue Trend (INR)" data={data.revenueByDay} />
         <ChartView
           type="bar"
           title="Storefront WhatsApp Order Button Clicks"
-          data={whatsappClicksHistory}
+          data={data.whatsappClicksByDay}
         />
       </div>
 
-      {/* Platform Telemetry */}
-      <div className="bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm text-[#2A2A2A]">
+      {/* Top products */}
+      <div className="bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm">
         <div className="flex items-center gap-2 mb-4 border-b border-stone-100 pb-3">
-          <ShieldCheck className="h-5 w-5 text-[#064e3b]" />
-          <h2 className="text-base font-serif font-bold text-[#2A2A2A]">System Telemetry & CDN Edge Health</h2>
+          <PackageSearch className="h-5 w-5 text-[#064e3b]" />
+          <h2 className="text-base font-serif font-bold text-[#2A2A2A]">Most Viewed Products</h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-          <div className="p-3.5 bg-[#FAF8F3] rounded-xl border border-stone-200/80">
-            <div className="text-[#6b6661] font-medium">Supabase DB Pooler</div>
-            <div className="text-sm font-bold text-[#064e3b] mt-1">CONNECTED (Supavisor)</div>
+        {data.topProducts.length === 0 ? (
+          <p className="text-xs text-[#6b6661] font-medium py-6 text-center">
+            No product views recorded yet. Storefront traffic will appear here.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {data.topProducts.map((p, idx) => {
+              const max = data.topProducts[0].views || 1;
+              return (
+                <div key={p.productId ?? idx} className="flex items-center gap-3 text-xs">
+                  <span className="w-5 font-black text-[#6b6661]">{idx + 1}</span>
+                  <span className="flex-1 font-bold text-[#2A2A2A] truncate">{p.title}</span>
+                  <div className="w-32 h-2 bg-stone-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#064e3b] rounded-full"
+                      style={{ width: `${Math.round((p.views / max) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="w-12 text-right font-mono font-bold text-[#6b6661]">
+                    {p.views}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-          <div className="p-3.5 bg-[#FAF8F3] rounded-xl border border-stone-200/80">
-            <div className="text-[#6b6661] font-medium">Supabase Storage S3</div>
-            <div className="text-sm font-bold text-[#064e3b] mt-1">5MB Limit • WebP Active</div>
-          </div>
-          <div className="p-3.5 bg-[#FAF8F3] rounded-xl border border-stone-200/80">
-            <div className="text-[#6b6661] font-medium">Global Edge CDN</div>
-            <div className="text-sm font-bold text-[#064e3b] mt-1">Cloudflare (0ms Cache)</div>
-          </div>
-          <div className="p-3.5 bg-[#FAF8F3] rounded-xl border border-stone-200/80">
-            <div className="text-[#6b6661] font-medium">Vercel Analytics</div>
-            <div className="text-sm font-bold text-[#064e3b] mt-1">GDPR Active</div>
+        )}
+      </div>
+
+      {/* Device split */}
+      {data.deviceSplit.length > 0 && (
+        <div className="bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm">
+          <h2 className="text-base font-serif font-bold text-[#2A2A2A] mb-4 border-b border-stone-100 pb-3">
+            Traffic by Device
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+            {data.deviceSplit.map((d) => (
+              <div key={d.label} className="p-3.5 bg-[#FAF8F3] rounded-xl border border-stone-200/80">
+                <div className="text-[#6b6661] font-medium capitalize">{d.label}</div>
+                <div className="text-sm font-bold text-[#064e3b] mt-1">
+                  {d.value.toLocaleString('en-IN')} events
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
