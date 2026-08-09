@@ -27,77 +27,27 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
   const [activeTab, setActiveTab] = useState<'core' | 'gallery' | 'variants' | 'nutrition'>('core');
 
   // Core details state
-  const [title, setTitle] = useState(initialProduct?.title || 'Country Dairy A2 Vedic Bilona Ghee');
-  const [slug, setSlug] = useState(initialProduct?.slug || 'a2-vedic-bilona-ghee');
-  const [tagline, setTagline] = useState(initialProduct?.tagline || '100% Pure Organic Bilona Ghee');
-  const [storyDescription, setStoryDescription] = useState(initialProduct?.storyDescription || 'Hand-churned using traditional Bilona method from free-grazing Gir Cow A2 milk.');
-  const [status, setStatus] = useState<ProductStatus>(initialProduct?.status || 'LIVE');
-  const [badgeText, setBadgeText] = useState(initialProduct?.badgeText || '★ Best Seller');
-  const [categoryName, setCategoryName] = useState(initialProduct?.categoryName || 'Dairy');
+  const [title, setTitle] = useState(initialProduct?.title || '');
+  const [slug, setSlug] = useState(initialProduct?.slug || '');
+  const [tagline, setTagline] = useState(initialProduct?.tagline || '');
+  const [storyDescription, setStoryDescription] = useState(initialProduct?.storyDescription || '');
+  const [status, setStatus] = useState<ProductStatus>(initialProduct?.status || 'DRAFT');
+  const [badgeText, setBadgeText] = useState(initialProduct?.badgeText || '');
+  const [categoryName, setCategoryName] = useState(initialProduct?.categoryName || (initialProduct as any)?.category?.name || categories[0]?.name || 'Dairy');
 
   // Explicit Storefront Details
-  const [servingSize, setServingSize] = useState(initialProduct?.specifications?.['Serving Size'] || '100g / 100ml');
-  const [shelfLife, setShelfLife] = useState(initialProduct?.specifications?.['Shelf Life'] || '2 days');
+  const [servingSize, setServingSize] = useState(initialProduct?.specifications?.['Serving Size'] || '');
+  const [shelfLife, setShelfLife] = useState(initialProduct?.specifications?.['Shelf Life'] || '');
   const [storageInstructions, setStorageInstructions] = useState(
-    initialProduct?.specifications?.['Storage Instructions'] || 
-    'Store in a cool, dry place away from direct sunlight. Keep container tightly sealed after use.'
+    initialProduct?.specifications?.['Storage Instructions'] || ''
   );
 
   // Variant Matrix state
-  const [variants, setVariants] = useState<ProductVariant[]>(initialProduct?.variants || [
-    {
-      id: 'var-1',
-      productId: 'p1',
-      sku: 'CD-GHEE-500ML',
-      sizeLabel: '500 ml Glass Jar',
-      sellingPrice: 799,
-      mrpPrice: 950,
-      stockQuantity: 150,
-      lowStockThreshold: 10,
-      packagingType: 'GLASS_JAR',
-      isActive: true,
-      displayOrder: 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'var-2',
-      productId: 'p1',
-      sku: 'CD-GHEE-1L',
-      sizeLabel: '1 Litre Glass Jar',
-      sellingPrice: 1499,
-      mrpPrice: 1800,
-      stockQuantity: 45,
-      lowStockThreshold: 10,
-      packagingType: 'GLASS_JAR',
-      isActive: true,
-      displayOrder: 2,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'var-3',
-      productId: 'p1',
-      sku: 'CD-GHEE-2.5L-DOLCHI',
-      sizeLabel: '2.5L Traditional Metal Dolchi',
-      sellingPrice: 3650,
-      mrpPrice: 4200,
-      stockQuantity: 0, // Out of stock example
-      lowStockThreshold: 5,
-      packagingType: 'METAL_DOLCHI',
-      isActive: true,
-      displayOrder: 3,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ]);
+  const [variants, setVariants] = useState<ProductVariant[]>(initialProduct?.variants || []);
 
   // Gallery state (Min 1, Max 10)
   const [galleryImages, setGalleryImages] = useState<ProductImage[]>(() => {
-    const rawImgs = initialProduct?.galleryImages || [
-      { id: 'img-1', productId: 'p1', imageUrl: 'https://images.unsplash.com/photo-1527153857715-3908f2bae5da?auto=format&fit=crop&w=800&q=80', displayOrder: 1, isPrimary: true },
-      { id: 'img-2', productId: 'p1', imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80', displayOrder: 2, isPrimary: false },
-    ];
+    const rawImgs = initialProduct?.galleryImages || [];
     const initialVars = initialProduct?.variants || [];
     return rawImgs.map(img => {
       const matchingVar = initialVars.find(v => v.imageUrl && v.imageUrl === img.imageUrl);
@@ -109,7 +59,7 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
     });
   });
 
-  // Nutrition Facts key-value pairs (loaded dynamically from database product record)
+  // Nutrition Facts key-value pairs (loaded dynamically from database product record; empty if not set)
   const [nutritionFacts, setNutritionFacts] = useState<Array<{ key: string; value: string }>>(() => {
     if (initialProduct?.nutritionFacts && Object.keys(initialProduct.nutritionFacts).length > 0) {
       return Object.entries(initialProduct.nutritionFacts).map(([key, value]) => ({
@@ -117,12 +67,7 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
         value: String(value),
       }));
     }
-    return [
-      { key: 'Energy', value: '65 kcal per 100ml' },
-      { key: 'Protein', value: '3.2g per 100ml' },
-      { key: 'Total Fat', value: '3.5g' },
-      { key: 'Calcium', value: '120mg' },
-    ];
+    return [];
   });
 
   // Handle adding image to gallery (Max 10 limit)
