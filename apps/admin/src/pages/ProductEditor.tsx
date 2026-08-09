@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { 
-  Package, Star, Plus, Trash2, ArrowLeft, Save, Tag
+  Package, Star, Plus, Trash2, ArrowLeft, Save, Tag, Upload
 } from 'lucide-react';
 import ImageUploader, { resolveImageUrl } from '../components/common/ImageUploader';
 import type { Product, ProductVariant, ProductImage, ProductStatus, PackagingType } from '../types';
@@ -545,21 +545,61 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
                           </button>
                         </div>
                       ) : (
-                        <select
-                          onChange={(e) => {
-                            if (e.target.value) {
+                        <div className="flex items-center gap-1.5 min-w-[170px]">
+                          <select
+                            value={v.imageUrl || ''}
+                            onChange={(e) => {
                               const updated = [...variants];
                               updated[idx].imageUrl = e.target.value;
                               setVariants(updated);
-                            }
-                          }}
-                          className="px-2 py-1 bg-stone-950 border border-stone-800 rounded text-[10px] text-stone-400 max-w-[120px]"
-                        >
-                          <option value="">Link Photo...</option>
-                          {galleryImages.map(img => (
-                            <option key={img.id} value={img.imageUrl}>Photo #{img.displayOrder}</option>
-                          ))}
-                        </select>
+                            }}
+                            className="px-2 py-1 bg-stone-950 border border-stone-800 rounded text-[10px] text-stone-200"
+                          >
+                            <option value="">
+                              {galleryImages.length > 0 ? '-- Select Gallery Photo --' : '-- No Gallery Photos --'}
+                            </option>
+                            {galleryImages.map(img => (
+                              <option key={img.id} value={img.imageUrl}>
+                                Photo #{img.displayOrder} {img.isPrimary ? '(Primary)' : ''}
+                              </option>
+                            ))}
+                          </select>
+
+                          <label className="p-1 bg-stone-800 hover:bg-[#C59B27] text-stone-300 hover:text-stone-950 rounded border border-stone-700 cursor-pointer transition-colors shrink-0" title="Upload variant photo">
+                            <Upload className="h-3 w-3" />
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                try {
+                                  const webpFilename = file.name.replace(/\.[^/.]+$/, '') + '.webp';
+                                  const url = await adminApi.uploadMedia(file, webpFilename, 'products');
+                                  
+                                  const updated = [...variants];
+                                  updated[idx].imageUrl = url;
+                                  setVariants(updated);
+
+                                  setGalleryImages(prev => [
+                                    ...prev,
+                                    {
+                                      id: `img-${Date.now()}`,
+                                      productId: initialProduct?.id || 'p1',
+                                      imageUrl: url,
+                                      variantId: v.id,
+                                      displayOrder: prev.length + 1,
+                                      isPrimary: prev.length === 0,
+                                    }
+                                  ]);
+                                } catch (err: any) {
+                                  alert(`Upload failed: ${err?.message || err}`);
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
                       )}
                     </td>
 

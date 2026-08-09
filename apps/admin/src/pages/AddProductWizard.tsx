@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, ArrowRight, Check, X, Star, Tag } from 'lucide-react';
+import { Plus, Trash2, ArrowRight, Check, X, Star, Tag, Upload } from 'lucide-react';
 import ImageUploader, { resolveImageUrl } from '../components/common/ImageUploader';
 import type { Product, ProductStatus, PackagingType, ProductImage } from '../types';
 import type { CategoryItem } from './CategoryCMS';
@@ -400,16 +400,16 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
                 </div>
 
                 {/* Dedicated Variant Image Selection / Upload */}
-                <div className="flex items-center gap-3 pt-2 border-t border-stone-900">
+                <div className="flex items-center gap-3 pt-2.5 border-t border-stone-900 flex-wrap">
                   <div className="text-[10px] font-semibold text-stone-400 shrink-0 flex items-center gap-1">
                     <Tag className="h-3 w-3 text-amber-400" />
-                    <span>Variant Specific Image:</span>
+                    <span>Variant Photo:</span>
                   </div>
 
                   {variant.imageUrl ? (
                     <div className="flex items-center gap-2 bg-stone-900 px-2.5 py-1 rounded-lg border border-stone-800">
-                      <img src={resolveImageUrl(variant.imageUrl)} alt="" className="w-6 h-6 rounded object-cover" />
-                      <span className="text-[10px] text-stone-300 truncate max-w-[160px]">Image assigned</span>
+                      <img src={resolveImageUrl(variant.imageUrl)} alt="" className="w-6 h-6 rounded object-cover border border-stone-700" />
+                      <span className="text-[10px] text-stone-300 font-mono truncate max-w-[140px]">Image Active</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -424,23 +424,67 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Select from existing Gallery photos */}
                       <select
+                        value={variant.imageUrl || ''}
                         onChange={(e) => {
-                          if (e.target.value) {
-                            const updated = [...variants];
-                            updated[idx].imageUrl = e.target.value;
-                            setVariants(updated);
-                          }
+                          const updated = [...variants];
+                          updated[idx].imageUrl = e.target.value;
+                          setVariants(updated);
                         }}
-                        className="px-2 py-1 bg-stone-900 border border-stone-800 rounded text-[10px] text-stone-300"
+                        className="px-2.5 py-1 bg-stone-900 border border-stone-800 rounded text-[10px] text-stone-200 focus:border-amber-400"
                       >
-                        <option value="">Choose from Gallery Photos...</option>
+                        <option value="">
+                          {galleryImages.length > 0 ? '-- Select from Gallery Photos --' : '-- No gallery photos uploaded yet --'}
+                        </option>
                         {galleryImages.map(img => (
-                          <option key={img.id} value={img.imageUrl}>Gallery Photo #{img.displayOrder}</option>
+                          <option key={img.id} value={img.imageUrl}>
+                            Gallery Photo #{img.displayOrder} {img.isPrimary ? '(Primary)' : ''}
+                          </option>
                         ))}
                       </select>
-                      <span className="text-[10px] text-stone-500">or link in Step 3</span>
+
+                      <span className="text-[10px] text-stone-500 font-bold">OR</span>
+
+                      {/* Direct Upload Button for this variant */}
+                      <label className="px-2.5 py-1 bg-stone-800 hover:bg-[#C59B27] text-stone-200 hover:text-stone-950 text-[10px] font-bold rounded border border-stone-700 cursor-pointer flex items-center gap-1 transition-colors">
+                        <Upload className="h-3 w-3" />
+                        <span>Upload Photo</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              const webpFilename = file.name.replace(/\.[^/.]+$/, '') + '.webp';
+                              const url = await adminApi.uploadMedia(file, webpFilename, 'products');
+                              
+                              // 1. Assign to variant
+                              const updated = [...variants];
+                              updated[idx].imageUrl = url;
+                              setVariants(updated);
+
+                              // 2. Also append to gallery if not present
+                              setGalleryImages(prev => [
+                                ...prev,
+                                {
+                                  id: `img-${Date.now()}`,
+                                  productId: 'temp',
+                                  imageUrl: url,
+                                  variantId: variant.sizeLabel,
+                                  displayOrder: prev.length + 1,
+                                  isPrimary: prev.length === 0,
+                                }
+                              ]);
+                            } catch (err: any) {
+                              alert(`Upload failed: ${err?.message || err}`);
+                            }
+                          }}
+                        />
+                      </label>
                     </div>
                   )}
                 </div>
