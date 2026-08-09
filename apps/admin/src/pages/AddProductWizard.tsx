@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, ArrowRight, Check, X, Star, Tag, Upload } from 'lucide-react';
+import { Plus, Trash2, ArrowRight, Check, X, Star, Tag, Upload, Loader2 } from 'lucide-react';
 import ImageUploader, { resolveImageUrl } from '../components/common/ImageUploader';
 import type { Product, ProductStatus, PackagingType, ProductImage } from '../types';
 import type { CategoryItem } from './CategoryCMS';
@@ -7,7 +7,7 @@ import { adminApi } from '../services/apiClient';
 
 interface AddProductWizardProps {
   onCancel: () => void;
-  onComplete: (product: Product) => void;
+  onComplete: (product: Product) => Promise<void> | void;
   categories?: CategoryItem[];
 }
 
@@ -40,6 +40,7 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
 
 export default function AddProductWizard({ onCancel, onComplete, categories = DEFAULT_CATEGORIES }: AddProductWizardProps) {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Step 1: Core Details
   const [title, setTitle] = useState('');
@@ -149,7 +150,7 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
     }));
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     if (!title.trim()) {
       alert('Product title is required.');
       setCurrentStep(1);
@@ -162,58 +163,87 @@ export default function AddProductWizard({ onCancel, onComplete, categories = DE
       return;
     }
 
-    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    setIsSaving(true);
+    try {
+      const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-    // Convert spec & nutrition arrays to key-value objects
-    const specificationsObj: Record<string, string> = {
-      'Serving Size': servingSize,
-      'Shelf Life': shelfLife,
-      'Storage Instructions': storageInstructions,
-    };
-    specRows.forEach(r => { if (r.key.trim()) specificationsObj[r.key.trim()] = r.value.trim(); });
+      // Convert spec & nutrition arrays to key-value objects
+      const specificationsObj: Record<string, string> = {
+        'Serving Size': servingSize,
+        'Shelf Life': shelfLife,
+        'Storage Instructions': storageInstructions,
+      };
+      specRows.forEach(r => { if (r.key.trim()) specificationsObj[r.key.trim()] = r.value.trim(); });
 
-    const nutritionFactsObj: Record<string, string> = {};
-    nutritionRows.forEach(r => { if (r.key.trim()) nutritionFactsObj[r.key.trim()] = r.value.trim(); });
+      const nutritionFactsObj: Record<string, string> = {};
+      nutritionRows.forEach(r => { if (r.key.trim()) nutritionFactsObj[r.key.trim()] = r.value.trim(); });
 
-    const finalProduct: Product = {
-      id: `prod-${Date.now()}`,
-      title,
-      slug,
-      tagline,
-      storyDescription,
-      status,
-      categoryName,
-      badgeText,
-      isFeatured,
-      displayOrder: 1,
-      isSubscriptionAllowed, // Default OFF
-      galleryImages,
-      specifications: specificationsObj,
-      nutritionFacts: nutritionFactsObj,
-      variants: variants.map((v, idx) => ({
-        id: `var-${Date.now()}-${idx}`,
-        productId: `prod-${Date.now()}`,
-        sku: `CD-${slug.toUpperCase()}-${idx + 1}`,
-        sizeLabel: v.sizeLabel,
-        sellingPrice: v.sellingPrice,
-        mrpPrice: v.mrpPrice,
-        stockQuantity: v.stockQuantity,
-        lowStockThreshold: 10,
-        packagingType: v.packagingType,
-        isActive: true,
-        displayOrder: idx + 1,
+      const finalProduct: Product = {
+        id: `prod-${Date.now()}`,
+        title,
+        slug,
+        tagline,
+        storyDescription,
+        status,
+        categoryName,
+        badgeText,
+        isFeatured,
+        displayOrder: 1,
+        isSubscriptionAllowed, // Default OFF
+        galleryImages,
+        specifications: specificationsObj,
+        nutritionFacts: nutritionFactsObj,
+        variants: variants.map((v, idx) => ({
+          id: `var-${Date.now()}-${idx}`,
+          productId: `prod-${Date.now()}`,
+          sku: `CD-${slug.toUpperCase()}-${idx + 1}`,
+          sizeLabel: v.sizeLabel,
+          sellingPrice: v.sellingPrice,
+          mrpPrice: v.mrpPrice,
+          stockQuantity: v.stockQuantity,
+          imageUrl: v.imageUrl,
+          lowStockThreshold: 10,
+          packagingType: v.packagingType,
+          isActive: true,
+          displayOrder: idx + 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      })),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+      };
 
-    onComplete(finalProduct);
+      await onComplete(finalProduct);
+    } catch (err: any) {
+      alert(`Save failed: ${err?.message || err}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
-    <div className="bg-stone-900 p-6 sm:p-8 rounded-2xl border border-stone-800 space-y-6 text-stone-100 max-w-4xl mx-auto">
+    <div className="relative bg-stone-900 p-6 sm:p-8 rounded-2xl border border-stone-800 space-y-6 text-stone-100 max-w-4xl mx-auto">
+      {/* Fullscreen Loading Overlay when Saving Product */}
+      {isSaving && (
+        <div className="fixed inset-0 bg-stone-950/85 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-6 text-center">
+          <div className="bg-stone-900 p-8 rounded-3xl border border-stone-800 shadow-2xl max-w-sm w-full flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-200">
+            <div className="p-4 bg-amber-500/10 rounded-full border border-amber-500/20">
+              <Loader2 className="h-10 w-10 text-amber-400 animate-spin" />
+            </div>
+            <div>
+              <h2 className="text-lg font-serif font-bold text-stone-100 mb-1">
+                Saving & Publishing Product...
+              </h2>
+              <p className="text-xs text-stone-400 leading-relaxed">
+                Persisting product profile, size variant matrix, and gallery photos to PostgreSQL database.
+              </p>
+            </div>
+            <div className="w-full bg-stone-950 rounded-full h-1.5 overflow-hidden border border-stone-800">
+              <div className="bg-gradient-to-r from-amber-500 to-amber-300 h-full w-full animate-pulse" />
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between border-b border-stone-800 pb-4">
         <div>

@@ -279,13 +279,14 @@ function AdminMainContent() {
                 categories={categories}
                 onCancel={() => setIsAddingNewProduct(false)}
                 onComplete={async (newProd) => {
-                  setIsAddingNewProduct(false);
                   try {
                     const created = await adminApi.createProduct(newProd);
                     setProducts(prev => [created || newProd, ...prev.filter(p => p.id !== newProd.id)]);
                   } catch (err) {
                     console.warn('API save warning:', err);
                     setProducts(prev => [newProd, ...prev]);
+                  } finally {
+                    setIsAddingNewProduct(false);
                   }
                 }}
               />
@@ -295,7 +296,6 @@ function AdminMainContent() {
                 initialProduct={editingProduct}
                 onBack={() => setEditingProduct(null)}
                 onSave={async (updated) => {
-                  setEditingProduct(null);
                   try {
                     const saved = await adminApi.updateProduct(updated.id, updated);
                     if (saved?.id) {
@@ -306,6 +306,8 @@ function AdminMainContent() {
                   } catch (err) {
                     console.warn('API update warning:', err);
                     setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
+                  } finally {
+                    setEditingProduct(null);
                   }
                 }}
               />

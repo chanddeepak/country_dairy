@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { 
-  Package, Star, Plus, Trash2, ArrowLeft, Save, Tag, Upload, Check
+  Package, Star, Plus, Trash2, ArrowLeft, Save, Tag, Upload, Check, Loader2
 } from 'lucide-react';
 import ImageUploader, { resolveImageUrl } from '../components/common/ImageUploader';
 import type { Product, ProductVariant, ProductImage, ProductStatus, PackagingType } from '../types';
@@ -11,7 +11,7 @@ import type { CategoryItem } from './CategoryCMS';
 interface ProductEditorProps {
   initialProduct?: Product;
   onBack: () => void;
-  onSave: (product: Product) => void;
+  onSave: (product: Product) => Promise<void> | void;
   categories?: CategoryItem[];
 }
 
@@ -23,6 +23,7 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
 ];
 
 export default function ProductEditor({ initialProduct, onBack, onSave, categories = DEFAULT_CATEGORIES }: ProductEditorProps) {
+  const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'core' | 'gallery' | 'variants' | 'nutrition'>('core');
 
   // Core details state
@@ -196,51 +197,78 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
     setVariants(prev => prev.filter(v => v.id !== id));
   };
 
-  const handleSaveProduct = (e: React.FormEvent) => {
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
       alert('Please enter a product title.');
       return;
     }
 
-    // Convert nutrition array back to object
-    const nutritionObj: Record<string, string> = {};
-    nutritionFacts.forEach(n => {
-      if (n.key.trim()) nutritionObj[n.key.trim()] = n.value.trim();
-    });
+    setIsSaving(true);
+    try {
+      // Convert nutrition array back to object
+      const nutritionObj: Record<string, string> = {};
+      nutritionFacts.forEach(n => {
+        if (n.key.trim()) nutritionObj[n.key.trim()] = n.value.trim();
+      });
 
-    const specificationsObj: Record<string, string> = {
-      ...(initialProduct?.specifications || {}),
-      'Serving Size': servingSize,
-      'Shelf Life': shelfLife,
-      'Storage Instructions': storageInstructions,
-    };
+      const specificationsObj: Record<string, string> = {
+        ...(initialProduct?.specifications || {}),
+        'Serving Size': servingSize,
+        'Shelf Life': shelfLife,
+        'Storage Instructions': storageInstructions,
+      };
 
-    const updatedProduct: Product = {
-      id: initialProduct?.id || `prod-${Date.now()}`,
-      title,
-      slug,
-      tagline,
-      storyDescription,
-      status,
-      badgeText,
-      categoryName,
-      isFeatured: true,
-      displayOrder: 1,
-      galleryImages,
-      variants,
-      specifications: specificationsObj,
-      nutritionFacts: nutritionObj,
-      createdAt: initialProduct?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+      const updatedProduct: Product = {
+        id: initialProduct?.id || `prod-${Date.now()}`,
+        title,
+        slug,
+        tagline,
+        storyDescription,
+        status,
+        badgeText,
+        categoryName,
+        isFeatured: true,
+        displayOrder: 1,
+        galleryImages,
+        variants,
+        specifications: specificationsObj,
+        nutritionFacts: nutritionObj,
+        createdAt: initialProduct?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-    onSave(updatedProduct);
-    alert('Product details saved successfully!');
+      await onSave(updatedProduct);
+    } catch (err: any) {
+      alert(`Save failed: ${err?.message || err}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {/* Fullscreen Loading Overlay when Saving Product */}
+      {isSaving && (
+        <div className="fixed inset-0 bg-stone-950/85 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-6 text-center">
+          <div className="bg-stone-900 p-8 rounded-3xl border border-stone-800 shadow-2xl max-w-sm w-full flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-200">
+            <div className="p-4 bg-amber-500/10 rounded-full border border-amber-500/20">
+              <Loader2 className="h-10 w-10 text-amber-400 animate-spin" />
+            </div>
+            <div>
+              <h2 className="text-lg font-serif font-bold text-stone-100 mb-1">
+                Saving Changes to Database...
+              </h2>
+              <p className="text-xs text-stone-400 leading-relaxed">
+                Updating product profile, variant prices, stock levels, and media gallery.
+              </p>
+            </div>
+            <div className="w-full bg-stone-950 rounded-full h-1.5 overflow-hidden border border-stone-800">
+              <div className="bg-gradient-to-r from-amber-500 to-amber-300 h-full w-full animate-pulse" />
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between bg-stone-900 p-6 rounded-2xl border border-stone-800 text-stone-100">
         <div className="flex items-center gap-3">
