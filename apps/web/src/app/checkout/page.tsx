@@ -13,7 +13,7 @@ export default function CheckoutPage() {
   const { isFlagOn } = useStoreConfig();
   const walletEnabled = isFlagOn('ENABLE_WALLET');
   const otpLoginEnabled = isFlagOn('ENABLE_OTP_LOGIN');
-  const { user, cart, walletBalance, checkout, verifyPayment, addAddress, sendOtp, verifyOtp, setLoginPhone, loginWithEmail, registerWithEmail } = useApp();
+  const { user, cart, walletBalance, checkout, verifyPayment, addAddress, sendOtp, verifyOtp, setLoginPhone, loginWithEmail, registerWithEmail, syncCart, unsyncedCount } = useApp();
 
   const [selectedAddress, setSelectedAddress] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'wallet'>('razorpay');
@@ -60,7 +60,9 @@ export default function CheckoutPage() {
     }
   }, [user]);
 
-  const subtotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
+  // Same normalised line total the drawer uses. Reading product.price here
+  // produced "₹NaN" throughout the order summary.
+  const subtotal = cart.reduce((sum, item) => sum + Number(item.lineTotal ?? 0), 0);
 
   // Indicative only. The authoritative figures come back from /orders/checkout
   // and are shown in the confirmation step before anything is charged.
@@ -154,6 +156,18 @@ export default function CheckoutPage() {
     setProcessing(true);
 
     try {
+      // Flush anything an earlier network blip left unsaved, so the order
+      // contains everything the cart showed rather than silently less.
+      const stillFailing = await syncCart();
+      if (stillFailing.length > 0) {
+        setError(
+          `We could not confirm ${stillFailing.join(', ')} with the server. ` +
+            'Please check your cart and try again.',
+        );
+        setProcessing(false);
+        return;
+      }
+
       const orderResult = await checkout(selectedAddress);
 
       if (orderResult?.orderId) {
@@ -367,6 +381,14 @@ export default function CheckoutPage() {
                 </div>
               )}
 
+              {unsyncedCount > 0 && !error && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl text-xs font-medium mb-6">
+                  {unsyncedCount} item{unsyncedCount === 1 ? '' : 's'} in your cart could not be
+                  saved earlier. We will confirm {unsyncedCount === 1 ? 'it' : 'them'} when you
+                  place the order.
+                </div>
+              )}
+
               {/* Step 1: Delivery Address */}
               <div className="bg-white border border-stone-200 rounded-xl p-6 mb-6">
                 <h2 className="font-bold text-sm text-[#2A2A2A] flex items-center gap-2 mb-4">
@@ -496,8 +518,11 @@ export default function CheckoutPage() {
                 <div className="space-y-3">
                   {cart.map((item) => (
                     <div key={item.id} className="flex justify-between text-sm">
-                      <span className="text-[#6b6661]">{item.product.name} × {item.quantity}</span>
-                      <span className="font-bold text-[#2A2A2A]">₹{Number(item.product.price) * item.quantity}</span>
+                      <span className="text-[#6b6661]">
+                        {item.productName}
+                        {item.variantLabel ? ` (${item.variantLabel})` : ''} × {item.quantity}
+                      </span>
+                      <span className="font-bold text-[#2A2A2A]">₹{item.lineTotal}</span>
                     </div>
                   ))}
                   <div className="border-t border-stone-100 pt-3 space-y-1">

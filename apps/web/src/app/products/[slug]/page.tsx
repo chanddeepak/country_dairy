@@ -275,7 +275,13 @@ export default function ProductDetailPage() {
   const handleAddToCart = () => {
     if (!user) { setIsAuthOpen(true); return; }
     if (!selectedVariant?.id) return;
-    addToCart(selectedVariant.id, quantity);
+    addToCart(selectedVariant.id, quantity, {
+      productId: product.id,
+      productName: product.name,
+      variantLabel: selectedVariant.volumeOrWeight,
+      unitPrice: Number(currentPrice) || 0,
+      imageUrl: activeImage,
+    });
   };
 
   const whatsappHref = whatsapp?.isEnabled

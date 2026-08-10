@@ -1,6 +1,17 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+
+/** Carries the HTTP status so callers can tell a rejection from an outage. */
+class HttpError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'HttpError';
+    this.status = status;
+  }
+}
 import { FALLBACK_PRODUCTS, API_URL } from '../lib/constants';
 
 interface AppContextType {
@@ -18,9 +29,33 @@ interface AppContextType {
   loginWithGoogle: (idToken: string) => Promise<boolean>;
   logout: () => void;
   fetchCart: () => Promise<void>;
-  addToCart: (variantId: string, quantity: number) => Promise<void>;
+  /**
+   * `optimistic` lets the caller pass what it already knows about the line so
+   * the cart updates instantly, before the server replies.
+   */
+  addToCart: (
+    variantId: string,
+    quantity: number,
+    optimistic?: {
+      productId?: string;
+      productName: string;
+      variantLabel?: string;
+      unitPrice: number;
+      imageUrl?: string;
+    },
+  ) => Promise<void>;
   /** Variant id currently being added, so buttons can show a pending state. */
   pendingCartVariantId: string | null;
+  /** Surfaced so a rejected add (out of stock) is not swallowed. */
+  cartError: string;
+  /**
+   * Lines the server never accepted because of a transient failure. Flushed
+   * by syncCart before checkout so a shopper is not charged for less than the
+   * cart showed them.
+   */
+  unsyncedCount: number;
+  /** Retries anything unsynced. Resolves to the lines still not accepted. */
+  syncCart: () => Promise<string[]>;
   /** Set briefly after a successful add, to confirm it landed. */
   lastAddedVariantId: string | null;
   updateCartQty: (itemId: string, quantity: number) => Promise<void>;
@@ -42,6 +77,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [loginPhone, setLoginPhone] = useState<string>('+919876543210');
   const [pendingCartVariantId, setPendingCartVariantId] = useState<string | null>(null);
   const [lastAddedVariantId, setLastAddedVariantId] = useState<string | null>(null);
+  const [cartError, setCartError] = useState('');
+  const unsyncedRef = useRef<Map<string, { quantity: number; name: string }>>(new Map());
+  const [unsyncedCount, setUnsyncedCount] = useState(0);
 
   // API_URL is imported from constants
 
@@ -285,15 +323,116 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return null;
   };
 
-  const addToCart = async (variantId: string, quantity: number) => {
+  const addToCart: AppContextType['addToCart'] = async (variantId, quantity, optimistic) => {
     setPendingCartVariantId(variantId);
+    setCartError('');
+
+    // Apply the change locally first. A round trip to the database region is
+    // ~700ms, so waiting for it makes the button feel dead; the server result
+    // reconciles the list a moment later.
+    const snapshot = cart;
+    if (optimistic) {
+      setCart((prev) => {
+        const existing = prev.find((i) => i.variantId === variantId);
+        if (existing) {
+          return prev.map((i) =>
+            i.variantId === variantId
+              ? { ...i, quantity: i.quantity + quantity, lineTotal: i.unitPrice * (i.quantity + quantity) }
+              : i,
+          );
+        }
+        return [
+          ...prev,
+          {
+            id: `pending-${variantId}`,
+            variantId,
+            productId: optimistic.productId,
+            productName: optimistic.productName,
+            variantLabel: optimistic.variantLabel ?? '',
+            imageUrl: optimistic.imageUrl,
+            unitPrice: optimistic.unitPrice,
+            quantity,
+            lineTotal: optimistic.unitPrice * quantity,
+            isAvailable: true,
+            product: undefined,
+          },
+        ];
+      });
+      // The tick shows immediately; the request continues behind it.
+      setLastAddedVariantId(variantId);
+      setTimeout(() => setLastAddedVariantId((id) => (id === variantId ? null : id)), 2000);
+    }
+
     try {
       await addToCartInner(variantId, quantity);
-      setLastAddedVariantId(variantId);
-      // Clears itself so the tick does not linger on the button.
-      setTimeout(() => setLastAddedVariantId((id) => (id === variantId ? null : id)), 2000);
+      unsyncedRef.current.delete(variantId);
+      setUnsyncedCount(unsyncedRef.current.size);
+      if (!optimistic) {
+        setLastAddedVariantId(variantId);
+        setTimeout(() => setLastAddedVariantId((id) => (id === variantId ? null : id)), 2000);
+      }
+    } catch (err) {
+      const transient = isTransient(err);
+
+      if (transient && optimistic) {
+        // Keep the optimistic line and remember to retry it at checkout: the
+        // server may simply have been unreachable for a moment.
+        unsyncedRef.current.set(variantId, {
+          quantity,
+          name: optimistic.productName,
+        });
+        setUnsyncedCount(unsyncedRef.current.size);
+        setCartError('Saved locally — we will confirm this at checkout.');
+      } else {
+        // A considered rejection (out of stock): roll back so the cart never
+        // shows something the server refused.
+        if (optimistic) setCart(snapshot);
+        setLastAddedVariantId(null);
+        setCartError(err instanceof Error ? err.message : 'Could not add this item');
+      }
+
+      setTimeout(() => setCartError(''), 4000);
     } finally {
       setPendingCartVariantId(null);
+    }
+  };
+
+  /**
+   * A 4xx is the server's considered answer — out of stock, not purchasable —
+   * and must not be retried. Only network failures and 5xx are worth another
+   * attempt.
+   */
+  const isTransient = (err: unknown) =>
+    err instanceof TypeError || (err instanceof HttpError && err.status >= 500);
+
+  const postCartAdd = async (variantId: string, quantity: number, attempt = 0): Promise<void> => {
+    try {
+      const res = await fetch(`${API_URL}/cart/add`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ variantId, quantity }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new HttpError(res.status, body?.message || 'Could not add this item to your cart');
+      }
+
+      const updated = await res.json();
+      if (Array.isArray(updated)) {
+        setCart(updated.map(normalizeCartItem));
+      } else {
+        await fetchCart();
+      }
+    } catch (err) {
+      if (isTransient(err) && attempt < 2) {
+        await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+        return postCartAdd(variantId, quantity, attempt + 1);
+      }
+      throw err;
     }
   };
 
@@ -332,22 +471,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       return;
     }
-    try {
-      const res = await fetch(`${API_URL}/cart/add`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        // Cart lines reference a variant: price, SKU and stock all live there.
-        body: JSON.stringify({ variantId, quantity }),
-      });
-      if (res.ok) {
-        await fetchCart();
+    // Cart lines reference a variant: price, SKU and stock all live there.
+    await postCartAdd(variantId, quantity);
+  };
+
+  /**
+   * Retries lines a transient failure left unsaved. Called before checkout so
+   * a shopper is never charged for less than the cart showed them.
+   * Returns the names of any line still not accepted.
+   */
+  const syncCart = async (): Promise<string[]> => {
+    if (!token || unsyncedRef.current.size === 0) return [];
+
+    const stillFailing: string[] = [];
+
+    for (const [variantId, entry] of Array.from(unsyncedRef.current.entries())) {
+      try {
+        await postCartAdd(variantId, entry.quantity);
+        unsyncedRef.current.delete(variantId);
+      } catch {
+        stillFailing.push(entry.name);
       }
-    } catch (err) {
-      console.error('Failed to add to cart:', err);
     }
+
+    setUnsyncedCount(unsyncedRef.current.size);
+    return stillFailing;
+  };
+
+  const applyCartResponse = async (res: Response) => {
+    if (!res.ok) return;
+    const updated = await res.json().catch(() => null);
+    if (Array.isArray(updated)) setCart(updated.map(normalizeCartItem));
   };
 
   const updateCartQty = async (itemId: string, quantity: number) => {
@@ -368,9 +522,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify({ itemId, quantity }),
       });
-      if (res.ok) {
-        await fetchCart();
-      }
+      await applyCartResponse(res);
     } catch (err) {
       console.error('Failed to update cart qty:', err);
     }
@@ -390,9 +542,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) {
-        await fetchCart();
-      }
+      await applyCartResponse(res);
     } catch (err) {
       console.error('Failed to remove from cart:', err);
     }
@@ -525,6 +675,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addToCart,
         pendingCartVariantId,
         lastAddedVariantId,
+        cartError,
+        unsyncedCount,
+        syncCart,
         updateCartQty,
         removeFromCart,
         checkout,

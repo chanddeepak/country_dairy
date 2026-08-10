@@ -12,7 +12,17 @@ import { trackStorefrontEvent } from '../../lib/analytics';
 interface ProductCardProps {
   product: Product;
   /** Takes a variant id — price, SKU and stock all live on the variant. */
-  onAddToCart: (variantId: string, quantity: number) => void;
+  onAddToCart: (
+    variantId: string,
+    quantity: number,
+    optimistic?: {
+      productId?: string;
+      productName: string;
+      variantLabel?: string;
+      unitPrice: number;
+      imageUrl?: string;
+    },
+  ) => void;
   onSubscribe?: (product: Product) => void;
 }
 
@@ -44,7 +54,7 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
       : false);
 
   const { whatsapp, isFlagOn } = useStoreConfig();
-  const { pendingCartVariantId, lastAddedVariantId } = useApp();
+  const { pendingCartVariantId, lastAddedVariantId, cartError } = useApp();
 
   // Adding goes to the server, so the button has to say something while it
   // does. Previously nothing changed until the navbar count updated seconds
@@ -167,7 +177,16 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
                   even when checkout collects cash on delivery. */}
               {cartEnabled && (
                 <button
-                  onClick={() => defaultVariant?.id && onAddToCart(defaultVariant.id, 1)}
+                  onClick={() =>
+                    defaultVariant?.id &&
+                    onAddToCart(defaultVariant.id, 1, {
+                      productId: product.id,
+                      productName: product.name,
+                      variantLabel: defaultVariant.volumeOrWeight,
+                      unitPrice: Number(displayPrice) || 0,
+                      imageUrl: rawImage,
+                    })
+                  }
                   disabled={isAdding}
                   className={`w-full font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider transition shadow-sm flex items-center justify-center gap-2 ${
                     justAdded
@@ -179,6 +198,10 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
                   {justAdded && <Check className="h-3.5 w-3.5" />}
                   {isAdding ? 'Adding…' : justAdded ? 'Added to Cart' : 'Add to Cart'}
                 </button>
+              )}
+
+              {isAdding === false && cartError && pendingCartVariantId === null && justAdded === false && (
+                <p className="text-[10px] text-red-600 font-bold text-center">{cartError}</p>
               )}
               
               {whatsappHref && (

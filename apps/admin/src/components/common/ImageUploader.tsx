@@ -23,21 +23,43 @@ interface ImageUploaderProps {
   clearOnUpload?: boolean;
 }
 
+/**
+ * Resolves a stored media path to a URL the browser can load.
+ *
+ * Any /<bucket>/<file> path is treated as object storage. The previous
+ * version allow-listed only hero-banners and products, so review media —
+ * uploaded to review-media — was left relative and 404'd against the dev
+ * server, showing as a broken image in the moderation table.
+ */
 export function resolveImageUrl(url?: string | null): string {
   if (!url || url.startsWith('blob:')) return '';
-  if (url.startsWith('/hero-banners/') || url.startsWith('/products/')) {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
-    return `${supabaseUrl}/storage/v1/object/public${url}`;
-  }
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+
+  const supabaseUrl =
+    import.meta.env.VITE_SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
+
   if (url.startsWith('/storage/v1/object/public/')) {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
     return `${supabaseUrl}${url}`;
   }
+
+  // Served by the API itself when object storage is not configured.
   if (url.startsWith('/uploads/')) {
-    const apiHost = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api').replace(/\/api\/?$/, '');
+    const apiHost = (
+      import.meta.env.VITE_API_URL ||
+      import.meta.env.VITE_API_BASE_URL ||
+      'http://localhost:4000/api'
+    ).replace(/\/api\/?$/, '');
     return `${apiHost}${url}`;
   }
-  return url;
+
+  // Bundled asset shipped with the console, not object storage.
+  if (url.startsWith('/images/')) return url;
+
+  if (url.startsWith('/')) {
+    return `${supabaseUrl}/storage/v1/object/public${url}`;
+  }
+
+  return `${supabaseUrl}/storage/v1/object/public/${url}`;
 }
 
 export default function ImageUploader({
