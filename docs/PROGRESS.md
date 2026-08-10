@@ -8,7 +8,7 @@ running API and a real database, not just compiled.
 > complete while 12 admin pages were still static demo arrays.
 
 **Branch:** `feature/admin-console-integration` (identical to local `dev`)
-**Last updated:** 2026-08-09 (session 2)
+**Last updated:** 2026-08-10 (session 3)
 
 ---
 
@@ -62,7 +62,9 @@ migration. That is what caused the drift requiring a baseline reset, and
 | cms | ✅ Hero, trust badges, feature flags, store settings |
 | media | ✅ Supabase Storage, WebP |
 | subscriptions | ⚠️ Works, wallet billing behind `ENABLE_WALLET` |
-| payments | ⚠️ Razorpay in **mock mode**; no webhooks yet |
+| payments | ⚠️ Razorpay in **mock mode** locally; webhooks built and signature-verified. Production boot refuses mock mode |
+| lab-reports | ✅ Batch reports, publish/hide, QR batch lookup |
+| delivery | ✅ Route sheets by pincode, driver assignment, driver round |
 
 ### Admin console — `apps/admin`
 
@@ -79,9 +81,11 @@ migration. That is what caused the drift requiring a baseline reset, and
 | WhatsAppCMS | ✅ Live, config stored in `StoreSetting` |
 | TrustBadgesCMS | ✅ Live CRUD with ordering and visibility |
 | AuditLog | ✅ Live, filterable, before/after diffs |
-| **PurityLabCMS** | ❌ Static (LabReport model exists, no endpoints) |
-| **Wallets** | ❌ Static, behind `ENABLE_WALLET` |
-| **Routes / Logistics / DriverView** | ❌ Static, no Delhivery integration |
+| PurityLabCMS | ✅ Live CRUD, PDF upload, publish/hide |
+| Routes | ✅ Live route sheets grouped by pincode, driver assignment |
+| DriverView | ✅ Live round, mark delivered, record failed attempt |
+| Logistics | ✅ Live consignment recording. Automatic Delhivery booking needs an account we do not have — the page says so |
+| **Wallets** | ❌ Static, behind `ENABLE_WALLET` (deferred by decision) |
 
 ### Storefront — `apps/web`
 
@@ -94,6 +98,8 @@ migration. That is what caused the drift requiring a baseline reset, and
 | WhatsApp ordering | ✅ Number + templates read from the database |
 | Feature flags | ✅ Read from the database via `StoreConfigContext` |
 | Reviews UI | ✅ Gated by `ENABLE_PRODUCT_RATINGS` |
+| Lab report panel | ✅ On the product page, hidden when nothing is published |
+| `/purity/[batch]` | ✅ Where the QR code on the jar lands |
 
 > `apps/web/AGENTS.md`: this Next.js (16.2.10) differs from training data. Read
 > `node_modules/next/dist/docs/` before writing web code.
@@ -115,7 +121,7 @@ Unknown flags default to **off**, so a missing row cannot open a feature.
 |---|---|---|
 | `ENABLE_CART` | **on** | |
 | `ENABLE_USER_ACCOUNTS` | **on** | |
-| `ENABLE_WEBSITE_PAYMENT` | **on** | ⚠️ Razorpay is still in mock mode — do not enable in production until live keys and webhooks are in place |
+| `ENABLE_WEBSITE_PAYMENT` | **on** | Razorpay is in mock mode locally. Production will not boot without live keys, so this can no longer ship unsafely |
 | `ENABLE_SUBSCRIPTIONS` | off | |
 | `ENABLE_PRODUCT_RATINGS` | **on** | Gates review submission |
 | `ENABLE_WALLET` | off | Deferred by decision |
@@ -255,14 +261,52 @@ delivery that needs a conversation. Primary placement is the cart drawer
 
 ## 7. Next Up
 
-1. **PurityLabCMS** — wire to API (badges) and build LabReport
-   endpoints (certificates)
-3. **Audit logging** — write on product/hero/variant/flag mutations, surface in
-   AuditLog page
-4. **Consumer web** — enable cart, accounts, checkout, order tracking; verify
-   end to end
-5. **Live Razorpay** — credentials, webhooks, idempotency, refunds
-6. **Routes / Logistics / DriverView** — delivery manifests, Delhivery, OTP
-   confirmation
-7. **Refactor** — split ProductEditor/AddProductWizard, unify config loading
-8. **Mobile** — live data, fix `EXPO_PUBLIC_` env prefix, EAS build
+Everything on the previous list has landed. What remains:
+
+1. **Mobile** — live data, fix the `EXPO_PUBLIC_` env prefix, EAS build. Also
+   16 pre-existing TS errors from Expo SDK type drift (`app-tabs.tsx`,
+   `use-theme.ts`), unrelated to this work.
+2. **Pagination** for Orders, Customers and Audit lists. Reviews and lab
+   reports are done; the others still fetch up to 200 rows.
+3. **Wallet** — behind `ENABLE_WALLET`, deferred by decision.
+4. **OTP login** — needs an SMS provider (MSG91), deferred by decision.
+5. **Hero LCP** (UI_AUDIT C5) — the hero image is not preloaded.
+
+### Blocked on something only you can provide
+
+| Item | Needs |
+|---|---|
+| Live payments | Razorpay live keys + a webhook secret from the dashboard |
+| Automatic courier booking | A Delhivery account and API credentials |
+| OTP login | An MSG91 (or similar) account |
+| Google sign-in | `GOOGLE_CLIENT_ID` |
+
+### Production checklist
+
+- [ ] Change the admin password. The old JWT secret is in git history, so any
+      token issued before rotation must be treated as compromised.
+- [ ] Set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`.
+      The API refuses to boot in production without real keys.
+- [ ] Set `ALLOWED_ORIGINS` — the localhost allowance is development-only.
+- [ ] Co-locate the API with the database, or move Postgres to `ap-south-1`.
+      A single round trip to the current Seoul pooler costs ~710ms, which is
+      the floor under every uncached request.
+
+---
+
+## 8. Test Suite
+
+`npm run verify` — 267 checks against a running API and the real database.
+
+| Suite | Checks | Covers |
+|---|---|---|
+| `npm test` | 37 | Pricing, GST, IST reporting windows |
+| `npm run smoke` | 59 | Auth, catalog, cart, checkout, access control |
+| `npm run test:contract` | 18 | Storefront ↔ API request/response shapes |
+| `npm run test:catalog` | 26 | Catalog integrity, no invented values |
+| `npm run test:media` | 19 | Upload, MIME limits, URL resolution |
+| `npm run test:lab` | 40 | Lab reports, published/unpublished boundary |
+| `npm run test:delivery` | 34 | Route sheets, driver isolation, completion |
+| `npm run test:webhook` | 34 | Signatures, idempotency, refunds, mismatches |
+
+The API must be running. Each suite creates and removes its own fixtures.
