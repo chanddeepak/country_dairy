@@ -13,6 +13,7 @@ import type {
   DashboardData,
   StockAlert,
   WhatsAppConfig,
+  AuditEntry,
 } from '../types';
 
 // Accepts either name: .env.staging defines VITE_API_URL while the original
@@ -265,6 +266,24 @@ export const adminApi = {
     return fetchJson<TrustBadge[]>('/cms/trust-badges');
   },
 
+  async createTrustBadge(badge: Partial<TrustBadge>): Promise<TrustBadge> {
+    return fetchJson<TrustBadge>('/cms/trust-badges', {
+      method: 'POST',
+      body: JSON.stringify(badge),
+    });
+  },
+
+  async updateTrustBadge(id: string, badge: Partial<TrustBadge>): Promise<TrustBadge> {
+    return fetchJson<TrustBadge>(`/cms/trust-badges/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(badge),
+    });
+  },
+
+  async deleteTrustBadge(id: string): Promise<void> {
+    return fetchJson<void>(`/cms/trust-badges/${id}`, { method: 'DELETE' });
+  },
+
   async getFeatureFlags(): Promise<FeatureFlag[]> {
     return fetchJson<FeatureFlag[]>('/cms/feature-flags');
   },
@@ -337,6 +356,22 @@ export const adminApi = {
       method: 'PUT',
       body: JSON.stringify(config),
     });
+  },
+
+  // Audit log API
+  async getAuditLog(
+    filters: { entity?: string; action?: string; search?: string } = {},
+  ): Promise<AuditEntry[]> {
+    const query = new URLSearchParams();
+    if (filters.entity) query.append('entity', filters.entity);
+    if (filters.action) query.append('action', filters.action);
+    if (filters.search) query.append('search', filters.search);
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    return fetchJson<AuditEntry[]>(`/audit${queryString}`);
+  },
+
+  async getAuditFilters(): Promise<{ entities: string[]; actions: string[] }> {
+    return fetchJson<{ entities: string[]; actions: string[] }>('/audit/filters');
   },
 
   // Analytics API

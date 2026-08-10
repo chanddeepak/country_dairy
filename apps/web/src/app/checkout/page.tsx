@@ -11,8 +11,9 @@ import { useStoreConfig } from '../../context/StoreConfigContext';
 export default function CheckoutPage() {
   const router = useRouter();
   const { isFlagOn } = useStoreConfig();
-  const ENABLE_WALLET_PAYMENTS = isFlagOn('ENABLE_WALLET');
-  const { user, cart, walletBalance, checkout, verifyPayment, addAddress, sendOtp, verifyOtp, loginPhone, setLoginPhone, loginWithEmail, registerWithEmail } = useApp();
+  const walletEnabled = isFlagOn('ENABLE_WALLET');
+  const otpLoginEnabled = isFlagOn('ENABLE_OTP_LOGIN');
+  const { user, cart, walletBalance, checkout, verifyPayment, addAddress, sendOtp, verifyOtp, setLoginPhone, loginWithEmail, registerWithEmail } = useApp();
 
   const [selectedAddress, setSelectedAddress] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'wallet'>('razorpay');
@@ -21,11 +22,21 @@ export default function CheckoutPage() {
 
   // Mock Razorpay Modal state
   const [showMockRazorpay, setShowMockRazorpay] = useState(false);
-  const [pendingOrderData, setPendingOrderData] = useState<{ orderId: string; amount: number } | null>(null);
+  const [pendingOrderData, setPendingOrderData] = useState<{
+    orderId: string;
+    orderNumber?: string;
+    amount: number;
+    breakdown?: {
+      subtotal: number;
+      discountAmount: number;
+      taxAmount: number;
+      deliveryCharges: number;
+      totalAmount: number;
+    };
+  } | null>(null);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
 
   // Inline Auth Form States for Guest Checkout (Mobile vs Email)
-  const [authTab, setAuthTab] = useState<'mobile' | 'email'>('email');
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authName, setAuthName] = useState('');
@@ -50,8 +61,12 @@ export default function CheckoutPage() {
   }, [user]);
 
   const subtotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
-  const shipping = 0;
-  const total = subtotal + shipping;
+
+  // Indicative only. The authoritative figures come back from /orders/checkout
+  // and are shown in the confirmation step before anything is charged.
+  const FREE_DELIVERY_THRESHOLD = 500;
+  const estimatedDelivery = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : 40;
+  const total = subtotal + estimatedDelivery;
 
   const handleGuestEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,15 +158,18 @@ export default function CheckoutPage() {
 
       if (orderResult?.orderId) {
         // Trigger Mock Razorpay Payment Modal
+        // Use the server's numbers, not the client's estimate.
         setPendingOrderData({
           orderId: orderResult.orderId,
-          amount: total,
+          orderNumber: orderResult.orderNumber,
+          amount: orderResult.breakdown?.totalAmount ?? orderResult.amount ?? total,
+          breakdown: orderResult.breakdown,
         });
         setShowMockRazorpay(true);
       } else {
         setError(orderResult?.message || 'Checkout failed. Please try again.');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setProcessing(false);
@@ -170,7 +188,7 @@ export default function CheckoutPage() {
       } else {
         setError('Payment verification failed on server.');
       }
-    } catch (err) {
+    } catch {
       setError('Error verifying payment signature.');
     } finally {
       setVerifyingPayment(false);
@@ -195,7 +213,7 @@ export default function CheckoutPage() {
               </div>
               <h2 className="font-serif font-black text-2xl text-[#2A2A2A] mb-2">Secure Checkout</h2>
               <p className="text-xs text-[#6b6661] mb-6">
-                Please verify your mobile number to retrieve your saved addresses, wallet balance, and complete your order.
+                Sign in to use your saved addresses and to track this order.
               </p>
 
               {authError && (
@@ -205,56 +223,130 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {!otpSent ? (
-                <form onSubmit={handleGuestRequestOtp} className="space-y-4 text-left">
+              {/* Email and password is the live sign-in path. OTP only appears
+                  when ENABLE_OTP_LOGIN is on, and it needs an SMS provider. */}
+              <form onSubmit={handleGuestEmailAuth} className="space-y-4 text-left">
+                {isRegistering && (
                   <div>
-                    <label className="text-xs font-bold text-[#2A2A2A] block mb-1">Mobile Number:</label>
+                    <label className="text-xs font-bold text-[#2A2A2A] block mb-1">Your Name</label>
                     <div className="relative">
-                      <PhoneCall className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
                       <input
-                        type="tel"
-                        value={authPhone}
-                        onChange={(e) => setAuthPhone(e.target.value)}
-                        placeholder="+919876543210"
+                        type="text"
+                        required
+                        value={authName}
+                        onChange={(e) => setAuthName(e.target.value)}
+                        placeholder="Your full name"
                         className="w-full bg-[#FAF8F3] border border-stone-300 pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:border-[#3A6038]"
                       />
                     </div>
                   </div>
-                  <button
-                    type="submit"
-                    disabled={authLoading}
-                    className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl text-sm transition disabled:opacity-50"
-                  >
-                    {authLoading ? 'Sending...' : 'Request OTP'}
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleGuestVerifyOtp} className="space-y-4 text-left">
-                  <div>
-                    <label className="text-xs font-bold text-[#2A2A2A] block mb-1">Verification Code:</label>
-                    <div className="relative">
-                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
-                      <input
-                        type="text"
-                        value={authOtp}
-                        onChange={(e) => setAuthOtp(e.target.value)}
-                        placeholder="123456"
-                        maxLength={6}
-                        className="w-full bg-[#FAF8F3] border border-stone-300 pl-10 pr-4 py-3 rounded-xl text-sm tracking-[0.3em] font-black focus:outline-none focus:border-[#3A6038]"
-                      />
-                    </div>
+                )}
+
+                <div>
+                  <label className="text-xs font-bold text-[#2A2A2A] block mb-1">Email Address</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                    <input
+                      type="email"
+                      required
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="w-full bg-[#FAF8F3] border border-stone-300 pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:border-[#3A6038]"
+                    />
                   </div>
-                  <button
-                    type="submit"
-                    disabled={authLoading}
-                    className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl text-sm transition disabled:opacity-50"
-                  >
-                    {authLoading ? 'Verifying...' : 'Verify & Continue'}
-                  </button>
-                  <div className="bg-emerald-50 text-emerald-700 p-2.5 rounded-lg text-[10px] text-center font-bold">
-                    Development OTP: <strong>123456</strong>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[#2A2A2A] block mb-1">Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                    <input
+                      type="password"
+                      required
+                      minLength={8}
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword(e.target.value)}
+                      placeholder={isRegistering ? 'At least 8 characters' : '••••••••'}
+                      className="w-full bg-[#FAF8F3] border border-stone-300 pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:border-[#3A6038]"
+                    />
                   </div>
-                </form>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl text-sm transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {authLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {authLoading
+                    ? 'Please wait…'
+                    : isRegistering
+                      ? 'Create account & continue'
+                      : 'Sign in & continue'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRegistering(!isRegistering);
+                    setAuthError('');
+                  }}
+                  className="w-full text-xs text-[#6b6661] hover:text-[#3A6038] font-bold transition"
+                >
+                  {isRegistering
+                    ? 'Already have an account? Sign in'
+                    : "New here? Create an account"}
+                </button>
+              </form>
+
+              {otpLoginEnabled && (
+                <div className="mt-6 pt-5 border-t border-stone-100 text-left">
+                  {!otpSent ? (
+                    <form onSubmit={handleGuestRequestOtp} className="space-y-3">
+                      <label className="text-xs font-bold text-[#2A2A2A] block">Or sign in with your mobile</label>
+                      <div className="relative">
+                        <PhoneCall className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                        <input
+                          type="tel"
+                          value={authPhone}
+                          onChange={(e) => setAuthPhone(e.target.value)}
+                          placeholder="+919876543210"
+                          className="w-full bg-[#FAF8F3] border border-stone-300 pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:border-[#3A6038]"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={authLoading}
+                        className="w-full border-2 border-[#3A6038] text-[#3A6038] font-bold py-3 rounded-xl text-sm transition disabled:opacity-50"
+                      >
+                        {authLoading ? 'Sending…' : 'Request OTP'}
+                      </button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleGuestVerifyOtp} className="space-y-3">
+                      <label className="text-xs font-bold text-[#2A2A2A] block">Verification Code</label>
+                      <div className="relative">
+                        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                        <input
+                          type="text"
+                          value={authOtp}
+                          onChange={(e) => setAuthOtp(e.target.value)}
+                          maxLength={6}
+                          className="w-full bg-[#FAF8F3] border border-stone-300 pl-10 pr-4 py-3 rounded-xl text-sm tracking-[0.3em] font-black focus:outline-none focus:border-[#3A6038]"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={authLoading}
+                        className="w-full bg-[#3A6038] text-white font-bold py-3 rounded-xl text-sm transition disabled:opacity-50"
+                      >
+                        {authLoading ? 'Verifying…' : 'Verify & Continue'}
+                      </button>
+                    </form>
+                  )}
+                </div>
               )}
             </div>
           ) : cart.length === 0 && !processing ? (
@@ -415,7 +507,9 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-[#6b6661]">Delivery</span>
-                      <span className="font-bold text-[#3A6038]">FREE</span>
+                      <span className={estimatedDelivery === 0 ? 'font-bold text-[#3A6038]' : 'font-bold'}>
+                        {estimatedDelivery === 0 ? 'FREE' : `₹${estimatedDelivery}`}
+                      </span>
                     </div>
                     <div className="flex justify-between text-lg font-black pt-2 border-t border-stone-100">
                       <span>TOTAL</span>
@@ -442,6 +536,7 @@ export default function CheckoutPage() {
                       <span className="text-xs text-[#6b6661] block">UPI / Card / Netbanking</span>
                     </div>
                   </label>
+                  {walletEnabled && (
                   <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition ${
                     paymentMethod === 'wallet' ? 'border-[#3A6038] bg-[#3A6038]/5' : 'border-stone-200 hover:border-stone-300'
                   }`}>
@@ -453,6 +548,7 @@ export default function CheckoutPage() {
                       <span className="text-xs text-[#6b6661]">(Balance: ₹{walletBalance})</span>
                     </div>
                   </label>
+                  )}
                 </div>
               </div>
 
@@ -474,6 +570,81 @@ export default function CheckoutPage() {
           )}
         </div>
       </main>
+
+      {/* Payment confirmation. Razorpay is in mock mode, so this stands in for
+          the gateway's own modal until live keys are configured. */}
+      {showMockRazorpay && pendingOrderData && (
+        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+            <div className="bg-[#3A6038] text-white p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <ShieldCheck className="h-5 w-5" />
+                <span className="font-bold text-sm">Confirm your payment</span>
+              </div>
+              <p className="text-[11px] text-white/80">
+                Order {pendingOrderData.orderNumber ?? pendingOrderData.orderId.slice(0, 8)}
+              </p>
+            </div>
+
+            <div className="p-5 space-y-3 text-sm">
+              {pendingOrderData.breakdown && (
+                <div className="space-y-1.5 text-xs text-[#6b6661] pb-3 border-b border-stone-100">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>₹{pendingOrderData.breakdown.subtotal}</span>
+                  </div>
+                  {pendingOrderData.breakdown.discountAmount > 0 && (
+                    <div className="flex justify-between text-[#3A6038]">
+                      <span>Discount</span>
+                      <span>−₹{pendingOrderData.breakdown.discountAmount}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span>Delivery</span>
+                    <span>
+                      {pendingOrderData.breakdown.deliveryCharges === 0
+                        ? 'FREE'
+                        : `₹${pendingOrderData.breakdown.deliveryCharges}`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Includes GST</span>
+                    <span>₹{pendingOrderData.breakdown.taxAmount}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-between items-baseline">
+                <span className="font-bold text-[#2A2A2A]">Amount payable</span>
+                <span className="font-black text-2xl text-[#2A2A2A]">₹{pendingOrderData.amount}</span>
+              </div>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 p-2.5 rounded-lg text-xs font-bold">
+                  {error}
+                </div>
+              )}
+
+              <button
+                onClick={handleConfirmMockPayment}
+                disabled={verifyingPayment}
+                className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl text-sm transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {verifyingPayment && <Loader2 className="h-4 w-4 animate-spin" />}
+                {verifyingPayment ? 'Verifying…' : `Pay ₹${pendingOrderData.amount}`}
+              </button>
+
+              <button
+                onClick={() => setShowMockRazorpay(false)}
+                disabled={verifyingPayment}
+                className="w-full text-xs text-[#6b6661] hover:text-[#2A2A2A] font-bold py-1 transition disabled:opacity-50"
+              >
+                Cancel — the order stays unpaid in your account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

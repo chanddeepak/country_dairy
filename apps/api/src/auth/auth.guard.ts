@@ -8,6 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
+import { requestContext } from '../audit/request-context';
 
 export interface AuthenticatedUser {
   id: string;
@@ -55,6 +56,14 @@ export class AuthGuard implements CanActivate {
       role: user.role,
       email: user.email,
     };
+
+    // Name the actor for any audit entry written later in this request. The
+    // middleware opened the scope before the token was available.
+    const store = requestContext.getStore();
+    if (store) {
+      store.userId = user.id;
+      store.userName = user.name || user.email || 'Unknown';
+    }
 
     return true;
   }

@@ -14,13 +14,14 @@ interface CartDrawerProps {
 }
 
 export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerProps) {
+  // Every hook must run before the early return below, otherwise the hook
+  // count differs between the open and closed renders and React errors.
   const { cart, updateCartQty, removeFromCart } = useApp();
+  const { whatsapp, isFlagOn } = useStoreConfig();
 
   if (!isOpen) return null;
 
   const subtotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
-
-  const { whatsapp, isFlagOn } = useStoreConfig();
   const checkoutEnabled = isFlagOn('ENABLE_CART');
 
   // The whole cart as one message. This is the most valuable placement for

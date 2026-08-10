@@ -15,6 +15,7 @@ import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CatalogService } from './catalog.service';
+import { CategoryDto, CreateProductDto, UpdateProductDto } from './dto/catalog.dto';
 
 const CATALOG_STAFF = [Role.SUPER_ADMIN, Role.CATALOG_MANAGER] as const;
 
@@ -76,14 +77,14 @@ export class CatalogController {
   @Post('categories')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(...CATALOG_STAFF)
-  async createCategory(@Body() body: Record<string, unknown>) {
+  async createCategory(@Body() body: CategoryDto) {
     return this.catalogService.createCategory(body);
   }
 
   @Put('categories/:id')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(...CATALOG_STAFF)
-  async updateCategory(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+  async updateCategory(@Param('id') id: string, @Body() body: CategoryDto) {
     return this.catalogService.updateCategory(id, body);
   }
 
@@ -97,14 +98,14 @@ export class CatalogController {
   @Post('products')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(...CATALOG_STAFF)
-  async createProduct(@Body() body: Record<string, unknown>) {
+  async createProduct(@Body() body: CreateProductDto) {
     return this.catalogService.createProduct(body);
   }
 
   @Put('products/:id')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(...CATALOG_STAFF)
-  async updateProduct(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+  async updateProduct(@Param('id') id: string, @Body() body: UpdateProductDto) {
     return this.catalogService.updateProduct(id, body);
   }
 

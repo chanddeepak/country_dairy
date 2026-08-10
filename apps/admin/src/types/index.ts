@@ -274,18 +274,19 @@ export interface HeroSlide {
   updatedAt: string;
 }
 
-export interface AuditLog {
+/** Mirrors an AuditLog row as returned by GET /audit. */
+export interface AuditEntry {
   id: string;
-  actorId?: string;
-  actorName: string;
-  actorEmail: string;
+  userId?: string | null;
+  userName: string;
   action: string;
-  entityType: string;
-  entityId?: string;
-  oldData?: Record<string, any> | null;
-  newData?: Record<string, any>;
-  ipAddress?: string;
+  entity: string;
+  entityId?: string | null;
+  payloadBefore?: Record<string, unknown> | null;
+  payloadAfter?: Record<string, unknown> | null;
+  ipAddress?: string | null;
   createdAt: string;
+  user?: { id: string; name: string | null; email: string | null; role: UserRole } | null;
 }
 
 export interface FeatureFlags {

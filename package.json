@@ -21,7 +21,8 @@
     "smoke": "node scripts/smoke-test.js",
     "test": "npm run test --workspace apps/api",
     "test:contract": "node scripts/storefront-contract-test.js",
-    "verify": "npm test && npm run smoke && npm run test:contract"
+    "verify": "npm test && npm run smoke && npm run test:contract && npm run test:catalog",
+    "test:catalog": "node scripts/catalog-audit-test.js"
   },
   "prisma": {
     "seed": "node packages/database/prisma/seed.js"

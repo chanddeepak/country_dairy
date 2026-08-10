@@ -77,9 +77,9 @@ migration. That is what caused the drift requiring a baseline reset, and
 | Reviews | ✅ Live moderation |
 | UserManagement | ✅ Live staff CRUD |
 | WhatsAppCMS | ✅ Live, config stored in `StoreSetting` |
-| **TrustBadgesCMS** | ❌ Static (API exists, page not wired) |
+| TrustBadgesCMS | ✅ Live CRUD with ordering and visibility |
+| AuditLog | ✅ Live, filterable, before/after diffs |
 | **PurityLabCMS** | ❌ Static (LabReport model exists, no endpoints) |
-| **AuditLog** | ❌ Static (model exists, nothing writes to it) |
 | **Wallets** | ❌ Static, behind `ENABLE_WALLET` |
 | **Routes / Logistics / DriverView** | ❌ Static, no Delhivery integration |
 
@@ -170,6 +170,7 @@ Run everything: `npm run verify`
 | `npm test` | Unit tests (pricing, reporting windows) | **31 passing** |
 | `npm run smoke` | End-to-end against a live API + DB | **57 passing** |
 | `npm run test:contract` | Storefront ↔ API payload contract | **18 passing** |
+| `npm run test:catalog` | Product CRUD + audit trail | **26 passing** |
 
 - `pricing.spec.ts` (19): GST extraction, discounts, delivery thresholds, paise
 - `reporting-window.spec.ts` (11): IST boundaries, month rollover, bucket alignment
@@ -178,6 +179,8 @@ Run everything: `npm run verify`
 - `scripts/storefront-contract-test.js`: replays what apps/web actually sends;
   the "legacy payload rejected" checks pin breaks found during the variant
   migration
+- `scripts/catalog-audit-test.js`: the admin's core workflow — create and edit
+  a product — plus the audit trail and its redaction of secrets
 
 The smoke and contract suites need the API running and clean up after
 themselves.
@@ -190,7 +193,6 @@ themselves.
 |---|---|
 | Razorpay in mock mode | Cannot take real money |
 | No payment webhooks | Client-side verify alone will miss async confirmations |
-| No audit logging | `AuditLog` table exists; nothing writes to it |
 | No Delhivery integration | Courier fulfilment is manual |
 | Mobile WhatsApp number still hardcoded | `apps/mobile` has `918291939317`; web now reads the DB. Fix when mobile is wired up |
 | `ProductEditor` 843 / `AddProductWizard` 883 lines | Source of most recent bug-fix commits |
@@ -228,6 +230,17 @@ ran `orderItem.deleteMany`, erasing revenue history.
 
 **Reporting days are IST.** "Revenue today" means today in India.
 
+**Audit context travels in AsyncLocalStorage.** The alternative was threading a
+userId parameter through every service method that might record an entry,
+which is easy to forget on the next one. `AuditService.record` never throws —
+a failed audit write must not roll back the operation it describes — and it
+redacts passwords, tokens and signatures.
+
+**Variants are updated in place, not replaced.** Editing a product used to
+delete every variant and recreate it, which detached order history and emptied
+customers' carts. Variants that have been sold are deactivated rather than
+deleted when removed from the editor.
+
 **Feature flags and WhatsApp config live in the database.** Hardcoded
 constants meant the storefront and admin console could disagree about what was
 switched on, and the WhatsApp number had already diverged between web and
@@ -242,7 +255,7 @@ delivery that needs a conversation. Primary placement is the cart drawer
 
 ## 7. Next Up
 
-1. **TrustBadgesCMS + PurityLabCMS** — wire to API (badges) and build LabReport
+1. **PurityLabCMS** — wire to API (badges) and build LabReport
    endpoints (certificates)
 3. **Audit logging** — write on product/hero/variant/flag mutations, surface in
    AuditLog page

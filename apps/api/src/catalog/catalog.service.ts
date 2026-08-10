@@ -1,7 +1,13 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { ProductStatus } from '@prisma/client';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma, ProductStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MediaService } from '../media/media.service';
+import { AuditService } from '../audit/audit.service';
+import {
+  CreateProductDto,
+  ProductImageDto,
+  UpdateProductDto,
+} from './dto/catalog.dto';
 
 function sanitizeProductStoragePath(url?: string): string | undefined {
   if (!url) return url;
@@ -19,6 +25,7 @@ export class CatalogService {
   constructor(
     private prisma: PrismaService,
     private mediaService: MediaService,
+    private audit: AuditService,
   ) {}
 
   async getCategories(options: { activeOnly?: boolean } = {}) {
@@ -191,157 +198,204 @@ export class CatalogService {
     }
   }
 
-  async createProduct(dto: any) {
-    this.logger.log(`Creating product: ${dto.title}`);
-    const slug = dto.slug || dto.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  private slugify(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  }
 
-    // Resolve or create category
-    let categoryId = dto.categoryId;
-    if (!categoryId && dto.categoryName) {
-      let cat = await this.prisma.category.findFirst({ where: { name: dto.categoryName } });
-      if (!cat) {
-        cat = await this.prisma.category.create({
-          data: {
-            name: dto.categoryName,
-            slug: dto.categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-          },
-        });
-      }
-      categoryId = cat.id;
+  /** Resolves a category by id or name, creating it by name if needed. */
+  private async resolveCategoryId(dto: {
+    categoryId?: string;
+    categoryName?: string;
+  }): Promise<string> {
+    if (dto.categoryId) {
+      const exists = await this.prisma.category.findUnique({ where: { id: dto.categoryId } });
+      if (!exists) throw new BadRequestException('That category no longer exists');
+      return dto.categoryId;
     }
 
-    const galleryData = (dto.galleryImages || []).map((img: any, idx: number) => {
-      const urlStr = typeof img === 'string' ? img : img.imageUrl;
-      return {
-        imageUrl: sanitizeProductStoragePath(urlStr) || '/images/products/milk-bottle.png',
-        variantId: typeof img === 'object' ? img.variantId || null : null,
-        isPrimary: typeof img === 'object' && img.isPrimary !== undefined ? img.isPrimary : idx === 0,
-        isVariantPrimary: typeof img === 'object' && img.isVariantPrimary !== undefined ? img.isVariantPrimary : false,
-        displayOrder: idx + 1,
-      };
-    });
+    if (dto.categoryName) {
+      const existing = await this.prisma.category.findFirst({ where: { name: dto.categoryName } });
+      if (existing) return existing.id;
 
-    return await this.prisma.product.create({
+      const created = await this.prisma.category.create({
+        data: { name: dto.categoryName, slug: this.slugify(dto.categoryName) },
+      });
+      return created.id;
+    }
+
+    // The old code fell back to a literal 'cat-1', which does not exist and
+    // fails the foreign key with an opaque 500.
+    throw new BadRequestException('Choose a category for this product');
+  }
+
+  private mapGalleryImages(images: ProductImageDto[] = []) {
+    return images.map((img, idx) => ({
+      imageUrl: sanitizeProductStoragePath(img.imageUrl) || '/images/products/milk-bottle.png',
+      variantId: img.variantId || null,
+      altText: img.altText,
+      isPrimary: img.isPrimary ?? idx === 0,
+      isVariantPrimary: img.isVariantPrimary ?? false,
+      displayOrder: idx + 1,
+    }));
+  }
+
+  async createProduct(dto: CreateProductDto) {
+    const slug = dto.slug || this.slugify(dto.title);
+
+    const clash = await this.prisma.product.findUnique({ where: { slug } });
+    if (clash) {
+      throw new BadRequestException(`A product with the web address "${slug}" already exists`);
+    }
+
+    const categoryId = await this.resolveCategoryId(dto);
+
+    const product = await this.prisma.product.create({
       data: {
         title: dto.title,
         slug,
-        tagline: dto.tagline || '',
-        storyDescription: dto.storyDescription || '',
-        status: dto.status || 'DRAFT',
-        badgeText: dto.badgeText || '',
+        tagline: dto.tagline,
+        storyDescription: dto.storyDescription,
+        status: dto.status ?? ProductStatus.DRAFT,
+        forceOutOfStock: dto.forceOutOfStock ?? false,
+        badgeText: dto.badgeText,
         isFeatured: dto.isFeatured ?? false,
-        displayOrder: dto.displayOrder ? Number(dto.displayOrder) : 1,
+        displayOrder: dto.displayOrder ?? 1,
         isSubscriptionAllowed: dto.isSubscriptionAllowed ?? false,
-        batchCode: dto.batchCode || '',
+        batchCode: dto.batchCode,
         verified: dto.verified ?? false,
-        specifications: dto.specifications || {},
-        nutritionFacts: dto.nutritionFacts || {},
-        categoryId: categoryId || 'cat-1',
+        hsnCode: dto.hsnCode,
+        gstRate: dto.gstRate ?? 0,
+        metaTitle: dto.metaTitle,
+        metaDescription: dto.metaDescription,
+        specifications: (dto.specifications ?? {}) as Prisma.InputJsonValue,
+        nutritionFacts: (dto.nutritionFacts ?? {}) as Prisma.InputJsonValue,
+        metadata: (dto.metadata ?? {}) as Prisma.InputJsonValue,
+        categoryId,
         variants: {
-          create: (dto.variants || []).map((v: any, idx: number) => ({
+          create: (dto.variants ?? []).map((v, idx) => ({
             sku: v.sku || `CD-${slug.toUpperCase()}-${idx + 1}`,
-            sizeLabel: v.sizeLabel || 'Standard Pack',
-            sellingPrice: v.sellingPrice || 100,
-            mrpPrice: v.mrpPrice || 120,
-            stockQuantity: v.stockQuantity || 50,
-            lowStockThreshold: v.lowStockThreshold || 10,
-            packagingType: v.packagingType || 'GLASS_JAR',
+            sizeLabel: v.sizeLabel,
+            // Prices come from the request. A missing price is rejected by the
+            // DTO rather than silently becoming ₹100.
+            sellingPrice: v.sellingPrice,
+            mrpPrice: v.mrpPrice,
+            stockQuantity: v.stockQuantity ?? 0,
+            lowStockThreshold: v.lowStockThreshold ?? 10,
+            packagingCode: v.packagingCode ?? null,
+            weightGrams: v.weightGrams,
             imageUrl: v.imageUrl ? sanitizeProductStoragePath(v.imageUrl) : null,
             isActive: v.isActive ?? true,
             displayOrder: idx + 1,
           })),
         },
-        galleryImages: {
-          create: galleryData,
-        },
+        galleryImages: { create: this.mapGalleryImages(dto.galleryImages) },
       },
-      include: {
-        variants: true,
-        galleryImages: true,
-      },
+      include: { variants: true, galleryImages: true, category: true },
     });
+
+    await this.audit.record({
+      action: 'CREATE',
+      entity: 'Product',
+      entityId: product.id,
+      after: { title: product.title, slug: product.slug, status: product.status },
+    });
+
+    return product;
   }
 
-  async updateProduct(id: string, dto: any) {
-    this.logger.log(`Updating product profile: ${id}`);
-    
-    // Resolve category if categoryName passed
-    let categoryId = dto.categoryId;
-    if (!categoryId && dto.categoryName) {
-      let cat = await this.prisma.category.findFirst({ where: { name: dto.categoryName } });
-      if (!cat) {
-        cat = await this.prisma.category.create({
-          data: {
-            name: dto.categoryName,
-            slug: dto.categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-          },
-        });
-      }
-      categoryId = cat.id;
-    }
-
+  async updateProduct(id: string, dto: UpdateProductDto) {
     const existing = await this.prisma.product.findUnique({
       where: { id },
       include: { galleryImages: true, variants: true },
     });
 
     if (!existing) {
-      this.logger.log(`Product ${id} not found in DB. Upserting as new product...`);
-      return this.createProduct({
-        ...dto,
-        id: id.startsWith('prod-') ? undefined : id,
-      });
+      throw new NotFoundException(`Product ${id} not found`);
     }
 
-    // 1. Update Gallery Images if provided
-    if (dto.galleryImages && Array.isArray(dto.galleryImages)) {
-      const newUrls = dto.galleryImages.map((img: any) => sanitizeProductStoragePath(typeof img === 'string' ? img : img.imageUrl));
+    const categoryId =
+      dto.categoryId || dto.categoryName ? await this.resolveCategoryId(dto) : existing.categoryId;
+
+    // Gallery: replace wholesale, cleaning up files that are no longer used.
+    if (dto.galleryImages) {
+      const nextUrls = dto.galleryImages.map((img) => sanitizeProductStoragePath(img.imageUrl));
+
       for (const oldImg of existing.galleryImages) {
-        if (oldImg.imageUrl && !newUrls.includes(oldImg.imageUrl)) {
-          this.logger.log(`Cleaning up old product gallery image: ${oldImg.imageUrl}`);
+        if (oldImg.imageUrl && !nextUrls.includes(oldImg.imageUrl)) {
           await this.mediaService.deleteMediaFile(oldImg.imageUrl);
         }
       }
 
       await this.prisma.productImage.deleteMany({ where: { productId: id } });
       await this.prisma.productImage.createMany({
-        data: dto.galleryImages.map((img: any, idx: number) => {
-          const urlStr = typeof img === 'string' ? img : img.imageUrl;
-          return {
-            productId: id,
-            imageUrl: sanitizeProductStoragePath(urlStr) || '/images/products/milk-bottle.png',
-            variantId: typeof img === 'object' ? img.variantId || null : null,
-            isPrimary: typeof img === 'object' && img.isPrimary !== undefined ? img.isPrimary : idx === 0,
-            isVariantPrimary: typeof img === 'object' && img.isVariantPrimary !== undefined ? img.isVariantPrimary : false,
-            displayOrder: idx + 1,
-          };
-        }),
+        data: this.mapGalleryImages(dto.galleryImages).map((img) => ({ ...img, productId: id })),
       });
     }
 
-    // 2. Update Variants Matrix if provided
-    if (dto.variants && Array.isArray(dto.variants) && dto.variants.length > 0) {
-      const slugStr = (dto.slug || existing.slug || 'product').toLowerCase();
-      await this.prisma.productVariant.deleteMany({ where: { productId: id } });
-      await this.prisma.productVariant.createMany({
-        data: dto.variants.map((v: any, idx: number) => ({
-          productId: id,
-          sku: v.sku || `CD-${slugStr.toUpperCase()}-${idx + 1}`,
-          sizeLabel: v.sizeLabel || v.name || 'Standard Pack',
-          sellingPrice: Number(v.sellingPrice || v.price || 100),
-          mrpPrice: Number(v.mrpPrice || v.originalPrice || 120),
-          stockQuantity: Number(v.stockQuantity ?? 50),
-          lowStockThreshold: Number(v.lowStockThreshold ?? 10),
-          packagingType: v.packagingType || 'GLASS_JAR',
+    /*
+     * Variants are matched and updated in place, keyed on id then SKU.
+     *
+     * The previous implementation deleted every variant and recreated them on
+     * each save. That detached order history from the variant it was sold as,
+     * cascade-deleted the item out of every customer's cart, and issued new
+     * ids so any open admin tab was editing rows that no longer existed.
+     */
+    if (dto.variants?.length) {
+      const slugStr = (dto.slug || existing.slug).toUpperCase();
+      const keepIds: string[] = [];
+
+      for (const [idx, v] of dto.variants.entries()) {
+        const match = v.id
+          ? existing.variants.find((e) => e.id === v.id)
+          : v.sku
+            ? existing.variants.find((e) => e.sku === v.sku)
+            : undefined;
+
+        const data = {
+          sizeLabel: v.sizeLabel,
+          sellingPrice: v.sellingPrice,
+          mrpPrice: v.mrpPrice,
+          stockQuantity: v.stockQuantity ?? match?.stockQuantity ?? 0,
+          lowStockThreshold: v.lowStockThreshold ?? 10,
+          packagingCode: v.packagingCode ?? null,
+          weightGrams: v.weightGrams,
           imageUrl: v.imageUrl ? sanitizeProductStoragePath(v.imageUrl) : null,
           isActive: v.isActive ?? true,
           displayOrder: idx + 1,
-        })),
-      });
+        };
+
+        if (match) {
+          await this.prisma.productVariant.update({ where: { id: match.id }, data });
+          keepIds.push(match.id);
+        } else {
+          const created = await this.prisma.productVariant.create({
+            data: { ...data, productId: id, sku: v.sku || `CD-${slugStr}-${Date.now()}-${idx}` },
+          });
+          keepIds.push(created.id);
+        }
+      }
+
+      // A variant the editor removed is deactivated rather than deleted when it
+      // has been sold, so the order history keeps pointing at something real.
+      const removed = existing.variants.filter((e) => !keepIds.includes(e.id));
+      for (const variant of removed) {
+        const sold = await this.prisma.orderItem.count({ where: { variantId: variant.id } });
+        if (sold > 0) {
+          await this.prisma.productVariant.update({
+            where: { id: variant.id },
+            data: { isActive: false },
+          });
+        } else {
+          await this.prisma.cartItem.deleteMany({ where: { variantId: variant.id } });
+          await this.prisma.productVariant.delete({ where: { id: variant.id } });
+        }
+      }
     }
 
-    // 3. Update Core Product Details
-    return await this.prisma.product.update({
+    const updated = await this.prisma.product.update({
       where: { id },
       data: {
         title: dto.title ?? existing.title,
@@ -349,14 +403,21 @@ export class CatalogService {
         tagline: dto.tagline ?? existing.tagline,
         storyDescription: dto.storyDescription ?? existing.storyDescription,
         status: dto.status ?? existing.status,
+        forceOutOfStock: dto.forceOutOfStock ?? existing.forceOutOfStock,
         badgeText: dto.badgeText ?? existing.badgeText,
         isFeatured: dto.isFeatured ?? existing.isFeatured,
+        displayOrder: dto.displayOrder ?? existing.displayOrder,
         isSubscriptionAllowed: dto.isSubscriptionAllowed ?? existing.isSubscriptionAllowed,
         batchCode: dto.batchCode ?? existing.batchCode,
         verified: dto.verified ?? existing.verified,
-        specifications: dto.specifications ?? existing.specifications,
-        nutritionFacts: dto.nutritionFacts ?? existing.nutritionFacts,
-        categoryId: categoryId || existing.categoryId,
+        hsnCode: dto.hsnCode ?? existing.hsnCode,
+        gstRate: dto.gstRate ?? existing.gstRate,
+        metaTitle: dto.metaTitle ?? existing.metaTitle,
+        metaDescription: dto.metaDescription ?? existing.metaDescription,
+        specifications: (dto.specifications ?? existing.specifications ?? {}) as Prisma.InputJsonValue,
+        nutritionFacts: (dto.nutritionFacts ?? existing.nutritionFacts ?? {}) as Prisma.InputJsonValue,
+        metadata: (dto.metadata ?? existing.metadata ?? {}) as Prisma.InputJsonValue,
+        categoryId,
       },
       include: {
         variants: { orderBy: { displayOrder: 'asc' } },
@@ -364,16 +425,36 @@ export class CatalogService {
         category: true,
       },
     });
+
+    await this.audit.record({
+      action: 'UPDATE',
+      entity: 'Product',
+      entityId: id,
+      before: { title: existing.title, status: existing.status, variantCount: existing.variants.length },
+      after: { title: updated.title, status: updated.status, variantCount: updated.variants.length },
+    });
+
+    return updated;
   }
 
   async toggleSubscription(id: string) {
     const existing = await this.prisma.product.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException(`Product ${id} not found`);
 
-    return await this.prisma.product.update({
+    const updated = await this.prisma.product.update({
       where: { id },
       data: { isSubscriptionAllowed: !existing.isSubscriptionAllowed },
     });
+
+    await this.audit.record({
+      action: 'TOGGLE',
+      entity: 'Product',
+      entityId: id,
+      before: { isSubscriptionAllowed: existing.isSubscriptionAllowed },
+      after: { isSubscriptionAllowed: updated.isSubscriptionAllowed },
+    });
+
+    return updated;
   }
 
   async deleteProduct(id: string) {
@@ -417,6 +498,14 @@ export class CatalogService {
         this.prisma.cartItem.deleteMany({ where: { productId: id } }),
       ]);
 
+      await this.audit.record({
+        action: 'ARCHIVE',
+        entity: 'Product',
+        entityId: id,
+        before: { title: existing.title, status: existing.status },
+        after: { status: 'ARCHIVED', reason: `${orderedCount} order lines, ${subscribedCount} subscriptions` },
+      });
+
       return {
         success: true,
         id,
@@ -441,6 +530,13 @@ export class CatalogService {
       this.prisma.productVariant.deleteMany({ where: { productId: id } }),
       this.prisma.product.delete({ where: { id } }),
     ]);
+
+    await this.audit.record({
+      action: 'DELETE',
+      entity: 'Product',
+      entityId: id,
+      before: { title: existing.title, slug: existing.slug, status: existing.status },
+    });
 
     return { success: true, id, archived: false };
   }

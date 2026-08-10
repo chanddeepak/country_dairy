@@ -8,6 +8,7 @@ import {
 import { Prisma, Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -34,7 +35,10 @@ const STAFF_SELECT = {
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: AuditService,
+  ) {}
 
   // --- Staff accounts ---
 
@@ -78,6 +82,13 @@ export class UsersService {
       select: STAFF_SELECT,
     });
 
+    await this.audit.record({
+      action: 'CREATE',
+      entity: 'StaffAccount',
+      entityId: user.id,
+      after: { email: user.email, name: user.name, role: user.role },
+    });
+
     this.logger.log(`Created staff account ${user.id} (${dto.role})`);
     return user;
   }
@@ -111,11 +122,21 @@ export class UsersService {
       throw new BadRequestException('That role cannot be assigned to a staff account');
     }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: { name: dto.name, role: dto.role, isActive: dto.isActive },
       select: STAFF_SELECT,
     });
+
+    await this.audit.record({
+      action: 'UPDATE',
+      entity: 'StaffAccount',
+      entityId: userId,
+      before: { name: target.name, role: target.role, isActive: target.isActive },
+      after: { name: updated.name, role: updated.role, isActive: updated.isActive },
+    });
+
+    return updated;
   }
 
   async resetStaffPassword(userId: string, newPassword: string) {
@@ -127,6 +148,14 @@ export class UsersService {
     await this.prisma.user.update({
       where: { id: userId },
       data: { passwordHash: await bcrypt.hash(newPassword, BCRYPT_ROUNDS) },
+    });
+
+    // The password itself is never recorded; AuditService redacts it anyway.
+    await this.audit.record({
+      action: 'PASSWORD_RESET',
+      entity: 'StaffAccount',
+      entityId: userId,
+      after: { email: target.email },
     });
 
     this.logger.log(`Password reset for staff account ${userId}`);

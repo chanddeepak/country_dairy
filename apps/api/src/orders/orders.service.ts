@@ -14,6 +14,7 @@ import {
   StockMovementReason,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { RazorpayService } from './razorpay.service';
 import { calculateOrderTotals, priceLine, round2, toPaise } from './pricing';
 
@@ -35,6 +36,7 @@ export class OrdersService {
   constructor(
     private prisma: PrismaService,
     private razorpayService: RazorpayService,
+    private audit: AuditService,
   ) {}
 
   /**
@@ -483,6 +485,14 @@ export class OrdersService {
     if (status === OrderStatus.CONFIRMED) timestamps.confirmedAt = new Date();
     if (status === OrderStatus.SHIPPED) timestamps.shippedAt = new Date();
     if (status === OrderStatus.DELIVERED) timestamps.deliveredAt = new Date();
+
+    await this.audit.record({
+      action: 'STATUS_CHANGE',
+      entity: 'Order',
+      entityId: order.orderNumber,
+      before: { status: order.status },
+      after: { status, driverId: options.driverId, trackingNumber: options.trackingNumber },
+    });
 
     return this.prisma.order.update({
       where: { id: orderId },

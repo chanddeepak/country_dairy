@@ -1,6 +1,8 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { MediaService } from '../media/media.service';
+import { AuditService } from '../audit/audit.service';
 
 export const SETTING_KEYS = {
   WHATSAPP: 'whatsapp_ordering',
@@ -31,8 +33,6 @@ export const DEFAULT_WHATSAPP_CONFIG: WhatsAppConfig = {
     'Total: ₹{total_amount}\n\n' +
     'Please confirm my order and share the delivery timing. Thank you!',
 };
-import { MediaService } from '../media/media.service';
-
 function sanitizeRelativeUrl(url?: string): string | undefined {
   if (!url) return url;
   if (url.includes('/storage/v1/object/public/')) {
@@ -49,6 +49,7 @@ export class CmsService {
   constructor(
     private prisma: PrismaService,
     private mediaService: MediaService,
+    private audit: AuditService,
   ) {}
 
   // Hero Banners
@@ -175,10 +176,21 @@ export class CmsService {
     const existing = await this.prisma.featureFlag.findUnique({ where: { key } });
     if (!existing) throw new NotFoundException(`Feature flag ${key} not found`);
 
-    return this.prisma.featureFlag.update({
+    const updated = await this.prisma.featureFlag.update({
       where: { key },
       data: { isEnabled: !existing.isEnabled },
     });
+
+    // Flags change what customers can do, so a toggle is worth recording.
+    await this.audit.record({
+      action: 'TOGGLE',
+      entity: 'FeatureFlag',
+      entityId: key,
+      before: { isEnabled: existing.isEnabled },
+      after: { isEnabled: updated.isEnabled },
+    });
+
+    return updated;
   }
 
   // Store settings — key/value so new knobs (WhatsApp number, order message
@@ -208,6 +220,13 @@ export class CmsService {
         description: 'WhatsApp ordering number and message templates',
         updatedBy,
       },
+    });
+
+    await this.audit.record({
+      action: 'UPDATE',
+      entity: 'StoreSetting',
+      entityId: SETTING_KEYS.WHATSAPP,
+      after: { phoneNumber: config.phoneNumber, isEnabled: config.isEnabled },
     });
 
     this.logger.log(`WhatsApp config updated by ${updatedBy ?? 'system'}`);
