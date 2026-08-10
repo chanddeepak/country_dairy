@@ -103,8 +103,9 @@ export class MediaController {
       throw new BadRequestException(`Unsupported file type "${file.mimetype}"`);
     }
     if (file.size > maxBytesFor(kind)) {
+      const label = { VIDEO: 'Video', DOCUMENT: 'Document', IMAGE: 'Image' }[kind];
       throw new BadRequestException(
-        `${kind === 'VIDEO' ? 'Video' : 'Image'} exceeds the ${humanSize(maxBytesFor(kind))} limit`,
+        `${label} exceeds the ${humanSize(maxBytesFor(kind))} limit`,
       );
     }
 

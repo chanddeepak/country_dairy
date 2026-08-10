@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  Package, ShoppingCart, Truck, Map, BarChart3, Users, Wallet, Star, ShieldCheck, LogOut, Sliders, Layout
+  Package, ShoppingCart, Truck, Map, BarChart3, Users, Wallet, Star, ShieldCheck, LogOut, Sliders, Layout, FlaskConical
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { displayName, type UserRole } from '../../types';
@@ -18,6 +18,7 @@ export type TabType =
   | 'users' 
   | 'cms'
   | 'driver'
+  | 'purity'
   | 'audit';
 
 interface SidebarProps {
@@ -106,6 +107,12 @@ export default function Sidebar({ activeTab, setActiveTab, featureFlags = {} }: 
       key: 'cms', 
       label: 'Storefront CMS & Flags', 
       icon: <Sliders className="h-4 w-4" />,
+      allowedRoles: ['SUPER_ADMIN', 'CATALOG_MANAGER']
+    },
+    {
+      key: 'purity',
+      label: 'Batch Lab Reports',
+      icon: <FlaskConical className="h-4 w-4" />,
       allowedRoles: ['SUPER_ADMIN', 'CATALOG_MANAGER']
     },
     { 

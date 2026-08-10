@@ -246,6 +246,10 @@ export interface ProductImage {
 }
 
 export interface Product {
+  /** Batch number of the newest published lab report, null when untested. */
+  latestBatchNumber?: string | null;
+  latestBatchTestDate?: string | null;
+
   id: string;
   categoryId?: string;
   categoryName?: string;
@@ -260,8 +264,6 @@ export interface Product {
   isFeatured: boolean;
   displayOrder: number;
   isSubscriptionAllowed?: boolean;
-  batchCode?: string;
-  verified?: boolean;
   /** Indian GST compliance — differs per product line. */
   hsnCode?: string | null;
   gstRate?: string | number;
@@ -348,13 +350,29 @@ export interface FeatureFlag {
   rolloutPercentage: number;
 }
 
-export interface LabCertificate {
+/** One tested row on a lab report. */
+export interface LabParameter {
+  name: string;
+  value: string;
+  /** The permissible limit measured against, e.g. "min 99.5%". */
+  standard?: string;
+  /** Undefined when the lab gave a figure without a pass/fail verdict. */
+  passed?: boolean;
+}
+
+export interface LabReport {
   id: string;
-  batchCode: string;
-  productId?: string;
-  pdfUrl: string;
+  productId: string;
+  productTitle: string;
+  productSlug: string;
+  batchNumber: string;
   testDate: string;
-  purityPercentage?: number;
-  notes?: string;
+  labName: string | null;
+  /** Relative bucket path (/lab-reports/x.pdf) or an https URL. */
+  fileUrl: string | null;
+  notes: string | null;
+  parameters: LabParameter[];
+  isPublished: boolean;
   createdAt: string;
+  updatedAt: string;
 }

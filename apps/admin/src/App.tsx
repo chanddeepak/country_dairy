@@ -9,6 +9,7 @@ import Inventory from './pages/Inventory';
 import ProductEditor from './pages/ProductEditor';
 import AddProductWizard from './pages/AddProductWizard';
 import HeroManager from './pages/HeroManager';
+import PurityLabCMS from './pages/PurityLabCMS';
 import type { AdminOrder, Product } from './types';
 import Orders from './pages/Orders';
 import Logistics from './pages/Logistics';
@@ -120,11 +121,6 @@ function AdminMainContent() {
   }, [isAuthenticated, user?.id]);
 
   // Form states
-  const [batchCodeInput, setBatchCodeInput] = useState('');
-  const [purityScoreInput, setPurityScoreInput] = useState('99.8%');
-  const [phInput, setPhInput] = useState('6.65');
-  const [fatInput] = useState('4.25%');
-  const [selectedProductId, setSelectedProductId] = useState('prod-1');
 
   // Unauthenticated → Render Login Console
   if (!isAuthenticated || !user) {
@@ -139,22 +135,6 @@ function AdminMainContent() {
       }
       return order;
     }));
-  };
-
-  const handleRegisterBatchTest = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!batchCodeInput) {
-      alert('Please specify a batch code');
-      return;
-    }
-    setProducts(prev => prev.map(p => {
-      if (p.id === selectedProductId) {
-        return { ...p, batchCode: batchCodeInput, verified: true };
-      }
-      return p;
-    }));
-    alert(`Purity Certificate Issued!\nBatch: ${batchCodeInput}\nPurity Score: ${purityScoreInput}\npH Level: ${phInput}\nFat content: ${fatInput}`);
-    setBatchCodeInput('');
   };
 
   return (
@@ -237,16 +217,6 @@ function AdminMainContent() {
               <Inventory
                 products={products}
                 isLoading={isLoadingProducts}
-                selectedProductId={selectedProductId}
-                setSelectedProductId={setSelectedProductId}
-                batchCodeInput={batchCodeInput}
-                setBatchCodeInput={setBatchCodeInput}
-                purityScoreInput={purityScoreInput}
-                setPurityScoreInput={setPurityScoreInput}
-                phInput={phInput}
-                setPhInput={setPhInput}
-                fatInput={fatInput}
-                handleRegisterBatchTest={handleRegisterBatchTest}
                 onUpdateProducts={setProducts}
                 onOpenAddWizard={() => setIsAddingNewProduct(true)}
                 onEditProduct={(product) => setEditingProduct(product)}
@@ -303,6 +273,12 @@ function AdminMainContent() {
         {activeTab === 'cms' && (
           <ProtectedRoute requiredRole={['SUPER_ADMIN', 'CATALOG_MANAGER']}>
             <CMSManager categories={categories} onUpdateCategories={setCategories} />
+          </ProtectedRoute>
+        )}
+
+        {activeTab === 'purity' && (
+          <ProtectedRoute requiredRole={['SUPER_ADMIN', 'CATALOG_MANAGER']}>
+            <PurityLabCMS products={products} />
           </ProtectedRoute>
         )}
 

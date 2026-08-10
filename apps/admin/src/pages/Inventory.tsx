@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight, Sparkles, Package } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Edit2, Trash2, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight, Package } from 'lucide-react';
 import type { Product } from '../types';
 import { resolveImageUrl } from '../components/common/ImageUploader';
 import ConfirmDialog from '../components/common/ConfirmDialog';
@@ -8,16 +8,6 @@ import { adminApi } from '../services/apiClient';
 interface InventoryProps {
   products: Product[];
   isLoading?: boolean;
-  selectedProductId: string;
-  setSelectedProductId: (id: string) => void;
-  batchCodeInput: string;
-  setBatchCodeInput: (code: string) => void;
-  purityScoreInput: string;
-  setPurityScoreInput: (score: string) => void;
-  phInput: string;
-  setPhInput: (ph: string) => void;
-  fatInput: string;
-  handleRegisterBatchTest: (e: React.FormEvent) => void;
   onUpdateProducts: (newProducts: Product[]) => void;
   onOpenAddWizard: () => void;
   onEditProduct: (product: Product) => void;
@@ -26,41 +16,13 @@ interface InventoryProps {
 export default function Inventory({
   products,
   isLoading = false,
-  selectedProductId,
-  setSelectedProductId,
-  batchCodeInput,
-  setBatchCodeInput,
-  purityScoreInput,
-  setPurityScoreInput,
-  handleRegisterBatchTest,
   onUpdateProducts,
   onOpenAddWizard,
   onEditProduct,
 }: InventoryProps) {
-  // Adulterant Screening states
-  const [ureaDetected, setUreaDetected] = useState(false);
-  const [starchDetected, setStarchDetected] = useState(false);
-  const [detergentDetected, setDetergentDetected] = useState(false);
-  const [dyesDetected, setDyesDetected] = useState(false);
-
   // Deletion Modal states
   const [deletingProduct, setDeletingProduct] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const hasAdulterants = ureaDetected || starchDetected || detergentDetected || dyesDetected;
-
-  const onLabFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (hasAdulterants) {
-      alert('CANNOT CERTIFY BATCH: Adulterants Detected. Immediate inspection of farm dispatch batch is required.');
-      return;
-    }
-    handleRegisterBatchTest(e);
-    setUreaDetected(false);
-    setStarchDetected(false);
-    setDetergentDetected(false);
-    setDyesDetected(false);
-  };
 
   const toggleSubscription = async (productId: string) => {
     const updated = products.map(p => {
@@ -153,7 +115,7 @@ export default function Inventory({
                 <th className="py-3.5 px-4 whitespace-nowrap">Total Stock</th>
                 <th className="py-3.5 px-4 text-center whitespace-nowrap">Subscription Allowed</th>
                 <th className="py-3.5 px-4 whitespace-nowrap">Active Batch</th>
-                <th className="py-3.5 px-4 whitespace-nowrap">QA Certificate</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Lab Report</th>
                 <th className="py-3.5 px-4 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
@@ -317,26 +279,29 @@ export default function Inventory({
                       </button>
                     </td>
 
-                    {/* Active Batch */}
+                    {/* Latest published lab batch */}
                     <td className="py-3.5 px-4 font-mono text-[11px] text-[#6b6661] whitespace-nowrap">
-                      {p.batchCode ? (
+                      {p.latestBatchNumber ? (
                         <span className="bg-[#FAF8F3] px-2 py-1 rounded border border-stone-200 font-bold text-[#2A2A2A]">
-                          {p.batchCode}
+                          {p.latestBatchNumber}
                         </span>
                       ) : (
                         <span className="text-stone-400 italic">No Batch</span>
                       )}
                     </td>
 
-                    {/* QA Certificate */}
+                    {/* Lab tested — driven by a published lab report, not a flag */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      {p.verified ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
-                          <CheckCircle2 className="h-3 w-3" /> VERIFIED
+                      {p.latestBatchTestDate ? (
+                        <span
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs"
+                          title={`Tested ${new Date(p.latestBatchTestDate).toLocaleDateString('en-IN')}`}
+                        >
+                          <CheckCircle2 className="h-3 w-3" /> LAB TESTED
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-50 text-amber-700 border border-amber-200 shadow-xs">
-                          <AlertCircle className="h-3 w-3" /> PENDING QA
+                          <AlertCircle className="h-3 w-3" /> NO REPORT
                         </span>
                       )}
                     </td>
@@ -365,91 +330,6 @@ export default function Inventory({
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* Lab Certification & Adulterant Screening Tool */}
-      <div className="bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm space-y-4">
-        <div className="border-b border-stone-100 pb-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#C59B27]" />
-            <h3 className="text-base font-serif font-bold text-[#2A2A2A]">Rapid Farm QA & Lab Certificate Generator</h3>
-          </div>
-          <p className="text-xs text-[#6b6661]">
-            Certify batch purity before warehouse dispatch. Screening for 4 primary adulterants (Urea, Starch, Detergent, Synthetic Dyes).
-          </p>
-        </div>
-
-        <form onSubmit={onLabFormSubmit} className="space-y-4 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block font-bold text-[#2A2A2A] mb-1">Target Product *</label>
-              <select
-                value={selectedProductId}
-                onChange={(e) => setSelectedProductId(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-[#FAF8F3] border border-stone-200 rounded-xl text-[#2A2A2A] font-bold"
-              >
-                {products.map(p => (
-                  <option key={p.id} value={p.id}>{p.title}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block font-bold text-[#2A2A2A] mb-1">New Batch Code *</label>
-              <input
-                type="text"
-                required
-                value={batchCodeInput}
-                onChange={(e) => setBatchCodeInput(e.target.value.toUpperCase())}
-                className="w-full px-3.5 py-2.5 bg-[#FAF8F3] border border-stone-200 rounded-xl text-[#2A2A2A] font-mono font-bold"
-                placeholder="e.g. BATCH-2026-MILK02"
-              />
-            </div>
-
-            <div>
-              <label className="block font-bold text-[#2A2A2A] mb-1">Purity Score (%)</label>
-              <input
-                type="text"
-                value={purityScoreInput}
-                onChange={(e) => setPurityScoreInput(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-[#FAF8F3] border border-stone-200 rounded-xl text-[#064e3b] font-bold"
-              />
-            </div>
-          </div>
-
-          {/* Adulterant Screening Checks */}
-          <div className="p-4 bg-[#FAF8F3] rounded-xl border border-stone-200/80 space-y-2">
-            <div className="font-bold text-[#2A2A2A] mb-2 uppercase text-[10px] tracking-wider">Adulterant Screening Safety Locks</div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={ureaDetected} onChange={(e) => setUreaDetected(e.target.checked)} className="accent-red-600" />
-                <span className={ureaDetected ? 'text-red-600 font-bold' : 'text-[#6b6661]'}>Urea Detected</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={starchDetected} onChange={(e) => setStarchDetected(e.target.checked)} className="accent-red-600" />
-                <span className={starchDetected ? 'text-red-600 font-bold' : 'text-[#6b6661]'}>Starch Powder</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={detergentDetected} onChange={(e) => setDetergentDetected(e.target.checked)} className="accent-red-600" />
-                <span className={detergentDetected ? 'text-red-600 font-bold' : 'text-[#6b6661]'}>Detergent Residue</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={dyesDetected} onChange={(e) => setDyesDetected(e.target.checked)} className="accent-red-600" />
-                <span className={dyesDetected ? 'text-red-600 font-bold' : 'text-[#6b6661]'}>Synthetic Dyes</span>
-              </label>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className="px-5 py-2.5 bg-[#064e3b] hover:bg-[#065f46] text-white font-bold rounded-xl text-xs shadow-sm transition-all"
-          >
-            Issue Batch QA Purity Certificate
-          </button>
-        </form>
       </div>
 
       {/* Modern Aesthetic Delete Confirmation Dialog */}

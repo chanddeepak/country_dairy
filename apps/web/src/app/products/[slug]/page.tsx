@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronRight, Minus, Plus, Calendar, ShoppingBag, MessageCircle, Share2, Check, Truck, Headphones, RotateCcw, ClipboardCheck } from 'lucide-react';
@@ -10,6 +10,7 @@ import Navbar from '../../../components/layout/Navbar';
 import Footer from '../../../components/layout/Footer';
 import StarRating from '../../../components/ui/StarRating';
 import ReviewSection from '../../../components/product/ReviewSection';
+import LabReportPanel from '../../../components/product/LabReportPanel';
 import { trackStorefrontEvent } from '../../../lib/analytics';
 import ProductCard from '../../../components/product/ProductCard';
 import AuthModal from '../../../components/modals/AuthModal';
@@ -21,6 +22,7 @@ import { buildProductMessage, whatsAppUrl } from '../../../lib/storeConfig';
 
 export default function ProductDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const slug = params?.slug as string;
   const variantIdFromQuery = searchParams?.get('variant');
@@ -724,6 +726,9 @@ export default function ProductDetailPage() {
                     </div>
                   )}
 
+                  {/* Batch lab results, hidden when nothing is published */}
+                  <LabReportPanel productId={(product as any).id} />
+
                   {/* Product Specifications & Packaging Details */}
                   <div className="space-y-3">
                     <h4 className="font-serif font-black text-sm text-[#2A2A2A] uppercase tracking-wider flex items-center gap-2 border-b border-stone-200 pb-2">
@@ -785,7 +790,7 @@ export default function ProductDetailPage() {
 
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
       <SubscriptionModal isOpen={isSubscrOpen} onClose={() => setIsSubscrOpen(false)} product={product} />
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} onCheckout={() => {}} />
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} onCheckout={() => router.push('/checkout')} />
     </div>
   );
 }

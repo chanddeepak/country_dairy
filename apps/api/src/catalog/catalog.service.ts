@@ -132,6 +132,14 @@ export class CatalogService {
               rating: true,
             },
           },
+          // The console's batch column reads this. Published only: a held-back
+          // report must not present itself as the batch currently on sale.
+          labReports: {
+            where: { isPublished: true },
+            orderBy: { testDate: 'desc' },
+            take: 1,
+            select: { batchNumber: true, testDate: true },
+          },
         },
       });
 
@@ -142,12 +150,17 @@ export class CatalogService {
             ? Number((product.reviews.reduce((acc, r) => acc + r.rating, 0) / totalReviews).toFixed(2))
             : 0;
 
+        const latest = product.labReports[0];
+
         return {
           ...product,
           categoryName: product.category?.name || 'Dairy',
           averageRating,
           totalReviews,
+          latestBatchNumber: latest?.batchNumber ?? null,
+          latestBatchTestDate: latest?.testDate?.toISOString() ?? null,
           reviews: undefined,
+          labReports: undefined,
         };
       });
     } catch (error) {
@@ -169,6 +182,10 @@ export class CatalogService {
           variants: { orderBy: { displayOrder: 'asc' } },
           galleryImages: { orderBy: { displayOrder: 'asc' } },
           labReports: {
+            // The storefront shows the latest batch tested; the console needs
+            // to see held-back ones too, hence the same liveOnly switch the
+            // reviews use.
+            where: options.liveOnly ? { isPublished: true } : undefined,
             orderBy: { testDate: 'desc' },
             take: 1,
           },

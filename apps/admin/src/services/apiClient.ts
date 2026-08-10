@@ -15,6 +15,8 @@ import type {
   WhatsAppConfig,
   AuditEntry,
   Paginated,
+  LabReport,
+  LabParameter,
 } from '../types';
 
 // Accepts either name: .env.staging defines VITE_API_URL while the original
@@ -354,6 +356,40 @@ export const adminApi = {
   },
 
   // WhatsApp ordering config
+  // --- Batch lab reports ---
+
+  async getLabReports(productId?: string): Promise<LabReport[]> {
+    const query = productId ? `?productId=${encodeURIComponent(productId)}` : '';
+    return fetchJson<LabReport[]>(`/lab-reports/admin${query}`);
+  },
+
+  async createLabReport(payload: {
+    productId: string;
+    batchNumber: string;
+    testDate: string;
+    labName?: string;
+    fileUrl?: string;
+    notes?: string;
+    parameters?: LabParameter[];
+    isPublished?: boolean;
+  }): Promise<LabReport> {
+    return fetchJson<LabReport>('/lab-reports', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updateLabReport(id: string, payload: Partial<Omit<LabReport, 'id'>>): Promise<LabReport> {
+    return fetchJson<LabReport>(`/lab-reports/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteLabReport(id: string): Promise<void> {
+    await fetchJson<void>(`/lab-reports/${id}`, { method: 'DELETE' });
+  },
+
   async getWhatsAppConfig(): Promise<WhatsAppConfig> {
     return fetchJson<WhatsAppConfig>('/cms/whatsapp');
   },

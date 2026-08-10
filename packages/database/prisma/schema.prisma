@@ -400,18 +400,31 @@ model StockMovement {
   @@index([referenceId])
 }
 
+/// A lab test on one production batch, surfaced on the product page as proof
+/// of purity. `parameters` holds the tested rows as
+/// [{ name, value, standard?, passed? }] so a ghee report (milk fat, Reichert
+/// value) and a honey report (moisture, HMF) can use the same table without a
+/// schema change per product line.
 model LabReport {
   id          String   @id @default(uuid())
   productId   String
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   batchNumber String
   testDate    DateTime
-  fileUrl     String
+  labName     String?
+  /// Optional: labs email the PDF days after the results. Requiring it here is
+  /// how a placeholder URL ends up published as evidence.
+  fileUrl     String?
+  notes       String?
   parameters  Json
+  isPublished Boolean  @default(true)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
+  @@unique([productId, batchNumber])
   @@index([productId])
   @@index([batchNumber])
+  @@index([testDate])
 }
 
 // ---------------------------------------------------------------------------

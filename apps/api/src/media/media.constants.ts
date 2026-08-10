@@ -18,7 +18,14 @@ export const VIDEO_MIME_TYPES = [
   'video/quicktime', // .mov, what an iPhone records
 ] as const;
 
-export const ALL_MEDIA_MIME_TYPES = [...IMAGE_MIME_TYPES, ...VIDEO_MIME_TYPES];
+/** Lab reports arrive as the lab's signed PDF. Nothing else is accepted. */
+export const DOCUMENT_MIME_TYPES = ['application/pdf'] as const;
+
+export const ALL_MEDIA_MIME_TYPES = [
+  ...IMAGE_MIME_TYPES,
+  ...VIDEO_MIME_TYPES,
+  ...DOCUMENT_MIME_TYPES,
+];
 
 /**
  * Images are compressed to WebP in the browser before upload, so they arrive
@@ -27,17 +34,21 @@ export const ALL_MEDIA_MIME_TYPES = [...IMAGE_MIME_TYPES, ...VIDEO_MIME_TYPES];
  */
 export const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // 15 MB
 export const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 100 MB
+export const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024; // 20 MB
 
-export type MediaKind = 'IMAGE' | 'VIDEO';
+export type MediaKind = 'IMAGE' | 'VIDEO' | 'DOCUMENT';
 
 export function mediaKindFor(mimeType: string): MediaKind | null {
   if ((IMAGE_MIME_TYPES as readonly string[]).includes(mimeType)) return 'IMAGE';
   if ((VIDEO_MIME_TYPES as readonly string[]).includes(mimeType)) return 'VIDEO';
+  if ((DOCUMENT_MIME_TYPES as readonly string[]).includes(mimeType)) return 'DOCUMENT';
   return null;
 }
 
 export function maxBytesFor(kind: MediaKind): number {
-  return kind === 'VIDEO' ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+  if (kind === 'VIDEO') return MAX_VIDEO_BYTES;
+  if (kind === 'DOCUMENT') return MAX_DOCUMENT_BYTES;
+  return MAX_IMAGE_BYTES;
 }
 
 export function humanSize(bytes: number): string {
@@ -54,6 +65,7 @@ export function extensionFor(mimeType: string): string {
     'video/mp4': '.mp4',
     'video/webm': '.webm',
     'video/quicktime': '.mov',
+    'application/pdf': '.pdf',
   };
   return map[mimeType] ?? '.bin';
 }

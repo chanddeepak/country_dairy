@@ -11,6 +11,7 @@ import { MediaModule } from './media/media.module';
 import { OrdersModule } from './orders/orders.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { CmsModule } from './cms/cms.module';
+import { LabReportsModule } from './lab-reports/lab-reports.module';
 import { UsersModule } from './users/users.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AuditModule } from './audit/audit.module';
@@ -27,6 +28,7 @@ import { AuditModule } from './audit/audit.module';
     OrdersModule,
     SubscriptionsModule,
     CmsModule,
+    LabReportsModule,
     UsersModule,
     AnalyticsModule,
     AuditModule,
