@@ -17,6 +17,8 @@ import type {
   Paginated,
   LabReport,
   LabParameter,
+  DeliveryStop,
+  RouteSheetResponse,
 } from '../types';
 
 // Accepts either name: .env.staging defines VITE_API_URL while the original
@@ -356,6 +358,42 @@ export const adminApi = {
   },
 
   // WhatsApp ordering config
+  // --- Local delivery ---
+
+  async getRouteSheets(date?: string): Promise<RouteSheetResponse> {
+    const query = date ? `?date=${encodeURIComponent(date)}` : '';
+    return fetchJson<RouteSheetResponse>(`/delivery/routes${query}`);
+  },
+
+  async assignRoute(orderIds: string[], driverId: string | null): Promise<{ assigned: number }> {
+    return fetchJson<{ assigned: number }>('/delivery/routes/assign', {
+      method: 'POST',
+      body: JSON.stringify({ orderIds, driverId }),
+    });
+  },
+
+  async getMyDeliveries(): Promise<DeliveryStop[]> {
+    return fetchJson<DeliveryStop[]>('/delivery/my-deliveries');
+  },
+
+  async getMyCompletedDeliveries(): Promise<DeliveryStop[]> {
+    return fetchJson<DeliveryStop[]>('/delivery/my-deliveries/completed');
+  },
+
+  async markDelivered(orderId: string, note?: string): Promise<DeliveryStop> {
+    return fetchJson<DeliveryStop>(`/delivery/${orderId}/delivered`, {
+      method: 'PATCH',
+      body: JSON.stringify(note ? { note } : {}),
+    });
+  },
+
+  async markDeliveryFailed(orderId: string, reason: string): Promise<DeliveryStop> {
+    return fetchJson<DeliveryStop>(`/delivery/${orderId}/failed`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
   // --- Batch lab reports ---
 
   async getLabReports(productId?: string): Promise<LabReport[]> {
@@ -470,7 +508,12 @@ export const adminApi = {
   async updateOrderStatusAdmin(
     orderId: string,
     status: string,
-    options: { driverId?: string; trackingNumber?: string; note?: string } = {},
+    options: {
+      driverId?: string;
+      trackingNumber?: string;
+      shippingCarrier?: string;
+      note?: string;
+    } = {},
   ): Promise<AdminOrder> {
     return fetchJson<AdminOrder>(`/orders/admin/${orderId}/status`, {
       method: 'PATCH',

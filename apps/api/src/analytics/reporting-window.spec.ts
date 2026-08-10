@@ -1,5 +1,6 @@
 import {
   dayLabel,
+  istDayRange,
   reportingDateKey,
   reportingDayKeys,
   rowDateKey,
@@ -71,5 +72,41 @@ describe('dayLabel', () => {
   it('names the weekday of the key, not a neighbouring day', () => {
     expect(dayLabel('2026-08-09')).toBe('Sun');
     expect(dayLabel('2026-08-10')).toBe('Mon');
+  });
+});
+
+describe('istDayRange', () => {
+  it('spans exactly 24 hours', () => {
+    const { start, end } = istDayRange('2026-08-10');
+    expect(end.getTime() - start.getTime()).toBe(86_400_000);
+  });
+
+  it('starts at IST midnight, not UTC midnight', () => {
+    const { start } = istDayRange('2026-08-10');
+    // 00:00 IST is 18:30 UTC on the previous day.
+    expect(start.toISOString()).toBe('2026-08-09T18:30:00.000Z');
+  });
+
+  it('is half-open, so an order at the boundary lands in one day only', () => {
+    const aug10 = istDayRange('2026-08-10');
+    const aug11 = istDayRange('2026-08-11');
+    expect(aug10.end.getTime()).toBe(aug11.start.getTime());
+  });
+
+  it('puts a late-evening IST order on the same day, not the next', () => {
+    // 23:30 IST on 10 Aug is 18:00 UTC on 10 Aug.
+    const lateEvening = new Date('2026-08-10T18:00:00.000Z');
+    const { start, end } = istDayRange('2026-08-10');
+    expect(lateEvening >= start && lateEvening < end).toBe(true);
+  });
+
+  it('defaults to today when no key is given', () => {
+    const { key } = istDayRange();
+    expect(key).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('rejects a malformed date rather than silently spanning the epoch', () => {
+    expect(() => istDayRange('10-08-2026')).toThrow();
+    expect(() => istDayRange('yesterday')).toThrow();
   });
 });

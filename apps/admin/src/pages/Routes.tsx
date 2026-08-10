@@ -1,234 +1,418 @@
-import { useState } from 'react';
-import { MapPin, User, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  AlertCircle,
+  Banknote,
+  Check,
+  Loader2,
+  MapPin,
+  Package,
+  Phone,
+  Printer,
+  RefreshCw,
+  User,
+} from 'lucide-react';
+import { adminApi } from '../services/apiClient';
+import type { DeliveryStop, RouteSheetResponse } from '../types';
 
-interface RouteManifest {
+const field =
+  'px-3 py-2 bg-[#FAF8F3] border border-stone-200 rounded-lg text-sm text-[#2A2A2A] focus:outline-none focus:border-[#064e3b] transition-colors';
+
+interface Driver {
   id: string;
-  address: string;
-  customer: string;
-  product: string;
-  status: 'PENDING' | 'DELIVERED' | 'UNDELIVERED';
+  name: string | null;
+  phone: string | null;
 }
 
-const NoidaManifest: RouteManifest[] = [
-  { id: '1', address: 'House 142, Block C, Sector 62', customer: 'Amit Sharma', product: 'A2 Cow Milk (2 Litres)', status: 'PENDING' },
-  { id: '2', address: 'Apartment 402, Royal Residency', customer: 'Karan Bajaj', product: 'A2 Cow Milk (1 Litre)', status: 'PENDING' },
-];
+function money(n: number): string {
+  return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
 
-const DelhiManifest: RouteManifest[] = [
-  { id: '3', address: 'Plot 15, GK-2 Main Rd', customer: 'Priya Sen', product: 'A2 Vedic Ghee (1 Litre)', status: 'PENDING' },
-  { id: '4', address: 'House B-44, GK-1', customer: 'Rohan Malhotra', product: 'A2 Cow Milk (3 Litres)', status: 'PENDING' },
-];
+function todayKey(): string {
+  // The API buckets by IST, so the picker must agree or the sheet looks empty
+  // after 6:30pm local time in a different zone.
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+}
 
-const GurgaonManifest: RouteManifest[] = [
-  { id: '5', address: 'Villa 109, DLF Phase 3', customer: 'Vikram Grover', product: 'Raw Wild Forest Honey (500g)', status: 'PENDING' },
-];
-
+/**
+ * The dispatch desk: today's local orders grouped into route sheets by
+ * pincode, each assignable to a driver.
+ *
+ * Was three hardcoded manifests for Noida, Delhi and Gurgaon whose delivery
+ * ticks were local state — pressing "Delivered" changed nothing anyone else
+ * could see.
+ */
 export default function Routes() {
-  const [route, setRoute] = useState<'Noida' | 'Delhi' | 'Gurgaon'>('Noida');
-  const [runner, setRunner] = useState('Ramesh Kumar (Runner-ID: 4092)');
-  const [manifests, setManifests] = useState<Record<'Noida' | 'Delhi' | 'Gurgaon', RouteManifest[]>>({
-    Noida: NoidaManifest,
-    Delhi: DelhiManifest,
-    Gurgaon: GurgaonManifest,
-  });
+  const [date, setDate] = useState(todayKey());
+  const [data, setData] = useState<RouteSheetResponse | null>(null);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const activeManifest = manifests[route];
+  const [activePincode, setActivePincode] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [assignTo, setAssignTo] = useState('');
+  const [isAssigning, setIsAssigning] = useState(false);
 
-  const handleStatusUpdate = (id: string, newStatus: 'DELIVERED' | 'UNDELIVERED') => {
-    setManifests(prev => {
-      const updatedList = prev[route].map(m => {
-        if (m.id === id) {
-          return { ...m, status: newStatus };
-        }
-        return m;
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [sheets, driverList] = await Promise.all([
+        adminApi.getRouteSheets(date),
+        adminApi.getDrivers(),
+      ]);
+      setData(sheets);
+      setDrivers(driverList);
+      setActivePincode((current) => {
+        const keys = sheets.routes.map((r) => r.pincode || 'NO-PINCODE');
+        return current && keys.includes(current) ? current : (keys[0] ?? null);
       });
-      return { ...prev, [route]: updatedList };
+      setSelected(new Set());
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load route sheets.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [date]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const activeRoute = useMemo(
+    () => data?.routes.find((r) => (r.pincode || 'NO-PINCODE') === activePincode) ?? null,
+    [data, activePincode],
+  );
+
+  const toggleStop = (orderId: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
     });
+
+  const toggleAll = () => {
+    if (!activeRoute) return;
+    setSelected((prev) =>
+      prev.size === activeRoute.stops.length
+        ? new Set()
+        : new Set(activeRoute.stops.map((s) => s.orderId)),
+    );
   };
 
-  const triggerPrintManifest = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+  const assign = async (driverId: string | null) => {
+    if (selected.size === 0) {
+      setError('Select the stops to assign first.');
+      return;
+    }
 
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Runner Route Sheet - ${route}</title>
-          <style>
-            body { font-family: monospace; padding: 35px; color: #000; }
-            h2 { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; font-size: 18px; }
-            .info-bar { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 30px; font-size: 12px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-            th { border-bottom: 2px solid #000; text-align: left; padding: 10px; font-size: 11px; }
-            td { border-bottom: 1px solid #ddd; padding: 12px 10px; font-size: 11px; }
-          </style>
-        </head>
-        <body>
-          <h2>LOCAL RUNNER DELIVERY MANIFEST SHEET</h2>
-          <div class="info-bar">
-            <div>
-              <strong>ROUTE AREA:</strong> ${route} Sector Block<br/>
-              <strong>DISPATCH DATE:</strong> ${new Date().toLocaleDateString()}<br/>
-            </div>
-            <div>
-              <strong>ASSIGNED RUNNER:</strong> ${runner}<br/>
-              <strong>TOTAL DROPS:</strong> ${activeManifest.length} sequence drops
-            </div>
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Drop #</th>
-                <th>House Delivery Address</th>
-                <th>Recipient Customer</th>
-                <th>Products Count</th>
-                <th>Recipient Sign Slot</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${activeManifest.map((m, idx) => `
-                <tr>
-                  <td>${idx + 1}</td>
-                  <td>${m.address}</td>
-                  <td><strong>${m.customer}</strong></td>
-                  <td>${m.product}</td>
-                  <td style="border: 1px solid #aaa; height: 35px; width: 120px;"></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-
-          <script>
-            window.onload = function() { window.print(); }
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+    setError('');
+    setIsAssigning(true);
+    try {
+      await adminApi.assignRoute([...selected], driverId);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not assign that route.');
+    } finally {
+      setIsAssigning(false);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="screen-panel bg-white p-6 rounded-2xl border border-stone-200 shadow-sm">
-        <div className="screen-header mb-6">
-          <h2 className="text-lg font-bold text-stone-800">Daily Milk Runner Routing Sheets</h2>
-          <p className="text-xs text-stone-500">Assign local runners to deliver daily fresh dairy subscriptions to residential blocks.</p>
+    <div className="space-y-6 text-[#2A2A2A]">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <MapPin className="h-5 w-5 text-[#064e3b]" />
+            <h1 className="text-xl font-serif font-bold">Delivery Route Sheets</h1>
+          </div>
+          <p className="text-xs text-[#6b6661]">
+            Local orders for the day, grouped by pincode. Assign a route to a driver and it
+            appears in their app.
+          </p>
         </div>
 
-        <div className="form-grid grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-          <div className="form-group flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-stone-600 uppercase flex items-center gap-1"><MapPin className="h-3.5 w-3.5 text-stone-400" /> Select Delivery Route Area:</label>
-            <select 
-              value={route}
-              onChange={e => setRoute(e.target.value as any)}
-              className="form-control bg-stone-50 border border-stone-200 px-3 py-2.5 rounded-lg text-sm text-stone-800 focus:outline-none focus:border-[#064e3b]"
-            >
-              <option value="Noida">Sector 62, Noida Area</option>
-              <option value="Delhi">GK-1 & GK-2, South Delhi Area</option>
-              <option value="Gurgaon">Sector 45, Gurgaon Area</option>
-            </select>
-          </div>
-
-          <div className="form-group flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-stone-600 uppercase flex items-center gap-1"><User className="h-3.5 w-3.5 text-stone-400" /> Assigned Delivery Runner:</label>
-            <select 
-              value={runner}
-              onChange={e => setRunner(e.target.value)}
-              className="form-control bg-stone-50 border border-stone-200 px-3 py-2.5 rounded-lg text-sm text-stone-800 focus:outline-none focus:border-[#064e3b]"
-            >
-              <option value="Ramesh Kumar (Runner-ID: 4092)">Ramesh Kumar (Runner-ID: 4092)</option>
-              <option value="Sunil Yadav (Runner-ID: 1842)">Sunil Yadav (Runner-ID: 1842)</option>
-              <option value="Aman Singh (Runner-ID: 2948)">Aman Singh (Runner-ID: 2948)</option>
-            </select>
-          </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className={field}
+          />
+          <button
+            type="button"
+            onClick={load}
+            disabled={isLoading}
+            className="p-2.5 rounded-xl border border-stone-200 text-[#6b6661] hover:bg-stone-50 transition-colors disabled:opacity-50"
+            title="Reload"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-stone-200 text-[#6b6661] hover:bg-stone-50 text-xs font-bold transition-colors"
+          >
+            <Printer className="h-4 w-4" /> Print
+          </button>
         </div>
+      </div>
 
-        <div className="route-manifest-box bg-stone-50/50 p-6 rounded-2xl border border-stone-200/60">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-stone-200/60 pb-4">
-            <div>
-              <h4 className="font-serif font-black text-base text-[#064e3b]">Route Manifest - {route} Sequence drops</h4>
-              <p className="text-xs text-stone-500 font-mono mt-0.5">Assigned to: {runner}</p>
+      {error && (
+        <div className="flex items-start gap-2 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-medium">
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Day summary */}
+      {data && !isLoading && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: 'Stops', value: String(data.totalStops), icon: Package },
+            { label: 'Routes', value: String(data.routes.length), icon: MapPin },
+            { label: 'Unassigned', value: String(data.unassignedCount), icon: User },
+            { label: 'Cash to collect', value: money(data.totalCashToCollect), icon: Banknote },
+          ].map(({ label, value, icon: Icon }) => (
+            <div key={label} className="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-sm">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#6b6661] uppercase tracking-wider mb-1">
+                <Icon className="h-3.5 w-3.5" /> {label}
+              </div>
+              <div className="text-lg font-black font-mono">{value}</div>
             </div>
-            <button 
-              onClick={triggerPrintManifest}
-              className="btn-accent bg-emerald-50 hover:bg-emerald-100 border border-emerald-250 text-emerald-800 font-bold text-xs px-4 py-2.5 rounded-lg flex items-center gap-2 transition"
-            >
-              <FileText className="h-4 w-4" />
-              Print Runner Run-Sheet
-            </button>
+          ))}
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="flex items-center justify-center gap-2 py-20 text-xs text-[#6b6661] bg-white rounded-2xl border border-stone-200/80">
+          <Loader2 className="h-4 w-4 animate-spin" /> Building route sheets…
+        </div>
+      ) : !data || data.routes.length === 0 ? (
+        <div className="bg-white p-12 rounded-2xl border border-stone-200/80 shadow-sm text-center">
+          <MapPin className="h-8 w-8 text-stone-300 mx-auto mb-3" />
+          <h2 className="text-sm font-bold mb-1">No local deliveries for this day</h2>
+          <p className="text-xs text-[#6b6661] max-w-md mx-auto">
+            Route sheets are built from confirmed local orders. Courier consignments are handled
+            on the shipping desk instead.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Route list */}
+          <div className="lg:col-span-4 space-y-2.5">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-[#6b6661] px-1">
+              Routes ({data.routes.length})
+            </h2>
+
+            {data.routes.map((r) => {
+              const key = r.pincode || 'NO-PINCODE';
+              const isActive = key === activePincode;
+              const assignedCount = r.stops.filter((s) => s.driverId).length;
+
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    setActivePincode(key);
+                    setSelected(new Set());
+                  }}
+                  className={`w-full text-left p-4 rounded-2xl border transition-colors ${
+                    isActive
+                      ? 'bg-[#064e3b] text-white border-[#064e3b] shadow-sm'
+                      : 'bg-white border-stone-200/80 hover:border-stone-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="font-bold text-sm">{r.area}</span>
+                    <span
+                      className={`font-mono text-[11px] ${isActive ? 'text-white/70' : 'text-[#6b6661]'}`}
+                    >
+                      {r.pincode || 'no pincode'}
+                    </span>
+                  </div>
+                  <div className={`text-[11px] ${isActive ? 'text-white/70' : 'text-[#6b6661]'}`}>
+                    {r.stopCount} {r.stopCount === 1 ? 'stop' : 'stops'} ·{' '}
+                    {assignedCount === r.stopCount
+                      ? 'fully assigned'
+                      : `${r.stopCount - assignedCount} unassigned`}
+                    {r.cashToCollect > 0 ? ` · ${money(r.cashToCollect)} to collect` : ''}
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
-          <table className="data-table w-full text-left border-collapse bg-white rounded-xl overflow-hidden border border-stone-200/60">
-            <thead>
-              <tr className="border-b border-stone-200 text-stone-500 font-bold text-xs uppercase bg-stone-50">
-                <th className="p-4">Drop Position</th>
-                <th className="p-4">House Address</th>
-                <th className="p-4">Customer Name</th>
-                <th className="p-4">Subscribed Products</th>
-                <th className="p-4">Fulfillment Feedback</th>
-                <th className="p-4 text-right">Dispatch Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeManifest.map((m, idx) => (
-                <tr key={m.id} className="border-b border-stone-100 last:border-0 hover:bg-stone-50/20 transition-colors text-sm">
-                  <td className="p-4 font-bold text-stone-500">{idx + 1}</td>
-                  <td className="p-4 font-semibold text-stone-800">{m.address}</td>
-                  <td className="p-4 text-stone-700">{m.customer}</td>
-                  <td className="p-4 text-stone-600 font-medium">{m.product}</td>
-                  <td className="p-4 font-mono text-xs">
-                    {m.status === 'PENDING' ? (
-                      <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-100 flex items-center gap-1.5 w-fit">
-                        Pending Drop
+          {/* Manifest */}
+          <div className="lg:col-span-8">
+            {activeRoute && (
+              <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3 p-5 border-b border-stone-100">
+                  <div>
+                    <h2 className="font-serif font-bold">
+                      {activeRoute.area}{' '}
+                      <span className="font-mono text-xs text-[#6b6661]">
+                        {activeRoute.pincode}
                       </span>
-                    ) : m.status === 'DELIVERED' ? (
-                      <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 flex items-center gap-1.5 w-fit">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Delivered
-                      </span>
-                    ) : (
-                      <span className="text-red-700 font-bold bg-red-50 px-2 py-0.5 rounded border border-red-100 flex items-center gap-1.5 w-fit">
-                        <AlertCircle className="h-3.5 w-3.5" />
-                        Undelivered
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-4 text-right">
-                    {m.status === 'PENDING' ? (
-                      <div className="flex gap-1.5 justify-end">
-                        <button 
-                          onClick={() => handleStatusUpdate(m.id, 'DELIVERED')}
-                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[11px] px-2.5 py-1.5 rounded transition"
-                        >
-                          Delivered
-                        </button>
-                        <button 
-                          onClick={() => handleStatusUpdate(m.id, 'UNDELIVERED')}
-                          className="bg-red-50 hover:bg-red-150 text-red-800 font-bold text-[11px] px-2.5 py-1.5 rounded transition"
-                        >
-                          Failed
-                        </button>
-                      </div>
-                    ) : (
-                      <button 
-                        onClick={() => {
-                          setManifests(prev => {
-                            const updated = prev[route].map(item => item.id === m.id ? { ...item, status: 'PENDING' } : item);
-                            return { ...prev, [route]: updated };
-                          });
-                        }}
-                        className="text-stone-400 hover:text-stone-600 text-xs font-semibold hover:underline"
-                      >
-                        Reset Status
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </h2>
+                    <p className="text-xs text-[#6b6661] mt-0.5">
+                      {selected.size > 0
+                        ? `${selected.size} selected`
+                        : `${activeRoute.stopCount} stops on this sheet`}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={assignTo}
+                      onChange={(e) => setAssignTo(e.target.value)}
+                      className={field}
+                    >
+                      <option value="">Choose a driver…</option>
+                      {drivers.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name || 'Unnamed driver'}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={() => assign(assignTo || null)}
+                      disabled={isAssigning || selected.size === 0 || !assignTo}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-[#064e3b] hover:bg-[#065f46] text-white font-bold text-xs rounded-xl transition-colors disabled:opacity-50 whitespace-nowrap"
+                    >
+                      {isAssigning ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
+                      Assign
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => assign(null)}
+                      disabled={isAssigning || selected.size === 0}
+                      className="px-3 py-2.5 rounded-xl border border-stone-200 text-[#6b6661] hover:bg-stone-50 text-xs font-bold transition-colors disabled:opacity-50 whitespace-nowrap"
+                      title="Hand these stops back to the pool"
+                    >
+                      Unassign
+                    </button>
+                  </div>
+                </div>
+
+                <div className="px-5 py-2.5 border-b border-stone-100">
+                  <label className="flex items-center gap-2 text-[11px] font-bold text-[#6b6661] uppercase tracking-wider cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selected.size === activeRoute.stops.length && selected.size > 0}
+                      onChange={toggleAll}
+                      className="h-4 w-4 accent-[#064e3b]"
+                    />
+                    Select all
+                  </label>
+                </div>
+
+                <div className="divide-y divide-stone-100">
+                  {activeRoute.stops.map((stop, i) => (
+                    <StopRow
+                      key={stop.orderId}
+                      stop={stop}
+                      index={i + 1}
+                      isSelected={selected.has(stop.orderId)}
+                      onToggle={() => toggleStop(stop.orderId)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function StopRow({
+  stop,
+  index,
+  isSelected,
+  onToggle,
+}: {
+  stop: DeliveryStop;
+  index: number;
+  isSelected: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className={`flex items-start gap-3 p-5 ${isSelected ? 'bg-[#FAF8F3]' : ''}`}>
+      <input
+        type="checkbox"
+        checked={isSelected}
+        onChange={onToggle}
+        className="h-4 w-4 mt-1 accent-[#064e3b] shrink-0"
+      />
+
+      <span className="text-[11px] font-mono font-bold text-[#6b6661] mt-0.5 w-5 shrink-0">
+        {index}
+      </span>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 mb-0.5">
+          <span className="font-bold text-sm">{stop.customerName}</span>
+          <span className="font-mono text-[11px] text-[#6b6661]">{stop.orderNumber}</span>
+          {stop.driverName ? (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+              {stop.driverName}
+            </span>
+          ) : (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+              Unassigned
+            </span>
+          )}
+        </div>
+
+        <p className="text-xs text-[#6b6661] leading-relaxed">{stop.addressLine}</p>
+        <p className="text-xs text-[#2A2A2A] mt-1">{stop.itemsSummary}</p>
+
+        {stop.customerNote && (
+          <p className="text-[11px] text-[#6b6661] mt-1 italic">Note: {stop.customerNote}</p>
+        )}
+
+        {stop.customerPhone && (
+          <a
+            href={`tel:${stop.customerPhone}`}
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#064e3b] mt-1.5 hover:underline"
+          >
+            <Phone className="h-3 w-3" /> {stop.customerPhone}
+          </a>
+        )}
+      </div>
+
+      <div className="text-right shrink-0">
+        {stop.isCashOnDelivery ? (
+          <>
+            <div className="font-mono font-black text-sm text-[#064e3b]">
+              {money(stop.amountToCollect)}
+            </div>
+            <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+              Collect cash
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="font-mono font-bold text-sm text-[#6b6661]">
+              {money(stop.totalAmount)}
+            </div>
+            <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+              Paid online
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

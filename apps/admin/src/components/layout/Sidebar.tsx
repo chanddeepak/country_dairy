@@ -41,10 +41,14 @@ interface SidebarPropsWithFlags extends SidebarProps {
   featureFlags?: Record<string, boolean>;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, featureFlags = {} }: SidebarPropsWithFlags) {
-  const { user, logout, hasPermission } = useAuth();
-
-  const allLinks: NavItem[] = [
+/**
+ * The single definition of what each role can open.
+ *
+ * Lifted out of the component because App needs the same answer to pick a
+ * landing tab: a tab restored from localStorage after a different user signs
+ * in was landing drivers on a 403.
+ */
+export const NAV_LINKS: NavItem[] = [
     { 
       key: 'overview', 
       label: 'Overview & Analytics', 
@@ -71,22 +75,19 @@ export default function Sidebar({ activeTab, setActiveTab, featureFlags = {} }: 
     },
     { 
       key: 'logistics',
-      comingSoon: true, 
-      label: 'Delhivery Shipping', 
+      label: 'Courier Consignments', 
       icon: <Truck className="h-4 w-4" />,
       allowedRoles: ['SUPER_ADMIN', 'ORDER_MANAGER']
     },
     { 
       key: 'driver',
-      comingSoon: true, 
-      label: 'Driver Delivery App', 
+      label: 'My Deliveries', 
       icon: <Truck className="h-4 w-4 text-[#fbbf24]" />,
       allowedRoles: ['SUPER_ADMIN', 'DELIVERY_DRIVER']
     },
     { 
       key: 'routes',
-      comingSoon: true, 
-      label: 'Milk Route Sheets', 
+      label: 'Delivery Route Sheets', 
       icon: <Map className="h-4 w-4" />,
       allowedRoles: ['SUPER_ADMIN', 'ORDER_MANAGER']
     },
@@ -133,9 +134,24 @@ export default function Sidebar({ activeTab, setActiveTab, featureFlags = {} }: 
       icon: <ShieldCheck className="h-4 w-4 text-[#a7f3d0]" />,
       allowedRoles: ['SUPER_ADMIN']
     },
-  ];
+];
 
-  const visibleLinks = allLinks.filter(link => {
+/** Tabs this role may open, in sidebar order. */
+export function tabsForRole(role: UserRole): TabType[] {
+  return NAV_LINKS.filter((l) => !l.allowedRoles || l.allowedRoles.includes(role)).map(
+    (l) => l.key,
+  );
+}
+
+/** Where a role lands when it has no valid saved tab. */
+export function defaultTabForRole(role: UserRole): TabType {
+  return tabsForRole(role)[0] ?? 'overview';
+}
+
+export default function Sidebar({ activeTab, setActiveTab, featureFlags = {} }: SidebarPropsWithFlags) {
+  const { user, logout, hasPermission } = useAuth();
+
+  const visibleLinks = NAV_LINKS.filter(link => {
     // A page for a disabled feature is hidden, not merely disabled — showing
     // "Wallet Ledger" while the wallet is off advertises something that does
     // not exist.

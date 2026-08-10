@@ -80,6 +80,8 @@ export interface AdminOrder {
   totalAmount: string | number;
   couponCode?: string | null;
   trackingNumber?: string | null;
+  shippingCarrier?: string | null;
+  customerNote?: string | null;
   shippingAddress: {
     line1: string;
     line2?: string | null;
@@ -375,4 +377,44 @@ export interface LabReport {
   isPublished: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// --- Local delivery ---
+
+export interface DeliveryStop {
+  orderId: string;
+  orderNumber: string;
+  customerName: string;
+  customerPhone: string | null;
+  addressLine: string;
+  area: string;
+  pincode: string;
+  itemsSummary: string;
+  itemCount: number;
+  /** What the driver collects at the door; 0 when already paid online. */
+  amountToCollect: number;
+  totalAmount: number;
+  isCashOnDelivery: boolean;
+  status: OrderStatus;
+  driverId: string | null;
+  driverName: string | null;
+  customerNote: string | null;
+  placedAt: string;
+}
+
+export interface RouteSheet {
+  pincode: string;
+  area: string;
+  stops: DeliveryStop[];
+  stopCount: number;
+  cashToCollect: number;
+  driverIds: string[];
+}
+
+export interface RouteSheetResponse {
+  date: string;
+  routes: RouteSheet[];
+  unassignedCount: number;
+  totalStops: number;
+  totalCashToCollect: number;
 }

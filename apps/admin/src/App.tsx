@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import Sidebar from './components/layout/Sidebar';
+import Sidebar, { defaultTabForRole, tabsForRole } from './components/layout/Sidebar';
 import type { TabType } from './components/layout/Sidebar';
 import Login from './pages/Login';
 import Overview from './pages/Overview';
@@ -43,20 +43,19 @@ function AdminMainContent() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddingNewProduct, setIsAddingNewProduct] = useState(false);
 
-  // Post-Login Automatic Redirection Matrix (only if no tab saved yet)
+  // Land on a tab this role can actually open.
+  //
+  // The saved tab was previously trusted whenever it existed, so signing in as
+  // a driver on a browser that had last been used by an admin restored
+  // "overview" and greeted the driver with a 403 on their own console.
   useEffect(() => {
     if (!user) return;
-    const savedTab = localStorage.getItem(TAB_STORAGE_KEY);
-    if (!savedTab) {
-      if (user.role === 'DELIVERY_DRIVER') {
-        setActiveTab('driver');
-      } else if (user.role === 'CATALOG_MANAGER') {
-        setActiveTab('inventory');
-      } else if (user.role === 'ORDER_MANAGER') {
-        setActiveTab('orders');
-      } else {
-        setActiveTab('overview');
-      }
+
+    const allowed = tabsForRole(user.role);
+    const savedTab = localStorage.getItem(TAB_STORAGE_KEY) as TabType | null;
+
+    if (!savedTab || !allowed.includes(savedTab)) {
+      setActiveTab(defaultTabForRole(user.role));
     }
   }, [user?.role]);
 
@@ -79,6 +78,13 @@ function AdminMainContent() {
   // until the page was reloaded by hand.
   useEffect(() => {
     if (!isAuthenticated || !user) return;
+
+    // A delivery driver has no catalog access, so fetching it only produces a
+    // 403 rendered as "Could not reach the API server" across their screen.
+    if (!tabsForRole(user.role).includes('inventory')) {
+      setIsLoadingProducts(false);
+      return;
+    }
 
     let cancelled = false;
     setIsLoadingProducts(true);
@@ -114,6 +120,7 @@ function AdminMainContent() {
 
   useEffect(() => {
     if (!isAuthenticated || !user) return;
+    if (!tabsForRole(user.role).includes('orders')) return;
 
     adminApi.getOrdersAdmin()
       .then(setOrders)
@@ -128,15 +135,6 @@ function AdminMainContent() {
   }
 
   // Trigger Delhivery booking dispatch
-  const handleDelhiveryBooking = (orderId: string, waybillNum: string) => {
-    setOrders(prev => prev.map(order => {
-      if (order.id === orderId) {
-        return { ...order, waybill: waybillNum, status: 'SHIPPED' };
-      }
-      return order;
-    }));
-  };
-
   return (
     <div className="admin-container min-h-screen bg-[#FAF8F3] text-[#2A2A2A] flex">
       <Sidebar
@@ -239,10 +237,7 @@ function AdminMainContent() {
 
         {activeTab === 'logistics' && (
           <ProtectedRoute requiredRole={['SUPER_ADMIN', 'ORDER_MANAGER']}>
-            <Logistics
-              orders={orders}
-              handleDelhiveryBooking={handleDelhiveryBooking}
-            />
+            <Logistics orders={orders} />
           </ProtectedRoute>
         )}
 

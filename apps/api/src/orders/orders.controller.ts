@@ -43,6 +43,7 @@ export class OrdersController {
     return this.ordersService.updateOrderStatusAdmin(id, dto.status, {
       driverId: dto.driverId,
       trackingNumber: dto.trackingNumber,
+      shippingCarrier: dto.shippingCarrier,
       note: dto.note,
     });
   }

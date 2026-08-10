@@ -52,3 +52,24 @@ export function dayLabel(dateKey: string): string {
   // Midday avoids any chance of the label sliding to a neighbouring day.
   return new Date(`${dateKey}T12:00:00Z`).toLocaleDateString('en-IN', { weekday: 'short' });
 }
+
+/**
+ * The half-open instant range `[start, end)` covering one reporting day.
+ *
+ * Delivery rounds are planned per IST day, so a query written against UTC
+ * midnight would put an order placed at 11pm on the next morning's route
+ * sheet. Half-open rather than inclusive so an order timestamped exactly at
+ * midnight belongs to one day only.
+ */
+export function istDayRange(dateKey?: string): { start: Date; end: Date; key: string } {
+  const key = dateKey || reportingDateKey(new Date());
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) {
+    throw new Error(`Expected a YYYY-MM-DD date, received "${key}"`);
+  }
+
+  const start = startOfReportingDay(key);
+  const end = new Date(start.getTime() + DAY_MS);
+
+  return { start, end, key };
+}

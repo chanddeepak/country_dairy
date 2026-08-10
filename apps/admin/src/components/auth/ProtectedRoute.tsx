@@ -1,4 +1,5 @@
 import React from 'react';
+import { Loader2, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import type { UserRole } from '../../types';
 
@@ -12,8 +13,8 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-900 text-amber-400">
-        <div className="animate-spin text-3xl">⌛</div>
+      <div className="min-h-[40vh] flex items-center justify-center gap-2 text-xs text-[#6b6661]">
+        <Loader2 className="h-4 w-4 animate-spin" /> Checking your access…
       </div>
     );
   }
@@ -25,15 +26,17 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
 
   if (requiredRole && !hasPermission(requiredRole)) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6 bg-stone-900 text-stone-100 rounded-2xl border border-stone-800 m-6">
-        <div className="text-5xl mb-4">🛡️</div>
-        <h2 className="text-2xl font-bold text-red-400 mb-2">403 — Access Restricted</h2>
-        <p className="text-sm text-stone-400 max-w-md mb-6">
-          Your account role (<span className="text-amber-400 font-mono font-bold">{user.role}</span>) does not have authorization to view this module.
+      <div className="bg-white p-12 rounded-2xl border border-stone-200/80 shadow-sm text-center">
+        <ShieldAlert className="h-8 w-8 text-stone-300 mx-auto mb-3" />
+        <h2 className="text-sm font-bold text-[#2A2A2A] mb-1">You cannot open this page</h2>
+        <p className="text-xs text-[#6b6661] max-w-md mx-auto mb-4">
+          Your role is{' '}
+          <span className="font-mono font-bold text-[#2A2A2A]">{user.role}</span>. Ask
+          a Super Admin if you need access.
         </p>
-        <div className="text-xs text-stone-500 bg-stone-800 p-3 rounded-lg border border-stone-700">
-          Required Permission Scope: <code className="text-stone-300">{Array.isArray(requiredRole) ? requiredRole.join(', ') : requiredRole}</code>
-        </div>
+        <code className="inline-block text-[11px] font-mono text-[#6b6661] bg-[#FAF8F3] border border-stone-200 rounded-lg px-3 py-2">
+          Needs: {Array.isArray(requiredRole) ? requiredRole.join(', ') : requiredRole}
+        </code>
       </div>
     );
   }

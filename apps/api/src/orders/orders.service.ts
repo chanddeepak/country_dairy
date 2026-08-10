@@ -455,7 +455,12 @@ export class OrdersService {
   async updateOrderStatusAdmin(
     orderId: string,
     status: OrderStatus,
-    options: { driverId?: string; trackingNumber?: string; note?: string } = {},
+    options: {
+      driverId?: string;
+      trackingNumber?: string;
+      shippingCarrier?: string;
+      note?: string;
+    } = {},
   ) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -491,7 +496,12 @@ export class OrdersService {
       entity: 'Order',
       entityId: order.orderNumber,
       before: { status: order.status },
-      after: { status, driverId: options.driverId, trackingNumber: options.trackingNumber },
+      after: {
+        status,
+        driverId: options.driverId,
+        trackingNumber: options.trackingNumber,
+        shippingCarrier: options.shippingCarrier,
+      },
     });
 
     return this.prisma.order.update({
@@ -503,6 +513,7 @@ export class OrdersService {
         // mix unchecked scalar FKs with nested writes like statusHistory.
         ...(options.driverId ? { driver: { connect: { id: options.driverId } } } : {}),
         ...(options.trackingNumber ? { trackingNumber: options.trackingNumber } : {}),
+        ...(options.shippingCarrier ? { shippingCarrier: options.shippingCarrier } : {}),
         statusHistory: { create: { status, note: options.note } },
       },
       include: {

@@ -48,6 +48,12 @@ export class UpdateOrderStatusDto {
   @MaxLength(80)
   trackingNumber?: string;
 
+  /** Free text: the carrier list changes without a deploy. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  shippingCarrier?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(300)

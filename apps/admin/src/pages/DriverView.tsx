@@ -1,215 +1,329 @@
-import { useState } from 'react';
-import { Truck, Phone, MapPin, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  AlertCircle,
+  Banknote,
+  Check,
+  CheckCircle2,
+  Loader2,
+  MapPin,
+  Navigation,
+  Phone,
+  RefreshCw,
+  Truck,
+  X,
+} from 'lucide-react';
+import { adminApi } from '../services/apiClient';
+import type { DeliveryStop } from '../types';
 
-interface AssignedDelivery {
-  id: string;
-  orderNumber: string;
-  customerName: string;
-  customerPhone: string;
-  deliveryAddress: string;
-  itemsSummary: string;
-  paymentStatus: 'PAID' | 'CASH_ON_DELIVERY';
-  totalAmount: number;
-  status: 'ASSIGNED' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+function money(n: number): string {
+  return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
+/**
+ * What a delivery driver sees on their phone.
+ *
+ * The API takes the driver id from the token rather than the request, so this
+ * screen can only ever show and complete the signed-in driver's own round.
+ *
+ * Was two hardcoded deliveries in useState whose "Mark Delivered" button
+ * updated nothing outside this component.
+ */
 export default function DriverView() {
-  const [deliveries, setDeliveries] = useState<AssignedDelivery[]>([
-    {
-      id: 'del-1',
-      orderNumber: 'ORD-10492',
-      customerName: 'Amit Sharma',
-      customerPhone: '+91 98765 43210',
-      deliveryAddress: 'Flat 402, Sunshine Apartments, Sector 62, Gurgaon',
-      itemsSummary: 'A2 Cow Milk (6L Glass Bottles)',
-      paymentStatus: 'PAID',
-      totalAmount: 570,
-      status: 'OUT_FOR_DELIVERY',
-    },
-    {
-      id: 'del-2',
-      orderNumber: 'ORD-10495',
-      customerName: 'Deepak Chand',
-      customerPhone: '+91 97777 66666',
-      deliveryAddress: 'Villa 14, Country Estate, Golf Course Road, Gurgaon',
-      itemsSummary: 'A2 Vedic Bilona Ghee (1L Glass Jar)',
-      paymentStatus: 'CASH_ON_DELIVERY',
-      totalAmount: 1499,
-      status: 'ASSIGNED',
-    },
-  ]);
+  const [pending, setPending] = useState<DeliveryStop[]>([]);
+  const [completed, setCompleted] = useState<DeliveryStop[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [failing, setFailing] = useState<DeliveryStop | null>(null);
+  const [failReason, setFailReason] = useState('');
 
-  // OTP Modal State
-  const [selectedOrderForOtp, setSelectedOrderForOtp] = useState<AssignedDelivery | null>(null);
-  const [otpInput, setOtpInput] = useState('');
-  const [otpError, setOtpError] = useState('');
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [open, done] = await Promise.all([
+        adminApi.getMyDeliveries(),
+        adminApi.getMyCompletedDeliveries(),
+      ]);
+      setPending(open);
+      setCompleted(done);
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load your deliveries.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  const handleVerifyOtpAndDeliver = (e: React.FormEvent) => {
-    e.preventDefault();
-    setOtpError('');
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-    if (otpInput.length !== 4) {
-      setOtpError('Please enter valid 4-digit Customer OTP (e.g. 4829).');
+  const cashToCollect = pending.reduce((sum, s) => sum + s.amountToCollect, 0);
+
+  const deliver = async (stop: DeliveryStop) => {
+    setBusyId(stop.orderId);
+    setError('');
+    try {
+      const done = await adminApi.markDelivered(stop.orderId);
+      setPending((prev) => prev.filter((s) => s.orderId !== stop.orderId));
+      setCompleted((prev) => [done, ...prev]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not mark that delivered.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const recordFailure = async () => {
+    if (!failing) return;
+
+    if (failReason.trim().length < 3) {
+      setError('Say why the delivery could not be completed.');
       return;
     }
 
-    if (!selectedOrderForOtp) return;
-
-    setDeliveries(prev => prev.map(d => {
-      if (d.id === selectedOrderForOtp.id) {
-        return { ...d, status: 'DELIVERED' };
-      }
-      return d;
-    }));
-
-    alert(`Order ${selectedOrderForOtp.orderNumber} successfully marked DELIVERED with Customer OTP verification!`);
-    setSelectedOrderForOtp(null);
-    setOtpInput('');
+    setBusyId(failing.orderId);
+    setError('');
+    try {
+      const updated = await adminApi.markDeliveryFailed(failing.orderId, failReason.trim());
+      // The stop stays on the round — a failed attempt is not a completed one.
+      setPending((prev) => prev.map((s) => (s.orderId === updated.orderId ? updated : s)));
+      setFailing(null);
+      setFailReason('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not record that attempt.');
+    } finally {
+      setBusyId(null);
+    }
   };
 
   return (
-    <div className="space-y-6 text-stone-100 max-w-xl mx-auto">
+    <div className="space-y-5 text-[#2A2A2A] max-w-2xl">
       {/* Header */}
-      <div className="bg-stone-900 p-6 rounded-2xl border border-stone-800 flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Truck className="h-6 w-6 text-amber-400" />
-            <h1 className="text-xl font-bold">Today's Local Deliveries</h1>
+            <Truck className="h-5 w-5 text-[#064e3b]" />
+            <h1 className="text-lg font-serif font-bold">My Deliveries</h1>
           </div>
-          <p className="text-xs text-stone-400">Driver Mobile Dispatch Console</p>
+          <p className="text-xs text-[#6b6661]">
+            {pending.length} to go
+            {cashToCollect > 0 ? ` · ${money(cashToCollect)} to collect` : ''}
+          </p>
         </div>
 
-        <div className="text-xs font-mono font-bold bg-amber-500/10 text-amber-400 px-3 py-1 rounded-lg border border-amber-500/20">
-          {deliveries.filter(d => d.status !== 'DELIVERED').length} Pending
+        <button
+          type="button"
+          onClick={load}
+          disabled={isLoading}
+          className="p-2.5 rounded-xl border border-stone-200 text-[#6b6661] hover:bg-stone-50 transition-colors disabled:opacity-50"
+          title="Reload"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
+
+      {error && (
+        <div className="flex items-start gap-2 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-medium">
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>{error}</span>
         </div>
-      </div>
+      )}
 
-      {/* Deliveries List */}
-      <div className="space-y-4">
-        {deliveries.map((item) => (
-          <div
-            key={item.id}
-            className={`p-5 rounded-2xl border transition-all ${
-              item.status === 'DELIVERED'
-                ? 'bg-stone-900/60 border-stone-800 opacity-60'
-                : 'bg-stone-900 border-stone-700 shadow-xl'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-mono text-xs font-bold text-amber-400">{item.orderNumber}</span>
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                item.status === 'DELIVERED' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                item.status === 'OUT_FOR_DELIVERY' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-              }`}>
-                {item.status.replace(/_/g, ' ')}
-              </span>
+      {isLoading ? (
+        <div className="flex items-center justify-center gap-2 py-16 text-xs text-[#6b6661] bg-white rounded-2xl border border-stone-200/80">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading your round…
+        </div>
+      ) : (
+        <>
+          {pending.length === 0 ? (
+            <div className="bg-white p-10 rounded-2xl border border-stone-200/80 shadow-sm text-center">
+              <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-3" />
+              <h2 className="text-sm font-bold mb-1">
+                {completed.length > 0 ? 'Round complete' : 'Nothing assigned yet'}
+              </h2>
+              <p className="text-xs text-[#6b6661]">
+                {completed.length > 0
+                  ? `You delivered ${completed.length} ${completed.length === 1 ? 'order' : 'orders'} today.`
+                  : 'Deliveries appear here once dispatch assigns you a route.'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {pending.map((stop, i) => (
+                <div
+                  key={stop.orderId}
+                  className="bg-white rounded-2xl border border-stone-200/80 shadow-sm p-5 space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[11px] font-mono font-bold text-[#6b6661]">
+                          #{i + 1}
+                        </span>
+                        <span className="font-bold">{stop.customerName}</span>
+                      </div>
+                      <div className="font-mono text-[11px] text-[#6b6661]">
+                        {stop.orderNumber}
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      {stop.isCashOnDelivery ? (
+                        <>
+                          <div className="font-mono font-black text-[#064e3b]">
+                            {money(stop.amountToCollect)}
+                          </div>
+                          <div className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                            <Banknote className="h-3 w-3" /> Collect
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="font-mono font-bold text-[#6b6661]">
+                            {money(stop.totalAmount)}
+                          </div>
+                          <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+                            Already paid
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2 text-xs text-[#6b6661] leading-relaxed">
+                    <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-[#064e3b]" />
+                    <span>
+                      {stop.addressLine}
+                      {stop.pincode ? `, ${stop.pincode}` : ''}
+                    </span>
+                  </div>
+
+                  <div className="text-xs bg-[#FAF8F3] border border-stone-200 rounded-xl px-3 py-2">
+                    {stop.itemsSummary}
+                  </div>
+
+                  {stop.customerNote && (
+                    <p className="text-[11px] text-[#6b6661] italic">Note: {stop.customerNote}</p>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {stop.customerPhone && (
+                      <a
+                        href={`tel:${stop.customerPhone}`}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-stone-200 text-[#6b6661] hover:bg-stone-50 text-xs font-bold transition-colors"
+                      >
+                        <Phone className="h-3.5 w-3.5" /> Call
+                      </a>
+                    )}
+
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        `${stop.addressLine} ${stop.pincode}`,
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-stone-200 text-[#6b6661] hover:bg-stone-50 text-xs font-bold transition-colors"
+                    >
+                      <Navigation className="h-3.5 w-3.5" /> Navigate
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFailing(stop);
+                        setFailReason('');
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-stone-200 text-[#6b6661] hover:bg-red-50 hover:text-red-700 text-xs font-bold transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" /> Could not deliver
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => deliver(stop)}
+                      disabled={busyId === stop.orderId}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#064e3b] hover:bg-[#065f46] text-white text-xs font-bold transition-colors disabled:opacity-50 ml-auto"
+                    >
+                      {busyId === stop.orderId ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5" />
+                      )}
+                      {stop.isCashOnDelivery
+                        ? `Delivered · ${money(stop.amountToCollect)} collected`
+                        : 'Delivered'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {completed.length > 0 && (
+            <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm">
+              <h2 className="text-[11px] font-bold uppercase tracking-wider text-[#6b6661] px-5 py-3 border-b border-stone-100">
+                Delivered today ({completed.length})
+              </h2>
+              <div className="divide-y divide-stone-100">
+                {completed.map((stop) => (
+                  <div
+                    key={stop.orderId}
+                    className="flex items-center justify-between gap-3 px-5 py-3"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold truncate">{stop.customerName}</div>
+                      <div className="font-mono text-[10px] text-[#6b6661]">
+                        {stop.orderNumber}
+                      </div>
+                    </div>
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Failed attempt */}
+      {failing && (
+        <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-stone-200 p-6 space-y-4">
+            <div>
+              <h3 className="text-base font-serif font-bold mb-1">Could not deliver</h3>
+              <p className="text-xs text-[#6b6661]">
+                {failing.orderNumber} stays on your round so you can try again. Dispatch sees the
+                reason.
+              </p>
             </div>
 
-            <h3 className="font-bold text-base text-stone-100">{item.customerName}</h3>
-            <p className="text-xs text-stone-300 font-medium mb-3">{item.itemsSummary}</p>
+            <textarea
+              rows={3}
+              value={failReason}
+              onChange={(e) => setFailReason(e.target.value)}
+              placeholder="Nobody home, gate locked, wrong address…"
+              className="w-full px-3 py-2 bg-[#FAF8F3] border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-[#064e3b]"
+            />
 
-            {/* Address Box with Navigation Button */}
-            <div className="bg-stone-950 p-3 rounded-xl border border-stone-800 text-xs space-y-2 mb-4">
-              <div className="flex items-start gap-2 text-stone-300">
-                <MapPin className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                <span>{item.deliveryAddress}</span>
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-stone-800">
-                <a
-                  href={`tel:${item.customerPhone}`}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 hover:underline"
-                >
-                  <Phone className="h-3.5 w-3.5" /> Call Customer
-                </a>
-
-                <a
-                  href={`https://maps.google.com/?q=${encodeURIComponent(item.deliveryAddress)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-400 hover:underline"
-                >
-                  <MapPin className="h-3.5 w-3.5" /> Open Google Maps Navigation
-                </a>
-              </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setFailing(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold border border-stone-200 text-[#6b6661] hover:bg-stone-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={recordFailure}
+                disabled={busyId === failing.orderId}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#064e3b] hover:bg-[#065f46] text-white font-bold text-xs rounded-xl transition-colors disabled:opacity-50"
+              >
+                {busyId === failing.orderId && <Loader2 className="h-4 w-4 animate-spin" />}
+                Record attempt
+              </button>
             </div>
-
-            {/* Payment Badge & Mark Delivered Action */}
-            <div className="flex items-center justify-between pt-2 border-t border-stone-800">
-              <div className="text-xs">
-                <span className="text-stone-400">Total: </span>
-                <strong className="text-stone-100 font-mono text-sm">₹{item.totalAmount}</strong>
-                <span className={`ml-2 text-[10px] font-bold px-2 py-0.5 rounded ${
-                  item.paymentStatus === 'PAID' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
-                }`}>
-                  {item.paymentStatus.replace(/_/g, ' ')}
-                </span>
-              </div>
-
-              {item.status !== 'DELIVERED' && (
-                <button
-                  type="button"
-                  onClick={() => { setSelectedOrderForOtp(item); setOtpInput(''); setOtpError(''); }}
-                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-stone-950 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow"
-                >
-                  <CheckCircle2 className="h-4 w-4" /> Mark Delivered
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Customer OTP Verification Modal */}
-      {selectedOrderForOtp && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-stone-800 border border-stone-700 w-full max-w-md rounded-2xl p-6 shadow-2xl text-stone-100 space-y-4">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-6 w-6 text-amber-400" />
-              <h3 className="text-lg font-bold">Verify Delivery OTP</h3>
-            </div>
-
-            <p className="text-xs text-stone-300">
-              Ask customer <strong className="text-amber-400">{selectedOrderForOtp.customerName}</strong> for the 4-digit OTP sent to their mobile phone.
-            </p>
-
-            {otpError && (
-              <div className="p-2.5 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-lg">
-                {otpError}
-              </div>
-            )}
-
-            <form onSubmit={handleVerifyOtpAndDeliver} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-stone-300 mb-1">Customer 4-Digit OTP</label>
-                <input
-                  type="text"
-                  maxLength={4}
-                  required
-                  value={otpInput}
-                  onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-4 py-3 bg-stone-950 border border-stone-700 rounded-xl text-center text-2xl font-mono tracking-widest text-amber-400 focus:outline-none focus:border-amber-500"
-                  placeholder="4829"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedOrderForOtp(null)}
-                  className="px-4 py-2 bg-stone-700 text-stone-200 rounded-xl text-xs font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-stone-950 font-bold rounded-xl text-xs shadow-md"
-                >
-                  Confirm Delivery
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

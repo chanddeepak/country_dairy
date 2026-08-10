@@ -1,209 +1,413 @@
 import { useState } from 'react';
-import { Truck, Box, Scale, Ruler, CheckCircle, X, Download } from 'lucide-react';
-
+import {
+  AlertCircle,
+  Check,
+  Copy,
+  ExternalLink,
+  Loader2,
+  Package,
+  Printer,
+  Truck,
+} from 'lucide-react';
+import { adminApi } from '../services/apiClient';
 import type { AdminOrder } from '../types';
 
-interface LogisticsProps {
-  orders: AdminOrder[];
-  handleDelhiveryBooking: (orderId: string, waybillNum: string) => void;
+const field =
+  'w-full px-3 py-2 bg-[#FAF8F3] border border-stone-200 rounded-lg text-sm text-[#2A2A2A] focus:outline-none focus:border-[#064e3b] transition-colors';
+const label = 'block text-[11px] font-bold text-[#6b6661] uppercase tracking-wider mb-1.5';
+
+/** Carriers that serve this business, with a tracking URL per carrier. */
+const CARRIERS: { name: string; trackUrl: (awb: string) => string }[] = [
+  { name: 'Delhivery', trackUrl: (awb) => `https://www.delhivery.com/track/package/${awb}` },
+  { name: 'Blue Dart', trackUrl: (awb) => `https://www.bluedart.com/tracking?awb=${awb}` },
+  { name: 'DTDC', trackUrl: (awb) => `https://www.dtdc.in/tracking.asp?strCnno=${awb}` },
+  { name: 'India Post', trackUrl: (awb) => `https://www.indiapost.gov.in/_layouts/15/DOP.Portal.Tracking/TrackConsignment.aspx?logicalname=${awb}` },
+  { name: 'Ekart', trackUrl: (awb) => `https://ekartlogistics.com/shipmenttrack/${awb}` },
+];
+
+function trackingUrlFor(carrier: string | null | undefined, awb: string): string | null {
+  const match = CARRIERS.find((c) => c.name === carrier);
+  return match ? match.trackUrl(awb) : null;
 }
 
-export default function Logistics({ orders, handleDelhiveryBooking }: LogisticsProps) {
-  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
-  const [weight, setWeight] = useState('1.2');
-  const [length, setLength] = useState('15');
-  const [width, setWidth] = useState('15');
-  const [height, setHeight] = useState('20');
-  const [booking, setBooking] = useState(false);
+function money(n: number): string {
+  return `₹${Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+}
 
-  const handleBookShipmentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedOrder) return;
-    if (Number(weight) <= 0) { alert('Weight must be positive'); return; }
-    if (Number(length) <= 0 || Number(width) <= 0 || Number(height) <= 0) { alert('Dimensions must be positive'); return; }
+function addressLines(order: AdminOrder): string[] {
+  const a = order.shippingAddress;
 
-    setBooking(true);
-    setTimeout(() => {
-      const waybillNum = `DELHIVERY-${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-      handleDelhiveryBooking(selectedOrder.id, waybillNum);
-      setBooking(false);
-      setSelectedOrder(null);
-      alert(`Delhivery API Call Success!\nAWB Assigned: ${waybillNum}`);
-    }, 800);
+  return [
+    order.user?.name || '',
+    a?.line1 || '',
+    a?.line2 || '',
+    [a?.city, a?.state, a?.postalCode].filter(Boolean).join(' '),
+    a?.phone || '',
+  ].filter(Boolean);
+}
+
+/**
+ * The courier consignment desk.
+ *
+ * This page used to fabricate a waybill — `DELHIVERY-${random}` — alert
+ * "Delhivery API Call Success!", and print it onto a shipping label. No such
+ * call was made and no carrier would have honoured that number, so a parcel
+ * shipped against it was lost the moment it left the door.
+ *
+ * Booking with Delhivery needs an account and API credentials this store does
+ * not have yet, so the desk records the waybill the carrier actually issued.
+ * The packing slip prints real order data and no barcode it cannot back up.
+ */
+export default function Logistics({ orders }: { orders: AdminOrder[] }) {
+  const [selected, setSelected] = useState<AdminOrder | null>(null);
+  const [carrier, setCarrier] = useState(CARRIERS[0].name);
+  const [awb, setAwb] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  // A local milk round is not a courier consignment; only parcels belong here.
+  const courierOrders = orders.filter((o) => o.deliveryType !== 'LOCAL');
+  const awaiting = courierOrders.filter((o) => !o.trackingNumber);
+  const dispatched = courierOrders.filter((o) => o.trackingNumber);
+
+  const openOrder = (order: AdminOrder) => {
+    setSelected(order);
+    setCarrier(order.shippingCarrier || CARRIERS[0].name);
+    setAwb(order.trackingNumber || '');
+    setError('');
+    setSaved(null);
   };
 
-  const handleDownloadLabel = (order: AdminOrder) => {
-    const labelWindow = window.open('', '_blank');
-    if (!labelWindow) return;
+  const save = async () => {
+    if (!selected) return;
 
-    labelWindow.document.write(`
-      <html>
-        <head>
-          <title>Delhivery Label - ${order.orderNumber}</title>
-          <style>
-            body { font-family: monospace; padding: 20px; color: #000; }
-            .label-border { border: 4px solid #000; padding: 15px; width: 380px; margin: 0 auto; }
-            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; pb: 10px; margin-bottom: 10px; }
-            .logo { font-size: 20px; font-weight: bold; }
-            .waybill-section { text-align: center; border-bottom: 2px solid #000; padding: 15px 0; margin-bottom: 10px; }
-            .barcode { font-family: 'Libre Barcode 39', monospace; font-size: 40px; margin-bottom: 5px; }
-            .awb-text { font-size: 14px; font-weight: bold; }
-            .details { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; font-size: 11px; }
-            .routing { display: grid; grid-template-columns: 1fr 1fr; font-size: 12px; font-weight: bold; }
-          </style>
-        </head>
-        <body>
-          <div class="label-border">
-            <div class="header">
-              <span class="logo">DELHIVERY</span>
-              <span>STANDARD RATE</span>
-            </div>
-            
-            <div class="waybill-section">
-              <div class="barcode">||||| | ||||| | ||| ||||</div>
-              <div class="awb-text">AWB: ${order.trackingNumber ?? ''}</div>
-            </div>
+    if (awb.trim().length < 6) {
+      setError('Enter the waybill number the carrier issued.');
+      return;
+    }
 
-            <div class="details">
-              <strong>SHIP TO:</strong><br/>
-              ${order.user.name ?? order.user.email ?? 'Customer'}<br/>
-              Delhi NCR, India<br/>
-              Phone: +91 98765 43210
-            </div>
-
-            <div class="details">
-              <strong>RETURN ADDRESS:</strong><br/>
-              Country Dairy Processing Farm,<br/>
-              Gurgaon Highway, Haryana, India
-            </div>
-
-            <div class="routing">
-              <div>ZONE: North-NCR</div>
-              <div style="text-align: right;">WT: 1.2 Kg</div>
-            </div>
-          </div>
-          <script>
-            window.onload = function() { window.print(); }
-          </script>
-        </body>
-      </html>
-    `);
-    labelWindow.document.close();
+    setError('');
+    setIsSaving(true);
+    try {
+      await adminApi.updateOrderStatusAdmin(selected.id, 'SHIPPED', {
+        trackingNumber: awb.trim(),
+        shippingCarrier: carrier,
+        note: `Handed to ${carrier}, AWB ${awb.trim()}`,
+      });
+      setSaved(selected.id);
+      setSelected(null);
+      setAwb('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not record that consignment.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const courierOrders = orders.filter(o => o.deliveryType === 'COURIER');
+  const copy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(text);
+      setTimeout(() => setCopied(null), 1500);
+    } catch {
+      setError('Could not copy — select the number and copy it manually.');
+    }
+  };
+
+  const printPackingSlip = (order: AdminOrder) => {
+    const win = window.open('', '_blank');
+    if (!win) {
+      setError('Your browser blocked the print window. Allow pop-ups for this site.');
+      return;
+    }
+
+    const rows = (order.orderItems ?? [])
+      .map(
+        (i) =>
+          `<tr><td>${i.productTitle}${i.variantSizeLabel ? ` (${i.variantSizeLabel})` : ''}</td>` +
+          `<td class="c">${i.quantity}</td><td class="r">${money(Number(i.lineTotal ?? 0))}</td></tr>`,
+      )
+      .join('');
+
+    win.document.write(`<!doctype html><html><head><title>Packing slip ${order.orderNumber}</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; padding: 24px; color: #111; }
+  .slip { max-width: 480px; margin: 0 auto; border: 2px solid #111; padding: 20px; }
+  h1 { font-size: 16px; margin: 0 0 2px; }
+  .muted { color: #555; font-size: 12px; }
+  .sec { border-top: 1px solid #ccc; margin-top: 14px; padding-top: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+  td, th { padding: 5px 0; border-bottom: 1px solid #eee; text-align: left; }
+  .c { text-align: center; } .r { text-align: right; }
+  .total { font-weight: 700; font-size: 14px; }
+  .awb { font-family: monospace; font-size: 15px; font-weight: 700; }
+</style></head><body>
+<div class="slip">
+  <h1>Country Dairy</h1>
+  <div class="muted">Packing slip · ${order.orderNumber}</div>
+
+  <div class="sec">
+    <div class="muted">Deliver to</div>
+    ${addressLines(order).map((l) => `<div>${l}</div>`).join('')}
+  </div>
+
+  <div class="sec">
+    <table>
+      <thead><tr><th>Item</th><th class="c">Qty</th><th class="r">Amount</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="r total" style="margin-top:8px">${money(Number(order.totalAmount))}</div>
+    <div class="r muted">${order.paymentStatus === 'PAID' ? 'Paid online — collect nothing' : 'Cash on delivery'}</div>
+  </div>
+
+  ${
+    order.trackingNumber
+      ? `<div class="sec"><div class="muted">${order.shippingCarrier ?? 'Carrier'} waybill</div>
+         <div class="awb">${order.trackingNumber}</div></div>`
+      : ''
+  }
+</div>
+<script>window.print()</script>
+</body></html>`);
+    win.document.close();
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="screen-panel bg-white p-6 rounded-2xl border border-stone-200 shadow-sm">
-        <div className="screen-header mb-6">
-          <h2 className="text-lg font-bold text-stone-800">Delhivery Shipping & Booking Console</h2>
-          <p className="text-xs text-stone-500">Only orders marked for nationwide delivery (Fulfillment Type: **COURIER**) can be dispatched via Delhivery courier routes.</p>
+    <div className="space-y-6 text-[#2A2A2A]">
+      {/* Header */}
+      <div className="bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <Truck className="h-5 w-5 text-[#064e3b]" />
+          <h1 className="text-xl font-serif font-bold">Courier Consignments</h1>
         </div>
+        <p className="text-xs text-[#6b6661]">
+          Orders shipped by carrier rather than delivered on a local round. Record the waybill the
+          carrier issues and the customer can track it from their order page.
+        </p>
 
-        <table className="data-table w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-stone-100 text-stone-500 font-bold text-xs uppercase bg-stone-50/50">
-              <th className="p-4">Order ID</th>
-              <th className="p-4">Recipient Name</th>
-              <th className="p-4">Items Summary</th>
-              <th className="p-4">Destination</th>
-              <th className="p-4">Delhivery AWB Tracker</th>
-              <th className="p-4 text-right">Courier Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {courierOrders.map(o => (
-              <tr key={o.orderNumber} className="border-b border-stone-100 last:border-0 hover:bg-stone-50/30 transition-colors text-sm">
-                <td className="p-4 font-bold text-stone-800">{o.orderNumber}</td>
-                <td className="p-4 text-stone-700">{o.user.name ?? o.user.email ?? 'Customer'}</td>
-                <td className="p-4 text-stone-600 line-clamp-1 max-w-[200px]">{o.orderItems.map(i => `${i.productTitle} x ${i.quantity}`).join(', ')}</td>
-                <td className="p-4 text-stone-550">Delhi NCR, India</td>
-                <td className="p-4 font-mono text-xs">
-                  {o.trackingNumber ? (
-                    <span className="text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100 flex items-center gap-1.5 w-fit">
-                      <CheckCircle className="h-3.5 w-3.5" />
-                      {o.trackingNumber}
-                    </span>
-                  ) : (
-                    <span className="text-stone-400 font-bold bg-stone-50 px-2.5 py-1 rounded-md border border-stone-100 flex items-center gap-1.5 w-fit">
-                      Pending Dispatch
-                    </span>
-                  )}
-                </td>
-                <td className="p-4 text-right">
-                  {o.trackingNumber ? (
-                    <button 
-                      onClick={() => handleDownloadLabel(o)}
-                      className="btn-accent bg-emerald-50 hover:bg-emerald-100 border border-emerald-250 text-emerald-800 font-bold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5 ml-auto transition"
-                    >
-                      <Download className="h-3.5 w-3.5" /> Print Label
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={() => setSelectedOrder(o)}
-                      className="btn-accent bg-[#064e3b] hover:bg-[#065f46] text-white font-bold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5 ml-auto transition"
-                    >
-                      <Truck className="h-3.5 w-3.5" /> Book Shipment
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {courierOrders.length === 0 && (
-              <tr>
-                <td colSpan={6} className="text-center p-8 text-stone-400 font-bold text-xs uppercase">No courier orders waiting for shipping dispatches</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <div className="mt-4 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>
+            Automatic booking is not connected. It needs a Delhivery account and API credentials —
+            until then, book on the carrier&apos;s own portal and enter the waybill here.
+          </span>
+        </div>
       </div>
 
-      {/* Booking Modal */}
-      {selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl border border-stone-200 animate-slide-up">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h3 className="font-bold text-stone-900 text-base">Book Delhivery Dispatch</h3>
-                <p className="text-xs text-stone-500 mt-0.5">{selectedOrder.orderNumber}</p>
+      {error && (
+        <div className="flex items-start gap-2 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-medium">
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {saved && (
+        <div className="flex items-center gap-2 p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium">
+          <Check className="h-4 w-4 shrink-0" />
+          <span>Consignment recorded. Reload the order list to see it move to dispatched.</span>
+        </div>
+      )}
+
+      {courierOrders.length === 0 ? (
+        <div className="bg-white p-12 rounded-2xl border border-stone-200/80 shadow-sm text-center">
+          <Package className="h-8 w-8 text-stone-300 mx-auto mb-3" />
+          <h2 className="text-sm font-bold mb-1">No courier orders</h2>
+          <p className="text-xs text-[#6b6661] max-w-md mx-auto">
+            Every current order is a local delivery. Those are planned on the route sheets rather
+            than shipped by carrier.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Awaiting dispatch */}
+          <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-[#6b6661] px-5 py-3 border-b border-stone-100">
+              Awaiting dispatch ({awaiting.length})
+            </h2>
+
+            {awaiting.length === 0 ? (
+              <p className="px-5 py-8 text-xs text-[#6b6661] text-center">
+                Everything is on its way.
+              </p>
+            ) : (
+              <div className="divide-y divide-stone-100">
+                {awaiting.map((order) => (
+                  <div key={order.id} className="px-5 py-4 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-mono text-xs font-bold">{order.orderNumber}</div>
+                      <div className="text-xs text-[#6b6661] mt-0.5 truncate">
+                        {order.user?.name ?? 'Customer'} · {money(Number(order.totalAmount))}
+                      </div>
+                      <div className="text-[11px] text-[#6b6661] mt-0.5 truncate">
+                        {addressLines(order).slice(-2).join(' · ')}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => printPackingSlip(order)}
+                        className="p-2 text-stone-400 hover:text-[#064e3b] hover:bg-stone-50 rounded-lg transition-colors"
+                        title="Print packing slip"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openOrder(order)}
+                        className="px-3 py-1.5 bg-[#064e3b] hover:bg-[#065f46] text-white font-bold text-[11px] rounded-lg transition-colors whitespace-nowrap"
+                      >
+                        Add waybill
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <button onClick={() => setSelectedOrder(null)} className="text-stone-400 hover:text-stone-600 transition"><X className="h-5 w-5" /></button>
+            )}
+          </div>
+
+          {/* Dispatched */}
+          <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-[#6b6661] px-5 py-3 border-b border-stone-100">
+              Dispatched ({dispatched.length})
+            </h2>
+
+            {dispatched.length === 0 ? (
+              <p className="px-5 py-8 text-xs text-[#6b6661] text-center">
+                Nothing dispatched yet.
+              </p>
+            ) : (
+              <div className="divide-y divide-stone-100">
+                {dispatched.map((order) => {
+                  const url = trackingUrlFor(order.shippingCarrier, order.trackingNumber!);
+
+                  return (
+                    <div key={order.id} className="px-5 py-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-mono text-xs font-bold">{order.orderNumber}</div>
+                          <div className="text-xs text-[#6b6661] mt-0.5 truncate">
+                            {order.user?.name ?? 'Customer'}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => printPackingSlip(order)}
+                            className="p-2 text-stone-400 hover:text-[#064e3b] hover:bg-stone-50 rounded-lg transition-colors"
+                            title="Print packing slip"
+                          >
+                            <Printer className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openOrder(order)}
+                            className="px-3 py-1.5 rounded-lg border border-stone-200 text-[#6b6661] hover:bg-stone-50 font-bold text-[11px] transition-colors"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="text-[11px] font-bold text-[#6b6661]">
+                          {order.shippingCarrier || 'Carrier'}
+                        </span>
+                        <code className="font-mono text-[11px] bg-[#FAF8F3] border border-stone-200 rounded px-2 py-1">
+                          {order.trackingNumber}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => copy(order.trackingNumber!)}
+                          className="p-1.5 text-stone-400 hover:text-[#064e3b] rounded transition-colors"
+                          title="Copy waybill"
+                        >
+                          {copied === order.trackingNumber ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                        {url && (
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#064e3b] hover:underline"
+                          >
+                            Track <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Waybill entry */}
+      {selected && (
+        <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-stone-200 p-6 space-y-4">
+            <div>
+              <h3 className="text-base font-serif font-bold mb-1">Record consignment</h3>
+              <p className="text-xs text-[#6b6661] font-mono">{selected.orderNumber}</p>
             </div>
 
-            <form onSubmit={handleBookShipmentSubmit} className="space-y-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-stone-600 uppercase flex items-center gap-1"><Scale className="h-3.5 w-3.5" /> Package Weight (Kg):</label>
-                <input type="text" value={weight} onChange={e => setWeight(e.target.value)} className="bg-stone-50 border border-stone-200 px-3 py-2.5 rounded-lg text-sm" />
-              </div>
+            <div>
+              <label className={label}>Carrier</label>
+              <select value={carrier} onChange={(e) => setCarrier(e.target.value)} className={field}>
+                {CARRIERS.map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-stone-600 uppercase flex items-center gap-1"><Ruler className="h-3.5 w-3.5" /> Package Dimensions (Cm):</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] text-stone-450 uppercase font-bold">Length</span>
-                    <input type="number" value={length} onChange={e => setLength(e.target.value)} className="bg-stone-50 border border-stone-200 px-3 py-2 rounded text-sm text-center" />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] text-stone-450 uppercase font-bold">Width</span>
-                    <input type="number" value={width} onChange={e => setWidth(e.target.value)} className="bg-stone-50 border border-stone-200 px-3 py-2 rounded text-sm text-center" />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] text-stone-450 uppercase font-bold">Height</span>
-                    <input type="number" value={height} onChange={e => setHeight(e.target.value)} className="bg-stone-50 border border-stone-200 px-3 py-2 rounded text-sm text-center" />
-                  </div>
-                </div>
-              </div>
+            <div>
+              <label className={label}>Waybill / AWB number</label>
+              <input
+                type="text"
+                value={awb}
+                onChange={(e) => setAwb(e.target.value.toUpperCase())}
+                placeholder="As printed on the carrier's label"
+                className={`${field} font-mono`}
+              />
+              <p className="text-[11px] text-[#6b6661] mt-1.5">
+                This is what the customer tracks with, so it must be the number the carrier
+                issued.
+              </p>
+            </div>
 
-              <button 
-                type="submit" 
-                disabled={booking}
-                className="w-full bg-[#064e3b] text-white font-semibold py-3 rounded-lg text-sm mt-4 hover:bg-[#065f46] transition disabled:opacity-50 flex items-center justify-center gap-2"
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setSelected(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold border border-stone-200 text-[#6b6661] hover:bg-stone-50 transition-colors"
               >
-                <Box className="h-4 w-4" />
-                {booking ? 'Requesting Delhivery Waybill AWB...' : 'Confirm Delhivery Shipment Booking'}
+                Cancel
               </button>
-            </form>
+              <button
+                type="button"
+                onClick={save}
+                disabled={isSaving}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#064e3b] hover:bg-[#065f46] text-white font-bold text-xs rounded-xl transition-colors disabled:opacity-50"
+              >
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+                Mark shipped
+              </button>
+            </div>
           </div>
         </div>
       )}
