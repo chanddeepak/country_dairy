@@ -177,6 +177,48 @@ npm run db:studio
 The storefront reads them through `StoreConfigContext`, so a change takes
 effect on the next page load. Unknown flags read as **off**.
 
-> `ENABLE_WEBSITE_PAYMENT` is on in development while Razorpay is still in mock
-> mode, where signature verification is bypassed. Do not ship that combination
-> to production.
+> `ENABLE_WEBSITE_PAYMENT` is on in development while Razorpay is in mock mode,
+> where signature verification is bypassed. The API now refuses to start with
+> `NODE_ENV=production` unless real Razorpay credentials are set, so that
+> combination cannot reach customers by accident.
+
+## Going live on payments
+
+Three things have to be true before real money moves.
+
+**1. Live API keys.** From the Razorpay dashboard, Settings → API Keys:
+
+```
+RAZORPAY_KEY_ID=rzp_live_xxxxxxxxxxxx
+RAZORPAY_KEY_SECRET=xxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Any key id starting `rzp_mock` keeps mock mode on. In production, mock mode is
+a startup error rather than a warning — mock mode returns `true` for every
+signature, so a forged callback would settle an unpaid order.
+
+**2. The webhook.** Settings → Webhooks → Add New Webhook:
+
+| Field | Value |
+| --- | --- |
+| URL | `https://<your-api-host>/api/orders/webhook/razorpay` |
+| Secret | any strong random string — put the same value in `RAZORPAY_WEBHOOK_SECRET` |
+| Active events | `payment.captured`, `payment.failed`, `refund.processed` |
+
+The webhook secret is **not** `RAZORPAY_KEY_SECRET`. Without it every webhook is
+rejected, and a customer who pays and then closes the tab leaves a paid order
+sitting `PENDING` for ever — the browser callback is the only other path, and it
+is exactly the one that just failed.
+
+**3. Check it arrived.** Razorpay's dashboard shows delivery attempts and
+responses. Locally, expose the API with a tunnel and use the dashboard's "send
+test webhook".
+
+Every delivery is stored in `WebhookEvent`. A row with `processedAt` set was
+handled; a row with `error` set and `processedAt` null failed and will be
+retried by Razorpay:
+
+```sql
+select "eventType", "processedAt", error, "createdAt"
+from "WebhookEvent" order by "createdAt" desc limit 20;
+```

@@ -21,11 +21,12 @@
     "smoke": "node scripts/smoke-test.js",
     "test": "npm run test --workspace apps/api",
     "test:contract": "node scripts/storefront-contract-test.js",
-    "verify": "npm test && npm run smoke && npm run test:contract && npm run test:catalog && npm run test:media && npm run test:lab && npm run test:delivery",
+    "verify": "npm test && npm run smoke && npm run test:contract && npm run test:catalog && npm run test:media && npm run test:lab && npm run test:delivery && npm run test:webhook",
     "test:catalog": "node scripts/catalog-audit-test.js",
     "test:media": "node scripts/media-test.js",
     "test:lab": "node scripts/lab-reports-test.js",
-    "test:delivery": "node scripts/delivery-test.js"
+    "test:delivery": "node scripts/delivery-test.js",
+    "test:webhook": "node scripts/webhook-test.js"
   },
   "prisma": {
     "seed": "node packages/database/prisma/seed.js"

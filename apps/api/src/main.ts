@@ -35,6 +35,14 @@ async function bootstrap() {
   }
   app.use('/uploads', express.static(uploadDir));
 
+  // The gateway signs the exact bytes it sent, so the webhook route needs the
+  // raw body. Re-serialising the parsed object changes key order and
+  // whitespace, and every signature check would fail.
+  app.use(
+    '/api/orders/webhook/razorpay',
+    express.raw({ type: '*/*', limit: '1mb' }),
+  );
+
   const allowedOrigins = resolveAllowedOrigins(isProduction);
 
   app.enableCors({

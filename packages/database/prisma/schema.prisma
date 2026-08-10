@@ -578,6 +578,29 @@ model OrderItem {
   @@index([variantId])
 }
 
+/// Every webhook the gateway delivers, keyed by its event id.
+///
+/// Razorpay retries a webhook until it gets a 2xx, and retries carry the same
+/// event id. Without this table a retried `payment.captured` would confirm the
+/// order twice and, once refunds are wired, could refund twice.
+model WebhookEvent {
+  id          String    @id @default(uuid())
+  provider    String    @default("RAZORPAY")
+  eventId     String
+  eventType   String
+  /// Set once handling succeeds; a row with this null was received but failed,
+  /// so a retry is allowed to try again.
+  processedAt DateTime?
+  orderId     String?
+  payload     Json
+  error       String?
+  createdAt   DateTime  @default(now())
+
+  @@unique([provider, eventId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
 model Payment {
   id                String          @id @default(uuid())
   orderId           String

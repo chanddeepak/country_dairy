@@ -289,7 +289,15 @@ export class OrdersService {
       throw new BadRequestException(`Order is already ${order.status.toLowerCase()}`);
     }
 
-    const gatewayOrderId = order.payments[0]?.gatewayOrderId ?? '';
+    // Checkout always writes this row alongside the gateway order. Its absence
+    // means the order was created some other way, and there is nothing to
+    // verify a signature against.
+    const pendingPayment = order.payments[0];
+    if (!pendingPayment) {
+      throw new BadRequestException('This order has no payment to verify');
+    }
+
+    const gatewayOrderId = pendingPayment.gatewayOrderId ?? '';
     const isValid = this.razorpayService.verifySignature(
       gatewayOrderId,
       razorpayPaymentId,
@@ -303,13 +311,10 @@ export class OrdersService {
           where: { id: orderId },
           data: { paymentStatus: PaymentStatus.FAILED },
         }),
-        this.prisma.payment.create({
+        this.prisma.payment.update({
+          where: { id: pendingPayment.id },
           data: {
-            orderId: order.id,
-            amount: order.totalAmount,
-            provider: 'RAZORPAY',
             status: PaymentStatus.FAILED,
-            gatewayOrderId,
             gatewayPaymentId: razorpayPaymentId,
             gatewaySignature: signature,
             failureReason: 'Signature verification failed',
@@ -331,13 +336,13 @@ export class OrdersService {
           },
         },
       }),
-      this.prisma.payment.create({
+      // Settle the PENDING row checkout created for this gateway order rather
+      // than adding a parallel one — a `create` here left the original PENDING
+      // for ever and made payment reconciliation double-count.
+      this.prisma.payment.update({
+        where: { id: pendingPayment.id },
         data: {
-          orderId: order.id,
-          amount: order.totalAmount,
-          provider: 'RAZORPAY',
           status: PaymentStatus.PAID,
-          gatewayOrderId,
           gatewayPaymentId: razorpayPaymentId,
           gatewaySignature: signature,
         },
