@@ -17,6 +17,7 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
   const { isFlagOn } = useStoreConfig();
   const ENABLE_CART = isFlagOn('ENABLE_CART');
   const ENABLE_USER_ACCOUNTS = isFlagOn('ENABLE_USER_ACCOUNTS');
+  const walletEnabled = isFlagOn('ENABLE_WALLET');
   const { user, cart, walletBalance, logout } = useApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -160,11 +161,13 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
           {ENABLE_USER_ACCOUNTS && (
             user ? (
               <div className="flex items-center space-x-3">
-                {/* Wallet badge */}
-                <div className="hidden sm:flex items-center bg-[#FAF8F3] px-3 py-1.5 rounded-full border border-stone-200">
-                  <Wallet className="h-4 w-4 text-[#C59B27] mr-1.5" />
-                  <span className="text-xs font-bold text-[#3A6038]">₹{walletBalance}</span>
-                </div>
+                {/* Wallet badge — only when the wallet feature is enabled. */}
+                {walletEnabled && (
+                  <div className="hidden sm:flex items-center bg-[#FAF8F3] px-3 py-1.5 rounded-full border border-stone-200">
+                    <Wallet className="h-4 w-4 text-[#C59B27] mr-1.5" />
+                    <span className="text-xs font-bold text-[#3A6038]">₹{walletBalance}</span>
+                  </div>
+                )}
 
                 {/* User dropdown trigger */}
                 <div className="relative" ref={dropdownRef}>
@@ -208,11 +211,13 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
                           My Orders
                         </Link>
 
-                        {/* Mobile wallet (visible only on small screens that hide the inline badge) */}
-                        <div className="sm:hidden flex items-center gap-3 px-4 py-2.5 text-sm text-[#2A2A2A]">
-                          <Wallet className="h-4 w-4 text-[#C59B27]" />
-                          Wallet: <span className="font-bold text-[#3A6038]">₹{walletBalance}</span>
-                        </div>
+                        {/* Mobile wallet (small screens hide the inline badge) */}
+                        {walletEnabled && (
+                          <div className="sm:hidden flex items-center gap-3 px-4 py-2.5 text-sm text-[#2A2A2A]">
+                            <Wallet className="h-4 w-4 text-[#C59B27]" />
+                            Wallet: <span className="font-bold text-[#3A6038]">₹{walletBalance}</span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Logout */}

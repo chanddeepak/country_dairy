@@ -30,11 +30,17 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
 
   // Availability is derived from stock, with forceOutOfStock as the manual
   // override. OUT_OF_STOCK is no longer a product status.
+  //
+  // Stock may legitimately be undefined (the fallback catalogue carries no
+  // stock), which is different from zero — only an actual 0 means sold out.
+  const variantStock = (defaultVariant as { stockQuantity?: number } | undefined)?.stockQuantity;
   const isOutOfStock =
     (product as any).forceOutOfStock === true ||
     (product as any).status === 'ARCHIVED' ||
-    (defaultVariant && (defaultVariant as any).stockQuantity === 0) ||
-    (product as any).stock === 0;
+    variantStock === 0 ||
+    (product.variants?.length
+      ? product.variants.every((v) => (v as { stockQuantity?: number }).stockQuantity === 0)
+      : false);
 
   const { whatsapp, isFlagOn } = useStoreConfig();
   const cartEnabled = isFlagOn('ENABLE_CART');
@@ -103,10 +109,12 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
 
       {/* Product Info */}
       <div className="p-4 flex flex-col flex-1">
-        {ENABLE_PRODUCT_RATINGS && (
+        {/* Only shown once a product actually has reviews — an empty "⭐ ()"
+            told the customer nothing. */}
+        {ENABLE_PRODUCT_RATINGS && !!product.totalReviews && (
           <div className="flex items-center gap-1.5 mb-1.5">
             <Star className="h-3.5 w-3.5 fill-[#C59B27] text-[#C59B27]" />
-            <span className="text-xs font-bold text-[#2A2A2A]">{product.averageRating?.toFixed(1)}</span>
+            <span className="text-xs font-bold text-[#2A2A2A]">{(product.averageRating ?? 0).toFixed(1)}</span>
             <span className="text-xs text-[#6b6661]">({product.totalReviews})</span>
           </div>
         )}

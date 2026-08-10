@@ -763,12 +763,28 @@ export default function ProductDetailPage() {
                 totalReviews={product.totalReviews || reviews.length}
               />
 
-              {/* Write a Review (only if logged in) */}
-              {user && token && (
-                <div className="mt-8">
+              {/* Write a Review. A logged-out visitor previously saw nothing
+                  at all here — no form and no prompt to sign in. */}
+              <div className="mt-8">
+                {user && token ? (
                   <ReviewForm productId={product.id} token={token} onSubmitted={fetchProduct} />
-                </div>
-              )}
+                ) : (
+                  <div className="bg-[#FAF8F3] border border-stone-200 rounded-xl p-6 text-center">
+                    <p className="text-sm font-bold text-[#2A2A2A] mb-1">
+                      Tried this product?
+                    </p>
+                    <p className="text-xs text-[#6b6661] mb-4">
+                      Sign in to share your experience, with photos or a video.
+                    </p>
+                    <button
+                      onClick={() => setIsAuthOpen(true)}
+                      className="bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-2.5 px-6 rounded-lg text-sm transition"
+                    >
+                      Sign in to write a review
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* Review List */}
               {reviews.length > 0 && (

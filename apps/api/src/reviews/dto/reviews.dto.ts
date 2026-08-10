@@ -1,4 +1,4 @@
-import { ReviewStatus } from '@prisma/client';
+import { MediaType, ReviewStatus } from '@prisma/client';
 import {
   ArrayMaxSize,
   IsArray,
@@ -6,7 +6,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
-  IsUrl,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -28,11 +28,24 @@ export class CreateReviewDto {
   @MaxLength(2000)
   comment?: string;
 
+  // Media is stored as a relative bucket path (/review-media/abc.webp) and
+  // resolved to a CDN URL at render time, so @IsUrl would reject every value
+  // the uploader actually produces. Absolute https URLs are accepted too.
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(5, { message: 'You can attach up to 5 photos' })
-  @IsUrl({}, { each: true })
+  @ArrayMaxSize(5, { message: 'You can attach up to 5 photos or videos' })
+  @Matches(/^(https:\/\/[^\s]+|\/[A-Za-z0-9._\-/]+)$/, {
+    each: true,
+    message: 'Each attachment must be an uploaded file path or an https URL',
+  })
   mediaUrls?: string[];
+
+  /** Parallel to mediaUrls: mediaTypes[i] describes mediaUrls[i]. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsEnum(MediaType, { each: true })
+  mediaTypes?: MediaType[];
 }
 
 export class ModerateReviewDto {

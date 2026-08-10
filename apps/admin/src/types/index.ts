@@ -214,10 +214,16 @@ export interface ProductVariant {
   updatedAt: string;
 }
 
+export type MediaType = 'IMAGE' | 'VIDEO';
+
 export interface ProductImage {
   id: string;
   productId: string;
   imageUrl: string;
+  /** Gallery entries carry video as well as stills. */
+  mediaType?: MediaType;
+  thumbnailUrl?: string | null;
+  durationSeconds?: number | null;
   altText?: string;
   variantId?: string;
   displayOrder: number;

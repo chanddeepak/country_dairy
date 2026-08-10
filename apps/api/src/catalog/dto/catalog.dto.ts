@@ -1,4 +1,4 @@
-import { ProductStatus } from '@prisma/client';
+import { MediaType, ProductStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -80,6 +80,21 @@ export class ProductVariantDto {
 export class ProductImageDto {
   @IsString()
   imageUrl: string;
+
+  @IsOptional()
+  @IsEnum(MediaType, { message: 'mediaType must be IMAGE or VIDEO' })
+  mediaType?: MediaType;
+
+  /** Poster frame for a video. */
+  @IsOptional()
+  @IsString()
+  thumbnailUrl?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  durationSeconds?: number;
 
   @IsOptional()
   @IsString()

@@ -67,6 +67,7 @@ export class ReviewsController {
       dto.title,
       dto.comment,
       dto.mediaUrls,
+      dto.mediaTypes,
     );
   }
 }

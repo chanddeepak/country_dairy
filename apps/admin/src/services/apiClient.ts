@@ -101,10 +101,18 @@ export const adminApi = {
   },
 
   // Media Upload API (Pre-Signed URL Object Storage Pattern)
-  async uploadMedia(file: Blob, filename: string = 'image.webp', bucket: string = 'hero-banners'): Promise<string> {
+  async uploadMedia(
+    file: Blob,
+    filename: string = 'image.webp',
+    bucket: string = 'hero-banners',
+    // Was pinned to image/webp, so a video was stored with an image content
+    // type and would not play back.
+    contentType: string = 'image/webp',
+  ): Promise<string> {
     // 1. Fetch pre-signed upload URL from backend API
     const presigned = await fetchJson<{ uploadUrl: string; fileUrl: string; method?: string }>(
-      `/media/presigned-url?filename=${encodeURIComponent(filename)}&contentType=image/webp&bucket=${bucket}`
+      `/media/presigned-url?filename=${encodeURIComponent(filename)}` +
+        `&contentType=${encodeURIComponent(contentType)}&bucket=${bucket}`
     );
 
     const { uploadUrl, fileUrl, method = 'POST' } = presigned;
@@ -115,9 +123,7 @@ export const adminApi = {
       // Direct S3 / R2 Object Storage PUT Upload
       uploadRes = await fetch(uploadUrl, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'image/webp',
-        },
+        headers: { 'Content-Type': contentType },
         body: file,
       });
     } else {

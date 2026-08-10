@@ -30,9 +30,17 @@ interface NavItem {
   label: string;
   icon: React.ReactNode;
   allowedRoles?: UserRole[];
+  /** Hidden entirely unless this feature flag is on. */
+  requiresFlag?: string;
+  /** Still demo data with no backend — shown, but marked so nobody trusts it. */
+  comingSoon?: boolean;
 }
 
-export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
+interface SidebarPropsWithFlags extends SidebarProps {
+  featureFlags?: Record<string, boolean>;
+}
+
+export default function Sidebar({ activeTab, setActiveTab, featureFlags = {} }: SidebarPropsWithFlags) {
   const { user, logout, hasPermission } = useAuth();
 
   const allLinks: NavItem[] = [
@@ -61,19 +69,22 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       allowedRoles: ['SUPER_ADMIN', 'ORDER_MANAGER']
     },
     { 
-      key: 'logistics', 
+      key: 'logistics',
+      comingSoon: true, 
       label: 'Delhivery Shipping', 
       icon: <Truck className="h-4 w-4" />,
       allowedRoles: ['SUPER_ADMIN', 'ORDER_MANAGER']
     },
     { 
-      key: 'driver', 
+      key: 'driver',
+      comingSoon: true, 
       label: 'Driver Delivery App', 
       icon: <Truck className="h-4 w-4 text-[#fbbf24]" />,
       allowedRoles: ['SUPER_ADMIN', 'DELIVERY_DRIVER']
     },
     { 
-      key: 'routes', 
+      key: 'routes',
+      comingSoon: true, 
       label: 'Milk Route Sheets', 
       icon: <Map className="h-4 w-4" />,
       allowedRoles: ['SUPER_ADMIN', 'ORDER_MANAGER']
@@ -88,7 +99,8 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       key: 'wallets', 
       label: 'Wallet Ledger', 
       icon: <Wallet className="h-4 w-4" />,
-      allowedRoles: ['SUPER_ADMIN', 'ORDER_MANAGER']
+      allowedRoles: ['SUPER_ADMIN', 'ORDER_MANAGER'],
+      requiresFlag: 'ENABLE_WALLET',
     },
     { 
       key: 'cms', 
@@ -116,8 +128,11 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     },
   ];
 
-  // Filter links based on current user role
   const visibleLinks = allLinks.filter(link => {
+    // A page for a disabled feature is hidden, not merely disabled — showing
+    // "Wallet Ledger" while the wallet is off advertises something that does
+    // not exist.
+    if (link.requiresFlag && featureFlags[link.requiresFlag] !== true) return false;
     if (!link.allowedRoles) return true;
     return hasPermission(link.allowedRoles);
   });
@@ -154,6 +169,16 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
               >
                 {link.icon}
                 <span className="truncate">{link.label}</span>
+                {link.comingSoon && (
+                  <span
+                    className={`ml-auto text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 ${
+                      isActive ? 'bg-stone-200 text-stone-600' : 'bg-emerald-900/60 text-emerald-300/80'
+                    }`}
+                    title="Demo data — this page is not connected to the API yet"
+                  >
+                    Demo
+                  </span>
+                )}
               </button>
             );
           })}

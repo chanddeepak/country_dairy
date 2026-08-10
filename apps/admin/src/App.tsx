@@ -70,41 +70,54 @@ function AdminMainContent() {
   // Fetch live catalog from the API. There is deliberately no fallback to seed
   // data: showing invented products when the API is down hides the outage and
   // invites edits against rows that do not exist.
+  //
+  // Keyed on the signed-in user. This component mounts before sign-in — the
+  // Login guard is below, inside the same component — so an effect with empty
+  // dependencies fired without a token, got a 401, and then never re-ran,
+  // leaving "Authentication token missing" on screen and an empty catalog
+  // until the page was reloaded by hand.
   useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    let cancelled = false;
     setIsLoadingProducts(true);
     setCatalogError('');
 
     adminApi.getProducts()
       .then(liveProducts => {
-        setProducts(liveProducts || []);
+        if (!cancelled) setProducts(liveProducts || []);
       })
       .catch(err => {
+        if (cancelled) return;
         setCatalogError(err instanceof Error ? err.message : 'Could not reach the API server');
         setProducts([]);
       })
       .finally(() => {
-        setIsLoadingProducts(false);
+        if (!cancelled) setIsLoadingProducts(false);
       });
 
     adminApi.getCategories()
-      .then(setCategories)
-      .catch(() => setCategories([]));
+      .then(cats => { if (!cancelled) setCategories(cats); })
+      .catch(() => { if (!cancelled) setCategories([]); });
 
     adminApi.getFeatureFlagMap()
-      .then(setFeatureFlags)
-      .catch(() => setFeatureFlags({}));
+      .then(flags => { if (!cancelled) setFeatureFlags(flags); })
+      .catch(() => { if (!cancelled) setFeatureFlags({}); });
 
-  }, []);
+    return () => { cancelled = true; };
+  }, [isAuthenticated, user?.id]);
 
   // Orders and customers are fetched by their own pages, which need the full
   // API shape rather than the flattened summary this component used to build.
   const [orders, setOrders] = useState<AdminOrder[]>([]);
 
   useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
     adminApi.getOrdersAdmin()
       .then(setOrders)
       .catch(() => setOrders([]));
-  }, []);
+  }, [isAuthenticated, user?.id]);
 
   // Form states
   const [batchCodeInput, setBatchCodeInput] = useState('');
@@ -146,7 +159,11 @@ function AdminMainContent() {
 
   return (
     <div className="admin-container min-h-screen bg-[#FAF8F3] text-[#2A2A2A] flex">
-      <Sidebar activeTab={activeTab} setActiveTab={(tab) => { setActiveTab(tab); setEditingProduct(null); setIsAddingNewProduct(false); }} />
+      <Sidebar
+        activeTab={activeTab}
+        featureFlags={featureFlags}
+        setActiveTab={(tab) => { setActiveTab(tab); setEditingProduct(null); setIsAddingNewProduct(false); }}
+      />
 
       <main className="admin-main flex-1 p-6 sm:p-8 overflow-y-auto">
         <header className="dashboard-header mb-6 flex items-center justify-between border-b border-stone-200/80 pb-4">

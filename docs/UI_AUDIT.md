@@ -1,7 +1,10 @@
 # UI Audit — Storefront & Admin Console
 
 Findings from driving both apps in a real browser against a running API and the
-live database, 2026-08-10. Nothing here is fixed yet; this is the worklist.
+live database, 2026-08-10.
+
+**Status:** A, B1, C1–C3, D1, D2 fixed and re-verified in the browser. B2 (slow
+dashboard), B3 and C4–C5 remain.
 
 **Environment:** API `:4000`, storefront `:3000`, admin `:5173`
 **Automation at time of audit:** 132 checks passing (31 unit, 57 smoke, 18
@@ -17,7 +20,7 @@ Severity: 🔴 blocks a user · 🟠 wrong or misleading · 🟡 polish
 The flags are correct in the database and the API enforces them. The UI still
 advertises the disabled features.
 
-### 🔴 A1 — Login offers Mobile and Google, and defaults to Mobile
+### ✅ A1 — Login offers Mobile and Google, and defaults to Mobile
 `apps/web/src/components/modals/AuthModal.tsx:14`
 
 ```ts
@@ -32,24 +35,24 @@ second tab.
 **Fix:** read the flags, render only enabled methods, and default to the first
 enabled one. If only one is enabled, drop the tab strip entirely.
 
-### 🟠 A2 — Sign-in modal promises a wallet
+### ✅ A2 — Sign-in modal promises a wallet
 `apps/web/src/components/modals/AuthModal.tsx:124`
 
 > "Sign in to view your wallet balance and manage orders."
 
 `ENABLE_WALLET` is off. There is no wallet.
 
-### 🟠 A3 — Navbar renders a wallet balance badge
+### ✅ A3 — Navbar renders a wallet balance badge
 `apps/web/src/components/layout/Navbar.tsx:163-166`
 
 Shows `₹{walletBalance}` for signed-in users regardless of the flag.
 
-### 🟠 A4 — Admin sidebar shows "Wallet Ledger"
+### ✅ A4 — Admin sidebar shows "Wallet Ledger"
 `apps/admin/src/components/layout/Sidebar.tsx:88`
 
 Visible with `ENABLE_WALLET` off. The page behind it is still demo data.
 
-### 🟠 A5 — Admin sidebar shows three unbuilt pages
+### ✅ A5 — Admin sidebar shows three unbuilt pages
 `Sidebar.tsx` — "Delhivery Shipping", "Driver Delivery App", "Milk Route
 Sheets". All still static demo data with no backend. They look operational.
 
@@ -57,7 +60,7 @@ Sheets". All still static demo data with no backend. They look operational.
 
 ## B. Admin console
 
-### 🔴 B1 — "Authentication token missing" on first sign-in
+### ✅ B1 — "Authentication token missing" on first sign-in
 `apps/admin/src/App.tsx:73`
 
 The catalog fetch effect has `[]` dependencies and lives in `AdminMainContent`,
@@ -99,7 +102,7 @@ Jarring theme switch mid-flow. `AddProductWizard` is the same.
 
 ## C. Storefront
 
-### 🟠 C1 — Product cards show an empty rating: `⭐ ()`
+### ✅ C1 — Product cards show an empty rating: `⭐ ()`
 `apps/web/src/app/products/page.tsx:47-80`, `components/home/ProductShelf.tsx`
 
 The API returns `averageRating: 5, totalReviews: 1`, but the client mapping
@@ -110,7 +113,7 @@ renders `()`.
 Visible on every card on `/products` and the homepage shelf. The product detail
 page is correct because it uses a different code path.
 
-### 🔴 C2 — Client-side invented defaults, again
+### ✅ C2 — Client-side invented defaults, again
 `apps/web/src/app/products/page.tsx:66-77`
 
 ```ts
@@ -124,7 +127,7 @@ default is the dangerous one: **a variant with 0 stock reads as 50**, so an
 out-of-stock product renders as buyable and the out-of-stock overlay never
 appears. The customer only discovers it at checkout.
 
-### 🟠 C3 — No way to write a review unless already signed in
+### ✅ C3 — No way to write a review unless already signed in
 `apps/web/src/app/products/[slug]/page.tsx:766`
 
 ```tsx
@@ -147,7 +150,7 @@ LCP element and asks for `loading="eager"`.
 
 ## D. Media uploads — requested features, not yet built
 
-### 🔴 D1 — Reviews cannot take photos or video
+### ✅ D1 — Reviews cannot take photos or video
 `apps/web/src/components/product/ReviewForm.tsx:29`
 
 ```ts
@@ -158,7 +161,7 @@ body: JSON.stringify({ rating, title, comment, mediaUrls: [] }),
 (`ProductReview.mediaUrls String[]`) and the API DTO already accept up to five
 URLs, so this is purely a missing UI plus an upload call.
 
-### 🔴 D2 — Admin cannot upload product video
+### ✅ D2 — Admin cannot upload product video
 `apps/admin/src/components/common/ImageUploader.tsx:121,192`
 
 ```ts
@@ -181,12 +184,12 @@ Grouped so related code is touched once.
 
 | # | Items | Why first |
 |---|---|---|
-| 1 | C2, B1 | Actively wrong: fake stock lets customers buy sold-out items; the console looks broken on every fresh sign-in |
-| 2 | A1–A5 | Advertising features that 403 or do not exist |
-| 3 | C1, C3, C4 | Visibly wrong storefront data and a dead-end review section |
-| 4 | D1, D2 | New capability: review media, product video |
-| 5 | B2 | Dashboard performance |
-| 6 | B3, C5 | Polish |
+| 1 | C2, B1 | ✅ done |
+| 2 | A1–A5 | ✅ done |
+| 3 | C1, C3 | ✅ done — C4 (category chips) still open |
+| 4 | D1, D2 | ✅ done |
+| 5 | B2 | open — dashboard performance |
+| 6 | B3, C4, C5 | open — polish |
 
 ---
 

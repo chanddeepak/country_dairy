@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { FALLBACK_PRODUCTS, API_URL, Product, getExpandedProducts } from '../../lib/constants';
+import { mapApiProducts } from '../../lib/mapProduct';
 import ProductCard from '../product/ProductCard';
 
 interface ProductShelfProps {
@@ -32,41 +33,7 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
       if (res.ok) {
         const liveProducts = await res.json();
         if (liveProducts && liveProducts.length > 0) {
-          const mapped = liveProducts.map((p: any) => {
-            const primaryImg = p.galleryImages?.find((img: any) => img.isPrimary)?.imageUrl 
-              || p.galleryImages?.[0]?.imageUrl 
-              || p.imageUrl 
-              || '/images/products/milk-bottle.png';
-            const defaultVariant = p.variants?.find((v: any) => v.isDefault) || p.variants?.[0];
-
-            return {
-              id: p.id,
-              name: p.title || p.name,
-              title: p.title || p.name,
-              slug: p.slug,
-              category: p.categoryName || (typeof p.category === 'string' ? p.category : p.category?.name) || 'Dairy',
-              tagline: p.tagline || '',
-              description: p.storyDescription || p.description || '',
-              badgeText: p.badgeText || '',
-              status: p.status || 'LIVE',
-              isSubscriptionAllowed: p.isSubscriptionAllowed ?? false,
-              price: String(defaultVariant?.sellingPrice || p.price || 100),
-              originalPrice: String(defaultVariant?.mrpPrice || p.originalPrice || 120),
-              imageUrls: p.galleryImages?.map((img: any) => img.imageUrl) || [primaryImg],
-              galleryImages: p.galleryImages || [{ imageUrl: primaryImg, isPrimary: true }],
-              variants: p.variants?.map((v: any) => ({
-                id: v.id,
-                name: v.sizeLabel || v.name || 'Standard Pack',
-                volumeOrWeight: v.sizeLabel || v.name || '1 Litre',
-                price: String(v.sellingPrice || v.price || 100),
-                originalPrice: String(v.mrpPrice || v.originalPrice || 120),
-                stockQuantity: v.stockQuantity ?? 50,
-                packagingType: v.packagingType,
-                isDefault: v.isDefault ?? false,
-              })) || [],
-            };
-          });
-          setProducts(mapped);
+          setProducts(mapApiProducts(liveProducts));
           return;
         }
       }

@@ -2,8 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 import { Upload, X, Check, AlertCircle } from 'lucide-react';
 import { adminApi } from '../../services/apiClient';
 
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+
+const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
+
+export type UploadedMediaType = 'IMAGE' | 'VIDEO';
+
 interface ImageUploaderProps {
-  onImageUploaded: (url: string) => void;
+  /** mediaType tells the caller whether a still or a clip was uploaded. */
+  onImageUploaded: (url: string, mediaType?: UploadedMediaType) => void;
+  /** Set to allow product video alongside stills. */
+  allowVideo?: boolean;
   maxSizeBytes?: number; // Defaults to 5MB (5 * 1024 * 1024)
   aspectRatio?: 'desktop' | 'mobile' | 'square';
   label?: string;
@@ -31,6 +42,7 @@ export function resolveImageUrl(url?: string | null): string {
 
 export default function ImageUploader({
   onImageUploaded,
+  allowVideo = false,
   maxSizeBytes = 100 * 1024 * 1024, // 100MB (unrestricted limit)
   aspectRatio: _aspectRatio = 'square',
   label = 'Upload Photo',
@@ -110,16 +122,27 @@ export default function ImageUploader({
   const handleFile = async (file: File) => {
     setError(null);
 
-    // 1. File Size Guard (if maxSizeBytes set)
-    if (maxSizeBytes && file.size > maxSizeBytes) {
-      const maxMB = (maxSizeBytes / (1024 * 1024)).toFixed(0);
-      setError(`File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds ${maxMB}MB limit.`);
+    const isVideo = VIDEO_TYPES.includes(file.type);
+    const isImage = IMAGE_TYPES.includes(file.type);
+
+    // 1. Format validation
+    if (!isImage && !(allowVideo && isVideo)) {
+      setError(
+        allowVideo
+          ? 'Choose a JPG, PNG or WebP image, or an MP4/MOV video.'
+          : 'Please select a valid image file (JPG, PNG, WebP).',
+      );
       return;
     }
 
-    // 2. Format validation
-    if (!file.type.startsWith('image/')) {
-      setError('Please select a valid image file (JPG, PNG, WebP).');
+    // 2. Size guard, per kind. Video is not compressed in the browser, so it
+    // gets a much larger ceiling than a still.
+    const limit = isVideo ? MAX_VIDEO_BYTES : Math.min(maxSizeBytes, MAX_IMAGE_BYTES);
+    if (file.size > limit) {
+      setError(
+        `${isVideo ? 'Video' : 'Image'} is ${(file.size / (1024 * 1024)).toFixed(1)}MB, ` +
+          `over the ${(limit / (1024 * 1024)).toFixed(0)}MB limit.`,
+      );
       return;
     }
 
@@ -127,20 +150,29 @@ export default function ImageUploader({
     setIsCompressing(true);
 
     try {
-      // 3. Client-side WebP Compression
-      const { blob, sizeKB } = await compressToWebPBlob(file);
+      // 3. Compress stills to WebP. Video is uploaded as-is — re-encoding it
+      // in a canvas is not possible and would block the main thread.
+      const { blob, sizeKB } = isVideo
+        ? { blob: file as Blob, sizeKB: Math.round(file.size / 1024) }
+        : await compressToWebPBlob(file);
       setCompressedSizeKB(sizeKB);
 
-      // 4. Upload file to backend server & store relative path
-      const webpFilename = file.name.replace(/\.[^/.]+$/, '') + '.webp';
-      const relativeUrl = await adminApi.uploadMedia(blob, webpFilename, bucket);
+      const webpFilename = isVideo
+        ? file.name
+        : file.name.replace(/\.[^/.]+$/, '') + '.webp';
+      const relativeUrl = await adminApi.uploadMedia(
+        blob,
+        webpFilename,
+        bucket,
+        isVideo ? file.type : 'image/webp',
+      );
 
       if (clearOnUpload) {
         setPreviewUrl(null);
       } else {
         setPreviewUrl(relativeUrl);
       }
-      onImageUploaded(relativeUrl);
+      onImageUploaded(relativeUrl, isVideo ? 'VIDEO' : 'IMAGE');
     } catch (err: any) {
       setError(err.message || 'Image processing failed');
     } finally {
@@ -189,7 +221,11 @@ export default function ImageUploader({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept={
+          allowVideo
+            ? [...IMAGE_TYPES, ...VIDEO_TYPES].join(',')
+            : IMAGE_TYPES.join(',')
+        }
         className="hidden"
         onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
       />

@@ -1,10 +1,17 @@
-import { Controller, Get, Post, Body, Query, UseGuards, UseInterceptors, UploadedFile, Logger } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Post, Body, Query, UseGuards, UseInterceptors, UploadedFile, Logger } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';
 import * as path from 'path';
 import * as fs from 'fs';
 import { AuthGuard } from '../auth/auth.guard';
+import {
+  ALL_MEDIA_MIME_TYPES,
+  extensionFor,
+  humanSize,
+  maxBytesFor,
+  mediaKindFor,
+} from './media.constants';
 
 import * as dotenv from 'dotenv';
 
@@ -78,6 +85,16 @@ export class MediaController {
       return { success: false, message: 'No file provided' };
     }
 
+    const kind = mediaKindFor(file.mimetype);
+    if (!kind) {
+      throw new BadRequestException(`Unsupported file type "${file.mimetype}"`);
+    }
+    if (file.size > maxBytesFor(kind)) {
+      throw new BadRequestException(
+        `${kind === 'VIDEO' ? 'Video' : 'Image'} exceeds the ${humanSize(maxBytesFor(kind))} limit`,
+      );
+    }
+
     const supabase = this.getSupabaseClient();
     if (supabase) {
       try {
@@ -86,14 +103,19 @@ export class MediaController {
 
         const timestamp = Date.now();
         const randomHash = Math.random().toString(36).substring(2, 10);
-        const fileExt = file.originalname ? (path.extname(file.originalname).toLowerCase() || '.webp') : '.webp';
+        const mimeType = file.mimetype || 'image/webp';
+        const fileExt =
+          (file.originalname && path.extname(file.originalname).toLowerCase()) ||
+          extensionFor(mimeType);
         const pathName = `${timestamp}-${randomHash}${fileExt}`;
         const fileBuffer = fs.readFileSync(file.path);
 
         const { data: sData, error: sErr } = await supabase.storage
           .from('hero-banners')
           .upload(pathName, fileBuffer, {
-            contentType: 'image/webp',
+            // Was hardcoded to image/webp, so an mp4 was served with an image
+            // content type and would not play.
+            contentType: mimeType,
             upsert: true,
           });
 
@@ -130,8 +152,17 @@ export class MediaController {
     @Query('contentType') contentType: string,
     @Query('bucket') bucket?: string,
   ) {
-    this.logger.log(`Requesting pre-signed upload URL for: filename=${filename}, type=${contentType}`);
-    
+    // Reject anything we do not serve, before handing out a signed URL that
+    // would let it into the bucket.
+    const kind = mediaKindFor(contentType);
+    if (!kind) {
+      throw new BadRequestException(
+        `Unsupported file type "${contentType}". Allowed: ${ALL_MEDIA_MIME_TYPES.join(', ')}`,
+      );
+    }
+
+    this.logger.log(`Pre-signed upload URL requested: ${filename} (${contentType}, ${kind})`);
+
     const supabase = this.getSupabaseClient();
     const bucketName = bucket || 'hero-banners';
 
@@ -140,7 +171,8 @@ export class MediaController {
       try {
         const timestamp = Date.now();
         const randomHash = Math.random().toString(36).substring(2, 10);
-        const fileExt = filename ? (path.extname(filename).toLowerCase() || '.webp') : '.webp';
+        const fileExt =
+          (filename && path.extname(filename).toLowerCase()) || extensionFor(contentType);
         const filePath = `${timestamp}-${randomHash}${fileExt}`;
         const relativeStoragePath = `/${bucketName}/${filePath}`;
 
@@ -171,6 +203,8 @@ export class MediaController {
             uploadUrl: data.signedUrl,
             fileUrl: relativeStoragePath,
             method: 'PUT',
+            mediaType: kind,
+            maxBytes: maxBytesFor(kind),
           };
         }
       } catch (err: any) {

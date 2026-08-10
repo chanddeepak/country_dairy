@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Prisma, ProductStatus } from '@prisma/client';
+import { MediaType, Prisma, ProductStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MediaService } from '../media/media.service';
 import { AuditService } from '../audit/audit.service';
@@ -234,10 +234,14 @@ export class CatalogService {
   private mapGalleryImages(images: ProductImageDto[] = []) {
     return images.map((img, idx) => ({
       imageUrl: sanitizeProductStoragePath(img.imageUrl) || '/images/products/milk-bottle.png',
+      mediaType: img.mediaType ?? MediaType.IMAGE,
+      thumbnailUrl: img.thumbnailUrl ? sanitizeProductStoragePath(img.thumbnailUrl) : null,
+      durationSeconds: img.durationSeconds ?? null,
       variantId: img.variantId || null,
       altText: img.altText,
-      isPrimary: img.isPrimary ?? idx === 0,
-      isVariantPrimary: img.isVariantPrimary ?? false,
+      // A video is never the catalogue cover — a card needs a still.
+      isPrimary: img.mediaType === MediaType.VIDEO ? false : (img.isPrimary ?? idx === 0),
+      isVariantPrimary: img.mediaType === MediaType.VIDEO ? false : (img.isVariantPrimary ?? false),
       displayOrder: idx + 1,
     }));
   }

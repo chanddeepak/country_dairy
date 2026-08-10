@@ -70,20 +70,23 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
     return [];
   });
 
-  // Handle adding image to gallery (Max 10 limit)
-  const handleAddGalleryImage = (url: string) => {
+  // Handle adding media to the gallery (max 10 items, images or video)
+  const handleAddGalleryImage = (url: string, mediaType: 'IMAGE' | 'VIDEO' = 'IMAGE') => {
     if (!url) return;
     if (galleryImages.length >= 10) {
-      alert('Maximum 10 product gallery photos allowed.');
+      alert('Maximum 10 gallery items allowed.');
       return;
     }
 
+    const isVideo = mediaType === 'VIDEO';
     const newImg: ProductImage = {
       id: `img-${Date.now()}`,
       productId: initialProduct?.id || 'p1',
       imageUrl: url,
+      mediaType,
       displayOrder: galleryImages.length + 1,
-      isPrimary: galleryImages.length === 0,
+      // A video cannot serve as the catalogue cover — a card needs a still.
+      isPrimary: !isVideo && galleryImages.length === 0,
     };
     setGalleryImages(prev => [...prev, newImg]);
   };
@@ -423,10 +426,24 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
             {galleryImages.map((img) => (
               <div key={img.id} className="relative group rounded-xl overflow-hidden border border-stone-700 bg-stone-950 flex flex-col justify-between">
                 <div className="relative aspect-square bg-stone-900">
-                  <img src={resolveImageUrl(img.imageUrl)} alt="Gallery item" className="w-full h-full object-cover" />
+                  {img.mediaType === 'VIDEO' ? (
+                    <video
+                      src={resolveImageUrl(img.imageUrl)}
+                      className="w-full h-full object-cover"
+                      controls
+                      preload="metadata"
+                    />
+                  ) : (
+                    <img src={resolveImageUrl(img.imageUrl)} alt="Gallery item" className="w-full h-full object-cover" />
+                  )}
                   
                   {/* Badges Container */}
-                  <div className="absolute top-1.5 left-1.5 flex flex-col gap-1 items-start">
+                  <div className="absolute top-1.5 left-1.5 flex flex-col gap-1 items-start pointer-events-none">
+                    {img.mediaType === 'VIDEO' && (
+                      <span className="bg-purple-600 text-white text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded">
+                        Video
+                      </span>
+                    )}
                     {/* Main Product Catalog Cover Badge */}
                     {img.isPrimary ? (
                       <div className="bg-amber-500 text-stone-950 text-[9px] font-extrabold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-md">
@@ -509,7 +526,8 @@ export default function ProductEditor({ initialProduct, onBack, onSave, categori
             <div className="pt-4 border-t border-stone-800">
               <ImageUploader
                 bucket="products"
-                label={`Upload Gallery Photo #${galleryImages.length + 1} (Auto WebP Compressed)`}
+                allowVideo
+                label={`Upload Gallery Photo or Video #${galleryImages.length + 1}`}
                 aspectRatio="square"
                 clearOnUpload={true}
                 onImageUploaded={handleAddGalleryImage}

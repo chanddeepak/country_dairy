@@ -6,7 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderStatus, PaymentStatus, ReviewStatus } from '@prisma/client';
+import { MediaType, OrderStatus, PaymentStatus, ReviewStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FLAG, FeatureFlagsService } from '../feature-flags/feature-flags.service';
 
@@ -55,6 +55,7 @@ export class ReviewsService {
     title?: string,
     comment?: string,
     mediaUrls?: string[],
+    mediaTypes?: MediaType[],
   ) {
     if (!(await this.featureFlags.isEnabled(FLAG.PRODUCT_RATINGS))) {
       throw new ForbiddenException('Reviews are not currently accepted');
@@ -95,6 +96,9 @@ export class ReviewsService {
         title,
         comment,
         mediaUrls: mediaUrls ?? [],
+        // Default anything unlabelled to IMAGE so the arrays stay the same
+        // length and the storefront can pair them positionally.
+        mediaTypes: (mediaUrls ?? []).map((_, i) => mediaTypes?.[i] ?? MediaType.IMAGE),
         isVerifiedPurchase: !!purchased,
         status: ReviewStatus.PENDING,
       },

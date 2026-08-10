@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Smartphone, Mail, Globe } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useStoreConfig } from '../../context/StoreConfigContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -11,7 +12,28 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const { loginPhone, setLoginPhone, sendOtp, verifyOtp, loginWithEmail, registerWithEmail, loginWithGoogle } = useApp();
-  const [activeTab, setActiveTab] = useState<'mobile' | 'email' | 'google'>('mobile');
+  const { isFlagOn } = useStoreConfig();
+
+  // Only offer methods that are actually switched on. Mobile used to be the
+  // default tab while OTP was disabled, so the modal opened on the one method
+  // guaranteed to fail with a 403.
+  const methods = {
+    mobile: isFlagOn('ENABLE_OTP_LOGIN'),
+    email: true,
+    google: isFlagOn('ENABLE_GOOGLE_LOGIN'),
+  };
+  const enabledMethods = (Object.keys(methods) as ('mobile' | 'email' | 'google')[]).filter(
+    (m) => methods[m],
+  );
+
+  const [activeTab, setActiveTab] = useState<'mobile' | 'email' | 'google'>('email');
+
+  // If the flags change, never leave the modal on a disabled method.
+  useEffect(() => {
+    if (!methods[activeTab] && enabledMethods.length > 0) {
+      setActiveTab(enabledMethods[0]);
+    }
+  }, [methods.mobile, methods.google, activeTab]);
   
   // Mobile states
   const [otpSent, setOtpSent] = useState(false);
@@ -121,30 +143,36 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
         <h3 className="font-serif font-black text-2xl text-[#2A2A2A] mb-2">Welcome</h3>
         <p className="text-xs text-[#6b6661] mb-6">
-          Sign in to view your wallet balance and manage orders.
+          Sign in to track your orders and check out faster.
         </p>
 
-        {/* Tabs */}
+        {/* Tabs — hidden when only one sign-in method is enabled. */}
+        {enabledMethods.length > 1 && (
         <div className="flex bg-stone-100 p-1 rounded-xl mb-6">
+          {methods.mobile && (
           <button 
             onClick={() => setActiveTab('mobile')}
             className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center transition ${activeTab === 'mobile' ? 'bg-white shadow text-[#2A2A2A]' : 'text-[#6b6661]'}`}
           >
             <Smartphone className="w-4 h-4 mr-1" /> Mobile
           </button>
+          )}
           <button 
             onClick={() => setActiveTab('email')}
             className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center transition ${activeTab === 'email' ? 'bg-white shadow text-[#2A2A2A]' : 'text-[#6b6661]'}`}
           >
             <Mail className="w-4 h-4 mr-1" /> Email
           </button>
+          {methods.google && (
           <button 
             onClick={() => setActiveTab('google')}
             className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center transition ${activeTab === 'google' ? 'bg-white shadow text-[#2A2A2A]' : 'text-[#6b6661]'}`}
           >
             <Globe className="w-4 h-4 mr-1" /> Google
           </button>
+          )}
         </div>
+        )}
 
         {error && (
           <div className="bg-red-50 text-red-700 p-3 rounded-lg text-xs font-bold mb-4">
