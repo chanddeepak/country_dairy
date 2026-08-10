@@ -19,6 +19,10 @@ interface AppContextType {
   logout: () => void;
   fetchCart: () => Promise<void>;
   addToCart: (variantId: string, quantity: number) => Promise<void>;
+  /** Variant id currently being added, so buttons can show a pending state. */
+  pendingCartVariantId: string | null;
+  /** Set briefly after a successful add, to confirm it landed. */
+  lastAddedVariantId: string | null;
   updateCartQty: (itemId: string, quantity: number) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
   checkout: (addressId: string) => Promise<any>;
@@ -36,6 +40,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loginPhone, setLoginPhone] = useState<string>('+919876543210');
+  const [pendingCartVariantId, setPendingCartVariantId] = useState<string | null>(null);
+  const [lastAddedVariantId, setLastAddedVariantId] = useState<string | null>(null);
 
   // API_URL is imported from constants
 
@@ -210,6 +216,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('cd_guest_cart');
   };
 
+  /**
+   * One shape for cart lines, whatever their source.
+   *
+   * The API returns product.title and a computed unitPrice; the guest cart
+   * built product.name and product.price. The drawer read the guest shape, so
+   * a signed-in cart rendered "₹NaN" with no product name.
+   */
+  const normalizeCartItem = (item: any) => {
+    const unitPrice = Number(item.unitPrice ?? item.product?.price ?? 0);
+    const quantity = Number(item.quantity ?? 1);
+
+    return {
+      id: item.id,
+      variantId: item.variantId ?? item.variant?.id,
+      productId: item.productId ?? item.product?.id,
+      productName: item.product?.title ?? item.product?.name ?? 'Product',
+      productSlug: item.product?.slug,
+      variantLabel: item.variant?.sizeLabel ?? item.variant?.volumeOrWeight ?? '',
+      imageUrl:
+        item.variant?.imageUrl ??
+        item.product?.galleryImages?.find((g: any) => g.isPrimary)?.imageUrl ??
+        item.product?.galleryImages?.[0]?.imageUrl ??
+        item.product?.imageUrls?.[0],
+      unitPrice,
+      quantity,
+      lineTotal: Number(item.lineTotal ?? unitPrice * quantity),
+      availableStock: item.availableStock,
+      isAvailable: item.isAvailable ?? true,
+      // Kept so existing consumers that reach into product still work.
+      product: item.product,
+    };
+  };
+
   const fetchCart = async () => {
     if (!token) return;
     try {
@@ -218,7 +257,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       const data = await res.json();
       if (Array.isArray(data)) {
-        setCart(data);
+        setCart(data.map(normalizeCartItem));
       }
     } catch (err) {
       console.error('Failed to fetch cart:', err);
@@ -247,6 +286,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addToCart = async (variantId: string, quantity: number) => {
+    setPendingCartVariantId(variantId);
+    try {
+      await addToCartInner(variantId, quantity);
+      setLastAddedVariantId(variantId);
+      // Clears itself so the tick does not linger on the button.
+      setTimeout(() => setLastAddedVariantId((id) => (id === variantId ? null : id)), 2000);
+    } finally {
+      setPendingCartVariantId(null);
+    }
+  };
+
+  const addToCartInner = async (variantId: string, quantity: number) => {
     if (!token) {
       const resolved = await resolveVariant(variantId);
       if (!resolved) return;
@@ -472,6 +523,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         logout,
         fetchCart,
         addToCart,
+        pendingCartVariantId,
+        lastAddedVariantId,
         updateCartQty,
         removeFromCart,
         checkout,

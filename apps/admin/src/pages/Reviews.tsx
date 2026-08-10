@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Star, ShieldAlert, Check, Trash2, Loader2, Search, BadgeCheck } from 'lucide-react';
+import { Star, ShieldAlert, Check, Trash2, Loader2, Search, BadgeCheck, Play, X } from 'lucide-react';
 import StatusBadge from '../components/ui/StatusBadge';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import { adminApi } from '../services/apiClient';
+import { resolveImageUrl } from '../components/common/ImageUploader';
 import type { AdminReview, ReviewStatus } from '../types';
 
 const FILTERS: { label: string; value: ReviewStatus | 'ALL' }[] = [
@@ -22,6 +23,8 @@ function formatDate(iso: string): string {
 
 export default function Reviews() {
   const [reviews, setReviews] = useState<AdminReview[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
   const [filter, setFilter] = useState<ReviewStatus | 'ALL'>('PENDING');
   const [search, setSearch] = useState('');
@@ -29,29 +32,37 @@ export default function Reviews() {
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<AdminReview | null>(null);
+  const [preview, setPreview] = useState<{ url: string; isVideo: boolean } | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
     setError('');
     try {
       const [list, counts] = await Promise.all([
-        adminApi.getReviewsAdmin(filter === 'ALL' ? undefined : filter, search || undefined),
+        adminApi.getReviewsAdmin(filter === 'ALL' ? undefined : filter, search || undefined, page),
         adminApi.getReviewStats(),
       ]);
-      setReviews(list);
+      setReviews(list.items);
+      setTotalPages(list.totalPages);
       setStats(counts);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load reviews');
     } finally {
       setIsLoading(false);
     }
-  }, [filter, search]);
+  }, [filter, search, page]);
 
   // Debounced so typing in the search box does not fire a request per keystroke.
   useEffect(() => {
     const timer = setTimeout(load, search ? 300 : 0);
     return () => clearTimeout(timer);
   }, [load, search]);
+
+  // Filter or search changes reset to the first page, otherwise the reader
+  // can land on a page that no longer exists.
+  useEffect(() => {
+    setPage(1);
+  }, [filter, search]);
 
   const handleAction = async (review: AdminReview, status: 'APPROVED' | 'REJECTED') => {
     setBusyId(review.id);
@@ -193,11 +204,42 @@ export default function Reviews() {
                         ))}
                       </div>
                     </td>
-                    <td className="p-4 text-stone-600 max-w-[240px]">
+                    <td className="p-4 text-stone-600 max-w-[260px]">
                       {r.title && <div className="font-bold text-stone-800">{r.title}</div>}
                       <div className="line-clamp-2" title={r.comment ?? ''}>
                         {r.comment}
                       </div>
+
+                      {/* Attachments, so a moderator can judge what was posted
+                          rather than only the text. */}
+                      {r.mediaUrls?.length > 0 && (
+                        <div className="flex gap-1.5 mt-2">
+                          {r.mediaUrls.map((url, idx) => {
+                            const isVideo = r.mediaTypes?.[idx] === 'VIDEO';
+                            const resolved = resolveImageUrl(url);
+                            return (
+                              <button
+                                key={url}
+                                type="button"
+                                onClick={() => setPreview({ url: resolved, isVideo })}
+                                className="w-11 h-11 rounded border border-stone-200 overflow-hidden bg-stone-50 hover:border-[#064e3b] transition relative shrink-0"
+                                title="View attachment"
+                              >
+                                {isVideo ? (
+                                  <>
+                                    <video src={resolved} className="w-full h-full object-cover" muted preload="metadata" />
+                                    <span className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                      <Play className="h-3.5 w-3.5 text-white fill-white" />
+                                    </span>
+                                  </>
+                                ) : (
+                                  <img src={resolved} alt="" className="w-full h-full object-cover" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </td>
                     <td className="p-4 text-stone-500 whitespace-nowrap">{formatDate(r.createdAt)}</td>
                     <td className="p-4">
@@ -239,7 +281,61 @@ export default function Reviews() {
             </table>
           </div>
         )}
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 pt-5 mt-2 border-t border-stone-100">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1 || isLoading}
+              className="px-3 py-1.5 rounded-lg border border-stone-200 text-xs font-bold text-stone-700 hover:bg-stone-50 disabled:opacity-40 transition"
+            >
+              Previous
+            </button>
+            <span className="text-xs font-bold text-stone-500">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages || isLoading}
+              className="px-3 py-1.5 rounded-lg border border-stone-200 text-xs font-bold text-stone-700 hover:bg-stone-50 disabled:opacity-40 transition"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Attachment preview */}
+      {preview && (
+        <div
+          className="fixed inset-0 z-50 bg-stone-950/85 flex items-center justify-center p-4"
+          onClick={() => setPreview(null)}
+        >
+          <button
+            onClick={() => setPreview(null)}
+            className="absolute top-4 right-4 text-white/80 hover:text-white transition"
+            aria-label="Close"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          {preview.isVideo ? (
+            <video
+              src={preview.url}
+              className="max-h-[85vh] max-w-full rounded-lg"
+              controls
+              autoPlay
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <img
+              src={preview.url}
+              alt="Review attachment"
+              className="max-h-[85vh] max-w-full rounded-lg object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
+        </div>
+      )}
 
       <ConfirmDialog
         isOpen={!!pendingDelete}

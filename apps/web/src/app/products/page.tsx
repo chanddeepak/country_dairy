@@ -13,7 +13,6 @@ import { FALLBACK_PRODUCTS, API_URL, getExpandedProducts } from '../../lib/const
 import { mapApiProducts } from '../../lib/mapProduct';
 import { useStoreConfig } from '../../context/StoreConfigContext';
 
-const CATEGORIES = ['All', 'Ghee'];
 const SORT_OPTIONS = [
   { label: 'Relevance', value: 'relevance' },
   { label: 'Price: Low → High', value: 'price-asc' },
@@ -28,6 +27,9 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
+  // Built from the Category table via each product's categoryName, rather
+  // than the hardcoded ['All', 'Ghee'] which matched nothing in the taxonomy.
+  const [categories, setCategories] = useState<string[]>(['All']);
   const [sortBy, setSortBy] = useState('relevance');
 
   // Modal state
@@ -46,7 +48,14 @@ export default function ProductsPage() {
       if (res.ok) {
         const liveProducts = await res.json();
         if (liveProducts && liveProducts.length > 0) {
-          setProducts(mapApiProducts(liveProducts));
+          const mapped = mapApiProducts(liveProducts);
+          setProducts(mapped);
+
+          // Only categories that actually have live products get a chip.
+          const present = Array.from(
+            new Set(mapped.map((p) => p.category).filter(Boolean) as string[]),
+          ).sort();
+          setCategories(['All', ...present]);
           return;
         }
       }
@@ -67,14 +76,12 @@ export default function ProductsPage() {
       );
     }
 
-    // Category filter
+    // Category filter — an exact match on the product's own category, no
+    // guessing from the product name.
     if (activeCategory !== 'All') {
       result = result.filter((p) => {
         const cat = (typeof p.category === 'string' ? p.category : p.category?.name) || '';
-        const name = p.name.toLowerCase();
-        if (activeCategory === 'Ghee' || activeCategory === 'Dairy') return cat.includes('Ghee') || name.includes('ghee');
-        if (activeCategory === 'Oils') return cat.includes('Oils') || name.includes('oil');
-        return true;
+        return cat === activeCategory;
       });
     }
 
@@ -125,7 +132,7 @@ export default function ProductsPage() {
             <div className="flex items-center gap-4">
               {/* Category Chips */}
               <div className="flex gap-2 flex-wrap">
-                {CATEGORIES.map((cat) => (
+                {categories.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setActiveCategory(cat)}

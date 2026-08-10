@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Lock, Mail, ArrowRight } from 'lucide-react';
+import { Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 
 export default function Login() {
   const { login } = useAuth();
@@ -99,8 +99,9 @@ export default function Login() {
             disabled={isSubmitting}
             className="w-full py-3.5 px-4 bg-[#064e3b] hover:bg-[#065f46] text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-[#064e3b]/20 transition-all transform active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            <span>{isSubmitting ? 'Authenticating...' : 'Sign In to Admin Console'}</span>
-            <ArrowRight className="h-4 w-4" />
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            <span>{isSubmitting ? 'Signing in…' : 'Sign In to Admin Console'}</span>
+            {!isSubmitting && <ArrowRight className="h-4 w-4" />}
           </button>
         </form>
 

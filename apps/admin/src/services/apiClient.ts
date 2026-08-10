@@ -14,6 +14,7 @@ import type {
   StockAlert,
   WhatsAppConfig,
   AuditEntry,
+  Paginated,
 } from '../types';
 
 // Accepts either name: .env.staging defines VITE_API_URL while the original
@@ -390,12 +391,16 @@ export const adminApi = {
   },
 
   // Reviews moderation API
-  async getReviewsAdmin(status?: string, search?: string): Promise<AdminReview[]> {
-    const query = new URLSearchParams();
+  async getReviewsAdmin(
+    status?: string,
+    search?: string,
+    page = 1,
+    pageSize = 20,
+  ): Promise<Paginated<AdminReview>> {
+    const query = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
     if (status) query.append('status', status);
     if (search) query.append('search', search);
-    const queryString = query.toString() ? `?${query.toString()}` : '';
-    return fetchJson<AdminReview[]>(`/reviews/admin${queryString}`);
+    return fetchJson<Paginated<AdminReview>>(`/reviews/admin?${query.toString()}`);
   },
 
   async getReviewStats(): Promise<{ pending: number; approved: number; rejected: number }> {

@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -19,33 +18,68 @@ export class ReviewsService {
     private featureFlags: FeatureFlagsService,
   ) {}
 
-  /** Storefront listing — approved reviews only. */
-  async getReviews(productId: string) {
+  /**
+   * Storefront listing — approved reviews only, paginated.
+   *
+   * The aggregate is computed across every approved review, not just the page
+   * being returned, so the average does not change as the reader pages through.
+   */
+  async getReviews(productId: string, options: { page?: number; pageSize?: number } = {}) {
     const product = await this.prisma.product.findUnique({ where: { id: productId } });
     if (!product) {
       throw new NotFoundException('Product not found');
     }
 
-    const reviews = await this.prisma.productReview.findMany({
-      where: { productId, status: ReviewStatus.APPROVED },
-      include: { user: { select: { name: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+    const pageSize = Math.min(Math.max(options.pageSize ?? 5, 1), 50);
+    const page = Math.max(options.page ?? 1, 1);
 
-    const total = reviews.length;
-    const averageRating =
-      total > 0 ? Number((reviews.reduce((sum, r) => sum + r.rating, 0) / total).toFixed(2)) : 0;
+    const where = { productId, status: ReviewStatus.APPROVED };
+
+    const [grouped, reviews] = await Promise.all([
+      this.prisma.productReview.groupBy({ by: ['rating'], where, _count: true }),
+      this.prisma.productReview.findMany({
+        where,
+        include: { user: { select: { name: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    const totalReviews = grouped.reduce((sum, g) => sum + g._count, 0);
+    const ratingSum = grouped.reduce((sum, g) => sum + g.rating * g._count, 0);
+    const averageRating = totalReviews > 0 ? Number((ratingSum / totalReviews).toFixed(2)) : 0;
 
     return {
       averageRating,
-      totalReviews: total,
+      totalReviews,
       // Star histogram for the ratings breakdown on the product page.
       distribution: [5, 4, 3, 2, 1].map((stars) => ({
         stars,
-        count: reviews.filter((r) => r.rating === stars).length,
+        count: grouped.find((g) => g.rating === stars)?._count ?? 0,
       })),
       reviews,
+      page,
+      pageSize,
+      totalPages: Math.max(1, Math.ceil(totalReviews / pageSize)),
+      hasMore: page * pageSize < totalReviews,
     };
+  }
+
+  /** Lets a customer withdraw their own review. Staff deletion is separate. */
+  async deleteOwnReview(userId: string, reviewId: string) {
+    const review = await this.prisma.productReview.findUnique({ where: { id: reviewId } });
+
+    if (!review) {
+      throw new NotFoundException('Review not found');
+    }
+
+    if (review.userId !== userId) {
+      throw new ForbiddenException('You can only delete your own review');
+    }
+
+    await this.prisma.productReview.delete({ where: { id: reviewId } });
+    return { success: true };
   }
 
   async createReview(
@@ -64,13 +98,6 @@ export class ReviewsService {
     const product = await this.prisma.product.findUnique({ where: { id: productId } });
     if (!product) {
       throw new NotFoundException('Product not found');
-    }
-
-    const existing = await this.prisma.productReview.findUnique({
-      where: { userId_productId: { userId, productId } },
-    });
-    if (existing) {
-      throw new ConflictException('You have already reviewed this product');
     }
 
     // A "Verified Purchase" badge has to mean something, so it is derived from
@@ -100,16 +127,73 @@ export class ReviewsService {
         // length and the storefront can pair them positionally.
         mediaTypes: (mediaUrls ?? []).map((_, i) => mediaTypes?.[i] ?? MediaType.IMAGE),
         isVerifiedPurchase: !!purchased,
-        status: ReviewStatus.PENDING,
+        // Published on submission. Moderation is a takedown rather than a
+        // gate, so a customer sees their own words straight away.
+        status: ReviewStatus.APPROVED,
       },
+      include: { user: { select: { name: true } } },
+    });
+  }
+
+  /** Lets a customer correct their own review. */
+  async updateOwnReview(
+    userId: string,
+    reviewId: string,
+    dto: {
+      rating?: number;
+      title?: string;
+      comment?: string;
+      mediaUrls?: string[];
+      mediaTypes?: MediaType[];
+    },
+  ) {
+    const review = await this.prisma.productReview.findUnique({ where: { id: reviewId } });
+
+    if (!review) {
+      throw new NotFoundException('Review not found');
+    }
+
+    if (review.userId !== userId) {
+      throw new ForbiddenException('You can only edit your own review');
+    }
+
+    const mediaUrls = dto.mediaUrls ?? review.mediaUrls;
+
+    return this.prisma.productReview.update({
+      where: { id: reviewId },
+      data: {
+        rating: dto.rating ?? review.rating,
+        title: dto.title ?? review.title,
+        comment: dto.comment ?? review.comment,
+        mediaUrls,
+        mediaTypes: mediaUrls.map(
+          (_, i) => dto.mediaTypes?.[i] ?? review.mediaTypes[i] ?? MediaType.IMAGE,
+        ),
+        editedAt: new Date(),
+      },
+      include: { user: { select: { name: true } } },
+    });
+  }
+
+  /** Every review this customer left on a product, newest first. */
+  async getMyReviews(userId: string, productId: string) {
+    return this.prisma.productReview.findMany({
+      where: { userId, productId },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
   // --- Admin moderation ---
 
-  async listForModeration(status?: ReviewStatus, search?: string) {
-    return this.prisma.productReview.findMany({
-      where: {
+  async listForModeration(
+    status?: ReviewStatus,
+    search?: string,
+    options: { page?: number; pageSize?: number } = {},
+  ) {
+    const pageSize = Math.min(Math.max(options.pageSize ?? 20, 1), 100);
+    const page = Math.max(options.page ?? 1, 1);
+
+    const where = {
         ...(status ? { status } : {}),
         ...(search
           ? {
@@ -120,14 +204,25 @@ export class ReviewsService {
               ],
             }
           : {}),
-      },
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-        product: { select: { id: true, title: true, slug: true } },
-      },
-      orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
-      take: 200,
-    });
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.productReview.findMany({
+        where,
+        // mediaUrls/mediaTypes come through the model, so a moderator can see
+        // the photos and video attached to what they are judging.
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+          product: { select: { id: true, title: true, slug: true } },
+        },
+        orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.productReview.count({ where }),
+    ]);
+
+    return { items, total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
   }
 
   async moderate(reviewId: string, status: ReviewStatus, moderatorId: string) {

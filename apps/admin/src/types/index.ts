@@ -163,6 +163,15 @@ export interface DashboardData {
   stockAlerts: StockAlert[];
 }
 
+/** Envelope for any list the API pages. */
+export interface Paginated<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface AdminReview {
@@ -171,9 +180,12 @@ export interface AdminReview {
   title?: string | null;
   comment?: string | null;
   mediaUrls: string[];
+  /** Parallel to mediaUrls: mediaTypes[i] describes mediaUrls[i]. */
+  mediaTypes?: MediaType[];
   status: ReviewStatus;
   isVerifiedPurchase: boolean;
   createdAt: string;
+  editedAt?: string | null;
   moderatedAt?: string | null;
   user: { id: string; name: string | null; email: string | null };
   product: { id: string; title: string; slug: string };

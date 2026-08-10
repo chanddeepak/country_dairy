@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ImagePlus, Loader2, X, Play } from 'lucide-react';
 import StarRating from '../ui/StarRating';
-import { API_URL } from '../../lib/constants';
+import { API_URL, resolveStorefrontImageUrl } from '../../lib/constants';
 import {
   ACCEPTED_MEDIA_ACCEPT_ATTR,
   MAX_REVIEW_MEDIA,
@@ -12,25 +12,54 @@ import {
   type UploadedMedia,
 } from '../../lib/uploadMedia';
 
+interface ExistingReview {
+  id: string;
+  rating: number;
+  title?: string | null;
+  comment?: string | null;
+  mediaUrls: string[];
+  mediaTypes?: ('IMAGE' | 'VIDEO')[];
+}
+
 interface ReviewFormProps {
   productId: string;
   token: string;
+  /** When present the form edits this review instead of creating one. */
+  existingReview?: ExistingReview | null;
   onSubmitted: () => void;
 }
 
-export default function ReviewForm({ productId, token, onSubmitted }: ReviewFormProps) {
-  const [rating, setRating] = useState(0);
-  const [title, setTitle] = useState('');
-  const [comment, setComment] = useState('');
-  const [media, setMedia] = useState<UploadedMedia[]>([]);
+export default function ReviewForm({
+  productId,
+  token,
+  existingReview,
+  onSubmitted,
+}: ReviewFormProps) {
+  const isEditing = !!existingReview;
+
+  const [rating, setRating] = useState(existingReview?.rating ?? 0);
+  const [title, setTitle] = useState(existingReview?.title ?? '');
+  const [comment, setComment] = useState(existingReview?.comment ?? '');
+  const [media, setMedia] = useState<UploadedMedia[]>(
+    // Already-uploaded attachments have no local blob, so the stored URL is
+    // its own preview.
+    (existingReview?.mediaUrls ?? []).map((url, i) => ({
+      url,
+      mediaType: existingReview?.mediaTypes?.[i] ?? 'IMAGE',
+      previewUrl: resolveStorefrontImageUrl(url),
+    })),
+  );
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Preview URLs are object URLs; release them so the blobs can be collected.
+  // Only blob: previews need revoking; a stored URL is not an object URL.
   useEffect(() => {
-    return () => media.forEach((m) => URL.revokeObjectURL(m.previewUrl));
+    return () =>
+      media.forEach((m) => {
+        if (m.previewUrl.startsWith('blob:')) URL.revokeObjectURL(m.previewUrl);
+      });
   }, [media]);
 
   const handleFiles = async (files: FileList | null) => {
@@ -67,7 +96,7 @@ export default function ReviewForm({ productId, token, onSubmitted }: ReviewForm
 
   const removeMedia = (idx: number) => {
     setMedia((prev) => {
-      URL.revokeObjectURL(prev[idx].previewUrl);
+      if (prev[idx].previewUrl.startsWith('blob:')) URL.revokeObjectURL(prev[idx].previewUrl);
       return prev.filter((_, i) => i !== idx);
     });
   };
@@ -83,8 +112,12 @@ export default function ReviewForm({ productId, token, onSubmitted }: ReviewForm
     setSubmitting(true);
 
     try {
-      const res = await fetch(`${API_URL}/products/${productId}/reviews`, {
-        method: 'POST',
+      const endpoint = isEditing
+        ? `${API_URL}/products/${productId}/reviews/${existingReview!.id}`
+        : `${API_URL}/products/${productId}/reviews`;
+
+      const res = await fetch(endpoint, {
+        method: isEditing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           rating,
@@ -96,10 +129,12 @@ export default function ReviewForm({ productId, token, onSubmitted }: ReviewForm
       });
 
       if (res.ok) {
-        setRating(0);
-        setTitle('');
-        setComment('');
-        setMedia([]);
+        if (!isEditing) {
+          setRating(0);
+          setTitle('');
+          setComment('');
+          setMedia([]);
+        }
         onSubmitted();
       } else {
         const body = await res.json().catch(() => null);
@@ -118,7 +153,9 @@ export default function ReviewForm({ productId, token, onSubmitted }: ReviewForm
 
   return (
     <form onSubmit={handleSubmit} className="bg-[#FAF8F3] border border-stone-200 rounded-xl p-6 space-y-4">
-      <h4 className="font-serif font-black text-lg text-[#2A2A2A]">Write a Review</h4>
+      <h4 className="font-serif font-black text-lg text-[#2A2A2A]">
+        {isEditing ? 'Edit your review' : 'Write a Review'}
+      </h4>
 
       {error && <p className="text-xs text-red-600 font-bold">{error}</p>}
 
@@ -226,11 +263,12 @@ export default function ReviewForm({ productId, token, onSubmitted }: ReviewForm
         className="bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-2.5 px-6 rounded-lg text-sm transition disabled:opacity-50 flex items-center gap-2"
       >
         {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-        {submitting ? 'Submitting…' : 'Submit Review'}
+        {submitting ? 'Saving…' : isEditing ? 'Save Changes' : 'Submit Review'}
       </button>
 
       <p className="text-[10px] text-[#6b6661]">
-        Reviews appear once a moderator approves them.
+        Your review appears straight away. We may remove it later if it breaks
+        our review guidelines.
       </p>
     </form>
   );

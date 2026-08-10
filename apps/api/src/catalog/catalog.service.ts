@@ -188,9 +188,20 @@ export class CatalogService {
         throw new NotFoundException(`Product ${slugOrId} not found`);
       }
 
+      // Computed here as well as in getProducts. Without it the detail page
+      // rendered "0.0 (1 reviews)" — the count came from the reviews array
+      // while the average was simply absent.
+      const totalReviews = product.reviews.length;
+      const averageRating =
+        totalReviews > 0
+          ? Number((product.reviews.reduce((acc, r) => acc + r.rating, 0) / totalReviews).toFixed(2))
+          : 0;
+
       return {
         ...product,
         categoryName: product.category?.name || 'Dairy',
+        averageRating,
+        totalReviews,
       };
     } catch (error) {
       this.logger.error(`Failed to fetch product ${slugOrId}`, error.stack);

@@ -2,9 +2,10 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Star, Calendar, MessageCircle, AlertCircle } from 'lucide-react';
+import { Star, Calendar, MessageCircle, AlertCircle, Loader2, Check } from 'lucide-react';
 import { PRODUCT_IMAGES, Product, resolveStorefrontImageUrl } from '../../lib/constants';
 import { useStoreConfig } from '../../context/StoreConfigContext';
+import { useApp } from '../../context/AppContext';
 import { buildProductMessage, whatsAppUrl } from '../../lib/storeConfig';
 import { trackStorefrontEvent } from '../../lib/analytics';
 
@@ -43,6 +44,13 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
       : false);
 
   const { whatsapp, isFlagOn } = useStoreConfig();
+  const { pendingCartVariantId, lastAddedVariantId } = useApp();
+
+  // Adding goes to the server, so the button has to say something while it
+  // does. Previously nothing changed until the navbar count updated seconds
+  // later, which read as a dead button.
+  const isAdding = !!defaultVariant && pendingCartVariantId === defaultVariant.id;
+  const justAdded = !!defaultVariant && lastAddedVariantId === defaultVariant.id;
   const cartEnabled = isFlagOn('ENABLE_CART');
   const ENABLE_PRODUCT_RATINGS = isFlagOn('ENABLE_PRODUCT_RATINGS');
   const ENABLE_SUBSCRIPTIONS = isFlagOn('ENABLE_SUBSCRIPTIONS');
@@ -160,9 +168,16 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
               {cartEnabled && (
                 <button
                   onClick={() => defaultVariant?.id && onAddToCart(defaultVariant.id, 1)}
-                  className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider transition shadow-sm"
+                  disabled={isAdding}
+                  className={`w-full font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider transition shadow-sm flex items-center justify-center gap-2 ${
+                    justAdded
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-[#3A6038] hover:bg-[#2d4d2b] text-white disabled:opacity-70'
+                  }`}
                 >
-                  Add to Cart
+                  {isAdding && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {justAdded && <Check className="h-3.5 w-3.5" />}
+                  {isAdding ? 'Adding…' : justAdded ? 'Added to Cart' : 'Add to Cart'}
                 </button>
               )}
               

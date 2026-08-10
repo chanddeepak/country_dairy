@@ -48,6 +48,15 @@ export class CreateReviewDto {
   mediaTypes?: MediaType[];
 }
 
+/** Same fields as create, all optional — a partial edit must not wipe others. */
+export class UpdateReviewDto extends CreateReviewDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1, { message: 'Rating must be between 1 and 5' })
+  @Max(5, { message: 'Rating must be between 1 and 5' })
+  declare rating: number;
+}
+
 export class ModerateReviewDto {
   @IsEnum(ReviewStatus, { message: 'Choose approve or reject' })
   status: ReviewStatus;

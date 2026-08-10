@@ -9,9 +9,7 @@ import { useApp } from '../../../context/AppContext';
 import Navbar from '../../../components/layout/Navbar';
 import Footer from '../../../components/layout/Footer';
 import StarRating from '../../../components/ui/StarRating';
-import ReviewSummary from '../../../components/product/ReviewSummary';
-import ReviewCard from '../../../components/product/ReviewCard';
-import ReviewForm from '../../../components/product/ReviewForm';
+import ReviewSection from '../../../components/product/ReviewSection';
 import { trackStorefrontEvent } from '../../../lib/analytics';
 import ProductCard from '../../../components/product/ProductCard';
 import AuthModal from '../../../components/modals/AuthModal';
@@ -35,7 +33,8 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [activeImage, setActiveImage] = useState<string>('');
-  const [reviews, setReviews] = useState<any[]>([]);
+  // Owned by ReviewSection, lifted so the header can show the same numbers.
+  const [reviewSummary, setReviewSummary] = useState({ averageRating: 0, totalReviews: 0 });
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'bilonaProcess' | 'details'>('details');
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -121,16 +120,6 @@ export default function ProductDetailPage() {
 
     setRelatedProducts(FALLBACK_PRODUCTS.filter((p) => p.slug !== prod.slug).slice(0, 3));
   };
-
-  useEffect(() => {
-    if (product?.id && ENABLE_PRODUCT_RATINGS) {
-      fetch(`${API_URL}/products/${product.id}/reviews`)
-        .then((r) => (r.ok ? r.json() : null))
-        // The endpoint returns a summary object; older code expected a bare array.
-        .then((data) => setReviews(Array.isArray(data?.reviews) ? data.reviews : []))
-        .catch(() => setReviews([]));
-    }
-  }, [product?.id]);
 
   // Feeds the "Most Viewed Products" panel on the admin dashboard.
   useEffect(() => {
@@ -410,11 +399,16 @@ export default function ProductDetailPage() {
               </div>
 
               {/* Rating */}
-              {ENABLE_PRODUCT_RATINGS && (
+              {/* Hidden entirely with no reviews — "0.0 (0 reviews)" is noise,
+                  and the count and average used to come from different sources,
+                  which produced "0.0 (1 reviews)". */}
+              {ENABLE_PRODUCT_RATINGS && reviewSummary.totalReviews > 0 && (
                 <div className="flex items-center gap-2">
-                  <StarRating rating={product.averageRating || 0} size="md" />
-                  <span className="text-sm font-bold text-[#2A2A2A]">{(product.averageRating || 0).toFixed(1)}</span>
-                  <span className="text-xs text-[#6b6661]">({product.totalReviews || reviews.length} reviews)</span>
+                  <StarRating rating={reviewSummary.averageRating} size="md" />
+                  <span className="text-sm font-bold text-[#2A2A2A]">{reviewSummary.averageRating.toFixed(1)}</span>
+                  <span className="text-xs text-[#6b6661]">
+                    ({reviewSummary.totalReviews} {reviewSummary.totalReviews === 1 ? 'review' : 'reviews'})
+                  </span>
                 </div>
               )}
 
@@ -757,46 +751,13 @@ export default function ProductDetailPage() {
           {/* Reviews Section */}
           {ENABLE_PRODUCT_RATINGS && (
             <div className="mt-16">
-              <h2 className="font-serif font-black text-2xl text-[#2A2A2A] mb-8">Customer Reviews</h2>
-              <ReviewSummary
-                averageRating={product.averageRating || 0}
-                totalReviews={product.totalReviews || reviews.length}
+              <ReviewSection
+                productId={product.id}
+                token={token}
+                currentUserId={user?.id}
+                onRequestSignIn={() => setIsAuthOpen(true)}
+                onSummaryChange={setReviewSummary}
               />
-
-              {/* Write a Review. A logged-out visitor previously saw nothing
-                  at all here — no form and no prompt to sign in. */}
-              <div className="mt-8">
-                {user && token ? (
-                  <ReviewForm productId={product.id} token={token} onSubmitted={fetchProduct} />
-                ) : (
-                  <div className="bg-[#FAF8F3] border border-stone-200 rounded-xl p-6 text-center">
-                    <p className="text-sm font-bold text-[#2A2A2A] mb-1">
-                      Tried this product?
-                    </p>
-                    <p className="text-xs text-[#6b6661] mb-4">
-                      Sign in to share your experience, with photos or a video.
-                    </p>
-                    <button
-                      onClick={() => setIsAuthOpen(true)}
-                      className="bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-2.5 px-6 rounded-lg text-sm transition"
-                    >
-                      Sign in to write a review
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Review List */}
-              {reviews.length > 0 && (
-                <div className="mt-8">
-                  {reviews.map((review) => (
-                    <ReviewCard key={review.id} review={review} />
-                  ))}
-                </div>
-              )}
-              {reviews.length === 0 && (
-                <p className="text-xs text-[#6b6661] mt-6">No reviews yet. Be the first to share your experience!</p>
-              )}
             </div>
           )}
 

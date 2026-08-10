@@ -304,7 +304,35 @@ export class AuthService {
     return { accessToken, user: safeUser };
   }
 
+  /**
+   * Cached briefly because AuthGuard calls this on every authenticated
+   * request, and each call was a round trip to the remote pooler — roughly
+   * 1.2s of the ~1.9s an authenticated endpoint took.
+   *
+   * The window is deliberately short: a deactivated or deleted account still
+   * loses access within seconds, which is the property the guard exists for.
+   */
+  private userCache = new Map<string, { at: number; user: Awaited<ReturnType<AuthService['loadUserById']>> }>();
+
+  private static readonly USER_CACHE_TTL_MS = 10_000;
+
   async validateUserById(userId: string) {
+    const cached = this.userCache.get(userId);
+    if (cached && Date.now() - cached.at < AuthService.USER_CACHE_TTL_MS) {
+      return cached.user;
+    }
+
+    const user = await this.loadUserById(userId);
+    this.userCache.set(userId, { at: Date.now(), user });
+    return user;
+  }
+
+  /** Drops the cache so a role or status change takes effect immediately. */
+  invalidateUser(userId: string) {
+    this.userCache.delete(userId);
+  }
+
+  private async loadUserById(userId: string) {
     return this.prisma.user.findUnique({
       where: { id: userId },
       select: {

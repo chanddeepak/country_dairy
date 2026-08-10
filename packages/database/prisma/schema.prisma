@@ -667,14 +667,18 @@ model ProductReview {
   /// mediaUrls[i], so a review can mix both without a join table.
   mediaUrls           String[]
   mediaTypes          MediaType[]
-  status              ReviewStatus @default(PENDING)
+  /// Reviews publish immediately; moderation is a takedown, not a gate.
+  status              ReviewStatus @default(APPROVED)
   isVerifiedPurchase  Boolean      @default(false)
   moderatedBy         String?
   moderatedAt         DateTime?
+  editedAt            DateTime?
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
-  @@unique([userId, productId])
+  // No unique on [userId, productId]: a customer may review a product more
+  // than once, for instance after reordering a later batch.
+  @@index([userId, productId])
   @@index([productId, status])
   @@index([status, createdAt])
 }

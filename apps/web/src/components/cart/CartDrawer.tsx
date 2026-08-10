@@ -4,6 +4,7 @@ import React from 'react';
 import { X, ShoppingBag, Minus, Plus, MessageCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useStoreConfig } from '../../context/StoreConfigContext';
+import { resolveStorefrontImageUrl } from '../../lib/constants';
 import { buildCartMessage, whatsAppUrl } from '../../lib/storeConfig';
 import { trackStorefrontEvent } from '../../lib/analytics';
 
@@ -21,8 +22,16 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
 
   if (!isOpen) return null;
 
-  const subtotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
+  // Uses the normalised line total from AppContext. Reading product.price
+  // here produced "₹NaN" for a signed-in cart, whose API shape has no such
+  // field.
+  const subtotal = cart.reduce((sum, item) => sum + Number(item.lineTotal ?? 0), 0);
   const checkoutEnabled = isFlagOn('ENABLE_CART');
+
+  // Mirrors the server's rule. "FREE" was hardcoded, so a small basket showed
+  // free shipping in the drawer and was charged ₹40 at checkout.
+  const FREE_DELIVERY_THRESHOLD = 500;
+  const delivery = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : 40;
 
   // The whole cart as one message. This is the most valuable placement for
   // WhatsApp ordering — it catches a shopper who is about to abandon.
@@ -32,10 +41,10 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
         buildCartMessage(
           whatsapp,
           cart.map((i) => ({
-            productName: i.product.name,
-            variantLabel: (i as any).variant?.sizeLabel,
+            productName: i.productName,
+            variantLabel: i.variantLabel,
             quantity: i.quantity,
-            unitPrice: Number(i.product.price) || 0,
+            unitPrice: Number(i.unitPrice) || 0,
           })),
         ),
       )
@@ -74,9 +83,31 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
             <div className="space-y-5">
               {cart.map((item) => (
                 <div key={item.id} className="flex justify-between items-start gap-4 pb-5 border-b border-stone-100 last:border-0">
-                  <div className="flex-1">
-                    <h4 className="font-bold text-[#2A2A2A] text-sm leading-snug">{item.product.name}</h4>
-                    <span className="text-xs text-[#6b6661]">₹{item.product.price} each</span>
+                  {item.imageUrl && (
+                    <div className="w-16 h-16 rounded-lg bg-[#FAF8F3] border border-stone-200 overflow-hidden shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={resolveStorefrontImageUrl(item.imageUrl)}
+                        alt={item.productName}
+                        className="w-full h-full object-contain p-1"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-[#2A2A2A] text-sm leading-snug">{item.productName}</h4>
+                    {item.variantLabel && (
+                      <div className="text-[11px] text-[#6b6661]">{item.variantLabel}</div>
+                    )}
+                    <span className="text-xs text-[#6b6661]">₹{item.unitPrice} each</span>
+
+                    {item.isAvailable === false && (
+                      <div className="text-[11px] font-bold text-red-600 mt-1">
+                        {item.availableStock === 0
+                          ? 'Out of stock'
+                          : `Only ${item.availableStock} left`}
+                      </div>
+                    )}
 
                     <div className="flex items-center space-x-3 mt-2">
                       <button
@@ -96,7 +127,7 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
                   </div>
 
                   <div className="text-right">
-                    <span className="font-black text-[#3A6038] text-sm">₹{Number(item.product.price) * item.quantity}</span>
+                    <span className="font-black text-[#3A6038] text-sm">₹{item.lineTotal}</span>
                     <button
                       onClick={() => removeFromCart(item.id)}
                       className="block text-red-500 hover:text-red-700 mt-1 text-[11px] font-bold transition"
@@ -119,11 +150,20 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
             </div>
             <div className="flex justify-between mb-1 text-sm text-[#6b6661]">
               <span>Shipping:</span>
-              <span className="text-[#3A6038] font-bold">FREE</span>
+              {delivery === 0 ? (
+                <span className="text-[#3A6038] font-bold">FREE</span>
+              ) : (
+                <span className="font-bold">₹{delivery}</span>
+              )}
             </div>
+            {delivery > 0 && (
+              <div className="text-[11px] text-[#6b6661] mb-2">
+                Add ₹{FREE_DELIVERY_THRESHOLD - subtotal} more for free delivery
+              </div>
+            )}
             <div className="flex justify-between mb-6 text-lg font-black text-[#2A2A2A]">
               <span>Total:</span>
-              <span>₹{subtotal}</span>
+              <span>₹{subtotal + delivery}</span>
             </div>
             {checkoutEnabled && (
               <button

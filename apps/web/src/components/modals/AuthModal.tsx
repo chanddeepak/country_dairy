@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Smartphone, Mail, Globe } from 'lucide-react';
+import { X, Smartphone, Mail, Globe, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useStoreConfig } from '../../context/StoreConfigContext';
 
@@ -11,7 +11,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const { loginPhone, setLoginPhone, sendOtp, verifyOtp, loginWithEmail, registerWithEmail, loginWithGoogle } = useApp();
+  const { loginPhone, setLoginPhone, sendOtp, verifyOtp, loginWithEmail, registerWithEmail, loginWithGoogle, isLoading } = useApp();
   const { isFlagOn } = useStoreConfig();
 
   // Only offer methods that are actually switched on. Mobile used to be the
@@ -259,8 +259,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 className="w-full bg-[#FAF8F3] border border-stone-300 px-4 py-3 rounded-xl text-[#2A2A2A] placeholder-stone-400 focus:outline-none focus:border-[#3A6038] transition"
               />
             </div>
-            <button type="submit" className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3 rounded-xl transition">
-              {isRegistering ? 'Create Account' : 'Sign In'}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3 rounded-xl transition disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {isLoading ? 'Please wait…' : isRegistering ? 'Create Account' : 'Sign In'}
             </button>
             <div className="text-center pt-2">
               <button 

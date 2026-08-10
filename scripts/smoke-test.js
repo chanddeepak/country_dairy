@@ -259,20 +259,35 @@ async function run() {
       body: { rating: 5, title: 'Smoke test', comment: 'Automated smoke test review.' },
     });
     check('review submitted', review.status === 201, `status ${review.status}`);
-    check('new review starts as PENDING', review.data.status === 'PENDING');
+    // Reviews publish on submission; moderation is a takedown, not a gate.
+    check('new review is published immediately', review.data.status === 'APPROVED',
+      review.data.status);
     check('verified purchase derived from the paid order', review.data.isVerifiedPurchase === true);
 
-    const beforeMod = (await call(`/products/${pick.product.id}/reviews`)).data;
-    const pendingVisible = beforeMod.reviews.some((r) => r.id === review.data.id);
-    check('pending review hidden from the storefront', !pendingVisible);
+    const published = (await call(`/products/${pick.product.id}/reviews`)).data;
+    check('review visible on the storefront without moderation',
+      published.reviews.some((r) => r.id === review.data.id));
+    check('average rating recalculated', published.averageRating > 0);
+
+    const second = await call(`/products/${pick.product.id}/reviews`, {
+      method: 'POST', token: custToken,
+      body: { rating: 4, comment: 'A second review of the same product.' },
+    });
+    check('a customer may review the same product more than once', second.status === 201,
+      `status ${second.status}`);
+
+    const edited = await call(`/products/${pick.product.id}/reviews/${review.data.id}`, {
+      method: 'PATCH', token: custToken, body: { rating: 3 },
+    });
+    check('customer can edit their own review', edited.status === 200 && edited.data.rating === 3,
+      `status ${edited.status}`);
 
     await call(`/reviews/admin/${review.data.id}/moderate`, {
-      method: 'PATCH', token: adminToken, body: { status: 'APPROVED' },
+      method: 'PATCH', token: adminToken, body: { status: 'REJECTED' },
     });
-    const afterMod = (await call(`/products/${pick.product.id}/reviews`)).data;
-    check('approved review appears on the storefront',
-      afterMod.reviews.some((r) => r.id === review.data.id));
-    check('average rating recalculated', afterMod.averageRating > 0);
+    const afterTakedown = (await call(`/products/${pick.product.id}/reviews`)).data;
+    check('a rejected review disappears from the storefront',
+      !afterTakedown.reviews.some((r) => r.id === review.data.id));
 
     await prisma.productReview.deleteMany({ where: { userId: customer.id } });
   } else {

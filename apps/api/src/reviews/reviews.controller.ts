@@ -5,7 +5,7 @@ import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { CreateReviewDto, ModerateReviewDto } from './dto/reviews.dto';
+import { CreateReviewDto, ModerateReviewDto, UpdateReviewDto } from './dto/reviews.dto';
 
 const REVIEW_STAFF = [Role.SUPER_ADMIN, Role.CATALOG_MANAGER] as const;
 
@@ -17,8 +17,16 @@ export class ReviewsAdminController {
 
   @Get('admin')
   @Roles(...REVIEW_STAFF)
-  async list(@Query('status') status?: ReviewStatus, @Query('search') search?: string) {
-    return this.reviewsService.listForModeration(status, search);
+  async list(
+    @Query('status') status?: ReviewStatus,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.reviewsService.listForModeration(status, search, {
+      page: Number(page) || 1,
+      pageSize: Number(pageSize) || 20,
+    });
   }
 
   @Get('admin/stats')
@@ -49,8 +57,44 @@ export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
 
   @Get()
-  async getReviews(@Param('productId') productId: string) {
-    return this.reviewsService.getReviews(productId);
+  async getReviews(
+    @Param('productId') productId: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.reviewsService.getReviews(productId, {
+      page: Number(page) || 1,
+      pageSize: Number(pageSize) || 5,
+    });
+  }
+
+  /** Every review this customer has left on the product. */
+  @Get('mine')
+  @UseGuards(AuthGuard)
+  async getMyReviews(
+    @CurrentUser() user: { id: string },
+    @Param('productId') productId: string,
+  ) {
+    return this.reviewsService.getMyReviews(user.id, productId);
+  }
+
+  @Patch(':reviewId')
+  @UseGuards(AuthGuard)
+  async updateOwnReview(
+    @CurrentUser() user: { id: string },
+    @Param('reviewId') reviewId: string,
+    @Body() dto: UpdateReviewDto,
+  ) {
+    return this.reviewsService.updateOwnReview(user.id, reviewId, dto);
+  }
+
+  @Delete(':reviewId')
+  @UseGuards(AuthGuard)
+  async deleteOwnReview(
+    @CurrentUser() user: { id: string },
+    @Param('reviewId') reviewId: string,
+  ) {
+    return this.reviewsService.deleteOwnReview(user.id, reviewId);
   }
 
   @Post()

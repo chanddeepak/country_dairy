@@ -165,6 +165,24 @@ async function run() {
     ok('both media URLs stored', row.mediaUrls.length === 2);
     ok('media types stored positionally', row.mediaTypes[0] === 'IMAGE' && row.mediaTypes[1] === 'VIDEO');
 
+    // Reviews publish on submission now; moderation is a takedown.
+    ok('review is published immediately', review.data.status === 'APPROVED', review.data.status);
+
+    const second = await call(`/products/${product.data.id}/reviews`, {
+      method: 'POST',
+      token: custToken,
+      body: { rating: 4, comment: 'A second review of the same product.' },
+    });
+    ok('a customer may review the same product again', second.ok, `status ${second.status}`);
+
+    const edited = await call(`/products/${product.data.id}/reviews/${review.data.id}`, {
+      method: 'PATCH',
+      token: custToken,
+      body: { rating: 3, comment: 'Revised.' },
+    });
+    ok('customer can edit their own review', edited.ok && edited.data.rating === 3);
+    ok('edit is stamped', !!edited.data.editedAt);
+
     const tooMany = await call(`/products/${product.data.id}/reviews`, {
       method: 'POST',
       token: custToken,
