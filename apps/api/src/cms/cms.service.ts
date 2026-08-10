@@ -1,8 +1,9 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { BannerType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MediaService } from '../media/media.service';
 import { AuditService } from '../audit/audit.service';
+import { HeroBannerDto, TrustBadgeDto } from './dto/cms.dto';
 
 export const SETTING_KEYS = {
   WHATSAPP: 'whatsapp_ordering',
@@ -55,19 +56,19 @@ export class CmsService {
   // Hero Banners
   async getHeroBanners(deviceType?: 'DESKTOP' | 'MOBILE') {
     return this.prisma.heroBanner.findMany({
-      where: deviceType ? { deviceType: deviceType as any } : undefined,
+      where: deviceType ? { deviceType: deviceType as BannerType } : undefined,
       orderBy: { displayOrder: 'asc' },
     });
   }
 
-  async createHeroBanner(dto: any) {
+  async createHeroBanner(dto: HeroBannerDto) {
     const cleanUrl = sanitizeRelativeUrl(dto.imageUrl) || '/images/hero-banner.png';
     return this.prisma.heroBanner.create({
       data: {
         title: dto.title,
         subtitle: dto.subtitle || '',
         imageUrl: cleanUrl,
-        deviceType: dto.deviceType || 'DESKTOP',
+        deviceType: (dto.deviceType || 'DESKTOP') as BannerType,
         ctaText: dto.ctaText || 'Order Fresh Now',
         ctaLink: dto.ctaLink || '/products',
         badgeText: dto.badgeText || 'FARM FRESH',
@@ -77,7 +78,7 @@ export class CmsService {
     });
   }
 
-  async updateHeroBanner(id: string, dto: any) {
+  async updateHeroBanner(id: string, dto: HeroBannerDto) {
     const cleanUrl = sanitizeRelativeUrl(dto.imageUrl);
     const existing = await this.prisma.heroBanner.findUnique({ where: { id } });
     if (!existing) {
@@ -88,7 +89,7 @@ export class CmsService {
           title: dto.title || 'Hero Banner',
           subtitle: dto.subtitle || '',
           imageUrl: cleanUrl || '/images/hero-banner.png',
-          deviceType: dto.deviceType || 'DESKTOP',
+          deviceType: (dto.deviceType || 'DESKTOP') as BannerType,
           ctaText: dto.ctaText || 'Shop All Products',
           ctaLink: dto.ctaLink || '/products',
           badgeText: dto.badgeText || 'FARM FRESH',
@@ -111,7 +112,7 @@ export class CmsService {
         title: dto.title,
         subtitle: dto.subtitle,
         imageUrl: cleanUrl,
-        deviceType: dto.deviceType || undefined,
+        deviceType: (dto.deviceType || undefined) as BannerType | undefined,
         ctaText: dto.ctaText,
         ctaLink: dto.ctaLink,
         badgeText: dto.badgeText,
@@ -136,7 +137,7 @@ export class CmsService {
     });
   }
 
-  async createTrustBadge(dto: any) {
+  async createTrustBadge(dto: TrustBadgeDto) {
     return this.prisma.trustBadge.create({
       data: {
         title: dto.title,
@@ -148,7 +149,7 @@ export class CmsService {
     });
   }
 
-  async updateTrustBadge(id: string, dto: any) {
+  async updateTrustBadge(id: string, dto: TrustBadgeDto) {
     return this.prisma.trustBadge.update({
       where: { id },
       data: {

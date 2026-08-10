@@ -218,7 +218,8 @@ export interface ProductVariant {
   mrpPrice: number;
   stockQuantity: number;
   lowStockThreshold: number;
-  packagingType: PackagingType;
+  /** Code from the PackagingOption lookup table, e.g. GLASS_JAR. */
+  packagingCode?: string | null;
   imageUrl?: string;
   isActive: boolean;
   displayOrder: number;

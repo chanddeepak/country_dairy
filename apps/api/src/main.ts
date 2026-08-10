@@ -1,9 +1,8 @@
-import * as dotenv from 'dotenv';
+// Loads .env as a side effect; must precede anything that reads process.env.
+import './config/env';
+
 import * as path from 'path';
 import * as fs from 'fs';
-
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
 
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';

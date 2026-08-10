@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MediaService } from '../media/media.service';
 import { AuditService } from '../audit/audit.service';
 import {
+  CategoryDto,
   CreateProductDto,
   ProductImageDto,
   UpdateProductDto,
@@ -51,7 +52,7 @@ export class CatalogService {
     });
   }
 
-  async createCategory(dto: any) {
+  async createCategory(dto: CategoryDto) {
     this.logger.log(`Creating category: ${dto.name}`);
     const slug = dto.slug || dto.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     return await this.prisma.category.create({
@@ -66,7 +67,7 @@ export class CatalogService {
     });
   }
 
-  async updateCategory(id: string, dto: any) {
+  async updateCategory(id: string, dto: CategoryDto) {
     this.logger.log(`Updating category: ${id}`);
     const existing = await this.prisma.category.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException(`Category ${id} not found`);
@@ -92,7 +93,7 @@ export class CatalogService {
   async getProducts(categoryId?: string, search?: string, status?: string) {
     this.logger.log(`Fetching products (category: ${categoryId}, search: ${search}, status: ${status})`);
     try {
-      const whereClause: any = {};
+      const whereClause: Prisma.ProductWhereInput = {};
 
       if (categoryId) {
         whereClause.categoryId = categoryId;

@@ -4,7 +4,19 @@ import * as crypto from 'crypto';
 @Injectable()
 export class RazorpayService {
   private readonly logger = new Logger(RazorpayService.name);
-  private razorpayClient: any;
+  /**
+   * The razorpay package ships no types, so this is the minimum surface we
+   * use rather than an unchecked any.
+   */
+  private razorpayClient: {
+    orders: {
+      create(opts: Record<string, unknown>): Promise<{
+        id: string;
+        amount: number;
+        currency: string;
+      }>;
+    };
+  } | null = null;
   private isMockMode = true;
 
   constructor() {
@@ -39,6 +51,10 @@ export class RazorpayService {
         amount: amountInPaise,
         currency: 'INR',
       };
+    }
+
+    if (!this.razorpayClient) {
+      throw new Error('Razorpay client is not initialised');
     }
 
     return this.razorpayClient.orders.create({

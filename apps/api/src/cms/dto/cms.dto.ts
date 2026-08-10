@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsHexColor,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -37,6 +38,50 @@ export class WhatsAppConfigDto {
   @IsString()
   @MaxLength(1000)
   cartMessageTemplate?: string;
+}
+
+export class HeroBannerDto {
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  title: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  subtitle?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsIn(['DESKTOP', 'MOBILE'])
+  deviceType?: 'DESKTOP' | 'MOBILE';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  ctaText?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  ctaLink?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  badgeText?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  displayOrder?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }
 
 export class AnnouncementDto {

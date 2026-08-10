@@ -17,7 +17,7 @@ import { Roles } from '../auth/roles.decorator';
 import { CmsService } from './cms.service';
 import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { WhatsAppConfigDto } from './dto/cms.dto';
+import { HeroBannerDto, TrustBadgeDto, WhatsAppConfigDto } from './dto/cms.dto';
 
 const CMS_STAFF = [Role.SUPER_ADMIN, Role.CATALOG_MANAGER] as const;
 
@@ -88,14 +88,14 @@ export class CmsController {
   @Post('hero')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(...CMS_STAFF)
-  async createHeroBanner(@Body() body: Record<string, unknown>) {
+  async createHeroBanner(@Body() body: HeroBannerDto) {
     return this.cmsService.createHeroBanner(body);
   }
 
   @Put('hero/:id')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(...CMS_STAFF)
-  async updateHeroBanner(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+  async updateHeroBanner(@Param('id') id: string, @Body() body: HeroBannerDto) {
     return this.cmsService.updateHeroBanner(id, body);
   }
 
@@ -109,14 +109,14 @@ export class CmsController {
   @Post('trust-badges')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(...CMS_STAFF)
-  async createTrustBadge(@Body() body: Record<string, unknown>) {
+  async createTrustBadge(@Body() body: TrustBadgeDto) {
     return this.cmsService.createTrustBadge(body);
   }
 
   @Put('trust-badges/:id')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(...CMS_STAFF)
-  async updateTrustBadge(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+  async updateTrustBadge(@Param('id') id: string, @Body() body: TrustBadgeDto) {
     return this.cmsService.updateTrustBadge(id, body);
   }
 

@@ -1,6 +1,16 @@
 import { BadRequestException, Controller, Get, Post, Body, Query, UseGuards, UseInterceptors, UploadedFile, Logger } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { createClient } from '@supabase/supabase-js';
+import { Request } from 'express';
+
+/** The fields we use from a multipart upload; @types/multer is not installed. */
+interface UploadedFileInfo {
+  originalname: string;
+  mimetype: string;
+  size: number;
+  path: string;
+  filename: string;
+}
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import ws from 'ws';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -13,7 +23,6 @@ import {
   mediaKindFor,
 } from './media.constants';
 
-import * as dotenv from 'dotenv';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { diskStorage } = require('multer');
@@ -28,8 +37,6 @@ export class MediaController {
   private readonly logger = new Logger(MediaController.name);
 
   private getSupabaseClient() {
-    dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-    dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
 
     const supabaseUrl = process.env.SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
@@ -41,17 +48,19 @@ export class MediaController {
           detectSessionInUrl: false,
         },
         realtime: {
-          transport: ws as any,
+          // supabase-js types this as the browser WebSocket; on Node we pass
+          // the ws implementation, which is structurally compatible.
+          transport: ws as unknown as typeof WebSocket,
         },
       });
     }
     return null;
   }
 
-  private async ensureBucketExists(supabase: any, bucketName: string) {
+  private async ensureBucketExists(supabase: SupabaseClient, bucketName: string) {
     try {
       const { data: buckets } = await supabase.storage.listBuckets();
-      const exists = buckets?.some((b: any) => b.name === bucketName);
+      const exists = buckets?.some((b) => b.name === bucketName);
       if (exists) {
         return;
       }
@@ -62,8 +71,8 @@ export class MediaController {
       } else {
         this.logger.log(`Public bucket '${bucketName}' created successfully in Supabase Storage!`);
       }
-    } catch (e: any) {
-      this.logger.warn(`Could not check/create bucket '${bucketName}': ${e?.message || e}`);
+    } catch (e) {
+      this.logger.warn(`Could not check/create bucket '${bucketName}': ${(e as Error).message}`);
     }
   }
 
@@ -72,7 +81,11 @@ export class MediaController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: uploadDir,
-        filename: (req: any, file: any, cb: any) => {
+        filename: (
+          _req: Request,
+          file: UploadedFileInfo,
+          cb: (err: Error | null, name: string) => void,
+        ) => {
           const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
           const ext = path.extname(file.originalname) || '.webp';
           cb(null, `upload-${uniqueSuffix}${ext}`);
@@ -80,7 +93,7 @@ export class MediaController {
       }),
     }),
   )
-  async uploadFile(@UploadedFile() file: any) {
+  async uploadFile(@UploadedFile() file: UploadedFileInfo) {
     if (!file) {
       return { success: false, message: 'No file provided' };
     }
@@ -131,8 +144,8 @@ export class MediaController {
         if (sErr) {
           this.logger.warn(`[Supabase Storage Upload Warning] ${sErr.message}. Falling back to local server storage.`);
         }
-      } catch (err: any) {
-        this.logger.warn(`[Supabase Storage Upload Exception] ${err?.message || err}`);
+      } catch (err) {
+        this.logger.warn(`[Supabase Storage Upload Exception] ${(err as Error).message}`);
       }
     }
 
@@ -207,8 +220,8 @@ export class MediaController {
             maxBytes: maxBytesFor(kind),
           };
         }
-      } catch (err: any) {
-        this.logger.warn(`Supabase Storage pre-signed URL warning: ${err?.message || err}`);
+      } catch (err) {
+        this.logger.warn(`Supabase Storage pre-signed URL warning: ${(err as Error).message}`);
       }
     }
 
@@ -248,7 +261,7 @@ export class MediaController {
   @UseInterceptors(FileInterceptor('file'))
   async mockUpload(
     @Query('filename') filename: string,
-    @UploadedFile() file: any,
+    @UploadedFile() file: UploadedFileInfo,
   ) {
     this.logger.log(`[Mock Media Upload] File received successfully: ${filename} (${file?.size ?? 0} bytes)`);
     return {
@@ -288,8 +301,8 @@ export class MediaController {
         } else {
           this.logger.log(`[Supabase Storage] Deleted file (${bucket}/${filePath}) successfully!`);
         }
-      } catch (err: any) {
-        this.logger.warn(`Supabase Storage remove error: ${err?.message || err}`);
+      } catch (err) {
+        this.logger.warn(`Supabase Storage remove error: ${(err as Error).message}`);
       }
     }
 
@@ -302,8 +315,8 @@ export class MediaController {
           fs.unlinkSync(localPath);
           this.logger.log(`[Local Disk] Deleted file (${localPath}) successfully!`);
         }
-      } catch (err: any) {
-        this.logger.warn(`Local file deletion error: ${err?.message || err}`);
+      } catch (err) {
+        this.logger.warn(`Local file deletion error: ${(err as Error).message}`);
       }
     }
 

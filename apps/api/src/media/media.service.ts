@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { createClient } from '@supabase/supabase-js';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as dotenv from 'dotenv';
 import ws from 'ws';
 
 @Injectable()
@@ -10,8 +9,6 @@ export class MediaService {
   private readonly logger = new Logger(MediaService.name);
 
   private getSupabaseClient() {
-    dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-    dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
 
     const supabaseUrl = process.env.SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
@@ -23,7 +20,9 @@ export class MediaService {
           detectSessionInUrl: false,
         },
         realtime: {
-          transport: ws as any,
+          // supabase-js types this as the browser WebSocket; on Node we pass
+          // the ws implementation, which is structurally compatible.
+          transport: ws as unknown as typeof WebSocket,
         },
       });
     }
@@ -72,8 +71,8 @@ export class MediaService {
           this.logger.log(`[Media Cleanup] Deleted old local file: ${localPath}`);
         }
       }
-    } catch (err: any) {
-      this.logger.warn(`[Media Cleanup Exception] Could not delete ${imageUrl}: ${err?.message || err}`);
+    } catch (err) {
+      this.logger.warn(`[Media Cleanup Exception] Could not delete ${imageUrl}: ${(err as Error).message}`);
     }
   }
 }
