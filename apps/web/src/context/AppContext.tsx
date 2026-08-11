@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 
 /** Carries the HTTP status so callers can tell a rejection from an outage. */
 class HttpError extends Error {
@@ -29,6 +29,9 @@ interface AppContextType {
   isLoading: boolean;
   /** False until localStorage has been read. Guard auth checks on this. */
   isSessionReady: boolean;
+  /** True when the session ended because the server rejected the token. */
+  sessionExpired: boolean;
+  authFetch: (path: string, init?: RequestInit) => Promise<Response | null>;
   walletBalance: number;
   loginPhone: string;
   setLoginPhone: (phone: string) => void;
@@ -96,6 +99,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSessionReady, setIsSessionReady] = useState<boolean>(false);
+  // Set when the server rejects the token, so a page can say why they are out.
+  const [sessionExpired, setSessionExpired] = useState<boolean>(false);
   const [loginPhone, setLoginPhone] = useState<string>('+919876543210');
   const [pendingCartVariantId, setPendingCartVariantId] = useState<string | null>(null);
   const [lastAddedVariantId, setLastAddedVariantId] = useState<string | null>(null);
@@ -105,35 +110,137 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // API_URL is imported from constants
 
+  /**
+   * Drops the session everywhere it is held.
+   *
+   * Separate from logout() because the boot check runs before logout is
+   * defined, and because being signed out by a rejected token is not the same
+   * event as a customer pressing Sign Out.
+   */
+  const clearStoredSession = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    setCart([]);
+    setWalletBalance(0);
+    localStorage.removeItem('cd_token');
+    localStorage.removeItem('cd_user');
+  }, []);
+
+  /**
+   * fetch for authenticated calls. A 401 means the session is gone, so it is
+   * cleared here rather than in each of the call sites that used to swallow it
+   * and leave the customer on a page they could not use.
+   */
+  const authFetch = useCallback(
+    async (path: string, init: RequestInit = {}): Promise<Response | null> => {
+      const currentToken = localStorage.getItem('cd_token');
+      if (!currentToken) return null;
+
+      const res = await fetch(`${API_URL}${path}`, {
+        ...init,
+        headers: {
+          ...(init.headers || {}),
+          Authorization: `Bearer ${currentToken}`,
+        },
+      });
+
+      if (res.status === 401) {
+        clearStoredSession();
+        setSessionExpired(true);
+      }
+
+      return res;
+    },
+    [clearStoredSession],
+  );
+
   // Attempt to restore token from localStorage on boot.
   //
   // isSessionReady exists because this runs *after* the first render, so a
   // page guarding on `!user` saw null and flashed a sign-in modal at a
   // customer who was already signed in.
   useEffect(() => {
-    try {
-      const savedToken = localStorage.getItem('cd_token');
-      const savedUser = localStorage.getItem('cd_user');
+    let cancelled = false;
 
-      if (savedToken && savedUser) {
+    const restore = async () => {
+      let savedToken: string | null = null;
+      let parsedUser: any = null;
+
+      try {
+        savedToken = localStorage.getItem('cd_token');
+        const savedUser = localStorage.getItem('cd_user');
+        if (savedToken && savedUser) parsedUser = JSON.parse(savedUser);
+      } catch {
+        // Corrupt localStorage should sign the customer out, not white-screen
+        // the whole storefront on a JSON.parse throw.
+        savedToken = null;
+        parsedUser = null;
+      }
+
+      if (!savedToken || !parsedUser) {
+        clearStoredSession();
+        try {
+          const guestCart = localStorage.getItem('cd_guest_cart');
+          if (guestCart && !cancelled) setCart(JSON.parse(guestCart));
+        } catch {
+          localStorage.removeItem('cd_guest_cart');
+        }
+        if (!cancelled) setIsSessionReady(true);
+        return;
+      }
+
+      // Ask the server whether this token is still good.
+      //
+      // Without this a rotated secret or an expired token is only discovered
+      // when the customer tries to save something — until then the storefront
+      // renders their name and their stored addresses and looks signed in,
+      // while every write fails.
+      try {
+        const res = await fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${savedToken}` },
+        });
+
+        if (cancelled) return;
+
+        if (res.status === 401 || res.status === 403) {
+          clearStoredSession();
+          setSessionExpired(true);
+          setIsSessionReady(true);
+          return;
+        }
+
+        if (res.ok) {
+          // Trust the server's copy over the stored one: a name or address
+          // changed on another device would otherwise stay stale here.
+          const fresh = await res.json();
+          setToken(savedToken);
+          setUser(fresh);
+          setWalletBalance(Number(fresh.walletBalance || 0));
+          localStorage.setItem('cd_user', JSON.stringify(fresh));
+          setIsSessionReady(true);
+          return;
+        }
+
+        // A 5xx or a network blip is not proof the session is invalid, so keep
+        // the stored one rather than signing a customer out over an outage.
         setToken(savedToken);
-        const parsedUser = JSON.parse(savedUser);
         setUser(parsedUser);
         setWalletBalance(Number(parsedUser.walletBalance || 0));
-      } else {
-        const guestCart = localStorage.getItem('cd_guest_cart');
-        if (guestCart) {
-          setCart(JSON.parse(guestCart));
-        }
+        setIsSessionReady(true);
+      } catch {
+        if (cancelled) return;
+        setToken(savedToken);
+        setUser(parsedUser);
+        setWalletBalance(Number(parsedUser.walletBalance || 0));
+        setIsSessionReady(true);
       }
-    } catch {
-      // Corrupt localStorage should sign the customer out, not white-screen
-      // the whole storefront on a JSON.parse throw.
-      localStorage.removeItem('cd_token');
-      localStorage.removeItem('cd_user');
-    } finally {
-      setIsSessionReady(true);
-    }
+    };
+
+    void restore();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Fetch cart once token changes
@@ -281,13 +388,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    setToken(null);
-    setUser(null);
-    setCart([]);
-    setWalletBalance(0);
-    localStorage.removeItem('cd_token');
-    localStorage.removeItem('cd_user');
+    clearStoredSession();
     localStorage.removeItem('cd_guest_cart');
+    setSessionExpired(false);
   };
 
   /**
@@ -843,6 +946,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         cart,
         isLoading,
         isSessionReady,
+        sessionExpired,
+        authFetch,
         walletBalance,
         loginPhone,
         setLoginPhone,

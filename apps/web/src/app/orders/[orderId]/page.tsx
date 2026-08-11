@@ -9,7 +9,6 @@ import Navbar from '../../../components/layout/Navbar';
 import Footer from '../../../components/layout/Footer';
 import Badge from '../../../components/ui/Badge';
 import AuthModal from '../../../components/modals/AuthModal';
-import { API_URL } from '../../../lib/constants';
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -17,33 +16,80 @@ export default function OrderDetailPage() {
   const orderId = params?.orderId as string;
   const isSuccess = searchParams?.get('status') === 'success';
 
-  const { user, token } = useApp();
+  const { user, isSessionReady, sessionExpired, authFetch } = useApp();
   const [order, setOrder] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  // 'missing' covers both "no such order" and "not yours" — the API returns
+  // 404 for another customer's order, and so should this page.
+  const [status, setStatus] = useState<'loading' | 'found' | 'missing'>('loading');
 
   useEffect(() => {
+    if (!isSessionReady) return;
     if (!user) { setIsAuthOpen(true); return; }
-    if (orderId && token) fetchOrder();
-  }, [orderId, token, user]);
+    if (orderId) fetchOrder();
+  }, [orderId, isSessionReady, user]);
 
   const fetchOrder = async () => {
     try {
-      const res = await fetch(`${API_URL}/orders/${orderId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
+      // authFetch clears the session on a 401, so a rejected token ends the
+      // spinner instead of leaving "Loading order details…" on screen for ever.
+      const res = await authFetch(`/orders/${orderId}`);
+      if (res?.ok) {
         setOrder(await res.json());
+        setStatus('found');
+        return;
       }
-    } catch { /* noop */ }
+      setStatus('missing');
+    } catch {
+      setStatus('missing');
+    }
   };
 
-  if (!order) {
+  if (!isSessionReady || (status === 'loading' && user)) {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar onCartOpen={() => {}} onAuthOpen={() => setIsAuthOpen(true)} />
         <div className="flex-1 flex items-center justify-center bg-[#FAF8F3]">
-          <div className="text-center space-y-4">
-            <div className="animate-pulse text-[#6b6661]">Loading order details...</div>
+          <div className="animate-pulse text-[#6b6661]">Loading order details…</div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!user || !order) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar onCartOpen={() => {}} onAuthOpen={() => setIsAuthOpen(true)} />
+        <div className="flex-1 flex items-center justify-center bg-[#FAF8F3] px-4">
+          <div className="bg-white border border-stone-200 rounded-2xl p-8 max-w-md text-center">
+            <h1 className="font-serif font-black text-xl text-[#2A2A2A] mb-2">
+              {!user
+                ? sessionExpired
+                  ? 'Your session has ended'
+                  : 'Sign in to see this order'
+                : 'Order not found'}
+            </h1>
+            <p className="text-sm text-[#6b6661] leading-relaxed mb-5">
+              {!user
+                ? 'For your security you have been signed out. Sign in again to track your order.'
+                : 'We could not find that order on your account.'}
+            </p>
+            {!user ? (
+              <button
+                onClick={() => setIsAuthOpen(true)}
+                className="px-6 py-3 bg-[#3A6038] hover:bg-[#2f4d2e] text-white text-xs font-bold rounded-xl transition"
+              >
+                Sign In
+              </button>
+            ) : (
+              <Link
+                href="/account?tab=orders"
+                className="inline-block px-6 py-3 bg-[#3A6038] hover:bg-[#2f4d2e] text-white text-xs font-bold rounded-xl transition"
+              >
+                See my orders
+              </Link>
+            )}
           </div>
         </div>
         <Footer />
@@ -82,7 +128,7 @@ export default function OrderDetailPage() {
           {/* Order Header */}
           <div className="mb-8">
             <h1 className="font-serif font-black text-2xl text-[#2A2A2A] mb-2">
-              Order #{order.id.slice(0, 12)}…
+              Order {order.orderNumber}
             </h1>
             <p className="text-xs text-[#6b6661]">Placed: {new Date(order.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
             <div className="flex gap-3 mt-3">

@@ -1,10 +1,4 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
@@ -48,7 +42,12 @@ export class AuthGuard implements CanActivate {
     }
 
     if (!user.isActive) {
-      throw new ForbiddenException('This account has been deactivated');
+      // 401, not 403. A 403 means "you are authenticated but not allowed this
+      // resource" — what RolesGuard returns when a customer hits an admin
+      // route, and something a client must not treat as the session ending.
+      // A deactivated account cannot authenticate at all, so its session is
+      // over and the client should sign it out.
+      throw new UnauthorizedException('This account has been deactivated');
     }
 
     (request as Request & { user: AuthenticatedUser }).user = {

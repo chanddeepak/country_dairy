@@ -21,7 +21,6 @@ import Footer from '../../components/layout/Footer';
 import Badge from '../../components/ui/Badge';
 import AuthModal from '../../components/modals/AuthModal';
 import CartDrawer from '../../components/cart/CartDrawer';
-import { API_URL } from '../../lib/constants';
 
 type Tab = 'overview' | 'orders' | 'profile' | 'subscriptions' | 'wallet' | 'addresses';
 
@@ -43,6 +42,8 @@ function AccountPageContent() {
     token,
     walletBalance,
     isSessionReady,
+    sessionExpired,
+    authFetch,
     addAddress,
     updateAddress,
     deleteAddress,
@@ -82,25 +83,21 @@ function AccountPageContent() {
   }, [isSessionReady, user, token]);
 
   const fetchOrders = async () => {
-    if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/orders`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
+      // authFetch clears the session on a 401 rather than leaving the page
+      // rendering an empty list as though the customer had never ordered.
+      const res = await authFetch('/orders');
+      if (res?.ok) {
         const data = await res.json();
         setOrders(Array.isArray(data) ? data : []);
       }
-    } catch { /* noop */ }
+    } catch { /* a network blip leaves the last known list on screen */ }
   };
 
   const fetchSubscriptions = async () => {
-    if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/subscriptions`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
+      const res = await authFetch('/subscriptions');
+      if (res?.ok) {
         const data = await res.json();
         setSubscriptions(Array.isArray(data) ? data : []);
       }
@@ -339,6 +336,60 @@ function AccountPageContent() {
 
   // ?tab=wallet must not open a hidden tab just because it was typed in.
   const visibleTab: Tab = TABS.some((t) => t.key === activeTab) ? activeTab : 'overview';
+
+  // Nothing about this account is shown without a live session. It used to
+  // render every tab from localStorage behind the sign-in modal, so a customer
+  // whose token had been rejected still saw their name, orders and addresses
+  // on a page where nothing they pressed would work.
+  if (!isSessionReady) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
+        <main className="flex-1 bg-[#FAF8F3] flex items-center justify-center">
+          <div className="animate-pulse text-sm text-[#6b6661]">Loading your account…</div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
+
+        <main className="flex-1 bg-[#FAF8F3]">
+          <div className="max-w-md mx-auto px-4 py-20 text-center">
+            <div className="bg-white border border-stone-200 rounded-2xl p-8">
+              <UserCog className="h-8 w-8 text-stone-300 mx-auto mb-3" />
+              <h1 className="font-serif font-black text-xl text-[#2A2A2A] mb-2">
+                {sessionExpired ? 'Your session has ended' : 'Sign in to see your account'}
+              </h1>
+              <p className="text-sm text-[#6b6661] leading-relaxed mb-5">
+                {sessionExpired
+                  ? 'For your security you have been signed out. Sign in again to see your orders and addresses.'
+                  : 'Your orders, addresses and profile live here once you sign in.'}
+              </p>
+              <button
+                onClick={() => setIsAuthOpen(true)}
+                className="px-6 py-3 bg-[#3A6038] hover:bg-[#2f4d2e] text-white text-xs font-bold rounded-xl transition"
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+        </main>
+
+        <Footer />
+        <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+        <CartDrawer
+          isOpen={isCartOpen}
+          onClose={() => setIsCartOpen(false)}
+          onCheckout={() => router.push('/checkout')}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
