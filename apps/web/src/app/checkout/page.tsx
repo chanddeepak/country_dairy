@@ -135,12 +135,21 @@ export default function CheckoutPage() {
     }
     setAddrSaving(true);
     try {
-      const success = await addAddress(newAddr.line1, newAddr.city, newAddr.state, newAddr.pincode, newAddr.phone);
-      if (success) {
+      const result = await addAddress(
+        newAddr.line1,
+        newAddr.city,
+        newAddr.state,
+        newAddr.pincode,
+        newAddr.phone,
+      );
+
+      if (result.ok) {
         setShowNewAddr(false);
         setNewAddr({ line1: '', city: '', state: '', pincode: '', phone: '' });
       } else {
-        setAddrError('Failed to save address. Please try again.');
+        // Show why, not just that. "Please try again" against an expired
+        // session sends the customer round the same loop for ever.
+        setAddrError(result.error || 'Failed to save address. Please try again.');
       }
     } catch {
       setAddrError('Error saving address.');

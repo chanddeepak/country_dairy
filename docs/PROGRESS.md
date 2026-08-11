@@ -296,7 +296,7 @@ Everything on the previous list has landed. What remains:
 
 ## 8. Test Suite
 
-`npm run verify` — 292 checks against a running API and the real database.
+`npm run verify` — 308 checks against a running API and the real database.
 
 | Suite | Checks | Covers |
 |---|---|---|
@@ -308,6 +308,6 @@ Everything on the previous list has landed. What remains:
 | `npm run test:lab` | 40 | Lab reports, published/unpublished boundary |
 | `npm run test:delivery` | 34 | Route sheets, driver isolation, completion |
 | `npm run test:webhook` | 34 | Signatures, idempotency, refunds, mismatches |
-| `npm run test:address` | 25 | Address CRUD, ownership, default handling |
+| `npm run test:address` | 41 | Address CRUD, ownership, profile, password change |
 
 The API must be running. Each suite creates and removes its own fixtures.

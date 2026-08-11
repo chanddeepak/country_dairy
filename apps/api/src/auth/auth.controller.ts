@@ -14,12 +14,14 @@ import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
 import { CurrentUser } from './current-user.decorator';
 import {
+  ChangePasswordDto,
   CreateAddressDto,
   GoogleLoginDto,
   LoginEmailDto,
   RegisterEmailDto,
   SendOtpDto,
   UpdateAddressDto,
+  UpdateProfileDto,
   VerifyOtpDto,
 } from './dto/auth.dto';
 
@@ -71,6 +73,20 @@ export class AuthController {
   @UseGuards(AuthGuard)
   async me(@CurrentUser() user: { id: string }) {
     return this.authService.validateUserById(user.id);
+  }
+
+  @Patch('profile')
+  @UseGuards(AuthGuard)
+  async updateProfile(@CurrentUser() user: { id: string }, @Body() dto: UpdateProfileDto) {
+    const updated = await this.authService.updateProfile(user.id, dto);
+    return { success: true, user: updated };
+  }
+
+  @Post('change-password')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePassword(@CurrentUser() user: { id: string }, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(user.id, dto);
   }
 
   @Post('address')

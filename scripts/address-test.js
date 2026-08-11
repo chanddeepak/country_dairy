@@ -183,6 +183,94 @@ const VALID = {
   const anonDelete = await call(`/auth/address/${firstId}`, { method: 'DELETE' });
   ok('anonymous delete rejected', anonDelete.status === 401, `status ${anonDelete.status}`);
 
+  // --- Profile ---
+  console.log('\n  Profile');
+  const profile = await call('/auth/profile', {
+    method: 'PATCH',
+    token: alice.token,
+    body: { name: 'Alice Renamed', phone: '9812345678' },
+  });
+  ok('profile updated', profile.ok, `status ${profile.status}`);
+  ok('name changed', profile.data?.user?.name === 'Alice Renamed', profile.data?.user?.name);
+  ok('phone changed', profile.data?.user?.phone === '9812345678');
+  ok('addresses still come back with the user', Array.isArray(profile.data?.user?.addresses));
+
+  const meAfter = await call('/auth/me', { token: alice.token });
+  ok('the change is not just cached — /auth/me agrees', meAfter.data?.name === 'Alice Renamed', meAfter.data?.name);
+
+  const badPhoneProfile = await call('/auth/profile', {
+    method: 'PATCH',
+    token: alice.token,
+    body: { phone: '12345' },
+  });
+  ok('an invalid mobile is rejected', badPhoneProfile.status === 400, `status ${badPhoneProfile.status}`);
+
+  const emailChange = await call('/auth/profile', {
+    method: 'PATCH',
+    token: alice.token,
+    body: { email: 'hijack@example.com' },
+  });
+  ok('email cannot be changed through the profile route', emailChange.status === 400, `status ${emailChange.status}`);
+
+  await call('/auth/profile', { method: 'PATCH', token: bob.token, body: { phone: '9700000001' } });
+  const phoneClash = await call('/auth/profile', {
+    method: 'PATCH',
+    token: alice.token,
+    body: { phone: '9700000001' },
+  });
+  ok("cannot take another account's mobile number", phoneClash.status === 400, `status ${phoneClash.status}`);
+
+  const anonProfile = await call('/auth/profile', { method: 'PATCH', body: { name: 'Anon' } });
+  ok('anonymous profile edit rejected', anonProfile.status === 401, `status ${anonProfile.status}`);
+
+  // --- Password ---
+  console.log('\n  Password');
+  const wrongCurrent = await call('/auth/change-password', {
+    method: 'POST',
+    token: alice.token,
+    body: { currentPassword: 'NotMyPassword#1', newPassword: 'BrandNew#2026' },
+  });
+  ok('a wrong current password is refused', wrongCurrent.status === 401, `status ${wrongCurrent.status}`);
+
+  const tooShort = await call('/auth/change-password', {
+    method: 'POST',
+    token: alice.token,
+    body: { currentPassword: 'TestPass#2026', newPassword: 'short' },
+  });
+  ok('a short new password is refused', tooShort.status === 400, `status ${tooShort.status}`);
+
+  const sameAgain = await call('/auth/change-password', {
+    method: 'POST',
+    token: alice.token,
+    body: { currentPassword: 'TestPass#2026', newPassword: 'TestPass#2026' },
+  });
+  ok('reusing the same password is refused', sameAgain.status === 400, `status ${sameAgain.status}`);
+
+  const changed = await call('/auth/change-password', {
+    method: 'POST',
+    token: alice.token,
+    body: { currentPassword: 'TestPass#2026', newPassword: 'BrandNew#2026' },
+  });
+  ok('password changed', changed.ok, `status ${changed.status}`);
+
+  const oldPassword = await call('/auth/email/login', {
+    method: 'POST',
+    body: { email: alice.email, password: 'TestPass#2026' },
+  });
+  ok('the old password no longer works', oldPassword.status === 401, `status ${oldPassword.status}`);
+
+  const newPassword = await call('/auth/email/login', {
+    method: 'POST',
+    body: { email: alice.email, password: 'BrandNew#2026' },
+  });
+  ok('the new password works', newPassword.ok, `status ${newPassword.status}`);
+
+  const anonPassword = await call('/auth/change-password', {
+    method: 'POST',
+    body: { currentPassword: 'x', newPassword: 'BrandNew#2026' },
+  });
+  ok('anonymous password change rejected', anonPassword.status === 401, `status ${anonPassword.status}`);
+
   // --- Delete ---
   console.log('\n  Deleting');
   const deleted = await call(`/auth/address/${secondId}`, {

@@ -14,6 +14,14 @@ class HttpError extends Error {
 }
 import { FALLBACK_PRODUCTS, API_URL } from '../lib/constants';
 
+/** Why an address write failed, so the page can say something true. */
+export interface AddressResult {
+  ok: boolean;
+  error?: string;
+  /** The session was rejected; the customer has been signed out. */
+  signedOut?: boolean;
+}
+
 interface AppContextType {
   user: any | null;
   token: string | null;
@@ -72,9 +80,11 @@ interface AppContextType {
     pincode: string,
     phone: string,
     line2?: string,
-  ) => Promise<boolean>;
-  updateAddress: (id: string, patch: Record<string, unknown>) => Promise<boolean>;
-  deleteAddress: (id: string) => Promise<boolean>;
+  ) => Promise<AddressResult>;
+  updateAddress: (id: string, patch: Record<string, unknown>) => Promise<AddressResult>;
+  deleteAddress: (id: string) => Promise<AddressResult>;
+  updateProfile: (patch: { name?: string; phone?: string }) => Promise<AddressResult>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<AddressResult>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -636,11 +646,122 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateProfile = async (patch: {
+    name?: string;
+    phone?: string;
+  }): Promise<AddressResult> => {
+    if (!token) return { ok: false, error: 'Please sign in first.', signedOut: true };
+
+    try {
+      const res = await fetch(`${API_URL}/auth/profile`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(patch),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Keep the addresses already held — /auth/me returns them, but a
+        // narrower response must not blank the address book.
+        const updatedUser = { ...user, ...data.user, addresses: data.user?.addresses ?? user?.addresses };
+        setUser(updatedUser);
+        localStorage.setItem('cd_user', JSON.stringify(updatedUser));
+        return { ok: true };
+      }
+
+      if (res.status === 401) {
+        logout();
+        return { ok: false, error: 'Your session has expired. Please sign in again.', signedOut: true };
+      }
+
+      const body = await res.json().catch(() => null);
+      const message = Array.isArray(body?.message)
+        ? body.message.join('. ')
+        : body?.message || 'Could not update your profile.';
+      return { ok: false, error: message };
+    } catch (err) {
+      console.error('Failed to update profile:', err);
+      return { ok: false, error: 'Could not reach the server. Check your connection and try again.' };
+    }
+  };
+
+  const changePassword = async (
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<AddressResult> => {
+    if (!token) return { ok: false, error: 'Please sign in first.', signedOut: true };
+
+    try {
+      const res = await fetch(`${API_URL}/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      if (res.ok) return { ok: true };
+
+      const body = await res.json().catch(() => null);
+      const message = Array.isArray(body?.message)
+        ? body.message.join('. ')
+        : body?.message || 'Could not change your password.';
+
+      // A 401 here means the *current password* was wrong, not that the
+      // session expired, so this must not sign the customer out.
+      return { ok: false, error: message };
+    } catch (err) {
+      console.error('Failed to change password:', err);
+      return { ok: false, error: 'Could not reach the server. Check your connection and try again.' };
+    }
+  };
+
   /** Persists the returned address list to state and localStorage. */
   const applyAddresses = (addresses: unknown[]) => {
     const updatedUser = { ...user, addresses };
     setUser(updatedUser);
     localStorage.setItem('cd_user', JSON.stringify(updatedUser));
+  };
+
+  /**
+   * One place to turn an address response into a result the UI can explain.
+   *
+   * These used to return a bare boolean, so the page could only ever say
+   * "check the details and try again" — including when the details were
+   * perfect and the real problem was an expired session. The API's own
+   * validation message is far more useful than anything invented here.
+   */
+  const handleAddressResponse = async (res: Response): Promise<AddressResult> => {
+    if (res.ok) {
+      const data = await res.json();
+      if (!data?.success) return { ok: false, error: 'The server rejected that change.' };
+
+      applyAddresses(data.addresses);
+      return { ok: true };
+    }
+
+    // An expired or rotated token is not a data problem, and telling the
+    // customer to check their PIN code sends them looking in the wrong place.
+    if (res.status === 401) {
+      logout();
+      return { ok: false, error: 'Your session has expired. Please sign in again.', signedOut: true };
+    }
+
+    let message = 'Could not save that address.';
+    try {
+      const body = await res.json();
+      // Nest returns a string or an array of validation messages.
+      if (Array.isArray(body?.message)) message = body.message.join('. ');
+      else if (typeof body?.message === 'string') message = body.message;
+    } catch {
+      // Keep the default when the body is not JSON.
+    }
+
+    return { ok: false, error: message };
   };
 
   const addAddress = async (
@@ -650,8 +771,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     pincode: string,
     phone: string,
     line2?: string,
-  ) => {
-    if (!token) return false;
+  ): Promise<AddressResult> => {
+    if (!token) return { ok: false, error: 'Please sign in to save an address.', signedOut: true };
 
     try {
       const res = await fetch(`${API_URL}/auth/address`, {
@@ -665,25 +786,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ line1, line2: line2 || undefined, city, state, postalCode: pincode, phone }),
       });
 
-      if (!res.ok) return false;
-
-      const data = await res.json();
-      if (!data.success) return false;
-
-      applyAddresses(data.addresses);
-      return true;
+      return await handleAddressResponse(res);
     } catch (err) {
       // Deliberately no fallback. This used to synthesise a local address and
-      // return true, so a failed save looked like a success — the customer saw
-      // a saved address that existed only in their browser, and it silently
-      // vanished on the next sign-in or, worse, was picked at checkout.
+      // report success, so a failed save looked like it worked — the customer
+      // saw an address that existed only in their browser.
       console.error('Failed to add address:', err);
-      return false;
+      return { ok: false, error: 'Could not reach the server. Check your connection and try again.' };
     }
   };
 
-  const updateAddress = async (id: string, patch: Record<string, unknown>) => {
-    if (!token) return false;
+  const updateAddress = async (
+    id: string,
+    patch: Record<string, unknown>,
+  ): Promise<AddressResult> => {
+    if (!token) return { ok: false, error: 'Please sign in first.', signedOut: true };
 
     try {
       const res = await fetch(`${API_URL}/auth/address/${id}`, {
@@ -695,21 +812,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify(patch),
       });
 
-      if (!res.ok) return false;
-
-      const data = await res.json();
-      if (!data.success) return false;
-
-      applyAddresses(data.addresses);
-      return true;
+      return await handleAddressResponse(res);
     } catch (err) {
       console.error('Failed to update address:', err);
-      return false;
+      return { ok: false, error: 'Could not reach the server. Check your connection and try again.' };
     }
   };
 
-  const deleteAddress = async (id: string) => {
-    if (!token) return false;
+  const deleteAddress = async (id: string): Promise<AddressResult> => {
+    if (!token) return { ok: false, error: 'Please sign in first.', signedOut: true };
 
     try {
       const res = await fetch(`${API_URL}/auth/address/${id}`, {
@@ -717,16 +828,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) return false;
-
-      const data = await res.json();
-      if (!data.success) return false;
-
-      applyAddresses(data.addresses);
-      return true;
+      return await handleAddressResponse(res);
     } catch (err) {
       console.error('Failed to delete address:', err);
-      return false;
+      return { ok: false, error: 'Could not reach the server. Check your connection and try again.' };
     }
   };
 
@@ -762,6 +867,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addAddress,
         updateAddress,
         deleteAddress,
+        updateProfile,
+        changePassword,
       }}
     >
       {children}

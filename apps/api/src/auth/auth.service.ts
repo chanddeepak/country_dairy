@@ -5,7 +5,12 @@ import * as bcrypt from 'bcryptjs';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { PrismaService } from '../prisma/prisma.service';
 import { FLAG, FeatureFlagsService } from '../feature-flags/feature-flags.service';
-import { CreateAddressDto, UpdateAddressDto } from './dto/auth.dto';
+import {
+  ChangePasswordDto,
+  CreateAddressDto,
+  UpdateAddressDto,
+  UpdateProfileDto,
+} from './dto/auth.dto';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -343,6 +348,67 @@ export class AuthService {
   }
 
   // --- ADDRESSES ---
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    if (dto.phone) {
+      // phone is unique on User, so a clash must be reported as a conflict
+      // rather than surfacing as a raw Prisma error.
+      const clash = await this.prisma.user.findFirst({
+        where: { phone: dto.phone, id: { not: userId } },
+        select: { id: true },
+      });
+
+      if (clash) {
+        throw new BadRequestException('That mobile number is already on another account');
+      }
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+        ...(dto.phone !== undefined ? { phone: dto.phone } : {}),
+      },
+    });
+
+    // The cached copy would otherwise serve the old name for up to 10s.
+    this.userCache.delete(userId);
+
+    this.logger.log(`Profile updated for ${userId}`);
+    return this.validateUserById(userId);
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, passwordHash: true },
+    });
+
+    if (!user?.passwordHash) {
+      // A Google-only account has no password to change.
+      throw new BadRequestException('This account does not sign in with a password');
+    }
+
+    // Requiring the current password is what stops a stolen session from
+    // locking the real owner out of their own account.
+    if (!(await bcrypt.compare(dto.currentPassword, user.passwordHash))) {
+      throw new UnauthorizedException('Your current password is not correct');
+    }
+
+    if (dto.currentPassword === dto.newPassword) {
+      throw new BadRequestException('The new password must be different');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS) },
+    });
+
+    this.userCache.delete(userId);
+    this.logger.log(`Password changed for ${userId}`);
+
+    return { success: true as const };
+  }
 
   async addAddress(userId: string, dto: CreateAddressDto) {
     const existingCount = await this.prisma.address.count({ where: { userId } });

@@ -138,3 +138,28 @@ export class UpdateAddressDto {
   @IsBoolean()
   isDefault?: boolean;
 }
+
+export class UpdateProfileDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(2, { message: 'Name must be at least 2 characters' })
+  @MaxLength(80)
+  name?: string;
+
+  // Email is the login identity, so changing it needs a verification flow of
+  // its own and is not editable here.
+  @IsOptional()
+  @Matches(/^(\+91)?[6-9][0-9]{9}$/, { message: 'Enter a valid Indian mobile number' })
+  phone?: string;
+}
+
+export class ChangePasswordDto {
+  @IsString()
+  @MinLength(1, { message: 'Enter your current password' })
+  currentPassword: string;
+
+  @IsString()
+  @MinLength(8, { message: 'New password must be at least 8 characters' })
+  @MaxLength(128)
+  newPassword: string;
+}

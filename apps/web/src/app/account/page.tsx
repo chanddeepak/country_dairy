@@ -3,7 +3,17 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Package, Calendar, Wallet, MapPin, LayoutDashboard, Plus, ArrowUpRight } from 'lucide-react';
+import {
+  Package,
+  Calendar,
+  Wallet,
+  MapPin,
+  LayoutDashboard,
+  Plus,
+  ArrowUpRight,
+  UserCog,
+  Check,
+} from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useStoreConfig } from '../../context/StoreConfigContext';
 import Navbar from '../../components/layout/Navbar';
@@ -13,12 +23,13 @@ import AuthModal from '../../components/modals/AuthModal';
 import CartDrawer from '../../components/cart/CartDrawer';
 import { API_URL } from '../../lib/constants';
 
-type Tab = 'overview' | 'orders' | 'subscriptions' | 'wallet' | 'addresses';
+type Tab = 'overview' | 'orders' | 'profile' | 'subscriptions' | 'wallet' | 'addresses';
 
 const addrField =
   'w-full px-3 py-2.5 bg-[#FAF8F3] border border-stone-200 rounded-lg text-sm text-[#2A2A2A] focus:outline-none focus:border-[#3A6038] transition';
+const addrLabel = 'block text-[11px] font-bold text-[#6b6661] uppercase tracking-wider mb-1.5';
 
-const TAB_KEYS: Tab[] = ['overview', 'orders', 'subscriptions', 'wallet', 'addresses'];
+const TAB_KEYS: Tab[] = ['overview', 'orders', 'profile', 'subscriptions', 'wallet', 'addresses'];
 
 function isTab(value: string | null): value is Tab {
   return !!value && (TAB_KEYS as string[]).includes(value);
@@ -35,6 +46,8 @@ function AccountPageContent() {
     addAddress,
     updateAddress,
     deleteAddress,
+    updateProfile,
+    changePassword,
   } = useApp();
   const { isFlagOn } = useStoreConfig();
 
@@ -176,8 +189,9 @@ function AccountPageContent() {
             addrForm.line2.trim() || undefined,
           );
 
-      if (!saved) {
-        setAddrError('Could not save that address. Check the details and try again.');
+      if (!saved.ok) {
+        setAddrError(saved.error || 'Could not save that address.');
+        if (saved.signedOut) setIsAuthOpen(true);
         return;
       }
 
@@ -191,8 +205,10 @@ function AccountPageContent() {
     setAddrBusyId(id);
     setAddrError('');
     try {
-      if (!(await updateAddress(id, { isDefault: true }))) {
-        setAddrError('Could not change the default address.');
+      const result = await updateAddress(id, { isDefault: true });
+      if (!result.ok) {
+        setAddrError(result.error || 'Could not change the default address.');
+        if (result.signedOut) setIsAuthOpen(true);
       }
     } finally {
       setAddrBusyId(null);
@@ -205,13 +221,103 @@ function AccountPageContent() {
     setAddrBusyId(pendingDeleteAddr.id);
     setAddrError('');
     try {
-      if (await deleteAddress(pendingDeleteAddr.id)) {
+      const result = await deleteAddress(pendingDeleteAddr.id);
+      if (result.ok) {
         setPendingDeleteAddr(null);
       } else {
-        setAddrError('Could not delete that address.');
+        setPendingDeleteAddr(null);
+        setAddrError(result.error || 'Could not delete that address.');
+        if (result.signedOut) setIsAuthOpen(true);
       }
     } finally {
       setAddrBusyId(null);
+    }
+  };
+
+  // --- Profile & security ---
+
+  const [profileForm, setProfileForm] = useState({ name: '', phone: '' });
+  const [profileError, setProfileError] = useState('');
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
+  const [pwError, setPwError] = useState('');
+  const [pwSaved, setPwSaved] = useState(false);
+  const [isSavingPw, setIsSavingPw] = useState(false);
+
+  // Seed the form once the stored user arrives, not on every render, so typing
+  // is not overwritten by the value it started from.
+  useEffect(() => {
+    if (user) setProfileForm({ name: user.name ?? '', phone: user.phone ?? '' });
+  }, [user?.id]);
+
+  const saveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (profileForm.name.trim().length < 2) {
+      setProfileError('Enter your name.');
+      return;
+    }
+    if (profileForm.phone && !/^[6-9][0-9]{9}$/.test(profileForm.phone)) {
+      setProfileError('Enter a valid 10-digit Indian mobile number.');
+      return;
+    }
+
+    setProfileError('');
+    setProfileSaved(false);
+    setIsSavingProfile(true);
+    try {
+      const result = await updateProfile({
+        name: profileForm.name.trim(),
+        phone: profileForm.phone || undefined,
+      });
+
+      if (!result.ok) {
+        setProfileError(result.error || 'Could not update your profile.');
+        if (result.signedOut) setIsAuthOpen(true);
+        return;
+      }
+
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 3000);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const savePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!pwForm.current) {
+      setPwError('Enter your current password.');
+      return;
+    }
+    if (pwForm.next.length < 8) {
+      setPwError('Your new password must be at least 8 characters.');
+      return;
+    }
+    if (pwForm.next !== pwForm.confirm) {
+      setPwError('The two new passwords do not match.');
+      return;
+    }
+
+    setPwError('');
+    setPwSaved(false);
+    setIsSavingPw(true);
+    try {
+      const result = await changePassword(pwForm.current, pwForm.next);
+
+      if (!result.ok) {
+        setPwError(result.error || 'Could not change your password.');
+        return;
+      }
+
+      setPwForm({ current: '', next: '', confirm: '' });
+      setPwSaved(true);
+      setTimeout(() => setPwSaved(false), 4000);
+    } finally {
+      setIsSavingPw(false);
     }
   };
 
@@ -228,6 +334,7 @@ function AccountPageContent() {
       ? [{ key: 'wallet' as Tab, label: 'Wallet', icon: <Wallet className="h-4 w-4" /> }]
       : []),
     { key: 'addresses', label: 'Addresses', icon: <MapPin className="h-4 w-4" /> },
+    { key: 'profile', label: 'Profile & Security', icon: <UserCog className="h-4 w-4" /> },
   ];
 
   // ?tab=wallet must not open a hidden tab just because it was typed in.
@@ -436,6 +543,138 @@ function AccountPageContent() {
                       </div>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* PROFILE & SECURITY */}
+              {visibleTab === 'profile' && (
+                <div className="space-y-6 max-w-xl">
+                  {/* Details */}
+                  <form onSubmit={saveProfile} className="bg-white border border-stone-200 rounded-xl p-5 space-y-3">
+                    <h3 className="font-bold text-sm text-[#2A2A2A]">Your details</h3>
+
+                    {profileError && (
+                      <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-medium">
+                        {profileError}
+                      </div>
+                    )}
+                    {profileSaved && (
+                      <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs font-medium">
+                        <Check className="h-4 w-4 shrink-0" /> Saved.
+                      </div>
+                    )}
+
+                    <div>
+                      <label className={addrLabel}>Name</label>
+                      <input
+                        type="text"
+                        value={profileForm.name}
+                        onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                        placeholder="Your full name"
+                        className={addrField}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={addrLabel}>Mobile number</label>
+                      <input
+                        type="tel"
+                        maxLength={10}
+                        value={profileForm.phone}
+                        onChange={(e) =>
+                          setProfileForm({ ...profileForm, phone: e.target.value.replace(/\D/g, '') })
+                        }
+                        placeholder="10-digit mobile"
+                        className={addrField}
+                      />
+                      <p className="text-[11px] text-[#6b6661] mt-1.5">
+                        Used for delivery updates and to reach you about an order.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className={addrLabel}>Email</label>
+                      <input
+                        type="email"
+                        value={user?.email ?? ''}
+                        readOnly
+                        disabled
+                        className={`${addrField} opacity-60 cursor-not-allowed`}
+                      />
+                      {/* Email is the sign-in identity. Changing it needs a
+                          verification step of its own, so it is read-only
+                          rather than a field that silently fails. */}
+                      <p className="text-[11px] text-[#6b6661] mt-1.5">
+                        You sign in with this address. Write to us if you need it changed.
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSavingProfile}
+                      className="px-5 py-2.5 bg-[#3A6038] hover:bg-[#2f4d2e] text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
+                    >
+                      {isSavingProfile ? 'Saving…' : 'Save details'}
+                    </button>
+                  </form>
+
+                  {/* Password */}
+                  <form onSubmit={savePassword} className="bg-white border border-stone-200 rounded-xl p-5 space-y-3">
+                    <h3 className="font-bold text-sm text-[#2A2A2A]">Change password</h3>
+
+                    {pwError && (
+                      <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-medium">
+                        {pwError}
+                      </div>
+                    )}
+                    {pwSaved && (
+                      <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs font-medium">
+                        <Check className="h-4 w-4 shrink-0" /> Password changed.
+                      </div>
+                    )}
+
+                    <div>
+                      <label className={addrLabel}>Current password</label>
+                      <input
+                        type="password"
+                        autoComplete="current-password"
+                        value={pwForm.current}
+                        onChange={(e) => setPwForm({ ...pwForm, current: e.target.value })}
+                        className={addrField}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={addrLabel}>New password</label>
+                      <input
+                        type="password"
+                        autoComplete="new-password"
+                        value={pwForm.next}
+                        onChange={(e) => setPwForm({ ...pwForm, next: e.target.value })}
+                        placeholder="At least 8 characters"
+                        className={addrField}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={addrLabel}>Confirm new password</label>
+                      <input
+                        type="password"
+                        autoComplete="new-password"
+                        value={pwForm.confirm}
+                        onChange={(e) => setPwForm({ ...pwForm, confirm: e.target.value })}
+                        className={addrField}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSavingPw}
+                      className="px-5 py-2.5 bg-[#3A6038] hover:bg-[#2f4d2e] text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
+                    >
+                      {isSavingPw ? 'Changing…' : 'Change password'}
+                    </button>
+                  </form>
                 </div>
               )}
 
