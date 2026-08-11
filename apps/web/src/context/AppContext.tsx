@@ -19,6 +19,8 @@ interface AppContextType {
   token: string | null;
   cart: any[];
   isLoading: boolean;
+  /** False until localStorage has been read. Guard auth checks on this. */
+  isSessionReady: boolean;
   walletBalance: number;
   loginPhone: string;
   setLoginPhone: (phone: string) => void;
@@ -63,7 +65,16 @@ interface AppContextType {
   checkout: (addressId: string) => Promise<any>;
   verifyPayment: (orderId: string, payId: string) => Promise<boolean>;
   createSubscription: (data: { productId: string; quantity: number; frequency: string; daysOfWeek: number[]; startDate: string }) => Promise<any>;
-  addAddress: (line1: string, city: string, state: string, pincode: string, phone: string) => Promise<boolean>;
+  addAddress: (
+    line1: string,
+    city: string,
+    state: string,
+    pincode: string,
+    phone: string,
+    line2?: string,
+  ) => Promise<boolean>;
+  updateAddress: (id: string, patch: Record<string, unknown>) => Promise<boolean>;
+  deleteAddress: (id: string) => Promise<boolean>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -74,6 +85,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<any[]>([]);
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSessionReady, setIsSessionReady] = useState<boolean>(false);
   const [loginPhone, setLoginPhone] = useState<string>('+919876543210');
   const [pendingCartVariantId, setPendingCartVariantId] = useState<string | null>(null);
   const [lastAddedVariantId, setLastAddedVariantId] = useState<string | null>(null);
@@ -83,20 +95,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // API_URL is imported from constants
 
-  // Attempt to restore token from localStorage on boot
+  // Attempt to restore token from localStorage on boot.
+  //
+  // isSessionReady exists because this runs *after* the first render, so a
+  // page guarding on `!user` saw null and flashed a sign-in modal at a
+  // customer who was already signed in.
   useEffect(() => {
-    const savedToken = localStorage.getItem('cd_token');
-    const savedUser = localStorage.getItem('cd_user');
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      const parsedUser = JSON.parse(savedUser);
-      setUser(parsedUser);
-      setWalletBalance(Number(parsedUser.walletBalance || 0));
-    } else {
-      const guestCart = localStorage.getItem('cd_guest_cart');
-      if (guestCart) {
-        setCart(JSON.parse(guestCart));
+    try {
+      const savedToken = localStorage.getItem('cd_token');
+      const savedUser = localStorage.getItem('cd_user');
+
+      if (savedToken && savedUser) {
+        setToken(savedToken);
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        setWalletBalance(Number(parsedUser.walletBalance || 0));
+      } else {
+        const guestCart = localStorage.getItem('cd_guest_cart');
+        if (guestCart) {
+          setCart(JSON.parse(guestCart));
+        }
       }
+    } catch {
+      // Corrupt localStorage should sign the customer out, not white-screen
+      // the whole storefront on a JSON.parse throw.
+      localStorage.removeItem('cd_token');
+      localStorage.removeItem('cd_user');
+    } finally {
+      setIsSessionReady(true);
     }
   }, []);
 
@@ -610,8 +636,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addAddress = async (line1: string, city: string, state: string, pincode: string, phone: string) => {
+  /** Persists the returned address list to state and localStorage. */
+  const applyAddresses = (addresses: unknown[]) => {
+    const updatedUser = { ...user, addresses };
+    setUser(updatedUser);
+    localStorage.setItem('cd_user', JSON.stringify(updatedUser));
+  };
+
+  const addAddress = async (
+    line1: string,
+    city: string,
+    state: string,
+    pincode: string,
+    phone: string,
+    line2?: string,
+  ) => {
     if (!token) return false;
+
     try {
       const res = await fetch(`${API_URL}/auth/address`, {
         method: 'POST',
@@ -621,37 +662,71 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         },
         // The API field is postalCode; sending `pincode` fails validation
         // outright now that unknown properties are rejected.
-        body: JSON.stringify({ line1, city, state, postalCode: pincode, phone }),
+        body: JSON.stringify({ line1, line2: line2 || undefined, city, state, postalCode: pincode, phone }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          const updatedUser = { ...user, addresses: data.addresses };
-          setUser(updatedUser);
-          localStorage.setItem('cd_user', JSON.stringify(updatedUser));
-          return true;
-        }
-      }
-      return false;
-    } catch (err) {
-      console.error('Failed to add address:', err);
-      // Fallback for mock mode
-      const mockAddr = {
-        id: `mock-addr-${Date.now()}`,
-        street: line1,
-        city,
-        state,
-        postalCode: pincode,
-        phone,
-        isDefault: false
-      };
-      const updatedUser = {
-        ...user,
-        addresses: [...(user.addresses || []), mockAddr]
-      };
-      setUser(updatedUser);
-      localStorage.setItem('cd_user', JSON.stringify(updatedUser));
+
+      if (!res.ok) return false;
+
+      const data = await res.json();
+      if (!data.success) return false;
+
+      applyAddresses(data.addresses);
       return true;
+    } catch (err) {
+      // Deliberately no fallback. This used to synthesise a local address and
+      // return true, so a failed save looked like a success — the customer saw
+      // a saved address that existed only in their browser, and it silently
+      // vanished on the next sign-in or, worse, was picked at checkout.
+      console.error('Failed to add address:', err);
+      return false;
+    }
+  };
+
+  const updateAddress = async (id: string, patch: Record<string, unknown>) => {
+    if (!token) return false;
+
+    try {
+      const res = await fetch(`${API_URL}/auth/address/${id}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(patch),
+      });
+
+      if (!res.ok) return false;
+
+      const data = await res.json();
+      if (!data.success) return false;
+
+      applyAddresses(data.addresses);
+      return true;
+    } catch (err) {
+      console.error('Failed to update address:', err);
+      return false;
+    }
+  };
+
+  const deleteAddress = async (id: string) => {
+    if (!token) return false;
+
+    try {
+      const res = await fetch(`${API_URL}/auth/address/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) return false;
+
+      const data = await res.json();
+      if (!data.success) return false;
+
+      applyAddresses(data.addresses);
+      return true;
+    } catch (err) {
+      console.error('Failed to delete address:', err);
+      return false;
     }
   };
 
@@ -662,6 +737,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         token,
         cart,
         isLoading,
+        isSessionReady,
         walletBalance,
         loginPhone,
         setLoginPhone,
@@ -684,6 +760,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         verifyPayment,
         createSubscription,
         addAddress,
+        updateAddress,
+        deleteAddress,
       }}
     >
       {children}

@@ -203,7 +203,7 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
                         </Link>
 
                         <Link
-                          href="/account"
+                          href="/account?tab=orders"
                           className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#2A2A2A] hover:bg-[#FAF8F3] transition"
                           onClick={() => setUserDropdownOpen(false)}
                         >
@@ -281,6 +281,9 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
               <div className="pt-2 border-t border-stone-100 space-y-2">
                 <Link href="/account" className="block text-sm font-bold text-[#3A6038]" onClick={() => setMobileMenuOpen(false)}>
                   My Account
+                </Link>
+                <Link href="/account?tab=orders" className="block text-sm font-bold text-[#3A6038]" onClick={() => setMobileMenuOpen(false)}>
+                  My Orders
                 </Link>
                 <button onClick={handleLogout} className="block text-sm font-bold text-red-600">
                   Sign Out

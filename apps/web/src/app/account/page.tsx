@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { Suspense, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Package, Calendar, Wallet, MapPin, LayoutDashboard, Plus, ArrowUpRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useStoreConfig } from '../../context/StoreConfigContext';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import Badge from '../../components/ui/Badge';
@@ -14,21 +15,58 @@ import { API_URL } from '../../lib/constants';
 
 type Tab = 'overview' | 'orders' | 'subscriptions' | 'wallet' | 'addresses';
 
-export default function AccountPage() {
+const addrField =
+  'w-full px-3 py-2.5 bg-[#FAF8F3] border border-stone-200 rounded-lg text-sm text-[#2A2A2A] focus:outline-none focus:border-[#3A6038] transition';
+
+const TAB_KEYS: Tab[] = ['overview', 'orders', 'subscriptions', 'wallet', 'addresses'];
+
+function isTab(value: string | null): value is Tab {
+  return !!value && (TAB_KEYS as string[]).includes(value);
+}
+
+function AccountPageContent() {
   const router = useRouter();
-  const { user, token, walletBalance } = useApp();
+  const searchParams = useSearchParams();
+  const {
+    user,
+    token,
+    walletBalance,
+    isSessionReady,
+    addAddress,
+    updateAddress,
+    deleteAddress,
+  } = useApp();
+  const { isFlagOn } = useStoreConfig();
+
+  const walletEnabled = isFlagOn('ENABLE_WALLET');
+  const subscriptionsEnabled = isFlagOn('ENABLE_SUBSCRIPTIONS');
 
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [orders, setOrders] = useState<any[]>([]);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
 
+  // The tab lives in the URL rather than in state. It was local state, so
+  // "My Orders" in the navbar had nowhere to point and had to link to
+  // /account — landing on Overview, indistinguishable from "My Account".
+  // It also means a tab survives a refresh and can be linked to.
+  const requestedTab = searchParams.get('tab');
+  const activeTab: Tab = isTab(requestedTab) ? requestedTab : 'overview';
+
+  const setActiveTab = (tab: Tab) => {
+    router.replace(tab === 'overview' ? '/account' : `/account?tab=${tab}`, { scroll: false });
+  };
+
   useEffect(() => {
+    // Wait for the stored session to load. Without this the modal opens on
+    // every visit before localStorage has been read, at customers who are
+    // already signed in.
+    if (!isSessionReady) return;
+
     if (!user) { setIsAuthOpen(true); return; }
     fetchOrders();
     fetchSubscriptions();
-  }, [user, token]);
+  }, [isSessionReady, user, token]);
 
   const fetchOrders = async () => {
     if (!token) return;
@@ -58,13 +96,142 @@ export default function AccountPage() {
 
   const addresses = user?.addresses || [];
 
+  // --- Address book ---
+  //
+  // The whole tab was markup. "Add New Address", "Edit" and "Delete" were
+  // buttons with no onClick, so nothing happened when a customer pressed them.
+
+  const emptyAddrForm = { line1: '', line2: '', city: '', state: '', postalCode: '', phone: '' };
+
+  const [isAddrFormOpen, setIsAddrFormOpen] = useState(false);
+  const [editingAddrId, setEditingAddrId] = useState<string | null>(null);
+  const [addrForm, setAddrForm] = useState(emptyAddrForm);
+  const [addrError, setAddrError] = useState('');
+  const [isSavingAddr, setIsSavingAddr] = useState(false);
+  const [addrBusyId, setAddrBusyId] = useState<string | null>(null);
+  const [pendingDeleteAddr, setPendingDeleteAddr] = useState<any>(null);
+
+  const openAddrForm = (addr?: any) => {
+    setAddrError('');
+    setEditingAddrId(addr?.id ?? null);
+    setAddrForm(
+      addr
+        ? {
+            line1: addr.line1 ?? '',
+            line2: addr.line2 ?? '',
+            city: addr.city ?? '',
+            state: addr.state ?? '',
+            postalCode: addr.postalCode ?? '',
+            phone: addr.phone ?? '',
+          }
+        : emptyAddrForm,
+    );
+    setIsAddrFormOpen(true);
+  };
+
+  const closeAddrForm = () => {
+    setIsAddrFormOpen(false);
+    setEditingAddrId(null);
+    setAddrForm(emptyAddrForm);
+    setAddrError('');
+  };
+
+  /** Mirrors the API's DTO so a bad field is caught before the round trip. */
+  const addrProblem = (): string | null => {
+    if (addrForm.line1.trim().length < 3) return 'Enter the flat or house number and street.';
+    if (addrForm.city.trim().length < 2) return 'Enter a city.';
+    if (addrForm.state.trim().length < 2) return 'Enter a state.';
+    if (!/^[1-9][0-9]{5}$/.test(addrForm.postalCode)) return 'Enter a valid 6-digit PIN code.';
+    if (!/^[6-9][0-9]{9}$/.test(addrForm.phone)) return 'Enter a valid 10-digit mobile number.';
+    return null;
+  };
+
+  const saveAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const problem = addrProblem();
+    if (problem) {
+      setAddrError(problem);
+      return;
+    }
+
+    setAddrError('');
+    setIsSavingAddr(true);
+    try {
+      const saved = editingAddrId
+        ? await updateAddress(editingAddrId, {
+            line1: addrForm.line1.trim(),
+            line2: addrForm.line2.trim() || undefined,
+            city: addrForm.city.trim(),
+            state: addrForm.state.trim(),
+            postalCode: addrForm.postalCode,
+            phone: addrForm.phone,
+          })
+        : await addAddress(
+            addrForm.line1.trim(),
+            addrForm.city.trim(),
+            addrForm.state.trim(),
+            addrForm.postalCode,
+            addrForm.phone,
+            addrForm.line2.trim() || undefined,
+          );
+
+      if (!saved) {
+        setAddrError('Could not save that address. Check the details and try again.');
+        return;
+      }
+
+      closeAddrForm();
+    } finally {
+      setIsSavingAddr(false);
+    }
+  };
+
+  const makeDefault = async (id: string) => {
+    setAddrBusyId(id);
+    setAddrError('');
+    try {
+      if (!(await updateAddress(id, { isDefault: true }))) {
+        setAddrError('Could not change the default address.');
+      }
+    } finally {
+      setAddrBusyId(null);
+    }
+  };
+
+  const confirmDeleteAddress = async () => {
+    if (!pendingDeleteAddr) return;
+
+    setAddrBusyId(pendingDeleteAddr.id);
+    setAddrError('');
+    try {
+      if (await deleteAddress(pendingDeleteAddr.id)) {
+        setPendingDeleteAddr(null);
+      } else {
+        setAddrError('Could not delete that address.');
+      }
+    } finally {
+      setAddrBusyId(null);
+    }
+  };
+
+  // A tab for a disabled feature is hidden, not merely empty. Wallet and
+  // Subscriptions were listed unconditionally, so the account page advertised
+  // a wallet the store does not have.
   const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'overview', label: 'Overview', icon: <LayoutDashboard className="h-4 w-4" /> },
     { key: 'orders', label: 'Orders', icon: <Package className="h-4 w-4" /> },
-    { key: 'subscriptions', label: 'Subscriptions', icon: <Calendar className="h-4 w-4" /> },
-    { key: 'wallet', label: 'Wallet', icon: <Wallet className="h-4 w-4" /> },
+    ...(subscriptionsEnabled
+      ? [{ key: 'subscriptions' as Tab, label: 'Subscriptions', icon: <Calendar className="h-4 w-4" /> }]
+      : []),
+    ...(walletEnabled
+      ? [{ key: 'wallet' as Tab, label: 'Wallet', icon: <Wallet className="h-4 w-4" /> }]
+      : []),
     { key: 'addresses', label: 'Addresses', icon: <MapPin className="h-4 w-4" /> },
   ];
+
+  // ?tab=wallet must not open a hidden tab just because it was typed in.
+  const visibleTab: Tab = TABS.some((t) => t.key === activeTab) ? activeTab : 'overview';
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -82,7 +249,7 @@ export default function AccountPage() {
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition ${
-                    activeTab === tab.key
+                    visibleTab === tab.key
                       ? 'bg-[#3A6038] text-white shadow-md'
                       : 'text-[#6b6661] hover:bg-white hover:text-[#2A2A2A]'
                   }`}
@@ -96,17 +263,19 @@ export default function AccountPage() {
             {/* Tab Content */}
             <div className="min-h-[400px]">
               {/* OVERVIEW */}
-              {activeTab === 'overview' && (
+              {visibleTab === 'overview' && (
                 <div className="space-y-8">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-white border border-stone-200 rounded-xl p-6 text-center">
-                      <Wallet className="h-6 w-6 text-[#C59B27] mx-auto mb-2" />
-                      <p className="text-2xl font-black text-[#3A6038]">₹{walletBalance}</p>
-                      <p className="text-xs text-[#6b6661] mt-1">Wallet Balance</p>
-                      <button onClick={() => setActiveTab('wallet')} className="text-xs font-bold text-[#3A6038] mt-3 hover:underline">
-                        Top Up
-                      </button>
-                    </div>
+                    {walletEnabled && (
+                      <div className="bg-white border border-stone-200 rounded-xl p-6 text-center">
+                        <Wallet className="h-6 w-6 text-[#C59B27] mx-auto mb-2" />
+                        <p className="text-2xl font-black text-[#3A6038]">₹{walletBalance}</p>
+                        <p className="text-xs text-[#6b6661] mt-1">Wallet Balance</p>
+                        <button onClick={() => setActiveTab('wallet')} className="text-xs font-bold text-[#3A6038] mt-3 hover:underline">
+                          Top Up
+                        </button>
+                      </div>
+                    )}
                     <div className="bg-white border border-stone-200 rounded-xl p-6 text-center">
                       <Package className="h-6 w-6 text-[#C59B27] mx-auto mb-2" />
                       <p className="text-2xl font-black text-[#2A2A2A]">{orders.length}</p>
@@ -115,14 +284,16 @@ export default function AccountPage() {
                         View All
                       </button>
                     </div>
-                    <div className="bg-white border border-stone-200 rounded-xl p-6 text-center">
-                      <Calendar className="h-6 w-6 text-[#C59B27] mx-auto mb-2" />
-                      <p className="text-2xl font-black text-[#2A2A2A]">{subscriptions.filter((s) => s.status === 'ACTIVE').length}</p>
-                      <p className="text-xs text-[#6b6661] mt-1">Active Subscriptions</p>
-                      <button onClick={() => setActiveTab('subscriptions')} className="text-xs font-bold text-[#3A6038] mt-3 hover:underline">
-                        Manage
-                      </button>
-                    </div>
+                    {subscriptionsEnabled && (
+                      <div className="bg-white border border-stone-200 rounded-xl p-6 text-center">
+                        <Calendar className="h-6 w-6 text-[#C59B27] mx-auto mb-2" />
+                        <p className="text-2xl font-black text-[#2A2A2A]">{subscriptions.filter((s) => s.status === 'ACTIVE').length}</p>
+                        <p className="text-xs text-[#6b6661] mt-1">Active Subscriptions</p>
+                        <button onClick={() => setActiveTab('subscriptions')} className="text-xs font-bold text-[#3A6038] mt-3 hover:underline">
+                          Manage
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Recent Orders */}
@@ -135,11 +306,11 @@ export default function AccountPage() {
                         {orders.slice(0, 3).map((order) => (
                           <div key={order.id} className="bg-white border border-stone-200 rounded-lg p-4 flex items-center justify-between">
                             <div>
-                              <span className="text-sm font-bold text-[#2A2A2A]">{order.id.slice(0, 12)}…</span>
+                              <span className="text-sm font-bold text-[#2A2A2A]">{order.orderNumber}</span>
                               <span className="mx-2 text-[#6b6661]">•</span>
                               <span className="text-xs text-[#6b6661]">{new Date(order.createdAt).toLocaleDateString()}</span>
                               <span className="mx-2 text-[#6b6661]">•</span>
-                              <span className="text-sm font-bold text-[#2A2A2A]">₹{order.total}</span>
+                              <span className="text-sm font-bold text-[#2A2A2A]">₹{Number(order.totalAmount).toLocaleString('en-IN')}</span>
                             </div>
                             <div className="flex items-center gap-3">
                               <Badge status={order.status} />
@@ -156,7 +327,7 @@ export default function AccountPage() {
               )}
 
               {/* ORDERS */}
-              {activeTab === 'orders' && (
+              {visibleTab === 'orders' && (
                 <div>
                   <h3 className="font-bold text-sm text-[#2A2A2A] mb-4">All Orders</h3>
                   {orders.length === 0 ? (
@@ -169,11 +340,11 @@ export default function AccountPage() {
                       {orders.map((order) => (
                         <div key={order.id} className="bg-white border border-stone-200 rounded-lg p-4 flex items-center justify-between">
                           <div>
-                            <span className="text-sm font-bold text-[#2A2A2A]">{order.id.slice(0, 12)}…</span>
+                            <span className="text-sm font-bold text-[#2A2A2A]">{order.orderNumber}</span>
                             <span className="mx-2 text-[#6b6661]">•</span>
                             <span className="text-xs text-[#6b6661]">{new Date(order.createdAt).toLocaleDateString()}</span>
                             <span className="mx-2 text-[#6b6661]">•</span>
-                            <span className="text-sm font-bold text-[#2A2A2A]">₹{order.total}</span>
+                            <span className="text-sm font-bold text-[#2A2A2A]">₹{Number(order.totalAmount).toLocaleString('en-IN')}</span>
                           </div>
                           <div className="flex items-center gap-3">
                             <Badge status={order.status} />
@@ -190,7 +361,7 @@ export default function AccountPage() {
               )}
 
               {/* SUBSCRIPTIONS */}
-              {activeTab === 'subscriptions' && (
+              {visibleTab === 'subscriptions' && (
                 <div>
                   <h3 className="font-bold text-sm text-[#2A2A2A] mb-4">My Subscriptions</h3>
                   {subscriptions.length === 0 ? (
@@ -229,7 +400,7 @@ export default function AccountPage() {
               )}
 
               {/* WALLET */}
-              {activeTab === 'wallet' && (
+              {visibleTab === 'wallet' && (
                 <div>
                   <div className="bg-white border border-stone-200 rounded-xl p-8 text-center mb-8">
                     <p className="text-xs font-bold text-[#6b6661] uppercase tracking-wider mb-1">Current Balance</p>
@@ -269,33 +440,192 @@ export default function AccountPage() {
               )}
 
               {/* ADDRESSES */}
-              {activeTab === 'addresses' && (
+              {visibleTab === 'addresses' && (
                 <div>
                   <h3 className="font-bold text-sm text-[#2A2A2A] mb-4">Saved Addresses</h3>
-                  {addresses.length === 0 ? (
-                    <p className="text-xs text-[#6b6661]">No saved addresses.</p>
+
+                  {addrError && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-medium">
+                      {addrError}
+                    </div>
+                  )}
+
+                  {addresses.length === 0 && !isAddrFormOpen ? (
+                    <p className="text-xs text-[#6b6661] mb-6">No saved addresses.</p>
                   ) : (
                     <div className="space-y-3 mb-6">
-                      {addresses.map((addr: any, idx: number) => (
-                        <div key={addr.id} className="bg-white border border-stone-200 rounded-lg p-4 flex justify-between items-start">
-                          <div>
-                            <span className="text-sm font-bold text-[#2A2A2A]">📍 {addr.line1}, {addr.city} {addr.pincode}</span>
-                            {idx === 0 && (
-                              <span className="ml-2 text-[10px] font-bold text-[#3A6038] bg-[#3A6038]/10 px-2 py-0.5 rounded-full">DEFAULT</span>
+                      {addresses.map((addr: any) => (
+                        <div key={addr.id} className="bg-white border border-stone-200 rounded-lg p-4 flex justify-between items-start gap-3">
+                          <div className="min-w-0">
+                            <span className="text-sm font-bold text-[#2A2A2A]">
+                              📍 {[addr.line1, addr.line2].filter(Boolean).join(', ')}
+                            </span>
+                            <p className="text-xs text-[#6b6661] mt-0.5">
+                              {[addr.city, addr.state, addr.postalCode].filter(Boolean).join(', ')}
+                              {addr.phone ? ` · ${addr.phone}` : ''}
+                            </p>
+                            {/* isDefault comes from the API — position in the
+                                list is not the same thing once one is deleted. */}
+                            {addr.isDefault && (
+                              <span className="inline-block mt-1.5 text-[10px] font-bold text-[#3A6038] bg-[#3A6038]/10 px-2 py-0.5 rounded-full">
+                                DEFAULT
+                              </span>
                             )}
                           </div>
-                          <div className="flex gap-2">
-                            <button className="text-xs font-bold text-[#6b6661] hover:underline">Edit</button>
-                            <button className="text-xs font-bold text-red-500 hover:underline">Delete</button>
+
+                          <div className="flex flex-col items-end gap-1.5 shrink-0">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => openAddrForm(addr)}
+                                className="text-xs font-bold text-[#6b6661] hover:underline"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => setPendingDeleteAddr(addr)}
+                                disabled={addrBusyId === addr.id}
+                                className="text-xs font-bold text-red-500 hover:underline disabled:opacity-50"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                            {!addr.isDefault && (
+                              <button
+                                onClick={() => makeDefault(addr.id)}
+                                disabled={addrBusyId === addr.id}
+                                className="text-[11px] font-bold text-[#3A6038] hover:underline disabled:opacity-50"
+                              >
+                                Set as default
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
-                  <button className="flex items-center gap-2 text-xs font-bold text-[#3A6038] hover:underline">
-                    <Plus className="h-3 w-3" />
-                    Add New Address
-                  </button>
+
+                  {isAddrFormOpen ? (
+                    <form
+                      onSubmit={saveAddress}
+                      className="bg-white border border-stone-200 rounded-xl p-5 space-y-3"
+                    >
+                      <h4 className="font-bold text-sm text-[#2A2A2A]">
+                        {editingAddrId ? 'Edit address' : 'New address'}
+                      </h4>
+
+                      <input
+                        type="text"
+                        value={addrForm.line1}
+                        onChange={(e) => setAddrForm({ ...addrForm, line1: e.target.value })}
+                        placeholder="Flat / house no., building, street *"
+                        className={addrField}
+                      />
+                      <input
+                        type="text"
+                        value={addrForm.line2}
+                        onChange={(e) => setAddrForm({ ...addrForm, line2: e.target.value })}
+                        placeholder="Area, landmark (optional)"
+                        className={addrField}
+                      />
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input
+                          type="text"
+                          value={addrForm.city}
+                          onChange={(e) => setAddrForm({ ...addrForm, city: e.target.value })}
+                          placeholder="City *"
+                          className={addrField}
+                        />
+                        <input
+                          type="text"
+                          value={addrForm.state}
+                          onChange={(e) => setAddrForm({ ...addrForm, state: e.target.value })}
+                          placeholder="State *"
+                          className={addrField}
+                        />
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          value={addrForm.postalCode}
+                          onChange={(e) =>
+                            setAddrForm({ ...addrForm, postalCode: e.target.value.replace(/\D/g, '') })
+                          }
+                          placeholder="6-digit PIN code *"
+                          className={addrField}
+                        />
+                        <input
+                          type="tel"
+                          maxLength={10}
+                          value={addrForm.phone}
+                          onChange={(e) =>
+                            setAddrForm({ ...addrForm, phone: e.target.value.replace(/\D/g, '') })
+                          }
+                          placeholder="10-digit mobile *"
+                          className={addrField}
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="submit"
+                          disabled={isSavingAddr}
+                          className="px-5 py-2.5 bg-[#3A6038] hover:bg-[#2f4d2e] text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
+                        >
+                          {isSavingAddr ? 'Saving…' : editingAddrId ? 'Save changes' : 'Save address'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={closeAddrForm}
+                          className="px-4 py-2.5 border border-stone-200 text-[#6b6661] text-xs font-bold rounded-lg hover:bg-[#FAF8F3] transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <button
+                      onClick={() => openAddrForm()}
+                      className="flex items-center gap-2 text-xs font-bold text-[#3A6038] hover:underline"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add New Address
+                    </button>
+                  )}
+
+                  {/* Delete confirmation */}
+                  {pendingDeleteAddr && (
+                    <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                      <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-stone-200 p-6 space-y-4">
+                        <h4 className="font-serif font-bold text-base text-[#2A2A2A]">
+                          Delete this address?
+                        </h4>
+                        <p className="text-xs text-[#6b6661] leading-relaxed">
+                          {[pendingDeleteAddr.line1, pendingDeleteAddr.city, pendingDeleteAddr.postalCode]
+                            .filter(Boolean)
+                            .join(', ')}
+                          <br />
+                          Orders already placed keep their own copy of the address, so past
+                          deliveries are unaffected.
+                        </p>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setPendingDeleteAddr(null)}
+                            className="px-4 py-2.5 border border-stone-200 text-[#6b6661] text-xs font-bold rounded-lg hover:bg-[#FAF8F3] transition"
+                          >
+                            Keep it
+                          </button>
+                          <button
+                            onClick={confirmDeleteAddress}
+                            disabled={addrBusyId === pendingDeleteAddr.id}
+                            className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -307,5 +637,24 @@ export default function AccountPage() {
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} onCheckout={() => router.push('/checkout')} />
     </div>
+  );
+}
+
+/**
+ * useSearchParams makes the tree below it client-rendered during prerender, so
+ * Next requires a Suspense boundary around it. Without one the build fails on
+ * this route.
+ */
+export default function AccountPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#FAF8F3] flex items-center justify-center">
+          <div className="animate-pulse text-sm text-[#6b6661]">Loading your account…</div>
+        </div>
+      }
+    >
+      <AccountPageContent />
+    </Suspense>
   );
 }

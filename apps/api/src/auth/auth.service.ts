@@ -1,17 +1,11 @@
-import {
-  Injectable,
-  Logger,
-  UnauthorizedException,
-  BadRequestException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthProvider, Role, User } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { PrismaService } from '../prisma/prisma.service';
 import { FLAG, FeatureFlagsService } from '../feature-flags/feature-flags.service';
-import { CreateAddressDto } from './dto/auth.dto';
+import { CreateAddressDto, UpdateAddressDto } from './dto/auth.dto';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -370,9 +364,72 @@ export class AuthService {
       },
     });
 
+    return this.listAddresses(userId);
+  }
+
+  private listAddresses(userId: string) {
     return this.prisma.address.findMany({
       where: { userId },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
     });
+  }
+
+  /** Confirms the address belongs to the caller before touching it. */
+  private async ownAddress(userId: string, addressId: string) {
+    const address = await this.prisma.address.findFirst({
+      where: { id: addressId, userId },
+      select: { id: true },
+    });
+
+    if (!address) {
+      throw new NotFoundException('Address not found');
+    }
+
+    return address;
+  }
+
+  async updateAddress(userId: string, addressId: string, dto: UpdateAddressDto) {
+    await this.ownAddress(userId, addressId);
+
+    // Only one default at a time, so promoting this one demotes the rest.
+    if (dto.isDefault === true) {
+      await this.prisma.address.updateMany({
+        where: { userId, isDefault: true },
+        data: { isDefault: false },
+      });
+    }
+
+    await this.prisma.address.update({ where: { id: addressId }, data: dto });
+
+    this.logger.log(`Address ${addressId} updated`);
+    return this.listAddresses(userId);
+  }
+
+  async deleteAddress(userId: string, addressId: string) {
+    await this.ownAddress(userId, addressId);
+
+    // Orders reference the address with onDelete: SetNull and carry their own
+    // snapshot, so deleting one never rewrites or orphans order history.
+    const deleted = await this.prisma.address.delete({ where: { id: addressId } });
+
+    // Never leave a customer with addresses but no default — checkout picks
+    // the default, and none selected means an empty form every time.
+    if (deleted.isDefault) {
+      const next = await this.prisma.address.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true },
+      });
+
+      if (next) {
+        await this.prisma.address.update({
+          where: { id: next.id },
+          data: { isDefault: true },
+        });
+      }
+    }
+
+    this.logger.log(`Address ${addressId} deleted`);
+    return this.listAddresses(userId);
   }
 }

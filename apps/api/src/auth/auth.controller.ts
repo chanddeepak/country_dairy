@@ -1,4 +1,15 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
 import { CurrentUser } from './current-user.decorator';
@@ -8,6 +19,7 @@ import {
   LoginEmailDto,
   RegisterEmailDto,
   SendOtpDto,
+  UpdateAddressDto,
   VerifyOtpDto,
 } from './dto/auth.dto';
 
@@ -65,6 +77,26 @@ export class AuthController {
   @UseGuards(AuthGuard)
   async addAddress(@CurrentUser() user: { id: string }, @Body() dto: CreateAddressDto) {
     const addresses = await this.authService.addAddress(user.id, dto);
+    return { success: true, addresses };
+  }
+
+  // The address id is checked against the caller in the service, so one
+  // customer cannot edit or delete another's address by guessing an id.
+  @Patch('address/:id')
+  @UseGuards(AuthGuard)
+  async updateAddress(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+    @Body() dto: UpdateAddressDto,
+  ) {
+    const addresses = await this.authService.updateAddress(user.id, id, dto);
+    return { success: true, addresses };
+  }
+
+  @Delete('address/:id')
+  @UseGuards(AuthGuard)
+  async deleteAddress(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+    const addresses = await this.authService.deleteAddress(user.id, id);
     return { success: true, addresses };
   }
 }

@@ -91,3 +91,50 @@ export class CreateAddressDto {
   @IsBoolean()
   isDefault?: boolean;
 }
+
+/**
+ * Every field optional: the account page sends only what changed. The address
+ * is snapshotted onto an order at checkout, so editing one never rewrites
+ * past orders.
+ */
+export class UpdateAddressDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  label?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(200)
+  line1?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  line2?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(80)
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(80)
+  state?: string;
+
+  @IsOptional()
+  @Matches(/^[1-9][0-9]{5}$/, { message: 'Enter a valid 6-digit Indian PIN code' })
+  postalCode?: string;
+
+  @IsOptional()
+  @Matches(/^(\+91)?[6-9][0-9]{9}$/, { message: 'Enter a valid Indian mobile number' })
+  phone?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
+}
