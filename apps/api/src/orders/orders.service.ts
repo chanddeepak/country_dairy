@@ -17,6 +17,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { RazorpayService } from './razorpay.service';
+import { CmsService } from '../cms/cms.service';
 import { calculateOrderTotals, priceLine, round2, toPaise } from './pricing';
 
 /** Transitions the order state machine permits. */
@@ -37,6 +38,7 @@ export class OrdersService {
   constructor(
     private prisma: PrismaService,
     private razorpayService: RazorpayService,
+    private cms: CmsService,
     private audit: AuditService,
   ) {}
 
@@ -464,6 +466,145 @@ export class OrdersService {
       unavailable,
       repriced,
       addedCount: added.length + adjusted.length,
+    };
+  }
+
+  /**
+   * Indian financial year label for an invoice series: 2026-27 runs from
+   * 1 April 2026 to 31 March 2027.
+   */
+  private financialYear(date: Date): string {
+    const year = date.getFullYear();
+    const startYear = date.getMonth() >= 3 ? year : year - 1;
+    return `${startYear}-${String((startYear + 1) % 100).padStart(2, '0')}`;
+  }
+
+  /**
+   * Assigns the next invoice number, once, when the supply happens.
+   *
+   * GST requires a series that is consecutive and gap-free for the financial
+   * year, which is why this is not the order number: an order cancelled before
+   * dispatch would leave a hole. Serialised through a transaction so two
+   * concurrent dispatches cannot take the same number.
+   */
+  async assignInvoiceNumber(orderId: string): Promise<string> {
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        select: { id: true, invoiceNumber: true },
+      });
+
+      if (!order) throw new NotFoundException('Order not found');
+      if (order.invoiceNumber) return order.invoiceNumber;
+
+      const seller = await this.cms.getSellerIdentity();
+      const now = new Date();
+      const fy = this.financialYear(now);
+      const prefix = `${seller.invoicePrefix}/${fy}/`;
+
+      const last = await tx.order.findFirst({
+        where: { invoiceNumber: { startsWith: prefix } },
+        orderBy: { invoiceNumber: 'desc' },
+        select: { invoiceNumber: true },
+      });
+
+      const lastSeq = last?.invoiceNumber ? Number(last.invoiceNumber.split('/').pop()) : 0;
+      const invoiceNumber = `${prefix}${String(lastSeq + 1).padStart(5, '0')}`;
+
+      await tx.order.update({
+        where: { id: orderId },
+        data: { invoiceNumber, invoicedAt: now },
+      });
+
+      return invoiceNumber;
+    });
+  }
+
+  /**
+   * Everything a GST tax invoice must show.
+   *
+   * The CGST/SGST versus IGST split is decided by place of supply: same state
+   * as the seller splits the tax in two, a different state charges it whole as
+   * IGST. Derived here rather than stored, because it is a function of two
+   * addresses we already have.
+   */
+  async getInvoice(userId: string, orderId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+      include: { orderItems: true, user: { select: { name: true, email: true, phone: true } } },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.paymentStatus !== PaymentStatus.PAID) {
+      throw new BadRequestException(
+        'An invoice is raised once the order is paid for. This one is not yet.',
+      );
+    }
+
+    const seller = await this.cms.getSellerIdentity();
+    const invoiceNumber = order.invoiceNumber ?? (await this.assignInvoiceNumber(order.id));
+
+    const shipping = (order.shippingAddress ?? {}) as Record<string, string>;
+    const buyerState = (shipping.state ?? '').trim();
+    const isIntraState =
+      !!buyerState && buyerState.toLowerCase() === seller.state.toLowerCase();
+
+    const lines = order.orderItems.map((item) => {
+      const lineTotal = Number(item.lineTotal);
+      const tax = Number(item.taxAmount);
+      // Prices are tax-inclusive, so the taxable value is the line less its tax.
+      const taxable = round2(lineTotal - tax);
+
+      return {
+        description: item.productTitle,
+        variant: item.variantSizeLabel,
+        hsnCode: item.hsnCode ?? '',
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        taxableValue: taxable,
+        gstRate: Number(item.gstRate),
+        cgst: isIntraState ? round2(tax / 2) : 0,
+        sgst: isIntraState ? round2(tax / 2) : 0,
+        igst: isIntraState ? 0 : round2(tax),
+        total: lineTotal,
+      };
+    });
+
+    const totalTax = round2(lines.reduce((sum, l) => sum + l.cgst + l.sgst + l.igst, 0));
+
+    return {
+      invoiceNumber,
+      invoiceDate: (order.invoicedAt ?? new Date()).toISOString(),
+      orderNumber: order.orderNumber,
+      orderDate: order.createdAt.toISOString(),
+      seller,
+      buyer: {
+        name: order.user.name ?? 'Customer',
+        phone: shipping.phone ?? order.user.phone ?? '',
+        addressLine1: shipping.line1 ?? '',
+        addressLine2: shipping.line2 ?? '',
+        city: shipping.city ?? '',
+        state: buyerState,
+        postalCode: shipping.postalCode ?? '',
+      },
+      placeOfSupply: buyerState || seller.state,
+      taxKind: isIntraState ? ('CGST_SGST' as const) : ('IGST' as const),
+      lines,
+      totals: {
+        taxableValue: round2(lines.reduce((sum, l) => sum + l.taxableValue, 0)),
+        cgst: round2(lines.reduce((sum, l) => sum + l.cgst, 0)),
+        sgst: round2(lines.reduce((sum, l) => sum + l.sgst, 0)),
+        igst: round2(lines.reduce((sum, l) => sum + l.igst, 0)),
+        totalTax,
+        deliveryCharges: Number(order.deliveryCharges),
+        discount: Number(order.discountAmount),
+        grandTotal: Number(order.totalAmount),
+      },
+      // A GSTIN-less invoice is a bill of supply, not a tax invoice. Say which.
+      isTaxInvoice: !!seller.gstin,
     };
   }
 

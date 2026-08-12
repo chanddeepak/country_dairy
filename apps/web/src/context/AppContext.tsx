@@ -88,6 +88,8 @@ interface AppContextType {
   deleteAddress: (id: string) => Promise<AddressResult>;
   updateProfile: (patch: { name?: string; phone?: string }) => Promise<AddressResult>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<AddressResult>;
+  reorder: (orderId: string) => Promise<{ ok: boolean; summary?: any; error?: string }>;
+  closeAccount: (password: string, reason?: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -823,6 +825,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  /** Puts a past order back in the cart, reporting what changed since. */
+  const reorder = async (orderId: string) => {
+    const res = await authFetch(`/orders/${orderId}/reorder`, { method: 'POST' });
+    if (!res?.ok) {
+      const body = await res?.json().catch(() => null);
+      return { ok: false as const, error: body?.message || 'Could not reorder that.' };
+    }
+
+    const summary = await res.json();
+    await fetchCart();
+    return { ok: true as const, summary };
+  };
+
+  const closeAccount = async (password: string, reason?: string) => {
+    const res = await authFetch('/auth/close-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password, reason }),
+    });
+
+    if (!res) return { ok: false as const, error: 'Please sign in first.' };
+
+    if (res.ok) {
+      // The account is gone; there is nothing left to be signed in to.
+      clearStoredSession();
+      localStorage.removeItem('cd_guest_cart');
+      return { ok: true as const };
+    }
+
+    const body = await res.json().catch(() => null);
+    return {
+      ok: false as const,
+      error: Array.isArray(body?.message)
+        ? body.message.join('. ')
+        : body?.message || 'Could not close your account.',
+    };
+  };
+
   /** Persists the returned address list to state and localStorage. */
   const applyAddresses = (addresses: unknown[]) => {
     const updatedUser = { ...user, addresses };
@@ -974,6 +1014,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         deleteAddress,
         updateProfile,
         changePassword,
+        reorder,
+        closeAccount,
       }}
     >
       {children}

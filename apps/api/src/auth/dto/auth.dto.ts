@@ -139,6 +139,17 @@ export class UpdateAddressDto {
   isDefault?: boolean;
 }
 
+export class DeleteAccountDto {
+  @IsString()
+  @MinLength(1, { message: 'Enter your password to confirm' })
+  password: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+}
+
 export class UpdateProfileDto {
   @IsOptional()
   @IsString()
@@ -151,6 +162,18 @@ export class UpdateProfileDto {
   @IsOptional()
   @Matches(/^(\+91)?[6-9][0-9]{9}$/, { message: 'Enter a valid Indian mobile number' })
   phone?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  emailOptIn?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  smsOptIn?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  whatsappOptIn?: boolean;
 }
 
 export class ChangePasswordDto {

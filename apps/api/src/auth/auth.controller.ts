@@ -16,6 +16,7 @@ import { CurrentUser } from './current-user.decorator';
 import {
   ChangePasswordDto,
   CreateAddressDto,
+  DeleteAccountDto,
   GoogleLoginDto,
   LoginEmailDto,
   RegisterEmailDto,
@@ -87,6 +88,17 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async changePassword(@CurrentUser() user: { id: string }, @Body() dto: ChangePasswordDto) {
     return this.authService.changePassword(user.id, dto);
+  }
+
+  /**
+   * Right to erasure. Not a DELETE on /auth/me: it takes a password in the
+   * body, and a body on DELETE is poorly supported by proxies and clients.
+   */
+  @Post('close-account')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async closeAccount(@CurrentUser() user: { id: string }, @Body() dto: DeleteAccountDto) {
+    return this.authService.deleteOwnAccount(user.id, dto.password, dto.reason);
   }
 
   @Post('address')

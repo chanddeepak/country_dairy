@@ -13,6 +13,9 @@ import {
   ArrowUpRight,
   UserCog,
   Check,
+  RotateCcw,
+  FileText,
+  AlertTriangle,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useStoreConfig } from '../../context/StoreConfigContext';
@@ -49,6 +52,8 @@ function AccountPageContent() {
     deleteAddress,
     updateProfile,
     changePassword,
+    reorder,
+    closeAccount,
   } = useApp();
   const { isFlagOn } = useStoreConfig();
 
@@ -231,9 +236,65 @@ function AccountPageContent() {
     }
   };
 
+  // --- Reorder ---
+
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
+  const [reorderSummary, setReorderSummary] = useState<any>(null);
+  const [reorderError, setReorderError] = useState('');
+
+  const handleReorder = async (orderId: string) => {
+    setReorderingId(orderId);
+    setReorderError('');
+    setReorderSummary(null);
+    try {
+      const result = await reorder(orderId);
+      if (!result.ok) {
+        setReorderError(result.error || 'Could not reorder that.');
+        return;
+      }
+      setReorderSummary(result.summary);
+    } finally {
+      setReorderingId(null);
+    }
+  };
+
+  // --- Closing the account ---
+
+  const [isClosing, setIsClosing] = useState(false);
+  const [closePassword, setClosePassword] = useState('');
+  const [closeConfirm, setCloseConfirm] = useState('');
+  const [closeError, setCloseError] = useState('');
+  const [isClosingBusy, setIsClosingBusy] = useState(false);
+
+  const confirmClose = async () => {
+    if (closeConfirm.trim().toUpperCase() !== 'CLOSE') {
+      setCloseError('Type CLOSE to confirm.');
+      return;
+    }
+    if (!closePassword) {
+      setCloseError('Enter your password.');
+      return;
+    }
+
+    setCloseError('');
+    setIsClosingBusy(true);
+    try {
+      const result = await closeAccount(closePassword);
+      if (!result.ok) {
+        setCloseError(result.error || 'Could not close your account.');
+        return;
+      }
+      router.push('/');
+    } finally {
+      setIsClosingBusy(false);
+    }
+  };
+
   // --- Profile & security ---
 
   const [profileForm, setProfileForm] = useState({ name: '', phone: '' });
+  const [consent, setConsent] = useState({ emailOptIn: true, smsOptIn: true, whatsappOptIn: true });
+  const [consentSaving, setConsentSaving] = useState<string | null>(null);
   const [profileError, setProfileError] = useState('');
   const [profileSaved, setProfileSaved] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -246,8 +307,32 @@ function AccountPageContent() {
   // Seed the form once the stored user arrives, not on every render, so typing
   // is not overwritten by the value it started from.
   useEffect(() => {
-    if (user) setProfileForm({ name: user.name ?? '', phone: user.phone ?? '' });
+    if (!user) return;
+    setProfileForm({ name: user.name ?? '', phone: user.phone ?? '' });
+    setConsent({
+      // Default to on only when the API genuinely omits the field; an explicit
+      // false must not be read as "not set" and flipped back on.
+      emailOptIn: user.emailOptIn ?? true,
+      smsOptIn: user.smsOptIn ?? true,
+      whatsappOptIn: user.whatsappOptIn ?? true,
+    });
   }, [user?.id]);
+
+  /** Saved on toggle — a preferences panel with a Save button gets ignored. */
+  const setChannel = async (channel: 'emailOptIn' | 'smsOptIn' | 'whatsappOptIn', on: boolean) => {
+    const previous = consent[channel];
+    setConsent((c) => ({ ...c, [channel]: on }));
+    setConsentSaving(channel);
+    try {
+      const result = await updateProfile({ [channel]: on } as any);
+      if (!result.ok) {
+        setConsent((c) => ({ ...c, [channel]: previous }));
+        setProfileError(result.error || 'Could not save that preference.');
+      }
+    } finally {
+      setConsentSaving(null);
+    }
+  };
 
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -504,9 +589,28 @@ function AccountPageContent() {
                             <span className="mx-2 text-[#6b6661]">•</span>
                             <span className="text-sm font-bold text-[#2A2A2A]">₹{Number(order.totalAmount).toLocaleString('en-IN')}</span>
                           </div>
-                          <div className="flex items-center gap-3">
+                          <div className="flex flex-wrap items-center gap-3">
                             <Badge status={order.status} />
                             <Badge status={order.paymentStatus} />
+
+                            <button
+                              onClick={() => handleReorder(order.id)}
+                              disabled={reorderingId === order.id}
+                              className="text-xs font-bold text-[#3A6038] hover:underline flex items-center gap-1 disabled:opacity-50"
+                            >
+                              <RotateCcw className="h-3 w-3" />
+                              {reorderingId === order.id ? 'Adding…' : 'Buy again'}
+                            </button>
+
+                            {order.paymentStatus === 'PAID' && (
+                              <Link
+                                href={`/orders/${order.id}/invoice`}
+                                className="text-xs font-bold text-[#6b6661] hover:underline flex items-center gap-1"
+                              >
+                                <FileText className="h-3 w-3" /> Invoice
+                              </Link>
+                            )}
+
                             <Link href={`/orders/${order.id}`} className="text-xs font-bold text-[#3A6038] hover:underline flex items-center gap-1">
                               Details <ArrowUpRight className="h-3 w-3" />
                             </Link>
@@ -669,6 +773,57 @@ function AccountPageContent() {
                     </button>
                   </form>
 
+                  {/* How we contact you */}
+                  <div className="bg-white border border-stone-200 rounded-xl p-5 space-y-3">
+                    <div>
+                      <h3 className="font-bold text-sm text-[#2A2A2A]">How we reach you</h3>
+                      <p className="text-xs text-[#6b6661] mt-0.5">
+                        Saved as you change them. Messages about an order you have placed are
+                        always sent — these control everything else.
+                      </p>
+                    </div>
+
+                    {[
+                      {
+                        key: 'whatsappOptIn' as const,
+                        label: 'WhatsApp',
+                        note: 'Order updates and offers on WhatsApp.',
+                      },
+                      {
+                        key: 'smsOptIn' as const,
+                        label: 'SMS',
+                        note: 'Delivery alerts by text message.',
+                      },
+                      {
+                        key: 'emailOptIn' as const,
+                        label: 'Email',
+                        note: 'Receipts, batch lab results and occasional news.',
+                      },
+                    ].map(({ key, label, note }) => (
+                      <label
+                        key={key}
+                        className="flex items-start gap-3 py-2.5 border-t border-stone-100 first:border-t-0 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={consent[key]}
+                          disabled={consentSaving === key}
+                          onChange={(e) => setChannel(key, e.target.checked)}
+                          className="h-4 w-4 mt-0.5 accent-[#3A6038]"
+                        />
+                        <span className="text-xs">
+                          <span className="block font-bold text-[#2A2A2A]">
+                            {label}
+                            {consentSaving === key && (
+                              <span className="ml-2 font-normal text-[#6b6661]">saving…</span>
+                            )}
+                          </span>
+                          <span className="text-[#6b6661]">{note}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
                   {/* Password */}
                   <form onSubmit={savePassword} className="bg-white border border-stone-200 rounded-xl p-5 space-y-3">
                     <h3 className="font-bold text-sm text-[#2A2A2A]">Change password</h3>
@@ -726,6 +881,83 @@ function AccountPageContent() {
                       {isSavingPw ? 'Changing…' : 'Change password'}
                     </button>
                   </form>
+
+                  {/* Closing the account */}
+                  <div className="border border-red-200 bg-red-50/40 rounded-xl p-5 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                      <div>
+                        <h3 className="font-bold text-sm text-[#2A2A2A]">Close my account</h3>
+                        <p className="text-xs text-[#6b6661] mt-1 leading-relaxed">
+                          Your name, email, phone, saved addresses and reviews are erased for
+                          good. Invoices for orders you have already placed are kept, because
+                          tax law requires us to — but your street address and phone number are
+                          removed from them.
+                        </p>
+                      </div>
+                    </div>
+
+                    {closeError && (
+                      <div className="p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg text-xs font-medium">
+                        {closeError}
+                      </div>
+                    )}
+
+                    {!isClosing ? (
+                      <button
+                        onClick={() => {
+                          setIsClosing(true);
+                          setCloseError('');
+                        }}
+                        className="px-4 py-2.5 border border-red-300 text-red-700 hover:bg-red-100 text-xs font-bold rounded-lg transition"
+                      >
+                        Close my account
+                      </button>
+                    ) : (
+                      <div className="space-y-3">
+                        <div>
+                          <label className={addrLabel}>Your password</label>
+                          <input
+                            type="password"
+                            autoComplete="current-password"
+                            value={closePassword}
+                            onChange={(e) => setClosePassword(e.target.value)}
+                            className={addrField}
+                          />
+                        </div>
+                        <div>
+                          <label className={addrLabel}>Type CLOSE to confirm</label>
+                          <input
+                            type="text"
+                            value={closeConfirm}
+                            onChange={(e) => setCloseConfirm(e.target.value)}
+                            placeholder="CLOSE"
+                            className={addrField}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={confirmClose}
+                            disabled={isClosingBusy}
+                            className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
+                          >
+                            {isClosingBusy ? 'Closing…' : 'Close my account for good'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsClosing(false);
+                              setClosePassword('');
+                              setCloseConfirm('');
+                              setCloseError('');
+                            }}
+                            className="px-4 py-2.5 border border-stone-200 text-[#6b6661] text-xs font-bold rounded-lg hover:bg-white transition"
+                          >
+                            Keep my account
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
