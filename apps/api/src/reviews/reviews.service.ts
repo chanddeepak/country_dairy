@@ -8,6 +8,7 @@ import {
 import { MediaType, OrderStatus, PaymentStatus, ReviewStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FLAG, FeatureFlagsService } from '../feature-flags/feature-flags.service';
+import { MediaService } from '../media/media.service';
 
 @Injectable()
 export class ReviewsService {
@@ -16,6 +17,7 @@ export class ReviewsService {
   constructor(
     private prisma: PrismaService,
     private featureFlags: FeatureFlagsService,
+    private media: MediaService,
   ) {}
 
   /**
@@ -79,6 +81,8 @@ export class ReviewsService {
     }
 
     await this.prisma.productReview.delete({ where: { id: reviewId } });
+    await this.releaseMedia(review.mediaUrls);
+
     return { success: true };
   }
 
@@ -158,6 +162,12 @@ export class ReviewsService {
     }
 
     const mediaUrls = dto.mediaUrls ?? review.mediaUrls;
+
+    // Anything the customer took off the review has no other referent, so it
+    // would otherwise sit in the bucket for ever being paid for.
+    if (dto.mediaUrls) {
+      await this.releaseMedia(review.mediaUrls.filter((url) => !mediaUrls.includes(url)));
+    }
 
     return this.prisma.productReview.update({
       where: { id: reviewId },
@@ -252,7 +262,27 @@ export class ReviewsService {
     }
 
     await this.prisma.productReview.delete({ where: { id: reviewId } });
+    await this.releaseMedia(review.mediaUrls);
+
+    this.logger.log(`Review ${reviewId} removed with ${review.mediaUrls.length} attachment(s)`);
     return { success: true };
+  }
+
+  /**
+   * Removes attachments that no longer belong to anything.
+   *
+   * Never throws: a customer deleting their review must not fail because the
+   * storage provider is having a bad minute. A file left behind is a cost
+   * problem; a failed delete they cannot retry is a correctness one.
+   */
+  private async releaseMedia(urls: string[]) {
+    for (const url of urls) {
+      try {
+        await this.media.deleteMediaFile(url);
+      } catch (err) {
+        this.logger.warn(`Could not remove review attachment ${url}: ${(err as Error).message}`);
+      }
+    }
   }
 
   async getModerationStats() {

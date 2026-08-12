@@ -1,4 +1,18 @@
-import { BadRequestException, Controller, Get, Post, Body, Query, UseGuards, UseInterceptors, UploadedFile, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Logger,
+  Post,
+  Query,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
 
@@ -14,7 +28,10 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import ws from 'ws';
 import * as path from 'path';
 import * as fs from 'fs';
+import { MediaService } from './media.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import {
   ALL_MEDIA_MIME_TYPES,
   extensionFor,
@@ -35,6 +52,8 @@ if (!fs.existsSync(uploadDir)) {
 @Controller('media')
 export class MediaController {
   private readonly logger = new Logger(MediaController.name);
+
+  constructor(private readonly mediaService: MediaService) {}
 
   private getSupabaseClient() {
 
@@ -77,6 +96,10 @@ export class MediaController {
   }
 
   @Post('upload')
+  // Was unauthenticated: anyone could fill the bucket at our expense, and
+  // host whatever they liked on our domain. Customers legitimately upload
+  // review attachments here, so this is authentication without a role.
+  @UseGuards(AuthGuard)
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -259,6 +282,7 @@ export class MediaController {
   }
 
   @Post('mock-upload')
+  @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('file'))
   async mockUpload(
     @Query('filename') filename: string,
@@ -272,55 +296,49 @@ export class MediaController {
   }
 
   @Post('delete')
+  // Was unauthenticated. Media URLs are public on the storefront, so anyone
+  // could have walked the catalogue and deleted every product image.
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.CATALOG_MANAGER)
   async deleteMedia(@Body() body: { url: string }) {
     const url = body?.url;
     if (!url) {
       return { success: false, message: 'URL is required' };
     }
 
-    this.logger.log(`Received request to delete media: ${url}`);
-    const supabase = this.getSupabaseClient();
+    // One implementation, in the service. This route used to carry its own
+    // copy that recognised only two of the four buckets.
+    const removed = await this.mediaService.deleteMediaFile(url);
+    return { success: removed, url };
+  }
 
-    // 1. Delete from Supabase Storage if URL points to Supabase bucket
-    if (supabase && (url.startsWith('/hero-banners/') || url.startsWith('/products/') || url.includes('/storage/v1/object/public/'))) {
-      try {
-        let bucket = 'hero-banners';
-        let filePath = url.replace(/^\/hero-banners\//, '');
-        if (url.startsWith('/products/')) {
-          bucket = 'products';
-          filePath = url.replace(/^\/products\//, '');
-        } else if (url.includes('/storage/v1/object/public/')) {
-          const parts = url.split('/storage/v1/object/public/')[1]?.split('/');
-          if (parts && parts.length >= 2) {
-            bucket = parts[0];
-            filePath = parts.slice(1).join('/');
-          }
-        }
-        const { error } = await supabase.storage.from(bucket).remove([filePath]);
-        if (error) {
-          this.logger.warn(`Supabase Storage remove warning (${bucket}/${filePath}): ${error.message}`);
-        } else {
-          this.logger.log(`[Supabase Storage] Deleted file (${bucket}/${filePath}) successfully!`);
-        }
-      } catch (err) {
-        this.logger.warn(`Supabase Storage remove error: ${(err as Error).message}`);
-      }
-    }
+  /**
+   * Files in a bucket that no row points at — an upload whose form was
+   * abandoned. Reports only; nothing is removed.
+   */
+  @Get('orphans')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  async listOrphans(@Query('minAgeHours') minAgeHours?: string) {
+    return this.mediaService.sweepOrphans({
+      dryRun: true,
+      minAgeHours: minAgeHours ? Number(minAgeHours) : 24,
+    });
+  }
 
-    // 2. Delete local file if stored locally in uploads/
-    if (url.startsWith('/uploads/')) {
-      try {
-        const filename = path.basename(url);
-        const localPath = path.join(uploadDir, filename);
-        if (fs.existsSync(localPath)) {
-          fs.unlinkSync(localPath);
-          this.logger.log(`[Local Disk] Deleted file (${localPath}) successfully!`);
-        }
-      } catch (err) {
-        this.logger.warn(`Local file deletion error: ${(err as Error).message}`);
-      }
-    }
-
-    return { success: true, message: 'Media deleted successfully' };
+  /**
+   * Removes them. Super admin only, and it will not touch anything younger
+   * than minAgeHours, because a recent upload may belong to a form somebody
+   * is still filling in.
+   */
+  @Post('orphans/sweep')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  @HttpCode(HttpStatus.OK)
+  async sweepOrphans(@Body() body: { minAgeHours?: number }) {
+    return this.mediaService.sweepOrphans({
+      dryRun: false,
+      minAgeHours: body?.minAgeHours ?? 24,
+    });
   }
 }
