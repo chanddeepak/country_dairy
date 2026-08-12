@@ -27,6 +27,9 @@ Seed a different admin password:
 SEED_ADMIN_PASSWORD='your-password' npm run db:seed
 ```
 
+See [QA_TEST_PLAN.md](./QA_TEST_PLAN.md) for the full manual and automation
+test plan across web, admin and API.
+
 See [RUNNING.md](./RUNNING.md) for how to start the apps and diagnose
 "Could not reach the API server".
 
