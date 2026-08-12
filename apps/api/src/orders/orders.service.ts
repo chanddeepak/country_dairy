@@ -11,6 +11,7 @@ import {
   OrderStatus,
   PaymentStatus,
   Prisma,
+  ProductStatus,
   StockMovementReason,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -352,6 +353,118 @@ export class OrdersService {
 
     this.logger.log(`Order ${order.orderNumber} confirmed`);
     return confirmed;
+  }
+
+  /**
+   * Puts a past order back in the cart.
+   *
+   * Nothing is assumed to still be true: a variant may be delisted, sold out,
+   * or repriced since. Each line is reported back so the customer is told what
+   * changed rather than discovering it at checkout, which is where a silent
+   * substitution would surface.
+   */
+  async reorder(userId: string, orderId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+      include: { orderItems: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.orderItems.length === 0) {
+      throw new BadRequestException('That order has nothing to reorder');
+    }
+
+    const variantIds = order.orderItems
+      .map((i) => i.variantId)
+      .filter((id): id is string => !!id);
+
+    const [variants, existingCart] = await Promise.all([
+      this.prisma.productVariant.findMany({
+        where: { id: { in: variantIds } },
+        include: { product: { select: { id: true, title: true, status: true, forceOutOfStock: true } } },
+      }),
+      this.prisma.cartItem.findMany({ where: { userId } }),
+    ]);
+
+    const byId = new Map(variants.map((v) => [v.id, v]));
+    const inCart = new Map(existingCart.map((c) => [c.variantId, c]));
+
+    const added: { title: string; quantity: number }[] = [];
+    const adjusted: { title: string; wanted: number; added: number; reason: string }[] = [];
+    const unavailable: { title: string; reason: string }[] = [];
+    const repriced: { title: string; was: number; now: number }[] = [];
+
+    for (const item of order.orderItems) {
+      const label = `${item.productTitle}${item.variantSizeLabel ? ` (${item.variantSizeLabel})` : ''}`;
+      const variant = item.variantId ? byId.get(item.variantId) : undefined;
+
+      if (!variant || !variant.isActive) {
+        unavailable.push({ title: label, reason: 'no longer sold' });
+        continue;
+      }
+
+      if (variant.product.status !== ProductStatus.LIVE || variant.product.forceOutOfStock) {
+        unavailable.push({ title: label, reason: 'not available right now' });
+        continue;
+      }
+
+      // What is already in the cart counts against the same stock.
+      const alreadyThere = inCart.get(variant.id)?.quantity ?? 0;
+      const room = Math.max(0, variant.stockQuantity - alreadyThere);
+
+      if (room === 0) {
+        unavailable.push({ title: label, reason: 'sold out' });
+        continue;
+      }
+
+      const quantity = Math.min(item.quantity, room);
+
+      if (quantity < item.quantity) {
+        adjusted.push({
+          title: label,
+          wanted: item.quantity,
+          added: quantity,
+          reason: `only ${room} left`,
+        });
+      } else {
+        added.push({ title: label, quantity });
+      }
+
+      // Told, not hidden: the price on the old order is not the price today.
+      const oldPrice = Number(item.unitPrice);
+      const newPrice = Number(variant.sellingPrice);
+      if (Math.abs(oldPrice - newPrice) > 0.01) {
+        repriced.push({ title: label, was: oldPrice, now: newPrice });
+      }
+
+      await this.prisma.cartItem.upsert({
+        where: { userId_variantId: { userId, variantId: variant.id } },
+        create: {
+          userId,
+          variantId: variant.id,
+          productId: variant.productId,
+          quantity,
+        },
+        update: { quantity: alreadyThere + quantity },
+      });
+    }
+
+    this.logger.log(
+      `Reorder of ${order.orderNumber}: ${added.length} added, ` +
+        `${adjusted.length} reduced, ${unavailable.length} unavailable`,
+    );
+
+    return {
+      orderNumber: order.orderNumber,
+      added,
+      adjusted,
+      unavailable,
+      repriced,
+      addedCount: added.length + adjusted.length,
+    };
   }
 
   async getUserOrders(userId: string) {

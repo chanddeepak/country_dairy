@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "deletedAt" TIMESTAMP(3),
+ADD COLUMN     "emailOptIn" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "smsOptIn" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "whatsappOptIn" BOOLEAN NOT NULL DEFAULT true;
+
