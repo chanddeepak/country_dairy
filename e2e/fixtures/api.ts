@@ -123,9 +123,17 @@ export async function addAddress(
   overrides: Partial<{ line1: string; city: string; state: string; postalCode: string }> = {},
 ): Promise<string> {
   const api = await apiClient(token);
+
+  // Tagged so the new row can be picked out of the response by identity
+  // rather than by position. The list comes back ordered by isDefault then
+  // createdAt, so the address just added is only last while it is the only
+  // one — taking `[length - 1]` silently returns an older address as soon as
+  // there are two, which makes two fixtures the same row.
+  const label = `E2E-${Math.random().toString(36).slice(2, 9)}`;
+
   const res = await api.post(resolve('/auth/address'), {
     data: {
-      label: 'E2E',
+      label,
       line1: 'Bilona House, Mall Road',
       city: 'Tanakpur',
       state: 'Uttarakhand',
@@ -140,7 +148,8 @@ export async function addAddress(
   const body = await res.json();
   await api.dispose();
 
-  const added = body.addresses[body.addresses.length - 1];
+  const added = body.addresses.find((a: { label?: string }) => a.label === label);
+  if (!added) throw new Error(`Added address ${label} but it is not in the returned list`);
   return added.id;
 }
 

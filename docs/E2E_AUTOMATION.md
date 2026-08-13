@@ -74,6 +74,17 @@ together — the worst possible property for something meant to gate production.
 Isolating data per worker would buy the parallelism back; until then, slow and
 honest.
 
+**Identify fixtures by identity, not by position.** A helper took the newly
+added address as the last element of the list the API returned. That list is
+ordered by `isDefault` then `createdAt`, so the moment a second address existed
+the last element was the *first* address — two fixtures became the same row,
+and a test reported that editing one address had changed another. It had not.
+Anything created through the API is now tagged and found by that tag.
+
+**Read a response before disposing its context.** Playwright disposes responses
+along with the request context, so `dispose()` before `.text()` loses the body
+and fails with something that reads nothing like the actual mistake.
+
 **Selectors live in `actions.ts`.** The forms associate no labels with their
 inputs, so a role-and-name selector matches nothing and fails only once the
 action timeout expires — which turned one broken run into sixteen minutes
@@ -133,6 +144,5 @@ found it.
 ## Still to write
 
 Coverage is the highest-risk paths, not yet the full 185 cases. In rough order
-of what should come next: account management including erasure (§7), reviews
-(§8), delivery and the driver round (§13), the admin catalogue (§11), and the
-responsive and accessibility passes (§19).
+of what should come next: reviews (§8), delivery and the driver round (§13),
+the admin catalogue (§11), and the responsive and accessibility passes (§19).
