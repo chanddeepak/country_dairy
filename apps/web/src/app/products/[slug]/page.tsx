@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronRight, Minus, Plus, Calendar, ShoppingBag, MessageCircle, Share2, Check, Truck, Headphones, RotateCcw, ClipboardCheck } from 'lucide-react';
+import { ChevronRight, Minus, Plus, Calendar, ShoppingBag, MessageCircle, Share2, Check, Truck, Headphones, RotateCcw, ClipboardCheck, Loader2 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import Navbar from '../../../components/layout/Navbar';
 import Footer from '../../../components/layout/Footer';
@@ -26,7 +26,8 @@ export default function ProductDetailPage() {
   const searchParams = useSearchParams();
   const slug = params?.slug as string;
   const variantIdFromQuery = searchParams?.get('variant');
-  const { user, token, addToCart } = useApp();
+  const { user, token, addToCart, pendingCartVariantId, lastAddedVariantId, cartError } =
+    useApp();
   const { whatsapp, isFlagOn } = useStoreConfig();
   const cartEnabled = isFlagOn('ENABLE_CART');
   const ENABLE_PRODUCT_RATINGS = isFlagOn('ENABLE_PRODUCT_RATINGS');
@@ -274,6 +275,12 @@ export default function ProductDetailPage() {
     label: index === 0 ? 'Main Product' : index === 1 ? 'Farm & Quality' : 'Lab Certificate',
   }));
 
+  // Mirrors ProductCard: the request is in flight, or it just landed. The
+  // detail page had neither, so pressing Add to Cart looked like nothing had
+  // happened until the header badge quietly changed a second later.
+  const isAdding = !!selectedVariant?.id && pendingCartVariantId === selectedVariant.id;
+  const justAdded = !!selectedVariant?.id && lastAddedVariantId === selectedVariant.id;
+
   const handleAddToCart = () => {
     if (!user) { setIsAuthOpen(true); return; }
     if (!selectedVariant?.id) return;
@@ -497,13 +504,34 @@ export default function ProductDetailPage() {
               {/* CTA Buttons */}
               <div className="space-y-3 pt-4">
                 {cartEnabled && (
-                  <button
-                    onClick={handleAddToCart}
-                    className="w-full flex items-center justify-center bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg"
-                  >
-                    <ShoppingBag className="h-4 w-4 mr-2" />
-                    Add to Cart — ₹{Number(currentPrice) * quantity}
-                  </button>
+                  <>
+                    <button
+                      onClick={handleAddToCart}
+                      disabled={isAdding}
+                      className={`w-full flex items-center justify-center gap-2 font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg disabled:cursor-wait ${
+                        justAdded
+                          ? 'bg-[#2d4d2b] text-white'
+                          : 'bg-[#3A6038] hover:bg-[#2d4d2b] text-white'
+                      }`}
+                    >
+                      {justAdded ? (
+                        <Check className="h-4 w-4" />
+                      ) : isAdding ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ShoppingBag className="h-4 w-4" />
+                      )}
+                      {justAdded
+                        ? 'Added to Cart'
+                        : isAdding
+                          ? 'Adding…'
+                          : `Add to Cart — ₹${Number(currentPrice) * quantity}`}
+                    </button>
+
+                    {cartError && !isAdding && !justAdded && (
+                      <p className="text-xs font-medium text-red-600 text-center">{cartError}</p>
+                    )}
+                  </>
                 )}
                 
                 {whatsappHref && (

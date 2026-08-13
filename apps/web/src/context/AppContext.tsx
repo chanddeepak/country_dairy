@@ -499,20 +499,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           },
         ];
       });
-      // The tick shows immediately; the request continues behind it.
-      setLastAddedVariantId(variantId);
-      setTimeout(() => setLastAddedVariantId((id) => (id === variantId ? null : id)), 2000);
+      // The tick shows immediately and stays up until the request settles.
+      markAdded(variantId, { hold: true });
     }
 
     try {
       await addToCartInner(variantId, quantity);
       unsyncedRef.current.delete(variantId);
       setUnsyncedCount(unsyncedRef.current.size);
-      if (!optimistic) {
-        setLastAddedVariantId(variantId);
-        setTimeout(() => setLastAddedVariantId((id) => (id === variantId ? null : id)), 2000);
-      }
+      // Restart the window on confirmation. Set only at the start, a tick that
+      // expires after two seconds is gone before a slow round trip finishes,
+      // so the button fell back to "Add to Cart" having said nothing.
+      markAdded(variantId);
     } catch (err) {
+      clearAdded(variantId);
       const transient = isTransient(err);
 
       if (transient && optimistic) {
@@ -824,6 +824,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { ok: false, error: 'Could not reach the server. Check your connection and try again.' };
     }
   };
+
+  /**
+   * Shows the "Added" tick for two seconds from now.
+   *
+   * Held in a ref so a second add of the same variant restarts the window
+   * rather than letting the first timer clear a tick the second one set.
+   */
+  const addedTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const markAdded = useCallback((variantId: string, { hold = false } = {}) => {
+    const existing = addedTimers.current.get(variantId);
+    if (existing) clearTimeout(existing);
+    addedTimers.current.delete(variantId);
+
+    setLastAddedVariantId(variantId);
+
+    // `hold` keeps the tick up while the request is still in flight. The line
+    // is already in the cart optimistically, so dropping back to "Adding…"
+    // after two seconds would walk the confirmation backwards.
+    if (hold) return;
+
+    const timer = setTimeout(() => {
+      setLastAddedVariantId((id) => (id === variantId ? null : id));
+      addedTimers.current.delete(variantId);
+    }, 2000);
+
+    addedTimers.current.set(variantId, timer);
+  }, []);
+
+  /** Drops the tick when an add turns out to have failed. */
+  const clearAdded = useCallback((variantId: string) => {
+    const existing = addedTimers.current.get(variantId);
+    if (existing) clearTimeout(existing);
+    addedTimers.current.delete(variantId);
+    setLastAddedVariantId((id) => (id === variantId ? null : id));
+  }, []);
 
   /** Puts a past order back in the cart, reporting what changed since. */
   const reorder = async (orderId: string) => {

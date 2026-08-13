@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React from 'react';
 import { X, ShoppingBag, Minus, Plus, MessageCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -95,7 +96,21 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
                   )}
 
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-[#2A2A2A] text-sm leading-snug">{item.productName}</h4>
+                    {/* Back to the exact size in the cart, not just the
+                        product — the variant is what carries size and price. */}
+                    {item.productSlug ? (
+                      <Link
+                        href={`/products/${item.productSlug}${item.variantId ? `?variant=${item.variantId}` : ''}`}
+                        onClick={onClose}
+                        className="font-bold text-[#2A2A2A] hover:text-[#3A6038] hover:underline text-sm leading-snug block transition"
+                      >
+                        {item.productName}
+                      </Link>
+                    ) : (
+                      <h4 className="font-bold text-[#2A2A2A] text-sm leading-snug">
+                        {item.productName}
+                      </h4>
+                    )}
                     {item.variantLabel && (
                       <div className="text-[11px] text-[#6b6661]">{item.variantLabel}</div>
                     )}

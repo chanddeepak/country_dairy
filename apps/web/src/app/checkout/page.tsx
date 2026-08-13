@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, CreditCard, Wallet, ShieldCheck, Plus, CheckCircle2, UserCheck, KeyRound, PhoneCall, AlertCircle, Mail, Lock, User, Loader2 } from 'lucide-react';
@@ -526,12 +527,23 @@ export default function CheckoutPage() {
                 <h2 className="font-bold text-sm text-[#2A2A2A] mb-4">STEP 2: ORDER SUMMARY</h2>
                 <div className="space-y-3">
                   {cart.map((item) => (
-                    <div key={item.id} className="flex justify-between text-sm">
-                      <span className="text-[#6b6661]">
-                        {item.productName}
+                    <div key={item.id} className="flex justify-between gap-3 text-sm">
+                      <span className="text-[#6b6661] min-w-0">
+                        {item.productSlug ? (
+                          <Link
+                            href={`/products/${item.productSlug}${item.variantId ? `?variant=${item.variantId}` : ''}`}
+                            className="font-bold text-[#2A2A2A] hover:text-[#3A6038] hover:underline transition"
+                          >
+                            {item.productName}
+                          </Link>
+                        ) : (
+                          <span className="font-bold text-[#2A2A2A]">{item.productName}</span>
+                        )}
                         {item.variantLabel ? ` (${item.variantLabel})` : ''} × {item.quantity}
                       </span>
-                      <span className="font-bold text-[#2A2A2A]">₹{item.lineTotal}</span>
+                      <span className="font-bold text-[#2A2A2A] whitespace-nowrap">
+                        ₹{item.lineTotal}
+                      </span>
                     </div>
                   ))}
                   <div className="border-t border-stone-100 pt-3 space-y-1">

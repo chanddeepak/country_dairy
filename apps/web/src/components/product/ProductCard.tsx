@@ -194,9 +194,12 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
                       : 'bg-[#3A6038] hover:bg-[#2d4d2b] text-white disabled:opacity-70'
                   }`}
                 >
-                  {isAdding && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  {justAdded && <Check className="h-3.5 w-3.5" />}
-                  {isAdding ? 'Adding…' : justAdded ? 'Added to Cart' : 'Add to Cart'}
+                  {justAdded ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : isAdding ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : null}
+                  {justAdded ? 'Added to Cart' : isAdding ? 'Adding…' : 'Add to Cart'}
                 </button>
               )}
 
