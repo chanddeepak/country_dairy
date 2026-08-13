@@ -611,7 +611,9 @@ export class OrdersService {
   async getUserOrders(userId: string) {
     return this.prisma.order.findMany({
       where: { userId },
-      include: { orderItems: true },
+      include: {
+        orderItems: { include: { product: { select: { slug: true } } } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -619,7 +621,16 @@ export class OrdersService {
   async getOrderById(userId: string, orderId: string) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, userId },
-      include: { orderItems: true, statusHistory: { orderBy: { createdAt: 'asc' } } },
+      include: {
+        orderItems: {
+          // The line already snapshots the title and price, but not the slug,
+          // so without this the customer cannot get back to what they bought.
+          // Null when the product has since been deleted, which the UI treats
+          // as "no longer linkable" rather than a broken href.
+          include: { product: { select: { slug: true } } },
+        },
+        statusHistory: { orderBy: { createdAt: 'asc' } },
+      },
     });
 
     if (!order) {

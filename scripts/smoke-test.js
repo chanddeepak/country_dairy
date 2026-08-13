@@ -15,6 +15,7 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const { PrismaClient } = require('@prisma/client');
+const { only } = require('./lib/safe-ids');
 const prisma = new PrismaClient();
 
 const API = process.env.API_URL || 'http://localhost:4000/api';
@@ -362,18 +363,18 @@ async function cleanup() {
   section('Cleanup');
   try {
     if (created.orderIds.length) {
-      await prisma.stockMovement.deleteMany({ where: { referenceId: { in: created.orderIds } } });
-      await prisma.orderStatusHistory.deleteMany({ where: { orderId: { in: created.orderIds } } });
-      await prisma.payment.deleteMany({ where: { orderId: { in: created.orderIds } } });
-      await prisma.orderItem.deleteMany({ where: { orderId: { in: created.orderIds } } });
-      await prisma.order.deleteMany({ where: { id: { in: created.orderIds } } });
+      await prisma.stockMovement.deleteMany({ where: { referenceId: { in: only(created.orderIds, 'created.orderIds') } } });
+      await prisma.orderStatusHistory.deleteMany({ where: { orderId: { in: only(created.orderIds, 'created.orderIds') } } });
+      await prisma.payment.deleteMany({ where: { orderId: { in: only(created.orderIds, 'created.orderIds') } } });
+      await prisma.orderItem.deleteMany({ where: { orderId: { in: only(created.orderIds, 'created.orderIds') } } });
+      await prisma.order.deleteMany({ where: { id: { in: only(created.orderIds, 'created.orderIds') } } });
     }
     if (created.userIds.length) {
-      await prisma.productReview.deleteMany({ where: { userId: { in: created.userIds } } });
-      await prisma.cartItem.deleteMany({ where: { userId: { in: created.userIds } } });
-      await prisma.address.deleteMany({ where: { userId: { in: created.userIds } } });
-      await prisma.authIdentity.deleteMany({ where: { userId: { in: created.userIds } } });
-      await prisma.user.deleteMany({ where: { id: { in: created.userIds } } });
+      await prisma.productReview.deleteMany({ where: { userId: { in: only(created.userIds, 'created.userIds') } } });
+      await prisma.cartItem.deleteMany({ where: { userId: { in: only(created.userIds, 'created.userIds') } } });
+      await prisma.address.deleteMany({ where: { userId: { in: only(created.userIds, 'created.userIds') } } });
+      await prisma.authIdentity.deleteMany({ where: { userId: { in: only(created.userIds, 'created.userIds') } } });
+      await prisma.user.deleteMany({ where: { id: { in: only(created.userIds, 'created.userIds') } } });
     }
     console.log('  test data removed');
   } catch (e) {

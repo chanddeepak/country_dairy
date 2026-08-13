@@ -10,6 +10,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const crypto = require('crypto');
 const { PrismaClient } = require('@prisma/client');
+const { only } = require('./lib/safe-ids');
 
 const prisma = new PrismaClient();
 
@@ -56,7 +57,26 @@ async function postWebhook(payload, { signature, secret } = {}) {
 }
 
 const stamp = Date.now();
-const made = { orders: [], events: [] };
+const made = { orders: [], events: [], users: [] };
+
+/**
+ * Fixtures get their own throwaway customer.
+ *
+ * These used to attach to `findFirst({ role: 'CUSTOMER' })` — the first real
+ * customer in the database — so an interrupted run left test orders sitting in
+ * a real person's order history.
+ */
+async function makeTestCustomer() {
+  const email = `wh-fixture-${stamp}@countrydairy.test`;
+  await fetch(`${API}/auth/email/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: 'TestPass#2026', name: 'Webhook Fixture' }),
+  });
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (user) made.users.push(user.id);
+  return user;
+}
 
 function capturedEvent(gatewayOrderId, paymentId, amountRupees) {
   return {
@@ -136,7 +156,7 @@ async function makePendingOrder(customerId, variant, suffix, amount = 500) {
   }
 
   const variant = await prisma.productVariant.findFirst();
-  const customer = await prisma.user.findFirst({ where: { role: 'CUSTOMER' } });
+  const customer = await makeTestCustomer();
   ok('fixtures available', !!variant && !!customer);
   if (!variant || !customer) throw new Error('need a variant and a customer');
 
@@ -327,11 +347,22 @@ async function makePendingOrder(customerId, variant, suffix, amount = 500) {
     console.error('\n\x1b[31mFATAL\x1b[0m', err.message);
   })
   .finally(async () => {
+    // Sweep by prefix as well as by id: a run that dies before pushing an id
+    // must not leave anything behind either.
+    const strays = await prisma.order.findMany({
+      where: { orderNumber: { startsWith: `TESTWH-${stamp}` } },
+      select: { id: true },
+    });
+    const orderIds = [...new Set([...made.orders, ...strays.map((o) => o.id)])];
+
     await prisma.webhookEvent.deleteMany({ where: { eventId: { contains: String(stamp) } } });
-    await prisma.orderStatusHistory.deleteMany({ where: { orderId: { in: made.orders } } });
-    await prisma.payment.deleteMany({ where: { orderId: { in: made.orders } } });
-    await prisma.orderItem.deleteMany({ where: { orderId: { in: made.orders } } });
-    await prisma.order.deleteMany({ where: { id: { in: made.orders } } });
+    await prisma.orderStatusHistory.deleteMany({ where: { orderId: { in: only(orderIds, 'orderIds') } } });
+    await prisma.payment.deleteMany({ where: { orderId: { in: only(orderIds, 'orderIds') } } });
+    await prisma.orderItem.deleteMany({ where: { orderId: { in: only(orderIds, 'orderIds') } } });
+    await prisma.order.deleteMany({ where: { id: { in: only(orderIds, 'orderIds') } } });
+    await prisma.cartItem.deleteMany({ where: { userId: { in: only(made.users, 'made.users') } } });
+    await prisma.authIdentity.deleteMany({ where: { userId: { in: only(made.users, 'made.users') } } });
+    await prisma.user.deleteMany({ where: { id: { in: only(made.users, 'made.users') } } });
     await prisma.$disconnect();
 
     const colour = fail ? '\x1b[31m' : '\x1b[32m';
