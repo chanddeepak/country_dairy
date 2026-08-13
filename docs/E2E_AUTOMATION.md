@@ -144,5 +144,11 @@ found it.
 ## Still to write
 
 Coverage is the highest-risk paths, not yet the full 185 cases. In rough order
-of what should come next: reviews (§8), delivery and the driver round (§13),
-the admin catalogue (§11), and the responsive and accessibility passes (§19).
+of what should come next: delivery and the driver round (§13), the admin
+catalogue (§11), and the responsive and accessibility passes (§19).
+
+One deliberate gap. Review attachments are asserted on the row, not in the
+bucket: `releaseMedia` swallows storage failures on purpose, because a
+customer's edit must not break when the bucket is having a bad minute. The
+object delete is covered by `scripts/media-cleanup-test.js` against a real
+upload instead.
