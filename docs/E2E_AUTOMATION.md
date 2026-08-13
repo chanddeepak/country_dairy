@@ -80,6 +80,26 @@ action timeout expires — which turned one broken run into sixteen minutes
 instead of thirteen seconds. Prefer a `data-testid`, added to the component,
 over a text selector that breaks when the copy is edited.
 
+Every command for running, watching and debugging these is in
+[COMMANDS.md](./COMMANDS.md).
+
+## The journey spec
+
+`storefront/journey.spec.ts` is the one that takes no shortcut. Every other
+spec plants a session in localStorage, seeds a cart over the API, or reaches a
+product by deep link — reasonable when a case is about one screen, but it means
+nothing exercises the seams between screens, which is where integration
+actually breaks.
+
+That one registers by typing, browses to the shelf and clicks through to the
+catalogue, opens a product by clicking its card, picks the size by clicking the
+selector, raises the quantity in the drawer, fills the address form, pays, and
+then finds the order in its own history. It asserts that the variant the
+customer clicked is the variant they were sold — a default quietly winning
+there is a bug nobody notices until delivery.
+
+It is the slowest test in the suite and the one worth keeping green.
+
 ## Where the line between UI and API sits
 
 The money cases (§5, §6) run against the API and assert on Postgres, not

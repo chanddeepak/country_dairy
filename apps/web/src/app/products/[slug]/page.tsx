@@ -490,6 +490,8 @@ export default function ProductDetailPage() {
                       return (
                         <button
                           key={variant.id}
+                          data-testid="variant-option"
+                          data-variant-id={variant.id}
                           onClick={() => handleVariantSelect(variant)}
                           className={`p-3 rounded-xl border-2 text-left transition-all relative ${
                             isSelected

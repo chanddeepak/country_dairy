@@ -141,7 +141,7 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
           <span>⛰️ Tanakpur, Uttarakhand</span>
         </div>
 
-        <Link href={productUrl} className="hover:text-[#3A6038] transition">
+        <Link href={productUrl} data-testid="product-card-link" className="hover:text-[#3A6038] transition">
           <h3 className="font-serif font-bold text-base text-[#2A2A2A] leading-snug mb-1 line-clamp-1">
             {product.name}
           </h3>

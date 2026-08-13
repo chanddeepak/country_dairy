@@ -40,6 +40,14 @@ export const SEL = {
   addressPhone: 'input[type="tel"]',
   placeOrder: '[data-testid="place-order"]',
   confirmPayment: '[data-testid="confirm-payment"]',
+
+  // Browsing and the cart drawer, for the journey spec — the one that reaches
+  // every screen by clicking rather than by URL.
+  productCardLink: '[data-testid="product-card-link"]',
+  variantOption: '[data-testid="variant-option"]',
+  checkoutNow: '[data-testid="checkout-now"]',
+  qtyIncrease: '[data-testid="qty-increase"]',
+  qtyDecrease: '[data-testid="qty-decrease"]',
 };
 
 /** Registers through the storefront's own modal, as a customer would. */

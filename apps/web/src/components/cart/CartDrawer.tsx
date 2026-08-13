@@ -127,6 +127,7 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
                     <div className="flex items-center space-x-3 mt-2">
                       <button
                         onClick={() => updateCartQty(item.id, item.quantity - 1)}
+                        data-testid="qty-decrease"
                         className="p-0.5 border border-stone-300 rounded hover:bg-stone-50 transition"
                       >
                         <Minus className="h-3 w-3" />
@@ -134,6 +135,7 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
                       <span className="text-xs font-black text-[#2A2A2A] w-4 text-center">{item.quantity}</span>
                       <button
                         onClick={() => updateCartQty(item.id, item.quantity + 1)}
+                        data-testid="qty-increase"
                         className="p-0.5 border border-stone-300 rounded hover:bg-stone-50 transition"
                       >
                         <Plus className="h-3 w-3" />
@@ -183,6 +185,7 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
             {checkoutEnabled && (
               <button
                 onClick={onCheckout}
+                data-testid="checkout-now"
                 className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl transition"
               >
                 Checkout Now
