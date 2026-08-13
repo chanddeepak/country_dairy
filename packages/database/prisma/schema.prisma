@@ -138,6 +138,19 @@ model User {
   passwordHash  String?
   role          Role      @default(CUSTOMER)
   isActive      Boolean   @default(true)
+
+  /// Set when the customer exercises their right to erasure under the DPDP
+  /// Act. The row survives because orders must reference a buyer and the
+  /// invoices are retained for GST, but every identifying field on it is
+  /// cleared. See AuthService.deleteOwnAccount for exactly what is kept.
+  deletedAt     DateTime?
+
+  /// Per-channel consent. Defaults to on for email because a customer who
+  /// places an order has asked to be told what happens to it; marketing on any
+  /// channel is a separate switch the store does not have yet.
+  emailOptIn    Boolean   @default(true)
+  smsOptIn      Boolean   @default(true)
+  whatsappOptIn Boolean   @default(true)
   walletBalance Decimal   @default(0.00) @db.Decimal(10, 2)
   lastLoginAt   DateTime?
   createdAt     DateTime  @default(now())
@@ -229,6 +242,57 @@ model Address {
 // Catalog
 // ---------------------------------------------------------------------------
 
+/// How a collection is meant to be used, so the storefront can render each
+/// kind in its own place rather than dumping them all in one nav menu.
+enum CollectionType {
+  /// "Gut Health", "Immunity" — what the customer is shopping *for*. A ghee
+  /// belongs to several at once, which is why this is not a Category: a
+  /// product has exactly one of those.
+  CONCERN
+  /// "Diwali Gifting", "Monsoon" — seasonal, and usually date-bound.
+  OCCASION
+  /// "Best Seller", "New Launch" — a badge on the card.
+  BADGE
+  /// "Saver Combos" — a hand-picked shelf.
+  CURATED
+}
+
+/// A merchandising grouping that cuts across the category tree.
+model Collection {
+  id           String              @id @default(uuid())
+  slug         String              @unique
+  title        String
+  subtitle     String?
+  description  String?
+  type         CollectionType      @default(CURATED)
+  iconName     String?
+  imageUrl     String?
+  /// Seasonal shelves appear and retire on their own rather than needing
+  /// somebody to remember on the morning of the festival.
+  startsAt     DateTime?
+  endsAt       DateTime?
+  displayOrder Int                 @default(1)
+  isActive     Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  products     ProductCollection[]
+
+  @@index([type, isActive, displayOrder])
+  @@index([startsAt, endsAt])
+}
+
+model ProductCollection {
+  productId    String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  displayOrder Int        @default(1)
+
+  @@id([productId, collectionId])
+  @@index([collectionId, displayOrder])
+}
+
 model Category {
   id            String     @id @default(uuid())
   name          String
@@ -282,6 +346,17 @@ model Product {
   isFeatured            Boolean       @default(false)
   displayOrder          Int           @default(1)
   isSubscriptionAllowed Boolean       @default(false)
+
+  /// What a customer saves by subscribing rather than buying once. Shown on
+  /// the product page — a subscription with no visible saving is only a
+  /// commitment.
+  subscriptionDiscountPercent Int      @default(0)
+
+  /// A bundle is sold as one line but ships as its components. A flag rather
+  /// than a separate model, so hampers stay in one catalogue, one editor and
+  /// one set of storefront queries.
+  isBundle              Boolean       @default(false)
+
   batchCode             String?
   verified              Boolean       @default(false)
 
@@ -304,6 +379,8 @@ model Product {
   updatedAt             DateTime      @updatedAt
 
   variants              ProductVariant[]
+  bundleItems           BundleItem[]        @relation("BundleContents")
+  collections           ProductCollection[]
   galleryImages         ProductImage[]
   orderItems            OrderItem[]
   cartItems             CartItem[]
@@ -315,6 +392,23 @@ model Product {
   @@index([status])
   @@index([status, isFeatured])
   @@index([status, displayOrder])
+}
+
+/// A bundle's contents. Stock and cost are derived from the components rather
+/// than tracked separately, so a hamper cannot oversell the ghee inside it.
+model BundleItem {
+  id        String         @id @default(uuid())
+  /// The bundle being sold.
+  bundleId  String
+  bundle    Product        @relation("BundleContents", fields: [bundleId], references: [id], onDelete: Cascade)
+  /// A specific size of a specific product, because a hamper contains a 500ml
+  /// jar, not "some ghee".
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  quantity  Int            @default(1)
+
+  @@unique([bundleId, variantId])
+  @@index([variantId])
 }
 
 model ProductVariant {
@@ -349,6 +443,8 @@ model ProductVariant {
   orderItems        OrderItem[]
   subscriptions     Subscription[]
   stockMovements    StockMovement[]
+
+  bundledIn         BundleItem[]
 
   @@index([productId])
   @@index([productId, isActive])
@@ -515,6 +611,24 @@ model Order {
   customerNote     String?
   internalNote     String?
   cancelReason     String?
+
+  /// Ghee and honey are gifting products in India. A gift ships to someone who
+  /// did not order it, carries a message, and must not have the price on the
+  /// packing slip.
+  isGift           Boolean       @default(false)
+  giftMessage      String?
+  giftSenderName   String?
+
+  /// Set when the customer has been asked to review what they bought, so they
+  /// are asked once rather than every time a job runs.
+  reviewRequestedAt DateTime?
+
+  /// Assigned when the supply actually happens, not when the order is placed.
+  /// A GST invoice series must be consecutive with no gaps for the financial
+  /// year, so an order cancelled before dispatch must never consume a number —
+  /// which is exactly what reusing orderNumber here would have done.
+  invoiceNumber    String?       @unique
+  invoicedAt       DateTime?
 
   confirmedAt      DateTime?
   shippedAt        DateTime?
@@ -723,6 +837,27 @@ model ProductReview {
 // CMS & Operations
 // ---------------------------------------------------------------------------
 
+/// Editable long-form pages — About, Our Farm, Traceability, FAQ. These are
+/// currently hardcoded in the Next.js app, so changing a sentence needs a
+/// deploy and the owner cannot touch their own story.
+model ContentPage {
+  id          String    @id @default(uuid())
+  slug        String    @unique
+  title       String
+  subtitle    String?
+  /// Markdown. Rendered on the storefront; edited in the console.
+  body        String
+  heroImage   String?
+  metaTitle   String?
+  metaDesc    String?
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isPublished])
+}
+
 model HeroBanner {
   id           String     @id @default(uuid())
   title        String
@@ -732,6 +867,15 @@ model HeroBanner {
   ctaText      String     @default("Order Fresh Now")
   ctaLink      String     @default("/products")
   badgeText    String?    @default("FARM FRESH")
+  /// True when the artwork already carries its own headline — the poster-style
+  /// banners exported from a design tool. The storefront then shows the image
+  /// whole and lays no text over it. Added on feature/devbhoomi-redesign;
+  /// carried here so both branches agree with the database.
+  imageHasText Boolean    @default(false)
+  /// A festival banner should retire itself. Without a window somebody has to
+  /// remember to take Diwali down in November.
+  startsAt     DateTime?
+  endsAt       DateTime?
   displayOrder Int        @default(1)
   isActive     Boolean    @default(true)
   createdAt    DateTime   @default(now())

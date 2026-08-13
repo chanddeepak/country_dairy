@@ -232,6 +232,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  data-testid="signup-name"
                   placeholder="Amit Sharma"
                   className="w-full bg-[#FAF8F3] border border-stone-300 px-4 py-3 rounded-xl text-[#2A2A2A] placeholder-stone-400 focus:outline-none focus:border-[#3A6038] transition"
                 />
@@ -271,6 +272,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <button 
                 type="button" 
                 onClick={() => setIsRegistering(!isRegistering)}
+                data-testid="toggle-register"
                 className="text-xs text-[#C59B27] font-bold hover:underline"
               >
                 {isRegistering ? 'Already have an account? Sign In' : "Don't have an account? Register"}

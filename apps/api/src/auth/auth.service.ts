@@ -1,6 +1,17 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+  forwardRef,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthProvider, Role, User } from '@prisma/client';
+import { MediaService } from '../media/media.service';
+import { AuditService } from '../audit/audit.service';
 import * as bcrypt from 'bcryptjs';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { PrismaService } from '../prisma/prisma.service';
@@ -8,6 +19,7 @@ import { FLAG, FeatureFlagsService } from '../feature-flags/feature-flags.servic
 import {
   ChangePasswordDto,
   CreateAddressDto,
+  DeleteAccountDto,
   UpdateAddressDto,
   UpdateProfileDto,
 } from './dto/auth.dto';
@@ -33,6 +45,9 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private featureFlags: FeatureFlagsService,
+    @Inject(forwardRef(() => MediaService))
+    private media: MediaService,
+    private audit: AuditService,
   ) {
     this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
   }
@@ -343,6 +358,12 @@ export class AuthService {
         isActive: true,
         walletBalance: true,
         addresses: true,
+        // Without these the account page cannot show which channels the
+        // customer has agreed to — the toggles would render off whatever
+        // they had actually chosen.
+        emailOptIn: true,
+        smsOptIn: true,
+        whatsappOptIn: true,
       },
     });
   }
@@ -368,6 +389,9 @@ export class AuthService {
       data: {
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
         ...(dto.phone !== undefined ? { phone: dto.phone } : {}),
+        ...(dto.emailOptIn !== undefined ? { emailOptIn: dto.emailOptIn } : {}),
+        ...(dto.smsOptIn !== undefined ? { smsOptIn: dto.smsOptIn } : {}),
+        ...(dto.whatsappOptIn !== undefined ? { whatsappOptIn: dto.whatsappOptIn } : {}),
       },
     });
 
@@ -408,6 +432,142 @@ export class AuthService {
     this.logger.log(`Password changed for ${userId}`);
 
     return { success: true as const };
+  }
+
+  /**
+   * Right to erasure under the DPDP Act 2023.
+   *
+   * Two obligations pull against each other. The customer may demand their
+   * personal data be erased; the Companies Act and GST rules require the
+   * invoice — including the buyer's name and the place of supply — to be kept
+   * for years. So the row survives with its financial history intact and every
+   * identifying field cleared, rather than being deleted outright.
+   *
+   * Kept: orders, order lines, payments, and enough of the shipping address to
+   * establish place of supply (city, state, PIN), because that is what decides
+   * whether the tax on a past invoice was CGST+SGST or IGST.
+   *
+   * Erased: name, email, phone, saved addresses, cart, reviews and their
+   * photographs, sign-in identities, and the street address on past orders.
+   */
+  async deleteOwnAccount(userId: string, password: string, reason?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, passwordHash: true, role: true, deletedAt: true, email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Account not found');
+    }
+
+    if (user.deletedAt) {
+      throw new BadRequestException('This account has already been closed');
+    }
+
+    // Staff accounts are removed by a super admin through user management, so
+    // this route cannot be used to delete the last administrator.
+    if (user.role !== Role.CUSTOMER) {
+      throw new ForbiddenException('Staff accounts are closed from the admin console');
+    }
+
+    if (!user.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
+      throw new UnauthorizedException('That password is not correct');
+    }
+
+    const reviews = await this.prisma.productReview.findMany({
+      where: { userId },
+      select: { id: true, mediaUrls: true },
+    });
+
+    const orders = await this.prisma.order.findMany({
+      where: { userId },
+      select: { id: true, shippingAddress: true },
+    });
+
+    // Strip the street and the person from each order's address snapshot, but
+    // keep what the tax treatment depends on.
+    const redactions = orders.map((order) => {
+      const a = (order.shippingAddress ?? {}) as Record<string, unknown>;
+      return this.prisma.order.update({
+        where: { id: order.id },
+        data: {
+          shippingAddress: {
+            line1: '[erased at customer request]',
+            line2: '',
+            city: typeof a.city === 'string' ? a.city : '',
+            state: typeof a.state === 'string' ? a.state : '',
+            postalCode: typeof a.postalCode === 'string' ? a.postalCode : '',
+            country: typeof a.country === 'string' ? a.country : 'India',
+            phone: '',
+          },
+          customerNote: null,
+        },
+      });
+    });
+
+    const closedAt = new Date();
+
+    await this.prisma.$transaction([
+      this.prisma.productReview.deleteMany({ where: { userId } }),
+      this.prisma.address.deleteMany({ where: { userId } }),
+      this.prisma.cartItem.deleteMany({ where: { userId } }),
+      this.prisma.authIdentity.deleteMany({ where: { userId } }),
+      this.prisma.passwordResetToken.deleteMany({ where: { userId } }),
+      ...redactions,
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          name: 'Closed account',
+          // Nulled rather than tombstoned: email and phone are unique, and a
+          // person who returns should be able to sign up again with their own
+          // address.
+          email: null,
+          phone: null,
+          passwordHash: null,
+          isActive: false,
+          deletedAt: closedAt,
+          emailOptIn: false,
+          smsOptIn: false,
+          whatsappOptIn: false,
+        },
+      }),
+    ]);
+
+    // Attachments live in object storage, not the database, so they need
+    // removing separately or they outlive the account that owned them.
+    for (const review of reviews) {
+      for (const url of review.mediaUrls) {
+        await this.media.deleteMediaFile(url).catch(() => undefined);
+      }
+    }
+
+    this.userCache.delete(userId);
+
+    await this.audit.record({
+      action: 'DELETE',
+      entity: 'User',
+      entityId: userId,
+      before: { role: user.role },
+      after: {
+        closed: true,
+        reason: reason ?? null,
+        reviewsRemoved: reviews.length,
+        ordersRedacted: orders.length,
+      },
+    });
+
+    this.logger.log(
+      `Account ${userId} closed on request: ${reviews.length} reviews removed, ` +
+        `${orders.length} orders redacted`,
+    );
+
+    return {
+      success: true as const,
+      ordersRetained: orders.length,
+      message:
+        'Your account is closed and your personal details have been erased. ' +
+        'Invoices for past orders are kept because tax law requires it.',
+    };
   }
 
   async addAddress(userId: string, dto: CreateAddressDto) {

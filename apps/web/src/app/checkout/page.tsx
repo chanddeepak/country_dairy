@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, CreditCard, Wallet, ShieldCheck, Plus, CheckCircle2, UserCheck, KeyRound, PhoneCall, AlertCircle, Mail, Lock, User, Loader2 } from 'lucide-react';
@@ -446,13 +447,14 @@ export default function CheckoutPage() {
                   {!showNewAddr ? (
                     <button
                       onClick={() => setShowNewAddr(true)}
+                      data-testid="add-address"
                       className="flex items-center gap-2 text-xs font-bold text-[#3A6038] hover:underline px-2"
                     >
                       <Plus className="h-3.5 w-3.5" />
                       Add New Address
                     </button>
                   ) : (
-                    <form onSubmit={handleSaveAddress} className="border border-stone-200 p-5 rounded-xl bg-stone-50/50 space-y-3.5">
+                    <form onSubmit={handleSaveAddress} data-testid="address-form" className="border border-stone-200 p-5 rounded-xl bg-stone-50/50 space-y-3.5">
                       <h3 className="text-xs font-bold text-stone-600 uppercase tracking-wider">Add Delivery Address</h3>
                       {addrError && (
                         <div className="bg-red-50 border border-red-200 text-red-700 p-2.5 rounded-lg text-xs font-bold">
@@ -526,12 +528,23 @@ export default function CheckoutPage() {
                 <h2 className="font-bold text-sm text-[#2A2A2A] mb-4">STEP 2: ORDER SUMMARY</h2>
                 <div className="space-y-3">
                   {cart.map((item) => (
-                    <div key={item.id} className="flex justify-between text-sm">
-                      <span className="text-[#6b6661]">
-                        {item.productName}
+                    <div key={item.id} className="flex justify-between gap-3 text-sm">
+                      <span className="text-[#6b6661] min-w-0">
+                        {item.productSlug ? (
+                          <Link
+                            href={`/products/${item.productSlug}${item.variantId ? `?variant=${item.variantId}` : ''}`}
+                            className="font-bold text-[#2A2A2A] hover:text-[#3A6038] hover:underline transition"
+                          >
+                            {item.productName}
+                          </Link>
+                        ) : (
+                          <span className="font-bold text-[#2A2A2A]">{item.productName}</span>
+                        )}
                         {item.variantLabel ? ` (${item.variantLabel})` : ''} × {item.quantity}
                       </span>
-                      <span className="font-bold text-[#2A2A2A]">₹{item.lineTotal}</span>
+                      <span className="font-bold text-[#2A2A2A] whitespace-nowrap">
+                        ₹{item.lineTotal}
+                      </span>
                     </div>
                   ))}
                   <div className="border-t border-stone-100 pt-3 space-y-1">
@@ -590,6 +603,7 @@ export default function CheckoutPage() {
               <button
                 onClick={handlePlaceOrder}
                 disabled={processing}
+                data-testid="place-order"
                 className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-4 rounded-xl text-lg transition disabled:opacity-50 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
               >
                 <CheckCircle2 className="h-5 w-5" />
@@ -662,6 +676,7 @@ export default function CheckoutPage() {
               <button
                 onClick={handleConfirmMockPayment}
                 disabled={verifyingPayment}
+                data-testid="confirm-payment"
                 className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl text-sm transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {verifyingPayment && <Loader2 className="h-4 w-4 animate-spin" />}

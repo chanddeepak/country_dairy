@@ -1,7 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
+import { MediaModule } from '../media/media.module';
+import { PrismaModule } from '../prisma/prisma.module';
 
 /**
  * There is deliberately no fallback secret here. A shared default is worse
@@ -23,6 +25,11 @@ function requireJwtSecret(): string {
 
 @Module({
   imports: [
+    PrismaModule,
+    // Mutual by nature rather than by accident: closing an account has to
+    // remove the customer's uploaded review photographs, and MediaModule's
+    // own controller is guarded by AuthGuard, which injects AuthService.
+    forwardRef(() => MediaModule),
     JwtModule.register({
       global: true,
       secret: requireJwtSecret(),

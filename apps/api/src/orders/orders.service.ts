@@ -11,11 +11,13 @@ import {
   OrderStatus,
   PaymentStatus,
   Prisma,
+  ProductStatus,
   StockMovementReason,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { RazorpayService } from './razorpay.service';
+import { CmsService } from '../cms/cms.service';
 import { calculateOrderTotals, priceLine, round2, toPaise } from './pricing';
 
 /** Transitions the order state machine permits. */
@@ -36,6 +38,7 @@ export class OrdersService {
   constructor(
     private prisma: PrismaService,
     private razorpayService: RazorpayService,
+    private cms: CmsService,
     private audit: AuditService,
   ) {}
 
@@ -354,10 +357,266 @@ export class OrdersService {
     return confirmed;
   }
 
+  /**
+   * Puts a past order back in the cart.
+   *
+   * Nothing is assumed to still be true: a variant may be delisted, sold out,
+   * or repriced since. Each line is reported back so the customer is told what
+   * changed rather than discovering it at checkout, which is where a silent
+   * substitution would surface.
+   */
+  async reorder(userId: string, orderId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+      include: { orderItems: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.orderItems.length === 0) {
+      throw new BadRequestException('That order has nothing to reorder');
+    }
+
+    const variantIds = order.orderItems
+      .map((i) => i.variantId)
+      .filter((id): id is string => !!id);
+
+    const [variants, existingCart] = await Promise.all([
+      this.prisma.productVariant.findMany({
+        where: { id: { in: variantIds } },
+        include: { product: { select: { id: true, title: true, status: true, forceOutOfStock: true } } },
+      }),
+      this.prisma.cartItem.findMany({ where: { userId } }),
+    ]);
+
+    const byId = new Map(variants.map((v) => [v.id, v]));
+    const inCart = new Map(existingCart.map((c) => [c.variantId, c]));
+
+    const added: { title: string; quantity: number }[] = [];
+    const adjusted: { title: string; wanted: number; added: number; reason: string }[] = [];
+    const unavailable: { title: string; reason: string }[] = [];
+    const repriced: { title: string; was: number; now: number }[] = [];
+
+    for (const item of order.orderItems) {
+      const label = `${item.productTitle}${item.variantSizeLabel ? ` (${item.variantSizeLabel})` : ''}`;
+      const variant = item.variantId ? byId.get(item.variantId) : undefined;
+
+      // Permanent and temporary are told apart on purpose. "Not available right
+      // now" invites the customer to come back for it, so an archived product
+      // must not be described that way — it is never coming back.
+      if (!variant || !variant.isActive || variant.product.status === ProductStatus.ARCHIVED) {
+        unavailable.push({ title: label, reason: 'no longer sold' });
+        continue;
+      }
+
+      if (variant.product.status !== ProductStatus.LIVE || variant.product.forceOutOfStock) {
+        unavailable.push({ title: label, reason: 'not available right now' });
+        continue;
+      }
+
+      // What is already in the cart counts against the same stock.
+      const alreadyThere = inCart.get(variant.id)?.quantity ?? 0;
+      const room = Math.max(0, variant.stockQuantity - alreadyThere);
+
+      if (room === 0) {
+        unavailable.push({ title: label, reason: 'sold out' });
+        continue;
+      }
+
+      const quantity = Math.min(item.quantity, room);
+
+      if (quantity < item.quantity) {
+        adjusted.push({
+          title: label,
+          wanted: item.quantity,
+          added: quantity,
+          reason: `only ${room} left`,
+        });
+      } else {
+        added.push({ title: label, quantity });
+      }
+
+      // Told, not hidden: the price on the old order is not the price today.
+      const oldPrice = Number(item.unitPrice);
+      const newPrice = Number(variant.sellingPrice);
+      if (Math.abs(oldPrice - newPrice) > 0.01) {
+        repriced.push({ title: label, was: oldPrice, now: newPrice });
+      }
+
+      await this.prisma.cartItem.upsert({
+        where: { userId_variantId: { userId, variantId: variant.id } },
+        create: {
+          userId,
+          variantId: variant.id,
+          productId: variant.productId,
+          quantity,
+        },
+        update: { quantity: alreadyThere + quantity },
+      });
+    }
+
+    this.logger.log(
+      `Reorder of ${order.orderNumber}: ${added.length} added, ` +
+        `${adjusted.length} reduced, ${unavailable.length} unavailable`,
+    );
+
+    return {
+      orderNumber: order.orderNumber,
+      added,
+      adjusted,
+      unavailable,
+      repriced,
+      addedCount: added.length + adjusted.length,
+    };
+  }
+
+  /**
+   * Indian financial year label for an invoice series: 2026-27 runs from
+   * 1 April 2026 to 31 March 2027.
+   */
+  private financialYear(date: Date): string {
+    const year = date.getFullYear();
+    const startYear = date.getMonth() >= 3 ? year : year - 1;
+    return `${startYear}-${String((startYear + 1) % 100).padStart(2, '0')}`;
+  }
+
+  /**
+   * Assigns the next invoice number, once, when the supply happens.
+   *
+   * GST requires a series that is consecutive and gap-free for the financial
+   * year, which is why this is not the order number: an order cancelled before
+   * dispatch would leave a hole. Serialised through a transaction so two
+   * concurrent dispatches cannot take the same number.
+   */
+  async assignInvoiceNumber(orderId: string): Promise<string> {
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        select: { id: true, invoiceNumber: true },
+      });
+
+      if (!order) throw new NotFoundException('Order not found');
+      if (order.invoiceNumber) return order.invoiceNumber;
+
+      const seller = await this.cms.getSellerIdentity();
+      const now = new Date();
+      const fy = this.financialYear(now);
+      const prefix = `${seller.invoicePrefix}/${fy}/`;
+
+      const last = await tx.order.findFirst({
+        where: { invoiceNumber: { startsWith: prefix } },
+        orderBy: { invoiceNumber: 'desc' },
+        select: { invoiceNumber: true },
+      });
+
+      const lastSeq = last?.invoiceNumber ? Number(last.invoiceNumber.split('/').pop()) : 0;
+      const invoiceNumber = `${prefix}${String(lastSeq + 1).padStart(5, '0')}`;
+
+      await tx.order.update({
+        where: { id: orderId },
+        data: { invoiceNumber, invoicedAt: now },
+      });
+
+      return invoiceNumber;
+    });
+  }
+
+  /**
+   * Everything a GST tax invoice must show.
+   *
+   * The CGST/SGST versus IGST split is decided by place of supply: same state
+   * as the seller splits the tax in two, a different state charges it whole as
+   * IGST. Derived here rather than stored, because it is a function of two
+   * addresses we already have.
+   */
+  async getInvoice(userId: string, orderId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+      include: { orderItems: true, user: { select: { name: true, email: true, phone: true } } },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.paymentStatus !== PaymentStatus.PAID) {
+      throw new BadRequestException(
+        'An invoice is raised once the order is paid for. This one is not yet.',
+      );
+    }
+
+    const seller = await this.cms.getSellerIdentity();
+    const invoiceNumber = order.invoiceNumber ?? (await this.assignInvoiceNumber(order.id));
+
+    const shipping = (order.shippingAddress ?? {}) as Record<string, string>;
+    const buyerState = (shipping.state ?? '').trim();
+    const isIntraState =
+      !!buyerState && buyerState.toLowerCase() === seller.state.toLowerCase();
+
+    const lines = order.orderItems.map((item) => {
+      const lineTotal = Number(item.lineTotal);
+      const tax = Number(item.taxAmount);
+      // Prices are tax-inclusive, so the taxable value is the line less its tax.
+      const taxable = round2(lineTotal - tax);
+
+      return {
+        description: item.productTitle,
+        variant: item.variantSizeLabel,
+        hsnCode: item.hsnCode ?? '',
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        taxableValue: taxable,
+        gstRate: Number(item.gstRate),
+        cgst: isIntraState ? round2(tax / 2) : 0,
+        sgst: isIntraState ? round2(tax / 2) : 0,
+        igst: isIntraState ? 0 : round2(tax),
+        total: lineTotal,
+      };
+    });
+
+    const totalTax = round2(lines.reduce((sum, l) => sum + l.cgst + l.sgst + l.igst, 0));
+
+    return {
+      invoiceNumber,
+      invoiceDate: (order.invoicedAt ?? new Date()).toISOString(),
+      orderNumber: order.orderNumber,
+      orderDate: order.createdAt.toISOString(),
+      seller,
+      buyer: {
+        name: order.user.name ?? 'Customer',
+        phone: shipping.phone ?? order.user.phone ?? '',
+        addressLine1: shipping.line1 ?? '',
+        addressLine2: shipping.line2 ?? '',
+        city: shipping.city ?? '',
+        state: buyerState,
+        postalCode: shipping.postalCode ?? '',
+      },
+      placeOfSupply: buyerState || seller.state,
+      taxKind: isIntraState ? ('CGST_SGST' as const) : ('IGST' as const),
+      lines,
+      totals: {
+        taxableValue: round2(lines.reduce((sum, l) => sum + l.taxableValue, 0)),
+        cgst: round2(lines.reduce((sum, l) => sum + l.cgst, 0)),
+        sgst: round2(lines.reduce((sum, l) => sum + l.sgst, 0)),
+        igst: round2(lines.reduce((sum, l) => sum + l.igst, 0)),
+        totalTax,
+        deliveryCharges: Number(order.deliveryCharges),
+        discount: Number(order.discountAmount),
+        grandTotal: Number(order.totalAmount),
+      },
+      // A GSTIN-less invoice is a bill of supply, not a tax invoice. Say which.
+      isTaxInvoice: !!seller.gstin,
+    };
+  }
+
   async getUserOrders(userId: string) {
     return this.prisma.order.findMany({
       where: { userId },
-      include: { orderItems: true },
+      include: {
+        orderItems: { include: { product: { select: { slug: true } } } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -365,7 +624,16 @@ export class OrdersService {
   async getOrderById(userId: string, orderId: string) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, userId },
-      include: { orderItems: true, statusHistory: { orderBy: { createdAt: 'asc' } } },
+      include: {
+        orderItems: {
+          // The line already snapshots the title and price, but not the slug,
+          // so without this the customer cannot get back to what they bought.
+          // Null when the product has since been deleted, which the UI treats
+          // as "no longer linkable" rather than a broken href.
+          include: { product: { select: { slug: true } } },
+        },
+        statusHistory: { orderBy: { createdAt: 'asc' } },
+      },
     });
 
     if (!order) {

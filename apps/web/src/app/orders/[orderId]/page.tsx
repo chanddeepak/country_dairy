@@ -10,6 +10,15 @@ import Footer from '../../../components/layout/Footer';
 import Badge from '../../../components/ui/Badge';
 import AuthModal from '../../../components/modals/AuthModal';
 
+/** Never renders NaN: a missing figure reads as ₹0 rather than as broken output. */
+function money(value: unknown): string {
+  const n = Number(value);
+  return `₹${(Number.isFinite(n) ? n : 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 export default function OrderDetailPage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -140,29 +149,85 @@ export default function OrderDetailPage() {
           {/* Items */}
           <div className="bg-white border border-stone-200 rounded-xl p-6 mb-6">
             <h3 className="font-bold text-sm text-[#2A2A2A] mb-4">ITEMS</h3>
-            {order.orderItems?.map((item: any) => (
-              <div key={item.id} className="flex justify-between text-sm py-2 border-b border-stone-100 last:border-0">
-                <span className="text-[#2A2A2A]">{item.product?.name || 'Product'}</span>
-                <span className="text-[#6b6661]">
-                  Qty: {item.quantity} • ₹{item.price} × {item.quantity} = <span className="font-bold text-[#2A2A2A]">₹{Number(item.price) * item.quantity}</span>
-                </span>
-              </div>
-            )) || <p className="text-xs text-[#6b6661]">No item details available.</p>}
+            {/* OrderItem is a snapshot taken at purchase: productTitle,
+                variantSizeLabel, unitPrice and lineTotal. Reading item.product.name
+                and item.price — neither of which the API sends — is what put
+                "Product" and ₹NaN on this page. */}
+            {order.orderItems?.length ? (
+              order.orderItems.map((item: any) => {
+                // Back to exactly what they bought, not just the product: the
+                // variant is what carries the size and the price.
+                const href = item.product?.slug
+                  ? `/products/${item.product.slug}${item.variantId ? `?variant=${item.variantId}` : ''}`
+                  : null;
 
-            <div className="border-t border-stone-200 mt-4 pt-4 space-y-1 text-sm">
+                return (
+                  <div
+                    key={item.id}
+                    className="flex justify-between items-start gap-4 py-3 border-b border-stone-100 last:border-0"
+                  >
+                    <div className="min-w-0">
+                      {href ? (
+                        <Link
+                          href={href}
+                          className="text-base font-bold text-[#2A2A2A] hover:text-[#3A6038] hover:underline transition"
+                        >
+                          {item.productTitle}
+                        </Link>
+                      ) : (
+                        <span className="text-base font-bold text-[#2A2A2A]">
+                          {item.productTitle}
+                        </span>
+                      )}
+                      {item.variantSizeLabel && (
+                        <span className="block text-xs text-[#6b6661] mt-0.5">
+                          {item.variantSizeLabel}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-[#6b6661] whitespace-nowrap pt-1">
+                      {item.quantity} × {money(item.unitPrice)} ={' '}
+                      <span className="text-sm font-bold text-[#2A2A2A]">
+                        {money(item.lineTotal)}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-xs text-[#6b6661]">No item details available.</p>
+            )}
+
+            <div className="border-t border-stone-200 mt-4 pt-4 space-y-1 text-xs">
               <div className="flex justify-between">
                 <span className="text-[#6b6661]">Subtotal:</span>
-                <span>₹{Number(order.totalAmount) - Number(order.deliveryCharges || 0)}</span>
+                {/* The order carries its own subtotal. Deriving it as
+                    total − delivery silently ignored any discount. */}
+                <span>{money(order.subtotal)}</span>
               </div>
+              {Number(order.discountAmount || 0) > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-[#6b6661]">
+                    Discount{order.couponCode ? ` (${order.couponCode})` : ''}:
+                  </span>
+                  <span className="text-[#3A6038]">−{money(order.discountAmount)}</span>
+                </div>
+              )}
+              {Number(order.taxAmount || 0) > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-[#6b6661]">GST (included):</span>
+                  <span className="text-[#6b6661]">{money(order.taxAmount)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-[#6b6661]">Delivery:</span>
                 <span className="text-[#3A6038] font-bold">
-                  {Number(order.deliveryCharges || 0) > 0 ? `₹${order.deliveryCharges}` : 'FREE'}
+                  {Number(order.deliveryCharges || 0) > 0 ? money(order.deliveryCharges) : 'FREE'}
                 </span>
               </div>
-              <div className="flex justify-between text-lg font-black border-t border-stone-100 pt-2">
+              <div className="flex justify-between text-base font-black border-t border-stone-100 pt-2 mt-1">
                 <span>Total:</span>
-                <span>₹{order.totalAmount}</span>
+                <span>{money(order.totalAmount)}</span>
               </div>
             </div>
           </div>

@@ -88,6 +88,8 @@ interface AppContextType {
   deleteAddress: (id: string) => Promise<AddressResult>;
   updateProfile: (patch: { name?: string; phone?: string }) => Promise<AddressResult>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<AddressResult>;
+  reorder: (orderId: string) => Promise<{ ok: boolean; summary?: any; error?: string }>;
+  closeAccount: (password: string, reason?: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -497,20 +499,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           },
         ];
       });
-      // The tick shows immediately; the request continues behind it.
-      setLastAddedVariantId(variantId);
-      setTimeout(() => setLastAddedVariantId((id) => (id === variantId ? null : id)), 2000);
+      // The tick shows immediately and stays up until the request settles.
+      markAdded(variantId, { hold: true });
     }
 
     try {
       await addToCartInner(variantId, quantity);
       unsyncedRef.current.delete(variantId);
       setUnsyncedCount(unsyncedRef.current.size);
-      if (!optimistic) {
-        setLastAddedVariantId(variantId);
-        setTimeout(() => setLastAddedVariantId((id) => (id === variantId ? null : id)), 2000);
-      }
+      // Restart the window on confirmation. Set only at the start, a tick that
+      // expires after two seconds is gone before a slow round trip finishes,
+      // so the button fell back to "Add to Cart" having said nothing.
+      markAdded(variantId);
     } catch (err) {
+      clearAdded(variantId);
       const transient = isTransient(err);
 
       if (transient && optimistic) {
@@ -823,6 +825,80 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  /**
+   * Shows the "Added" tick for two seconds from now.
+   *
+   * Held in a ref so a second add of the same variant restarts the window
+   * rather than letting the first timer clear a tick the second one set.
+   */
+  const addedTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const markAdded = useCallback((variantId: string, { hold = false } = {}) => {
+    const existing = addedTimers.current.get(variantId);
+    if (existing) clearTimeout(existing);
+    addedTimers.current.delete(variantId);
+
+    setLastAddedVariantId(variantId);
+
+    // `hold` keeps the tick up while the request is still in flight. The line
+    // is already in the cart optimistically, so dropping back to "Adding…"
+    // after two seconds would walk the confirmation backwards.
+    if (hold) return;
+
+    const timer = setTimeout(() => {
+      setLastAddedVariantId((id) => (id === variantId ? null : id));
+      addedTimers.current.delete(variantId);
+    }, 2000);
+
+    addedTimers.current.set(variantId, timer);
+  }, []);
+
+  /** Drops the tick when an add turns out to have failed. */
+  const clearAdded = useCallback((variantId: string) => {
+    const existing = addedTimers.current.get(variantId);
+    if (existing) clearTimeout(existing);
+    addedTimers.current.delete(variantId);
+    setLastAddedVariantId((id) => (id === variantId ? null : id));
+  }, []);
+
+  /** Puts a past order back in the cart, reporting what changed since. */
+  const reorder = async (orderId: string) => {
+    const res = await authFetch(`/orders/${orderId}/reorder`, { method: 'POST' });
+    if (!res?.ok) {
+      const body = await res?.json().catch(() => null);
+      return { ok: false as const, error: body?.message || 'Could not reorder that.' };
+    }
+
+    const summary = await res.json();
+    await fetchCart();
+    return { ok: true as const, summary };
+  };
+
+  const closeAccount = async (password: string, reason?: string) => {
+    const res = await authFetch('/auth/close-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password, reason }),
+    });
+
+    if (!res) return { ok: false as const, error: 'Please sign in first.' };
+
+    if (res.ok) {
+      // The account is gone; there is nothing left to be signed in to.
+      clearStoredSession();
+      localStorage.removeItem('cd_guest_cart');
+      return { ok: true as const };
+    }
+
+    const body = await res.json().catch(() => null);
+    return {
+      ok: false as const,
+      error: Array.isArray(body?.message)
+        ? body.message.join('. ')
+        : body?.message || 'Could not close your account.',
+    };
+  };
+
   /** Persists the returned address list to state and localStorage. */
   const applyAddresses = (addresses: unknown[]) => {
     const updatedUser = { ...user, addresses };
@@ -974,6 +1050,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         deleteAddress,
         updateProfile,
         changePassword,
+        reorder,
+        closeAccount,
       }}
     >
       {children}

@@ -11,6 +11,7 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const { PrismaClient } = require('@prisma/client');
+const { only } = require('./lib/safe-ids');
 const prisma = new PrismaClient();
 
 const API = process.env.API_URL || 'http://localhost:4000/api';
@@ -203,15 +204,15 @@ async function cleanup() {
   try {
     const ids = created.productIds.filter(Boolean);
     if (ids.length) {
-      await prisma.productReview.deleteMany({ where: { productId: { in: ids } } });
-      await prisma.productImage.deleteMany({ where: { productId: { in: ids } } });
-      await prisma.productVariant.deleteMany({ where: { productId: { in: ids } } });
-      await prisma.product.deleteMany({ where: { id: { in: ids } } });
-      await prisma.auditLog.deleteMany({ where: { entityId: { in: ids } } });
+      await prisma.productReview.deleteMany({ where: { productId: { in: only(ids, 'ids') } } });
+      await prisma.productImage.deleteMany({ where: { productId: { in: only(ids, 'ids') } } });
+      await prisma.productVariant.deleteMany({ where: { productId: { in: only(ids, 'ids') } } });
+      await prisma.product.deleteMany({ where: { id: { in: only(ids, 'ids') } } });
+      await prisma.auditLog.deleteMany({ where: { entityId: { in: only(ids, 'ids') } } });
     }
     if (created.userIds.length) {
-      await prisma.authIdentity.deleteMany({ where: { userId: { in: created.userIds } } });
-      await prisma.user.deleteMany({ where: { id: { in: created.userIds } } });
+      await prisma.authIdentity.deleteMany({ where: { userId: { in: only(created.userIds, 'created.userIds') } } });
+      await prisma.user.deleteMany({ where: { id: { in: only(created.userIds, 'created.userIds') } } });
     }
     console.log('  test data removed');
   } catch (e) {

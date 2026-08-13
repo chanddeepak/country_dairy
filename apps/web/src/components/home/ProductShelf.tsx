@@ -57,6 +57,44 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
     ? products
     : products.filter((p) => p.category === activeCategory);
 
+  // Arrows appear only when the row actually runs off the edge. With two
+  // products on a desktop they were controls that scrolled nothing.
+  const [overflow, setOverflow] = useState({ canScrollLeft: false, canScrollRight: false });
+
+  const measureOverflow = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    // 1px of slack: sub-pixel layout can leave scrollWidth a hair over
+    // clientWidth on a row that visibly fits.
+    setOverflow({
+      canScrollLeft: el.scrollLeft > 1,
+      canScrollRight: el.scrollLeft + el.clientWidth < el.scrollWidth - 1,
+    });
+  };
+
+  useEffect(() => {
+    measureOverflow();
+
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    el.addEventListener('scroll', measureOverflow, { passive: true });
+
+    // Re-measure when the row or the window changes size, so switching
+    // category or resizing does not leave a stale answer.
+    const observer = new ResizeObserver(measureOverflow);
+    observer.observe(el);
+    window.addEventListener('resize', measureOverflow);
+
+    return () => {
+      el.removeEventListener('scroll', measureOverflow);
+      observer.disconnect();
+      window.removeEventListener('resize', measureOverflow);
+    };
+  }, [filteredProducts.length]);
+
+  const canScroll = overflow.canScrollLeft || overflow.canScrollRight;
+
   const handleScroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
       const scrollAmount = direction === 'left' ? -360 : 360;
@@ -97,23 +135,27 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
           })}
         </div>
 
-        {/* Scroll Navigation Buttons (Desktop) */}
-        <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={() => handleScroll('left')}
-            className="p-2.5 rounded-full bg-white border border-stone-200 text-[#2A2A2A] hover:bg-[#3A6038] hover:text-white hover:border-[#3A6038] transition shadow-sm"
-            aria-label="Scroll Left"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <button
-            onClick={() => handleScroll('right')}
-            className="p-2.5 rounded-full bg-white border border-stone-200 text-[#2A2A2A] hover:bg-[#3A6038] hover:text-white hover:border-[#3A6038] transition shadow-sm"
-            aria-label="Scroll Right"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        </div>
+        {/* Only rendered when there is something off-screen to reach. */}
+        {canScroll && (
+          <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => handleScroll('left')}
+              disabled={!overflow.canScrollLeft}
+              className="p-2.5 rounded-full bg-white border border-stone-200 text-[#2A2A2A] hover:bg-[#3A6038] hover:text-white hover:border-[#3A6038] transition shadow-sm disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#2A2A2A] disabled:hover:border-stone-200 disabled:cursor-default"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => handleScroll('right')}
+              disabled={!overflow.canScrollRight}
+              className="p-2.5 rounded-full bg-white border border-stone-200 text-[#2A2A2A] hover:bg-[#3A6038] hover:text-white hover:border-[#3A6038] transition shadow-sm disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#2A2A2A] disabled:hover:border-stone-200 disabled:cursor-default"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Product Cards Single Row Horizontal Carousel */}

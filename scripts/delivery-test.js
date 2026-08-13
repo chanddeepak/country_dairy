@@ -9,6 +9,7 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const { PrismaClient } = require('@prisma/client');
+const { only } = require('./lib/safe-ids');
 const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
@@ -129,7 +130,17 @@ async function makeLocalOrder(customerId, variant, suffix) {
   if (!adminToken) throw new Error('no admin token');
 
   const variant = await prisma.productVariant.findFirst();
-  const customer = await prisma.user.findFirst({ where: { role: 'CUSTOMER' } });
+
+  // A throwaway customer, not the first real one in the database: an
+  // interrupted run would otherwise leave test orders in someone's history.
+  const customerEmail = `del-fixture-${stamp}@countrydairy.test`;
+  await call('/auth/email/register', {
+    method: 'POST',
+    body: { email: customerEmail, password: ADMIN_PASSWORD, name: 'Delivery Fixture' },
+  });
+  const customer = await prisma.user.findUnique({ where: { email: customerEmail } });
+  if (customer) made.users.push(customer.id);
+
   ok('fixtures available', !!variant && !!customer);
   if (!variant || !customer) throw new Error('need a variant and a customer');
 
@@ -293,11 +304,20 @@ async function makeLocalOrder(customerId, variant, suffix) {
   })
   .finally(async () => {
     // Clean up in FK order so nothing is left behind for the next run.
-    await prisma.orderStatusHistory.deleteMany({ where: { orderId: { in: made.orders } } });
-    await prisma.orderItem.deleteMany({ where: { orderId: { in: made.orders } } });
-    await prisma.order.deleteMany({ where: { id: { in: made.orders } } });
-    await prisma.authIdentity.deleteMany({ where: { userId: { in: made.drivers } } });
-    await prisma.user.deleteMany({ where: { id: { in: made.drivers } } });
+    const strays = await prisma.order.findMany({
+      where: { orderNumber: { startsWith: `TESTDEL-${stamp}` } },
+      select: { id: true },
+    });
+    const orderIds = [...new Set([...made.orders, ...strays.map((o) => o.id)])];
+
+    await prisma.orderStatusHistory.deleteMany({ where: { orderId: { in: only(orderIds, 'orderIds') } } });
+    await prisma.orderItem.deleteMany({ where: { orderId: { in: only(orderIds, 'orderIds') } } });
+    await prisma.order.deleteMany({ where: { id: { in: only(orderIds, 'orderIds') } } });
+    await prisma.cartItem.deleteMany({ where: { userId: { in: only(made.users, 'made.users') } } });
+    await prisma.authIdentity.deleteMany({ where: { userId: { in: only(made.users, 'made.users') } } });
+    await prisma.user.deleteMany({ where: { id: { in: only(made.users, 'made.users') } } });
+    await prisma.authIdentity.deleteMany({ where: { userId: { in: only(made.drivers, 'made.drivers') } } });
+    await prisma.user.deleteMany({ where: { id: { in: only(made.drivers, 'made.drivers') } } });
     await prisma.$disconnect();
 
     const colour = fail ? '\x1b[31m' : '\x1b[32m';

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React from 'react';
 import { X, ShoppingBag, Minus, Plus, MessageCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -95,7 +96,21 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
                   )}
 
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-[#2A2A2A] text-sm leading-snug">{item.productName}</h4>
+                    {/* Back to the exact size in the cart, not just the
+                        product — the variant is what carries size and price. */}
+                    {item.productSlug ? (
+                      <Link
+                        href={`/products/${item.productSlug}${item.variantId ? `?variant=${item.variantId}` : ''}`}
+                        onClick={onClose}
+                        className="font-bold text-[#2A2A2A] hover:text-[#3A6038] hover:underline text-sm leading-snug block transition"
+                      >
+                        {item.productName}
+                      </Link>
+                    ) : (
+                      <h4 className="font-bold text-[#2A2A2A] text-sm leading-snug">
+                        {item.productName}
+                      </h4>
+                    )}
                     {item.variantLabel && (
                       <div className="text-[11px] text-[#6b6661]">{item.variantLabel}</div>
                     )}
@@ -112,6 +127,7 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
                     <div className="flex items-center space-x-3 mt-2">
                       <button
                         onClick={() => updateCartQty(item.id, item.quantity - 1)}
+                        data-testid="qty-decrease"
                         className="p-0.5 border border-stone-300 rounded hover:bg-stone-50 transition"
                       >
                         <Minus className="h-3 w-3" />
@@ -119,6 +135,7 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
                       <span className="text-xs font-black text-[#2A2A2A] w-4 text-center">{item.quantity}</span>
                       <button
                         onClick={() => updateCartQty(item.id, item.quantity + 1)}
+                        data-testid="qty-increase"
                         className="p-0.5 border border-stone-300 rounded hover:bg-stone-50 transition"
                       >
                         <Plus className="h-3 w-3" />
@@ -168,6 +185,7 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
             {checkoutEnabled && (
               <button
                 onClick={onCheckout}
+                data-testid="checkout-now"
                 className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl transition"
               >
                 Checkout Now

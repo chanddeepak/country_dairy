@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { DeliveryType, OrderStatus, Role } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -78,6 +89,17 @@ export class OrdersController {
   @Get(':id')
   async getOrderById(@CurrentUser() user: { id: string }, @Param('id') id: string) {
     return this.ordersService.getOrderById(user.id, id);
+  }
+
+  @Post(':id/reorder')
+  @HttpCode(HttpStatus.OK)
+  async reorder(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+    return this.ordersService.reorder(user.id, id);
+  }
+
+  @Get(':id/invoice')
+  async getInvoice(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+    return this.ordersService.getInvoice(user.id, id);
   }
 
   @Patch(':id/cancel')

@@ -10,6 +10,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
+const { only } = require('./lib/safe-ids');
 const prisma = new PrismaClient();
 
 const API = process.env.TEST_API_URL || 'http://localhost:4000/api';
@@ -174,10 +175,10 @@ const made = { users: [] };
     console.error('\n\x1b[31mFATAL\x1b[0m', err.message);
   })
   .finally(async () => {
-    await prisma.address.deleteMany({ where: { userId: { in: made.users } } });
-    await prisma.cartItem.deleteMany({ where: { userId: { in: made.users } } });
-    await prisma.authIdentity.deleteMany({ where: { userId: { in: made.users } } });
-    await prisma.user.deleteMany({ where: { id: { in: made.users } } });
+    await prisma.address.deleteMany({ where: { userId: { in: only(made.users, 'made.users') } } });
+    await prisma.cartItem.deleteMany({ where: { userId: { in: only(made.users, 'made.users') } } });
+    await prisma.authIdentity.deleteMany({ where: { userId: { in: only(made.users, 'made.users') } } });
+    await prisma.user.deleteMany({ where: { id: { in: only(made.users, 'made.users') } } });
     await prisma.$disconnect();
 
     const colour = fail ? '\x1b[31m' : '\x1b[32m';

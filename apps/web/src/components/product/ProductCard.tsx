@@ -141,7 +141,7 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
           <span>⛰️ Tanakpur, Uttarakhand</span>
         </div>
 
-        <Link href={productUrl} className="hover:text-[#3A6038] transition">
+        <Link href={productUrl} data-testid="product-card-link" className="hover:text-[#3A6038] transition">
           <h3 className="font-serif font-bold text-base text-[#2A2A2A] leading-snug mb-1 line-clamp-1">
             {product.name}
           </h3>
@@ -194,9 +194,12 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
                       : 'bg-[#3A6038] hover:bg-[#2d4d2b] text-white disabled:opacity-70'
                   }`}
                 >
-                  {isAdding && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  {justAdded && <Check className="h-3.5 w-3.5" />}
-                  {isAdding ? 'Adding…' : justAdded ? 'Added to Cart' : 'Add to Cart'}
+                  {justAdded ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : isAdding ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : null}
+                  {justAdded ? 'Added to Cart' : isAdding ? 'Adding…' : 'Add to Cart'}
                 </button>
               )}
 

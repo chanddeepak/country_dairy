@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronRight, Minus, Plus, Calendar, ShoppingBag, MessageCircle, Share2, Check, Truck, Headphones, RotateCcw, ClipboardCheck } from 'lucide-react';
+import { ChevronRight, Minus, Plus, Calendar, ShoppingBag, MessageCircle, Share2, Check, Truck, Headphones, RotateCcw, ClipboardCheck, Loader2 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import Navbar from '../../../components/layout/Navbar';
 import Footer from '../../../components/layout/Footer';
@@ -26,7 +26,8 @@ export default function ProductDetailPage() {
   const searchParams = useSearchParams();
   const slug = params?.slug as string;
   const variantIdFromQuery = searchParams?.get('variant');
-  const { user, token, addToCart } = useApp();
+  const { user, token, addToCart, pendingCartVariantId, lastAddedVariantId, cartError } =
+    useApp();
   const { whatsapp, isFlagOn } = useStoreConfig();
   const cartEnabled = isFlagOn('ENABLE_CART');
   const ENABLE_PRODUCT_RATINGS = isFlagOn('ENABLE_PRODUCT_RATINGS');
@@ -86,11 +87,17 @@ export default function ProductDetailPage() {
       id: v.id,
       name: v.name || v.sizeLabel || 'Standard Pack',
       volumeOrWeight: v.volumeOrWeight || v.sizeLabel || '1 Litre',
-      price: String(v.price ?? v.sellingPrice ?? 100),
-      originalPrice: String(v.originalPrice ?? v.mrpPrice ?? 120),
+      // No fallback figure. A price the API did not send is unknown, and
+      // inventing ₹100 is how a customer once got quoted a number nobody set.
+      price: v.price ?? v.sellingPrice ?? null,
+      originalPrice: v.originalPrice ?? v.mrpPrice ?? null,
       discountPercent: v.discountPercent || (v.mrpPrice && v.sellingPrice ? `${Math.round(((v.mrpPrice - v.sellingPrice) / v.mrpPrice) * 100)}% OFF` : ''),
       image: v.image || v.imageUrl,
       isDefault: v.isDefault ?? false,
+      // Was dropped in this mapping, so the page had no idea what was in
+      // stock and happily sold a variant with none — the customer found out
+      // at checkout when the API refused it.
+      stockQuantity: typeof v.stockQuantity === 'number' ? v.stockQuantity : null,
     })) || [];
 
     const defaultVar = (variantIdFromQuery && formattedVariants.find((v: any) => v.id === variantIdFromQuery))
@@ -102,8 +109,10 @@ export default function ProductDetailPage() {
       ? prod.category
       : prod.category?.name || prod.categoryName || 'A2 Dairy';
 
-    const basePrice = defaultVar ? defaultVar.price : String(prod.price ?? prod.variants?.[0]?.sellingPrice ?? 100);
-    const baseOriginalPrice = defaultVar ? defaultVar.originalPrice : String(prod.originalPrice ?? prod.variants?.[0]?.mrpPrice ?? 120);
+    const basePrice = defaultVar ? defaultVar.price : (prod.price ?? prod.variants?.[0]?.sellingPrice ?? null);
+    const baseOriginalPrice = defaultVar
+      ? defaultVar.originalPrice
+      : (prod.originalPrice ?? prod.variants?.[0]?.mrpPrice ?? null);
 
     const normalizedProd = {
       ...prod,
@@ -220,6 +229,19 @@ export default function ProductDetailPage() {
   }
 
   const currentPrice = selectedVariant ? selectedVariant.price : product.price;
+  // Null means the API sent no price for this variant. That is a catalogue
+  // fault, and the honest response is to say so and refuse the sale rather
+  // than quote a number nobody set.
+  const hasPrice = currentPrice !== null && currentPrice !== undefined && currentPrice !== '';
+  const priceValue = Number(currentPrice);
+  const priceIsUsable = hasPrice && Number.isFinite(priceValue) && priceValue > 0;
+
+  // Null means the API did not say, which is not the same as zero: treat an
+  // unknown as available and let the server be the authority, but never offer
+  // a variant we have been told is empty.
+  const stock = selectedVariant?.stockQuantity ?? null;
+  const isOutOfStock = stock !== null && stock <= 0;
+  const canBuy = priceIsUsable && !isOutOfStock;
   const currentOriginalPrice = selectedVariant ? selectedVariant.originalPrice : product.originalPrice;
   const currentDiscountBadge = selectedVariant?.discountPercent || product.discountBadge;
   const nutrition = product.nutritionFacts || {};
@@ -274,9 +296,16 @@ export default function ProductDetailPage() {
     label: index === 0 ? 'Main Product' : index === 1 ? 'Farm & Quality' : 'Lab Certificate',
   }));
 
+  // Mirrors ProductCard: the request is in flight, or it just landed. The
+  // detail page had neither, so pressing Add to Cart looked like nothing had
+  // happened until the header badge quietly changed a second later.
+  const isAdding = !!selectedVariant?.id && pendingCartVariantId === selectedVariant.id;
+  const justAdded = !!selectedVariant?.id && lastAddedVariantId === selectedVariant.id;
+
   const handleAddToCart = () => {
     if (!user) { setIsAuthOpen(true); return; }
     if (!selectedVariant?.id) return;
+    if (!canBuy) return;
     addToCart(selectedVariant.id, quantity, {
       productId: product.id,
       productName: product.name,
@@ -422,8 +451,19 @@ export default function ProductDetailPage() {
 
               {/* Price Display */}
               <div className="flex items-baseline gap-3 pt-1">
-                <span className="text-4xl font-black text-[#2A2A2A]">₹{currentPrice}</span>
-                {currentOriginalPrice && (
+                {priceIsUsable ? (
+                  <span className="text-4xl font-black text-[#2A2A2A]">
+                    ₹{priceValue.toLocaleString('en-IN')}
+                  </span>
+                ) : (
+                  <span className="text-lg font-bold text-[#6b6661]">Price unavailable</span>
+                )}
+                {isOutOfStock && (
+                  <span className="text-xs font-extrabold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded">
+                    OUT OF STOCK
+                  </span>
+                )}
+                {priceIsUsable && currentOriginalPrice && (
                   <span className="text-lg text-[#6b6661] line-through font-medium">₹{currentOriginalPrice}</span>
                 )}
                 {currentDiscountBadge && (
@@ -450,6 +490,8 @@ export default function ProductDetailPage() {
                       return (
                         <button
                           key={variant.id}
+                          data-testid="variant-option"
+                          data-variant-id={variant.id}
                           onClick={() => handleVariantSelect(variant)}
                           className={`p-3 rounded-xl border-2 text-left transition-all relative ${
                             isSelected
@@ -497,13 +539,39 @@ export default function ProductDetailPage() {
               {/* CTA Buttons */}
               <div className="space-y-3 pt-4">
                 {cartEnabled && (
-                  <button
-                    onClick={handleAddToCart}
-                    className="w-full flex items-center justify-center bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg"
-                  >
-                    <ShoppingBag className="h-4 w-4 mr-2" />
-                    Add to Cart — ₹{Number(currentPrice) * quantity}
-                  </button>
+                  <>
+                    <button
+                      onClick={handleAddToCart}
+                      disabled={isAdding || !canBuy}
+                      data-testid="add-to-cart"
+                      className={`w-full flex items-center justify-center gap-2 font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed ${
+                        justAdded
+                          ? 'bg-[#2d4d2b] text-white'
+                          : 'bg-[#3A6038] hover:bg-[#2d4d2b] text-white'
+                      }`}
+                    >
+                      {justAdded ? (
+                        <Check className="h-4 w-4" />
+                      ) : isAdding ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ShoppingBag className="h-4 w-4" />
+                      )}
+                      {justAdded
+                        ? 'Added to Cart'
+                        : isAdding
+                          ? 'Adding…'
+                          : isOutOfStock
+                            ? 'Out of Stock'
+                            : priceIsUsable
+                              ? `Add to Cart — ₹${(priceValue * quantity).toLocaleString('en-IN')}`
+                              : 'Price unavailable'}
+                    </button>
+
+                    {cartError && !isAdding && !justAdded && (
+                      <p className="text-xs font-medium text-red-600 text-center">{cartError}</p>
+                    )}
+                  </>
                 )}
                 
                 {whatsappHref && (

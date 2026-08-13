@@ -27,6 +27,9 @@ Seed a different admin password:
 SEED_ADMIN_PASSWORD='your-password' npm run db:seed
 ```
 
+See [QA_TEST_PLAN.md](./QA_TEST_PLAN.md) for the full manual and automation
+test plan across web, admin and API.
+
 See [RUNNING.md](./RUNNING.md) for how to start the apps and diagnose
 "Could not reach the API server".
 
@@ -296,7 +299,7 @@ Everything on the previous list has landed. What remains:
 
 ## 8. Test Suite
 
-`npm run verify` — 329 checks against a running API and the real database.
+`npm run verify` — 427 checks against a running API and the real database.
 
 | Suite | Checks | Covers |
 |---|---|---|
@@ -310,5 +313,7 @@ Everything on the previous list has landed. What remains:
 | `npm run test:webhook` | 34 | Signatures, idempotency, refunds, mismatches |
 | `npm run test:address` | 41 | Address CRUD, ownership, profile, password change |
 | `npm run test:session` | 21 | Duplicate email, expired/forged tokens, deactivation |
+| `npm run test:cleanup` | 36 | Media lifecycle, orphan sweep, media route guards |
+| `npm run test:account` | 62 | Reorder, consent, GST invoicing, account erasure |
 
 The API must be running. Each suite creates and removes its own fixtures.

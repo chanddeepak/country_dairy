@@ -7,7 +7,49 @@ import { HeroBannerDto, TrustBadgeDto } from './dto/cms.dto';
 
 export const SETTING_KEYS = {
   WHATSAPP: 'whatsapp_ordering',
+  SELLER: 'seller_identity',
 } as const;
+
+/**
+ * What has to appear on a GST tax invoice besides the line items: the
+ * supplier's legal name, registered address, GSTIN, and the state whose code
+ * decides whether tax splits into CGST+SGST or is charged as IGST.
+ *
+ * A dairy also carries its FSSAI licence number on the invoice.
+ */
+export interface SellerIdentity {
+  legalName: string;
+  tradeName: string;
+  gstin: string;
+  fssaiLicence: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  state: string;
+  /// Two-digit GST state code. Uttarakhand is 05.
+  stateCode: string;
+  postalCode: string;
+  phone: string;
+  email: string;
+  /// Prefix for the invoice series, e.g. CD/2026-27/0001.
+  invoicePrefix: string;
+}
+
+export const DEFAULT_SELLER: SellerIdentity = {
+  legalName: 'Country Dairy',
+  tradeName: 'Country Dairy',
+  gstin: '',
+  fssaiLicence: '',
+  addressLine1: 'Tanakpur',
+  addressLine2: '',
+  city: 'Champawat',
+  state: 'Uttarakhand',
+  stateCode: '05',
+  postalCode: '262309',
+  phone: '+91 99978 01112',
+  email: 'info@countrydairy.in',
+  invoicePrefix: 'CD',
+};
 
 export interface WhatsAppConfig {
   isEnabled: boolean;
@@ -202,6 +244,37 @@ export class CmsService {
   }
 
   // --- WhatsApp ordering ---
+
+  async getSellerIdentity(): Promise<SellerIdentity> {
+    const row = await this.prisma.storeSetting.findUnique({
+      where: { key: SETTING_KEYS.SELLER },
+    });
+
+    if (!row) return DEFAULT_SELLER;
+    return { ...DEFAULT_SELLER, ...(row.value as Partial<SellerIdentity>) };
+  }
+
+  async setSellerIdentity(config: SellerIdentity, updatedBy?: string) {
+    const saved = await this.prisma.storeSetting.upsert({
+      where: { key: SETTING_KEYS.SELLER },
+      create: {
+        key: SETTING_KEYS.SELLER,
+        value: config as unknown as Prisma.InputJsonValue,
+        description: 'Legal identity printed on tax invoices',
+      },
+      update: { value: config as unknown as Prisma.InputJsonValue },
+    });
+
+    await this.audit.record({
+      action: 'UPDATE',
+      entity: 'StoreSetting',
+      entityId: SETTING_KEYS.SELLER,
+      after: { gstin: config.gstin, legalName: config.legalName },
+    });
+
+    this.logger.log(`Seller identity updated by ${updatedBy ?? 'system'}`);
+    return saved.value;
+  }
 
   async getWhatsAppConfig(): Promise<WhatsAppConfig> {
     const setting = await this.prisma.storeSetting.findUnique({
