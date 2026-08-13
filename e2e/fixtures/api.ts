@@ -117,6 +117,79 @@ export async function adminToken(): Promise<string> {
   return body.accessToken;
 }
 
+/** A delivery address, needed before checkout will accept anything. */
+export async function addAddress(
+  token: string,
+  overrides: Partial<{ line1: string; city: string; state: string; postalCode: string }> = {},
+): Promise<string> {
+  const api = await apiClient(token);
+  const res = await api.post(resolve('/auth/address'), {
+    data: {
+      label: 'E2E',
+      line1: 'Bilona House, Mall Road',
+      city: 'Tanakpur',
+      state: 'Uttarakhand',
+      postalCode: '262309',
+      phone: '9876543210',
+      isDefault: true,
+      ...overrides,
+    },
+  });
+
+  if (!res.ok()) throw new Error(`Could not add an address: ${res.status()} ${await res.text()}`);
+  const body = await res.json();
+  await api.dispose();
+
+  const added = body.addresses[body.addresses.length - 1];
+  return added.id;
+}
+
+/**
+ * Buys something, end to end, through the real endpoints.
+ *
+ * Razorpay runs in mock mode without credentials, and mock mode both issues
+ * `order_mock_*` gateway ids and bypasses signature checking — so the payment
+ * really does travel through `verify-payment` rather than being faked by a
+ * direct write to `paymentStatus`. That matters: settling the pending Payment
+ * row, decrementing stock and clearing the cart all live in that path, and a
+ * DB shortcut would test none of them.
+ */
+export async function placePaidOrder(
+  customer: TestUser,
+  lines: { variantId: string; quantity: number }[],
+  opts: { addressId?: string; pay?: boolean } = {},
+): Promise<{ orderId: string; orderNumber: string; amount: number }> {
+  const api = await apiClient(customer.token);
+
+  for (const line of lines) {
+    const res = await api.post(resolve('/cart/add'), { data: line });
+    if (!res.ok()) throw new Error(`Could not add to cart: ${res.status()} ${await res.text()}`);
+  }
+
+  const addressId = opts.addressId ?? (await addAddress(customer.token));
+  const checkout = await api.post(resolve('/orders/checkout'), {
+    data: { addressId, deliveryType: 'LOCAL' },
+  });
+
+  if (!checkout.ok()) {
+    throw new Error(`Checkout failed: ${checkout.status()} ${await checkout.text()}`);
+  }
+
+  const { orderId, orderNumber, amount } = await checkout.json();
+
+  if (opts.pay !== false) {
+    const paid = await api.post(resolve('/orders/verify-payment'), {
+      data: { orderId, razorpayPaymentId: `pay_e2e_${Date.now()}`, signature: 'mock' },
+    });
+    if (!paid.ok()) {
+      throw new Error(`Payment failed: ${paid.status()} ${await paid.text()}`);
+    }
+  }
+
+  await api.dispose();
+  return { orderId, orderNumber, amount };
+}
+
 /** The first live, in-stock variant — what most storefront specs shop for. */
 export async function findSellableVariant() {
   const variant = await db.productVariant.findFirst({

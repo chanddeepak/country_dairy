@@ -28,6 +28,18 @@ export const SEL = {
   // The detail page's own button. A role+name selector also matches the
   // related-product cards further down and trips strict mode.
   addToCart: '[data-testid="add-to-cart"]',
+
+  // Checkout. The address fields carry no labels, so they are reached by
+  // placeholder — the one attribute they do have.
+  addAddress: '[data-testid="add-address"]',
+  addressForm: '[data-testid="address-form"]',
+  addressLine1: 'input[placeholder*="Street"]',
+  addressCity: 'input[placeholder="City"]',
+  addressState: 'input[placeholder="State"]',
+  addressPincode: 'input[placeholder="Pincode"]',
+  addressPhone: 'input[type="tel"]',
+  placeOrder: '[data-testid="place-order"]',
+  confirmPayment: '[data-testid="confirm-payment"]',
 };
 
 /** Registers through the storefront's own modal, as a customer would. */

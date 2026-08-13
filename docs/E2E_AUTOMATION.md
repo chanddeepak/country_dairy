@@ -80,20 +80,39 @@ action timeout expires — which turned one broken run into sixteen minutes
 instead of thirteen seconds. Prefer a `data-testid`, added to the component,
 over a text selector that breaks when the copy is edited.
 
-## What it found on its first run
+## Where the line between UI and API sits
 
-Two real defects, neither of which the API tests could see:
+The money cases (§5, §6) run against the API and assert on Postgres, not
+through a browser. GST extraction, a gap-free invoice series and two buyers
+racing for the last unit are not things a screen can show, and driving them
+through Chromium would only make them slower and flakier without testing
+anything more. What the browser is for is the part only a browser can answer —
+whether a customer can actually get from a full cart to a paid order — which is
+`storefront/checkout.spec.ts`.
+
+## What it has found
+
+Three real defects so far, none of which the unit tests could see:
 
 - The product detail page had no stock awareness at all. A sold-out variant was
   fully buyable there, and the customer only found out at checkout when the API
   refused the order.
 - The same page invented prices where the API sent none — the same fault that
   had already been removed from the server and from the listing mapper.
+- Reordering an archived product called it "not available right now", which
+  invites the customer back for something that is never coming back. Permanent
+  and temporary now read differently.
+
+One near-miss worth recording: a test that timed out mid-checkout had its
+abandoned request land *after* cleanup swept, so the run failed with a foreign
+key error that pointed at the fixture instead of the timeout. Cleanup now
+re-sweeps immediately before deleting users, and it restores the stock an
+order consumed — otherwise every run leaves the catalogue emptier than it
+found it.
 
 ## Still to write
 
 Coverage is the highest-risk paths, not yet the full 185 cases. In rough order
-of what should come next: checkout and payment (§5), orders, reorder and
-invoicing (§6), account management including erasure (§7), reviews (§8),
-delivery and the driver round (§13), the admin catalogue (§11), and the
+of what should come next: account management including erasure (§7), reviews
+(§8), delivery and the driver round (§13), the admin catalogue (§11), and the
 responsive and accessibility passes (§19).

@@ -46,11 +46,40 @@ export function tracked(): Tracked {
  * Order matters: children before parents, or the foreign keys refuse.
  */
 export async function cleanup(t: Tracked): Promise<void> {
-  const orders = only(t.orderIds, 'orderIds');
   const users = only(t.userIds, 'userIds');
   const products = only(t.productIds, 'productIds');
   const reviews = only(t.reviewIds, 'reviewIds');
   const labReports = only(t.labReportIds, 'labReportIds');
+
+  // Orders a spec forgot to track still hold FKs onto its users, and the user
+  // delete below would fail on them. Sweeping by owner covers both.
+  const owned = users.length
+    ? await db.order.findMany({ where: { userId: { in: users } }, select: { id: true } })
+    : [];
+  const orders = only([...new Set([...only(t.orderIds, 'orderIds'), ...owned.map((o) => o.id)])]);
+
+  // Checkout decremented stock. Deleting the order does not put it back, so
+  // without this every run leaves the catalogue slightly emptier than it found
+  // it, until findSellableVariant has nothing left to return.
+  if (orders.length) {
+    const items = await db.orderItem.findMany({
+      where: { orderId: { in: orders } },
+      select: { variantId: true, quantity: true },
+    });
+
+    const perVariant = new Map<string, number>();
+    for (const item of items) {
+      if (!item.variantId) continue;
+      perVariant.set(item.variantId, (perVariant.get(item.variantId) ?? 0) + item.quantity);
+    }
+
+    for (const [variantId, quantity] of perVariant) {
+      await db.productVariant.update({
+        where: { id: variantId },
+        data: { stockQuantity: { increment: quantity } },
+      });
+    }
+  }
 
   await db.orderStatusHistory.deleteMany({ where: { orderId: { in: orders } } });
   await db.payment.deleteMany({ where: { orderId: { in: orders } } });
@@ -68,6 +97,23 @@ export async function cleanup(t: Tracked): Promise<void> {
   await db.cartItem.deleteMany({ where: { userId: { in: users } } });
   await db.productReview.deleteMany({ where: { userId: { in: users } } });
   await db.authIdentity.deleteMany({ where: { userId: { in: users } } });
+
+  // Swept again, immediately before the users go. When a test times out its
+  // last request is abandoned by the client but still finishes on the server,
+  // so an order can land after the sweep above and turn a timeout into an
+  // unrelated foreign-key crash that hides the real failure.
+  const stragglers = users.length
+    ? await db.order.findMany({ where: { userId: { in: users } }, select: { id: true } })
+    : [];
+
+  if (stragglers.length) {
+    const ids = only(stragglers.map((o) => o.id));
+    await db.orderStatusHistory.deleteMany({ where: { orderId: { in: ids } } });
+    await db.payment.deleteMany({ where: { orderId: { in: ids } } });
+    await db.orderItem.deleteMany({ where: { orderId: { in: ids } } });
+    await db.order.deleteMany({ where: { id: { in: ids } } });
+  }
+
   await db.user.deleteMany({ where: { id: { in: users } } });
 }
 

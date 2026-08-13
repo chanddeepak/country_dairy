@@ -403,7 +403,10 @@ export class OrdersService {
       const label = `${item.productTitle}${item.variantSizeLabel ? ` (${item.variantSizeLabel})` : ''}`;
       const variant = item.variantId ? byId.get(item.variantId) : undefined;
 
-      if (!variant || !variant.isActive) {
+      // Permanent and temporary are told apart on purpose. "Not available right
+      // now" invites the customer to come back for it, so an archived product
+      // must not be described that way — it is never coming back.
+      if (!variant || !variant.isActive || variant.product.status === ProductStatus.ARCHIVED) {
         unavailable.push({ title: label, reason: 'no longer sold' });
         continue;
       }

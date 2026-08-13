@@ -447,13 +447,14 @@ export default function CheckoutPage() {
                   {!showNewAddr ? (
                     <button
                       onClick={() => setShowNewAddr(true)}
+                      data-testid="add-address"
                       className="flex items-center gap-2 text-xs font-bold text-[#3A6038] hover:underline px-2"
                     >
                       <Plus className="h-3.5 w-3.5" />
                       Add New Address
                     </button>
                   ) : (
-                    <form onSubmit={handleSaveAddress} className="border border-stone-200 p-5 rounded-xl bg-stone-50/50 space-y-3.5">
+                    <form onSubmit={handleSaveAddress} data-testid="address-form" className="border border-stone-200 p-5 rounded-xl bg-stone-50/50 space-y-3.5">
                       <h3 className="text-xs font-bold text-stone-600 uppercase tracking-wider">Add Delivery Address</h3>
                       {addrError && (
                         <div className="bg-red-50 border border-red-200 text-red-700 p-2.5 rounded-lg text-xs font-bold">
@@ -602,6 +603,7 @@ export default function CheckoutPage() {
               <button
                 onClick={handlePlaceOrder}
                 disabled={processing}
+                data-testid="place-order"
                 className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-4 rounded-xl text-lg transition disabled:opacity-50 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
               >
                 <CheckCircle2 className="h-5 w-5" />
@@ -674,6 +676,7 @@ export default function CheckoutPage() {
               <button
                 onClick={handleConfirmMockPayment}
                 disabled={verifyingPayment}
+                data-testid="confirm-payment"
                 className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl text-sm transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {verifyingPayment && <Loader2 className="h-4 w-4 animate-spin" />}
