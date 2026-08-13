@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { pageParams, paginate } from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
 import { currentActor } from './request-context';
 
@@ -99,8 +100,18 @@ export class AuditService {
     }
   }
 
-  async list(filters: { entity?: string; action?: string; search?: string; take?: number } = {}) {
-    return this.prisma.auditLog.findMany({
+  async list(
+    filters: {
+      entity?: string;
+      action?: string;
+      search?: string;
+      page?: number;
+      pageSize?: number;
+    } = {},
+  ) {
+    const { page, pageSize, skip, take } = pageParams(filters);
+
+    const query = {
       where: {
         ...(filters.entity ? { entity: filters.entity } : {}),
         ...(filters.action ? { action: filters.action } : {}),
@@ -114,10 +125,20 @@ export class AuditService {
             }
           : {}),
       },
-      include: { user: { select: { id: true, name: true, email: true, role: true } } },
-      orderBy: { createdAt: 'desc' },
-      take: Math.min(filters.take ?? 100, 500),
-    });
+    };
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.auditLog.findMany({
+        ...query,
+        include: { user: { select: { id: true, name: true, email: true, role: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.auditLog.count({ where: query.where }),
+    ]);
+
+    return paginate(items, total, { page, pageSize });
   }
 
   /** Distinct entities and actions present, for populating the filter chips. */

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { History, Search, Filter, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { adminApi } from '../services/apiClient';
+import Pagination from '../components/Pagination';
 import type { AuditEntry } from '../types';
 
 const ACTION_STYLES: Record<string, string> = {
@@ -29,23 +30,34 @@ export default function AuditLogPage() {
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageInfo, setPageInfo] = useState({ total: 0, totalPages: 1, pageSize: 50 });
 
   const load = useCallback(async () => {
     setIsLoading(true);
     setError('');
     try {
-      setLogs(
-        await adminApi.getAuditLog({
-          entity: entityFilter === 'ALL' ? undefined : entityFilter,
-          action: actionFilter === 'ALL' ? undefined : actionFilter,
-          search: searchQuery || undefined,
-        }),
-      );
+      const result = await adminApi.getAuditLog({
+        entity: entityFilter === 'ALL' ? undefined : entityFilter,
+        action: actionFilter === 'ALL' ? undefined : actionFilter,
+        search: searchQuery || undefined,
+        page,
+      });
+      setLogs(result.items);
+      setPageInfo({
+        total: result.total,
+        totalPages: result.totalPages,
+        pageSize: result.pageSize,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load the audit log');
     } finally {
       setIsLoading(false);
     }
+  }, [entityFilter, actionFilter, searchQuery, page]);
+
+  useEffect(() => {
+    setPage(1);
   }, [entityFilter, actionFilter, searchQuery]);
 
   useEffect(() => {
@@ -230,6 +242,15 @@ export default function AuditLogPage() {
             </table>
           </div>
         )}
+
+        <Pagination
+          page={page}
+          pageSize={pageInfo.pageSize}
+          total={pageInfo.total}
+          totalPages={pageInfo.totalPages}
+          onPageChange={setPage}
+          noun="entries"
+        />
       </div>
     </div>
   );

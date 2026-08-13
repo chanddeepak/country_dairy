@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { pageParams, paginate } from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 
@@ -164,9 +165,10 @@ export class UsersService {
 
   // --- Customers ---
 
-  async listCustomers(search?: string) {
-    const customers = await this.prisma.user.findMany({
-      where: {
+  async listCustomers(search?: string, paging: { page?: number; pageSize?: number } = {}) {
+    const { page, pageSize, skip, take } = pageParams(paging);
+
+    const where = {
         role: Role.CUSTOMER,
         ...(search
           ? {
@@ -177,15 +179,22 @@ export class UsersService {
               ],
             }
           : {}),
-      },
-      select: {
-        ...STAFF_SELECT,
-        walletBalance: true,
-        _count: { select: { orders: true, subscriptions: true, reviews: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-    });
+    };
+
+    const [customers, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        where,
+        select: {
+          ...STAFF_SELECT,
+          walletBalance: true,
+          _count: { select: { orders: true, subscriptions: true, reviews: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
 
     // Lifetime value per customer, from paid orders only.
     const spend = await this.prisma.order.groupBy({
@@ -195,11 +204,13 @@ export class UsersService {
     });
     const spendByUser = new Map(spend.map((s) => [s.userId, Number(s._sum.totalAmount ?? 0)]));
 
-    return customers.map((c) => ({
+    const items = customers.map((c) => ({
       ...c,
       totalOrders: c._count.orders,
       totalSpent: spendByUser.get(c.id) ?? 0,
     }));
+
+    return paginate(items, total, { page, pageSize });
   }
 
   async getCustomer(userId: string) {

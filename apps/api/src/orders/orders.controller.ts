@@ -36,8 +36,22 @@ export class OrdersController {
   @Get('admin/all')
   @UseGuards(RolesGuard)
   @Roles(...ORDER_STAFF)
-  async getAllOrders(@Query('status') status?: OrderStatus, @Query('search') search?: string) {
-    return this.ordersService.getAllOrdersAdmin({ status, search });
+  async getAllOrders(
+    @Query('status') status?: OrderStatus,
+    @Query('search') search?: string,
+    // Taken one by one rather than as a DTO: the global pipe runs with
+    // forbidNonWhitelisted, so binding the whole query object to a paging DTO
+    // would reject `status` and `search` as unknown properties. pageParams
+    // coerces and clamps whatever arrives.
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.ordersService.getAllOrdersAdmin({
+      status,
+      search,
+      page: Number(page) || undefined,
+      pageSize: Number(pageSize) || undefined,
+    });
   }
 
   @Get('admin/stats')
@@ -111,3 +125,4 @@ export class OrdersController {
     return this.ordersService.cancelOrder(user.id, id, dto.reason);
   }
 }
+

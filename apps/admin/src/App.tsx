@@ -123,7 +123,7 @@ function AdminMainContent() {
     if (!tabsForRole(user.role).includes('orders')) return;
 
     adminApi.getOrdersAdmin()
-      .then(setOrders)
+      .then((page) => setOrders(page.items))
       .catch(() => setOrders([]));
   }, [isAuthenticated, user?.id]);
 

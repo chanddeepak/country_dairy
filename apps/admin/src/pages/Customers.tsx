@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Search, X, Phone, Mail, Wallet, ShoppingBag, Loader2, IndianRupee } from 'lucide-react';
 import { adminApi } from '../services/apiClient';
+import Pagination from '../components/Pagination';
 import { displayName, type AdminCustomer } from '../types';
 
 const money = (value: string | number | undefined) => Number(value ?? 0).toLocaleString('en-IN');
@@ -21,17 +22,29 @@ export default function Customers({ walletEnabled = false }: CustomersProps) {
 
   const [selectedCust, setSelectedCust] = useState<AdminCustomer | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageInfo, setPageInfo] = useState({ total: 0, totalPages: 1, pageSize: 50 });
 
   const load = useCallback(async () => {
     setIsLoading(true);
     setError('');
     try {
-      setCustomers(await adminApi.getCustomers(search || undefined));
+      const result = await adminApi.getCustomers(search || undefined, { page });
+      setCustomers(result.items);
+      setPageInfo({
+        total: result.total,
+        totalPages: result.totalPages,
+        pageSize: result.pageSize,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load customers');
     } finally {
       setIsLoading(false);
     }
+  }, [search, page]);
+
+  useEffect(() => {
+    setPage(1);
   }, [search]);
 
   // Search runs server-side, debounced.
@@ -125,6 +138,15 @@ export default function Customers({ walletEnabled = false }: CustomersProps) {
             </table>
           </div>
         )}
+
+        <Pagination
+          page={page}
+          pageSize={pageInfo.pageSize}
+          total={pageInfo.total}
+          totalPages={pageInfo.totalPages}
+          onPageChange={setPage}
+          noun="customers"
+        />
       </div>
 
       {/* Profile Detail Drawer */}

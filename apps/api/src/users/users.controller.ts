@@ -53,8 +53,15 @@ export class UsersController {
 
   @Get('customers')
   @Roles(Role.SUPER_ADMIN, Role.ORDER_MANAGER)
-  async listCustomers(@Query('search') search?: string) {
-    return this.usersService.listCustomers(search);
+  async listCustomers(
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.usersService.listCustomers(search, {
+      page: Number(page) || undefined,
+      pageSize: Number(pageSize) || undefined,
+    });
   }
 
   @Get('customers/:id')

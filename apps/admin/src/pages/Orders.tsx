@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { X, Printer, Phone, MapPin, Calendar, Loader2, Search, Truck, Mail } from 'lucide-react';
 import StatusBadge from '../components/ui/StatusBadge';
 import { adminApi } from '../services/apiClient';
+import Pagination from '../components/Pagination';
 import type { AdminOrder, OrderStats, OrderStatus } from '../types';
 
 /**
@@ -50,6 +51,8 @@ export default function Orders() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageInfo, setPageInfo] = useState({ total: 0, totalPages: 1, pageSize: 50 });
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -59,16 +62,28 @@ export default function Orders() {
         adminApi.getOrdersAdmin(
           statusFilter === 'ALL' ? undefined : statusFilter,
           search || undefined,
+          { page },
         ),
         adminApi.getOrderStatsAdmin(),
       ]);
-      setOrders(list);
+      setOrders(list.items);
+      setPageInfo({
+        total: list.total,
+        totalPages: list.totalPages,
+        pageSize: list.pageSize,
+      });
       setStats(orderStats);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load orders');
     } finally {
       setIsLoading(false);
     }
+  }, [statusFilter, search, page]);
+
+  // Filtering while on page 4 would otherwise ask for page 4 of a result set
+  // that may only have one page, and show an empty list.
+  useEffect(() => {
+    setPage(1);
   }, [statusFilter, search]);
 
   useEffect(() => {
@@ -349,6 +364,15 @@ export default function Orders() {
             </table>
           </div>
         )}
+
+        <Pagination
+          page={page}
+          pageSize={pageInfo.pageSize}
+          total={pageInfo.total}
+          totalPages={pageInfo.totalPages}
+          onPageChange={setPage}
+          noun="orders"
+        />
       </div>
 
       {/* Side Detail Drawer */}

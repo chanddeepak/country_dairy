@@ -92,6 +92,20 @@ async function fetchJson<T>(endpoint: string, options: RequestInit = {}): Promis
   return text ? JSON.parse(text) : ({} as T);
 }
 
+/**
+ * What every paged admin list returns. `total` is the count matching the
+ * filter, not the length of `items` — without it there is no way to tell a
+ * last page from a truncated one, which is exactly what these lists used to do.
+ */
+export interface Page<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
 export const adminApi = {
   // Auth API
   async login(email: string, password: string): Promise<{ accessToken: string; user: UserProfile }> {
@@ -348,9 +362,16 @@ export const adminApi = {
     return fetchJson<{ id: string; name: string | null; phone: string | null }[]>('/users/drivers');
   },
 
-  async getCustomers(search?: string): Promise<AdminCustomer[]> {
-    const query = search ? `?search=${encodeURIComponent(search)}` : '';
-    return fetchJson<AdminCustomer[]>(`/users/customers${query}`);
+  async getCustomers(
+    search?: string,
+    paging: { page?: number; pageSize?: number } = {},
+  ): Promise<Page<AdminCustomer>> {
+    const query = new URLSearchParams();
+    if (search) query.append('search', search);
+    if (paging.page) query.append('page', String(paging.page));
+    if (paging.pageSize) query.append('pageSize', String(paging.pageSize));
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    return fetchJson<Page<AdminCustomer>>(`/users/customers${queryString}`);
   },
 
   async getCustomer(id: string): Promise<AdminCustomer> {
@@ -441,14 +462,22 @@ export const adminApi = {
 
   // Audit log API
   async getAuditLog(
-    filters: { entity?: string; action?: string; search?: string } = {},
-  ): Promise<AuditEntry[]> {
+    filters: {
+      entity?: string;
+      action?: string;
+      search?: string;
+      page?: number;
+      pageSize?: number;
+    } = {},
+  ): Promise<Page<AuditEntry>> {
     const query = new URLSearchParams();
     if (filters.entity) query.append('entity', filters.entity);
     if (filters.action) query.append('action', filters.action);
     if (filters.search) query.append('search', filters.search);
+    if (filters.page) query.append('page', String(filters.page));
+    if (filters.pageSize) query.append('pageSize', String(filters.pageSize));
     const queryString = query.toString() ? `?${query.toString()}` : '';
-    return fetchJson<AuditEntry[]>(`/audit${queryString}`);
+    return fetchJson<Page<AuditEntry>>(`/audit${queryString}`);
   },
 
   async getAuditFilters(): Promise<{ entities: string[]; actions: string[] }> {
@@ -493,12 +522,18 @@ export const adminApi = {
   },
 
   // Admin Orders API
-  async getOrdersAdmin(status?: string, search?: string): Promise<AdminOrder[]> {
+  async getOrdersAdmin(
+    status?: string,
+    search?: string,
+    paging: { page?: number; pageSize?: number } = {},
+  ): Promise<Page<AdminOrder>> {
     const query = new URLSearchParams();
     if (status) query.append('status', status);
     if (search) query.append('search', search);
+    if (paging.page) query.append('page', String(paging.page));
+    if (paging.pageSize) query.append('pageSize', String(paging.pageSize));
     const queryString = query.toString() ? `?${query.toString()}` : '';
-    return fetchJson<AdminOrder[]>(`/orders/admin/all${queryString}`);
+    return fetchJson<Page<AdminOrder>>(`/orders/admin/all${queryString}`);
   },
 
   async getOrderStatsAdmin(): Promise<OrderStats> {

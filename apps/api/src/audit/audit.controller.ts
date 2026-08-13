@@ -16,8 +16,16 @@ export class AuditController {
     @Query('entity') entity?: string,
     @Query('action') action?: string,
     @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
-    return this.auditService.list({ entity, action, search });
+    return this.auditService.list({
+      entity,
+      action,
+      search,
+      page: Number(page) || undefined,
+      pageSize: Number(pageSize) || undefined,
+    });
   }
 
   @Get('filters')

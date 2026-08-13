@@ -14,6 +14,7 @@ import {
   ProductStatus,
   StockMovementReason,
 } from '@prisma/client';
+import { pageParams, paginate } from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { RazorpayService } from './razorpay.service';
@@ -700,9 +701,12 @@ export class OrdersService {
 
   // --- ADMIN ORDER MANAGEMENT ---
 
-  async getAllOrdersAdmin(filters: { status?: OrderStatus; search?: string } = {}) {
-    return this.prisma.order.findMany({
-      where: {
+  async getAllOrdersAdmin(
+    filters: { status?: OrderStatus; search?: string; page?: number; pageSize?: number } = {},
+  ) {
+    const { page, pageSize, skip, take } = pageParams(filters);
+
+    const where = {
         ...(filters.status ? { status: filters.status } : {}),
         ...(filters.search
           ? {
@@ -714,15 +718,26 @@ export class OrdersService {
               ],
             }
           : {}),
-      },
-      include: {
-        user: { select: { id: true, name: true, email: true, phone: true } },
-        driver: { select: { id: true, name: true } },
-        orderItems: true,
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-    });
+    };
+
+    // Counted alongside, so the client can tell a last page from a truncated
+    // one. The old fixed take of 200 could do neither.
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.order.findMany({
+        where,
+        include: {
+          user: { select: { id: true, name: true, email: true, phone: true } },
+          driver: { select: { id: true, name: true } },
+          orderItems: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return paginate(items, total, { page, pageSize });
   }
 
   async updateOrderStatusAdmin(
