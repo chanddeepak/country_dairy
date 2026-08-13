@@ -237,6 +237,8 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
             ) : (
               <button
                 onClick={onAuthOpen}
+                data-testid="open-auth"
+                aria-label="Sign in"
                 className="p-2 text-[#2A2A2A] hover:text-[#3A6038] transition"
               >
                 <User className="h-5 w-5" />
@@ -248,11 +250,16 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
           {ENABLE_CART && (
             <button
               onClick={onCartOpen}
+              data-testid="open-cart"
+              aria-label="Open cart"
               className="relative p-2 text-[#2A2A2A] hover:text-[#3A6038] transition"
             >
               <ShoppingBag className="h-5 w-5" />
               {cartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-[#C59B27] text-white text-[9px] font-black rounded-full h-4.5 w-4.5 flex items-center justify-center min-w-[18px] min-h-[18px] border-2 border-white">
+                <span
+                  data-testid="cart-count"
+                  className="absolute -top-0.5 -right-0.5 bg-[#C59B27] text-white text-[9px] font-black rounded-full h-4.5 w-4.5 flex items-center justify-center min-w-[18px] min-h-[18px] border-2 border-white"
+                >
                   {cartCount}
                 </span>
               )}

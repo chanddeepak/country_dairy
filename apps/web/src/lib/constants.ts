@@ -54,11 +54,18 @@ export interface ProductVariant {
   id: string;
   name: string;
   volumeOrWeight: string;
-  price: string;
-  originalPrice?: string;
+  /** Null when the API sent none. Never substitute a figure for it. */
+  price: string | null;
+  originalPrice?: string | null;
   discountPercent?: string;
   image?: string;
   isDefault?: boolean;
+  /**
+   * Null means the API did not say, which is not the same as zero. Unknown is
+   * treated as available and the server remains the authority; a known zero is
+   * never offered for sale.
+   */
+  stockQuantity?: number | null;
 }
 
 export interface Product {
@@ -69,8 +76,13 @@ export interface Product {
   description: string;
   tagline?: string;
   storyDescription?: string;
-  price: string;
-  originalPrice?: string;
+  /**
+   * Null when the API sent no price. A missing figure is shown as unknown and
+   * the product cannot be bought — never replaced with a plausible default,
+   * which is how a customer was once quoted ₹100 nobody had set.
+   */
+  price: string | null;
+  originalPrice?: string | null;
   discountBadge?: string;
   badge?: string;
   imageUrls: string[];
