@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -41,6 +41,29 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'bilonaProcess' | 'details'>('details');
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+
+  /**
+   * Ghee is the product the bilona story is about, so it opens on that story
+   * rather than on a specification table. Lifted out of the tab renderer
+   * because the default tab has to know it before anything is drawn.
+   */
+  const isGheeProduct = useMemo(() => {
+    if (!product) return false;
+    const haystack = [
+      product.slug,
+      product.name,
+      (product as any).categoryName,
+      (product as any).categoryLabel,
+    ];
+    return haystack.some((value) => typeof value === 'string' && value.toLowerCase().includes('ghee'));
+  }, [product]);
+
+  // Keyed on the product, not on isGheeProduct alone, so switching products
+  // resets the tab while a reader who chose Product Details on this one keeps
+  // their choice.
+  useEffect(() => {
+    setActiveTab(isGheeProduct ? 'bilonaProcess' : 'details');
+  }, [product?.id]);
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Modal state
@@ -657,11 +680,6 @@ export default function ProductDetailPage() {
 
           {/* Tabs: Vedic Bilona Process / Details */}
           {(() => {
-            const isGheeProduct = product.slug?.includes('ghee') || 
-              product.name?.toLowerCase().includes('ghee') || 
-              (product as any).categoryName?.toLowerCase().includes('ghee') ||
-              (product as any).categoryLabel?.toLowerCase().includes('ghee');
-
             const tabsToRender = isGheeProduct ? (['bilonaProcess', 'details'] as const) : (['details'] as const);
 
             return (
