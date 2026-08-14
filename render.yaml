@@ -1,0 +1,52 @@
+# Render Blueprint — the dev API service.
+#
+# Written as config rather than clicked into the dashboard so the dev
+# environment is reproducible and reviewable. Production is a separate service
+# tracking `main`; this one tracks `dev` and exists to test a change before the
+# PR that promotes it.
+#
+# Secrets are declared with `sync: false`, which means Render prompts for them
+# once and never stores them in this file. Nothing here should ever hold a key.
+services:
+  - type: web
+    name: country-dairy-api-dev
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: singapore
+    branch: dev
+    autoDeploy: true
+    healthCheckPath: /api/catalog/products
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+
+      # Point at a dev database, not production. The API runs migrations
+      # against whatever this names, and a staging deploy aimed at the
+      # production database is the fastest way to lose real orders.
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+      # Left unset on dev on purpose. Absent keys put Razorpay in mock mode,
+      # so a test order cannot take real money. Set these only when the
+      # gateway itself is what is being tested, and use test keys.
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
