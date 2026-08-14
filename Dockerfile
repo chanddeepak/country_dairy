@@ -24,6 +24,13 @@ WORKDIR /app
 ENV NODE_ENV=production
 RUN groupadd --system --gid 1001 nodejs
 RUN useradd --system --uid 1001 -g nodejs nestjs
+
+# Made before privileges are dropped. The app writes uploads here when object
+# storage is not configured, and /app is owned by root, so a non-root process
+# cannot create it — the container built cleanly and then died on boot with
+# EACCES.
+RUN mkdir -p /app/uploads && chown -R nestjs:nodejs /app
+
 USER nestjs
 
 COPY --from=installer /app/apps/api/package.json ./apps/api/package.json

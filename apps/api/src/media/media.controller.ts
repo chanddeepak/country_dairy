@@ -44,10 +44,33 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { diskStorage } = require('multer');
 
+/**
+ * Where an upload lands when object storage is not configured.
+ *
+ * Creating it must not be fatal. On a hosted container the working directory
+ * can belong to root while the process does not, and this ran at module load
+ * — so a failure here took the whole API down at boot with EACCES rather than
+ * disabling one fallback. Uploads go to Supabase Storage in every deployed
+ * environment anyway, and a hosted filesystem is ephemeral, so a local
+ * directory is a convenience for development and nothing more.
+ */
 const uploadDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+let localUploadsAvailable = true;
+
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (err) {
+  localUploadsAvailable = false;
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[media] Local upload directory unavailable (${(err as Error).message}). ` +
+      'Uploads will use object storage.',
+  );
 }
+
+export { localUploadsAvailable };
 
 @Controller('media')
 export class MediaController {
