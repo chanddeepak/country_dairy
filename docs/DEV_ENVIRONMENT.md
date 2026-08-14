@@ -23,12 +23,27 @@ repository's test suites create and delete customers, orders and products by
 design. A dev deploy aimed at the production database would do that to real
 records, and no amount of care afterwards undoes it.
 
-Create a second Supabase project, then:
+Create a second Supabase project, then **check what you are aimed at before
+you fire**. The repository's own `.env` points at production, and these
+commands take whichever database they are given:
+
+```bash
+# Prints the host these credentials resolve to. Read it before continuing.
+DATABASE_URL='<dev pooler url>' \
+  node -e "console.log('TARGET:', process.env.DATABASE_URL.match(/@([^:\/?]+)/)[1])"
+```
+
+Inline values win over the `.env` file, so the host printed there is the host
+that will be migrated. Once it names the dev project:
 
 ```bash
 DATABASE_URL='<dev pooler url>' DIRECT_URL='<dev direct url>' npm run db:deploy
-DATABASE_URL='<dev pooler url>' SEED_ADMIN_PASSWORD='<something>' npm run db:seed
+DATABASE_URL='<dev pooler url>' DIRECT_URL='<dev direct url>' \
+  SEED_ADMIN_PASSWORD='<something>' npm run db:seed
 ```
+
+Keep that admin password. It is how you sign into the deployed console, and it
+goes to Render as `SEED_ADMIN_PASSWORD`.
 
 ---
 
@@ -84,9 +99,10 @@ for what a deployed build expects.
 ## 3. CORS
 
 The API allows the production origins and any localhost port. A deployed
-preview is neither, so the dev API needs the preview URLs added — see
-`PROD_ORIGINS` in `apps/api/src/main.ts`. Until that is done the console loads
-and every request fails, which looks like an API outage and is not one.
+preview is neither, so set `ALLOWED_ORIGINS` on the Render service to the two
+preview URLs, comma separated — no code change is needed, the variable is
+already read at startup. Until that is done the console loads and every request
+fails, which looks like an API outage and is not one.
 
 ---
 

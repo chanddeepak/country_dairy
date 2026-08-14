@@ -31,6 +31,12 @@ services:
       - key: DIRECT_URL
         sync: false
 
+      # Comma-separated. The deployed previews are neither a production origin
+      # nor localhost, so without this the console loads and every request
+      # fails CORS — which reads as an API outage and is not one.
+      - key: ALLOWED_ORIGINS
+        sync: false
+
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY
