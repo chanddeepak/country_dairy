@@ -12,7 +12,11 @@ services:
     name: country-dairy-api-dev
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter
+    # Free: 512 MB, and the service sleeps after 15 minutes idle, taking about
+    # 30 seconds to wake. That is the right trade for an environment that is
+    # used in bursts — the only visible cost is a slow first request, and the
+    # e2e readiness check already waits two minutes for exactly this.
+    plan: free
     region: singapore
     branch: dev
     autoDeploy: true
