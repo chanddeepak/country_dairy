@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { heroLayoutClasses } from '../../lib/heroLayout';
 import { ArrowRight } from 'lucide-react';
 import { API_URL } from '../../lib/constants';
 
@@ -97,6 +98,10 @@ export default function HeroSection() {
             subtitle: b.subtitle,
             ctaText: b.ctaText || 'Shop All Products',
             ctaHref: b.ctaLink || '/products',
+            // The desktop row owns the placement; the mobile row is only
+            // consulted for its artwork, since anchors are relative and
+            // survive the narrower box on their own.
+            layout: b.layout ?? null,
           };
         });
         setSlides(mapped);
@@ -172,7 +177,12 @@ export default function HeroSection() {
     >
       <div className="relative w-full h-[520px] md:h-[600px]">
         {/* Slides */}
-        {slides.map((slide, index) => (
+        {slides.map((slide, index) => {
+          // Per slide: each banner carries its own placement, and a slide with
+          // no layout stored falls back to the original left-aligned stack.
+          const layout = heroLayoutClasses((slide as { layout?: unknown }).layout);
+
+          return (
           <div
             key={slide.id}
             className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
@@ -205,16 +215,18 @@ export default function HeroSection() {
                 sizes="100vw"
               />
             </div>
-            {/* Dark overlay for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/35 to-transparent" />
+            {/* Darkened only as much as the banner's own layout asks for. */}
+            <div className={`absolute inset-0 ${layout.scrim}`} />
 
             {/* Hero content overlay */}
-            <div className={`relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex ${slide.contentAlign || 'items-center'}`}>
-              <div className="max-w-lg space-y-3.5">
+            <div
+              className={`relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full ${layout.container}`}
+            >
+              <div className={layout.block} style={layout.blockStyle}>
                 <div className="inline-flex items-center gap-1 bg-[#3A6038]/85 backdrop-blur-xs text-amber-200 border border-amber-300/30 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider shadow-sm">
                   <span>⛰️ Devbhoomi Uttarakhand Origin</span>
                 </div>
-                <h1 className={`font-serif font-black leading-tight text-white drop-shadow-lg ${slide.headlineSize || 'text-3xl sm:text-4xl md:text-5xl'}`}>
+                <h1 className={layout.headline}>
                   {(slide.headline || '').split('. ').map((part: string, i: number, arr: string[]) => (
                     <React.Fragment key={i}>
                       {part}{i < arr.length - 1 ? '.' : ''}
@@ -222,11 +234,7 @@ export default function HeroSection() {
                     </React.Fragment>
                   ))}
                 </h1>
-                {slide.subtitle && (
-                  <p className="text-white/90 text-sm md:text-base max-w-md leading-relaxed drop-shadow">
-                    {slide.subtitle}
-                  </p>
-                )}
+                {slide.subtitle && <p className={layout.subtitle}>{slide.subtitle}</p>}
                 <div className={slide.ctaMarginTop || ''}>
                   <Link
                     href={slide.ctaHref || '/products'}
@@ -239,7 +247,8 @@ export default function HeroSection() {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
 
         {/* Indicators */}
         <div className="absolute bottom-6 left-0 right-0 z-30 flex justify-center space-x-3">

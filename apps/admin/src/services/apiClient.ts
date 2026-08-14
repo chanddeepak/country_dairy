@@ -540,6 +540,22 @@ export const adminApi = {
     return fetchJson<OrderStats>('/orders/admin/stats');
   },
 
+  /**
+   * Moves an order between the local round and the courier desk. Nothing at
+   * checkout can know whether an address is inside the van's area, so this is
+   * the desk's call.
+   */
+  async setOrderDeliveryType(
+    orderId: string,
+    deliveryType: 'LOCAL' | 'COURIER',
+    note?: string,
+  ): Promise<AdminOrder> {
+    return fetchJson<AdminOrder>(`/orders/admin/${orderId}/delivery-type`, {
+      method: 'PATCH',
+      body: JSON.stringify({ deliveryType, ...(note ? { note } : {}) }),
+    });
+  },
+
   async updateOrderStatusAdmin(
     orderId: string,
     status: string,

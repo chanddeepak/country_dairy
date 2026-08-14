@@ -245,6 +245,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  /**
+   * Keeps the stored guest cart level with what is on screen.
+   *
+   * This used to be written inside the add, update and remove handlers, which
+   * meant a guest cart was only persisted after the catalogue lookup that
+   * resolves a line had come back — around 700ms. Someone who added a jar and
+   * reloaded straight away lost it. Writing here also takes the side effect
+   * out of the state updaters, which React is free to run twice.
+   *
+   * Gated on isSessionReady so it cannot overwrite a stored cart with the
+   * empty array the component starts with, before the restore has run.
+   */
+  useEffect(() => {
+    if (!isSessionReady || token) return;
+
+    if (cart.length === 0) {
+      localStorage.removeItem('cd_guest_cart');
+      return;
+    }
+    localStorage.setItem('cd_guest_cart', JSON.stringify(cart));
+  }, [cart, token, isSessionReady]);
+
   // Fetch cart once token changes
   useEffect(() => {
     if (token) {
@@ -504,7 +526,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      await addToCartInner(variantId, quantity);
+      await addToCartInner(variantId, quantity, { alreadyApplied: !!optimistic });
       unsyncedRef.current.delete(variantId);
       setUnsyncedCount(unsyncedRef.current.size);
       // Restart the window on confirmation. Set only at the start, a tick that
@@ -577,7 +599,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addToCartInner = async (variantId: string, quantity: number) => {
+  const addToCartInner = async (
+    variantId: string,
+    quantity: number,
+    { alreadyApplied = false }: { alreadyApplied?: boolean } = {},
+  ) => {
     if (!token) {
       const resolved = await resolveVariant(variantId);
       if (!resolved) return;
@@ -586,28 +612,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       setCart(prev => {
         const existing = prev.find(item => item.variantId === variantId);
-        const next = existing
-          ? prev.map(item =>
-              item.variantId === variantId
-                ? { ...item, quantity: item.quantity + quantity }
-                : item,
-            )
-          : [
-              ...prev,
-              {
-                id: `guest-${Date.now()}-${Math.random()}`,
-                variantId,
-                product: {
-                  ...product,
-                  name: product.title ?? product.name,
-                  price: String(variant.sellingPrice),
-                },
-                variant: { id: variant.id, sizeLabel: variant.sizeLabel },
-                quantity,
-              },
-            ];
 
-        localStorage.setItem('cd_guest_cart', JSON.stringify(next));
+        // The optimistic block above has already counted this click. Counting
+        // it a second time here is what put two jars in a guest's cart for one
+        // press of Add to Cart.
+        const nextQuantity = !existing
+          ? quantity
+          : alreadyApplied
+            ? existing.quantity
+            : existing.quantity + quantity;
+
+        // Through the same normaliser the signed-in cart uses, so both kinds
+        // of line have one shape. The drawer reads productName, unitPrice and
+        // lineTotal; the raw nested shape written here before had none of
+        // them, and never recomputed lineTotal when the quantity changed.
+        const line = normalizeCartItem({
+          id: existing?.id ?? `guest-${Date.now()}-${Math.random()}`,
+          variantId,
+          product: {
+            ...product,
+            name: product.title ?? product.name,
+            price: String(variant.sellingPrice),
+          },
+          variant,
+          quantity: nextQuantity,
+        });
+
+        const next = existing
+          ? prev.map(item => (item.variantId === variantId ? line : item))
+          : [...prev, line];
+
         return next;
       });
       return;
@@ -649,7 +683,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!token) {
       setCart(prev => {
         const next = prev.map(item => item.id === itemId ? { ...item, quantity } : item).filter(item => item.quantity > 0);
-        localStorage.setItem('cd_guest_cart', JSON.stringify(next));
         return next;
       });
       return;
@@ -673,7 +706,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!token) {
       setCart(prev => {
         const next = prev.filter(item => item.id !== itemId);
-        localStorage.setItem('cd_guest_cart', JSON.stringify(next));
         return next;
       });
       return;

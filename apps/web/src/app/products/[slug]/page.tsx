@@ -12,6 +12,7 @@ import StarRating from '../../../components/ui/StarRating';
 import ReviewSection from '../../../components/product/ReviewSection';
 import LabReportPanel from '../../../components/product/LabReportPanel';
 import { trackStorefrontEvent } from '../../../lib/analytics';
+import { mapApiProducts } from '../../../lib/mapProduct';
 import ProductCard from '../../../components/product/ProductCard';
 import AuthModal from '../../../components/modals/AuthModal';
 import SubscriptionModal from '../../../components/modals/SubscriptionModal';
@@ -152,7 +153,41 @@ export default function ProductDetailPage() {
     const initialImg = defaultVar?.image || PRODUCT_IMAGES[prod.slug] || prod.galleryImages?.[0]?.imageUrl || prod.imageUrls?.[0] || '/images/products/ghee-jar.png';
     setActiveImage(resolveStorefrontImageUrl(initialImg));
 
-    setRelatedProducts(FALLBACK_PRODUCTS.filter((p) => p.slug !== prod.slug).slice(0, 3));
+    void loadRelated(prod);
+  };
+
+  /**
+   * Other things to buy, from the live catalogue.
+   *
+   * This used to read FALLBACK_PRODUCTS, a hardcoded list holding one product
+   * — the ghee. So the section showed a single card on every other page and
+   * nothing at all on the ghee's own page, where the filter removed the only
+   * entry it had. Nothing here has ever reflected what is actually on sale.
+   *
+   * Same category first, because a ghee buyer is likelier to want another
+   * ghee, then anything else live to fill the row.
+   */
+  const loadRelated = async (current: any) => {
+    try {
+      const res = await fetch(`${API_URL}/catalog/products?status=LIVE`);
+      if (!res.ok) return;
+
+      const live = await res.json();
+      if (!Array.isArray(live)) return;
+
+      const others = mapApiProducts(live).filter(
+        (p) => p.id !== current.id && p.slug !== current.slug,
+      );
+
+      const currentCategory = current.categoryLabel ?? current.category;
+      const sameCategory = others.filter((p) => p.category && p.category === currentCategory);
+      const rest = others.filter((p) => !sameCategory.includes(p));
+
+      setRelatedProducts([...sameCategory, ...rest].slice(0, 3));
+    } catch (err) {
+      // A dead recommendations row is not worth breaking the page over.
+      console.warn('Could not load related products:', err);
+    }
   };
 
   // Feeds the "Most Viewed Products" panel on the admin dashboard.
@@ -326,7 +361,10 @@ export default function ProductDetailPage() {
   const justAdded = !!selectedVariant?.id && lastAddedVariantId === selectedVariant.id;
 
   const handleAddToCart = () => {
-    if (!user) { setIsAuthOpen(true); return; }
+    // No sign-in gate. A guest can fill a cart from the homepage and the all
+    // products page, and their cart merges on sign-in — demanding an account
+    // here only on the detail page turned the most considered click on the
+    // site into a login wall.
     if (!selectedVariant?.id) return;
     if (!canBuy) return;
     addToCart(selectedVariant.id, quantity, {

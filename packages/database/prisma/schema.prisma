@@ -872,6 +872,14 @@ model HeroBanner {
   /// whole and lays no text over it. Added on feature/devbhoomi-redesign;
   /// carried here so both branches agree with the database.
   imageHasText Boolean    @default(false)
+  /// Where the text sits on the artwork, and how it is set.
+  ///
+  /// One JSON column rather than a dozen scalars: the shape is a whole layout
+  /// that only ever moves together, and it carries a version so an older
+  /// banner keeps rendering when the editor grows a field. Null means the
+  /// original hardcoded left-aligned stack, which is what every existing
+  /// banner should keep looking like.
+  layout       Json?
   /// A festival banner should retire itself. Without a window somebody has to
   /// remember to take Diwali down in November.
   startsAt     DateTime?

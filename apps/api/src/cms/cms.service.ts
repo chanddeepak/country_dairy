@@ -1,3 +1,4 @@
+import { parseHeroLayout } from '@country-dairy/types';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { BannerType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -116,6 +117,10 @@ export class CmsService {
         badgeText: dto.badgeText || 'FARM FRESH',
         displayOrder: dto.displayOrder ? Number(dto.displayOrder) : 1,
         isActive: dto.isActive !== undefined ? dto.isActive : true,
+        // Normalised on the way in, so nothing outside the editor's scales can
+        // be stored — a hand-rolled request cannot hand the storefront an
+        // anchor it has no rule for.
+        layout: dto.layout ? (parseHeroLayout(dto.layout) as unknown as Prisma.InputJsonValue) : undefined,
       },
     });
   }
@@ -137,6 +142,7 @@ export class CmsService {
           badgeText: dto.badgeText || 'FARM FRESH',
           displayOrder: dto.displayOrder ? Number(dto.displayOrder) : 1,
           isActive: dto.isActive !== undefined ? dto.isActive : true,
+  layout: dto.layout ? (parseHeroLayout(dto.layout) as unknown as Prisma.InputJsonValue) : undefined,
         },
       });
     }
@@ -151,6 +157,7 @@ export class CmsService {
     return this.prisma.heroBanner.update({
       where: { id },
       data: {
+        layout: dto.layout ? (parseHeroLayout(dto.layout) as unknown as Prisma.InputJsonValue) : undefined,
         title: dto.title,
         subtitle: dto.subtitle,
         imageUrl: cleanUrl,

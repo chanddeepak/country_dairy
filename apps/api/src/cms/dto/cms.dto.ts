@@ -1,16 +1,5 @@
 import { Type } from 'class-transformer';
-import {
-  IsBoolean,
-  IsHexColor,
-  IsIn,
-  IsInt,
-  IsOptional,
-  IsString,
-  Matches,
-  MaxLength,
-  MinLength,
-  ValidateNested,
-} from 'class-validator';
+import { IsBoolean, IsHexColor, IsIn, IsInt, IsObject, IsOptional, IsString, Matches, MaxLength, MinLength, ValidateNested } from 'class-validator';
 
 /**
  * WhatsApp ordering configuration.
@@ -82,6 +71,18 @@ export class HeroBannerDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  /**
+   * Where the text sits and how it is set.
+   *
+   * Accepted as an object and then run through parseHeroLayout in the service
+   * rather than validated field by field here. The parser already rejects any
+   * value outside its scales and falls back to the default, so a banner can
+   * never be saved with an anchor the storefront does not know how to place.
+   */
+  @IsOptional()
+  @IsObject()
+  layout?: Record<string, unknown>;
 }
 
 export class AnnouncementDto {

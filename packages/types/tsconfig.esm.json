@@ -1,0 +1,22 @@
+{
+  // A second, ESM copy of the same sources.
+  //
+  // The API is a NestJS app and needs CommonJS; the storefront and the admin
+  // console are bundled and need real ESM. Vite's dev server serves a module
+  // as native ESM without interop, so a CJS build there fails at runtime with
+  // "does not provide an export named ..." — which is a white screen, not a
+  // build error, because the production bundler does the interop the dev
+  // server does not. Shipping both formats and letting the exports map choose
+  // is what keeps all three working.
+  "extends": "../tsconfig/base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "outDir": "./dist/esm",
+    "declaration": false,
+    "declarationMap": false,
+    "composite": false,
+    "incremental": false
+  },
+  "include": ["src/**/*"]
+}

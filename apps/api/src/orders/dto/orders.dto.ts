@@ -35,6 +35,16 @@ export class CancelOrderDto {
   reason?: string;
 }
 
+export class SetDeliveryTypeDto {
+  @IsEnum(DeliveryType, { message: 'Choose local delivery or courier' })
+  deliveryType: DeliveryType;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  note?: string;
+}
+
 export class UpdateOrderStatusDto {
   @IsEnum(OrderStatus, { message: 'Unknown order status' })
   status: OrderStatus;

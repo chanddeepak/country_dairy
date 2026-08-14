@@ -4,6 +4,17 @@ import ImageUploader from '../components/common/ImageUploader';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import HeroPreviewSimulator from '../components/cms/HeroPreviewSimulator';
 import type { HeroSlide } from '../types';
+import HeroLayoutEditor from '../components/HeroLayoutEditor';
+
+/**
+ * Off unless a developer turns it on.
+ *
+ * Deliberately an env flag rather than an entry in the console's own feature
+ * flags: those are for switching finished features on and off in production,
+ * and this is neither finished nor something anyone should be able to enable
+ * from a browser.
+ */
+const SHOW_LAYOUT_EDITOR = import.meta.env.VITE_ENABLE_HERO_LAYOUT_EDITOR === 'true';
 import { adminApi } from '../services/apiClient';
 
 export default function HeroManager() {
@@ -38,6 +49,7 @@ export default function HeroManager() {
               ctaLink: b.ctaLink || '/products',
               desktopImageUrl: activeDeviceType === 'DESKTOP' ? validUrl : '',
               mobileImageUrl: activeDeviceType === 'MOBILE' ? validUrl : '',
+              layout: b.layout ?? null,
               overlayOpacity: 30,
               sortOrder: b.displayOrder || 1,
               isActive: b.isActive ?? true,
@@ -171,6 +183,7 @@ export default function HeroManager() {
         badgeText: activeEditingSlide.badgeText,
         displayOrder: activeEditingSlide.sortOrder,
         isActive: activeEditingSlide.isActive,
+        layout: activeEditingSlide.layout ?? undefined,
       });
 
       if (saved?.id) {
@@ -322,6 +335,32 @@ export default function HeroManager() {
 
               {/* Editor Form */}
               <form onSubmit={handleSaveSlide} className="space-y-4 text-xs text-stone-200">
+              {/* Placement. Behind a build-time flag, not an admin feature
+                  flag: this is unfinished, and a switch in the console would
+                  invite someone to turn it on in production. Set
+                  VITE_ENABLE_HERO_LAYOUT_EDITOR=true in a local .env to work
+                  on it. */}
+              {SHOW_LAYOUT_EDITOR && (
+              <div className="space-y-2 pb-4 border-b border-stone-700">
+                <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider">
+                  Text placement
+                </label>
+                <HeroLayoutEditor
+                  value={activeEditingSlide.layout}
+                  onChange={(layout) =>
+                    setActiveEditingSlide({ ...activeEditingSlide, layout })
+                  }
+                  imageUrl={
+                    (activeDeviceType === 'DESKTOP'
+                      ? activeEditingSlide.desktopImageUrl
+                      : activeEditingSlide.mobileImageUrl) || undefined
+                  }
+                  title={activeEditingSlide.title}
+                  subtitle={activeEditingSlide.subtitle}
+                />
+              </div>
+              )}
+
                 <div className="flex items-center justify-between border-b border-stone-800 pb-3">
                   <h3 className="font-bold text-sm text-stone-100">Edit Slide Details</h3>
                   <button

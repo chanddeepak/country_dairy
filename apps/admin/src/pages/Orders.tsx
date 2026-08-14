@@ -98,6 +98,23 @@ export default function Orders() {
       .catch(() => setDrivers([]));
   }, []);
 
+  const changeFulfilment = async (orderId: string, deliveryType: 'LOCAL' | 'COURIER') => {
+    setIsUpdating(true);
+    setError('');
+    try {
+      const updated = await adminApi.setOrderDeliveryType(orderId, deliveryType);
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...updated } : o)));
+      setSelectedOrder((prev) => (prev?.id === orderId ? { ...prev, ...updated } : prev));
+    } catch (err) {
+      // The API refuses some moves — a parcel already on a waybill, an order
+      // already delivered — and the reason is worth showing rather than
+      // swallowing into a generic failure.
+      setError(err instanceof Error ? err.message : 'Could not change how this order ships');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const applyUpdate = async (
     orderId: string,
     status: OrderStatus,
@@ -419,6 +436,32 @@ export default function Orders() {
                     ))}
                   </select>
                 )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-[#064e3b] uppercase">Ships By</label>
+                <div className="flex gap-2">
+                  {(['LOCAL', 'COURIER'] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      data-testid={`ships-by-${type.toLowerCase()}`}
+                      disabled={isUpdating || selectedOrder.deliveryType === type}
+                      onClick={() => changeFulfilment(selectedOrder.id, type)}
+                      className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition border ${
+                        selectedOrder.deliveryType === type
+                          ? 'bg-[#064e3b] text-white border-[#064e3b]'
+                          : 'bg-white text-stone-600 border-stone-200 hover:border-[#064e3b] disabled:opacity-50'
+                      }`}
+                    >
+                      {type === 'LOCAL' ? 'Local round' : 'Courier'}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-stone-500">
+                  Local orders appear on the driver route sheets; courier orders appear on the
+                  consignment desk.
+                </p>
               </div>
 
               {selectedOrder.deliveryType === 'LOCAL' && drivers.length > 0 && (

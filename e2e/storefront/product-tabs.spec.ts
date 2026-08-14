@@ -71,3 +71,37 @@ test.describe('Product detail tabs', () => {
     ).toHaveCount(0);
   });
 });
+
+test.describe('Related products', () => {
+  /**
+   * QA plan §3 B9 — "You May Also Like".
+   *
+   * This row read a hardcoded list holding a single product, so it showed one
+   * card everywhere except that product's own page, where the filter removed
+   * the only entry it had. It now comes from the live catalogue, which means
+   * every product with a companion on sale gets a row.
+   */
+  test('B9 · every product offers something else on sale', async ({ page }) => {
+    const live = await db.product.findMany({ where: { status: 'LIVE' }, take: 6 });
+    test.skip(live.length < 2, 'needs two live products to relate');
+
+    for (const product of live) {
+      await page.goto(`/products/${product.slug}`);
+
+      const heading = page.getByRole('heading', { name: /you may also like/i });
+      await expect(heading, `${product.slug} offered nothing`).toBeVisible({ timeout: 30_000 });
+
+      const cards = page.locator('[data-testid="product-card-link"]');
+      await expect(cards.first()).toBeVisible();
+
+      // Never itself. A row recommending the page you are on is filler.
+      const hrefs = await cards.evaluateAll((els) =>
+        els.map((el) => el.getAttribute('href') ?? ''),
+      );
+      expect(
+        hrefs.some((href) => href.includes(`/products/${product.slug}`)),
+        `${product.slug} recommended itself`,
+      ).toBe(false);
+    }
+  });
+});

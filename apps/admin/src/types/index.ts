@@ -292,6 +292,8 @@ export interface HeroSlide {
   mobileImageUrl: string;
   overlayOpacity: number;
   sortOrder: number;
+  /** Placement of the text on the artwork. Null keeps the original stack. */
+  layout?: unknown;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -333,6 +335,8 @@ export interface HeroBanner {
   badgeText?: string;
   displayOrder: number;
   isActive: boolean;
+  /** Where the text sits and how it is set. Null means the original stack. */
+  layout?: unknown;
 }
 
 export interface TrustBadge {

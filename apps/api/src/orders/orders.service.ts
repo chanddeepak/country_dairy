@@ -812,6 +812,91 @@ export class OrdersService {
     });
   }
 
+  /**
+   * Moves an order between the local round and the courier desk.
+   *
+   * Nothing decides this at checkout — the storefront cannot know whether an
+   * address is inside the van's area — so the desk decides per order. The two
+   * queues are mutually exclusive: route sheets read deliveryType LOCAL and
+   * the consignment desk reads everything else, so an order is only ever in
+   * one of them.
+   */
+  async setDeliveryTypeAdmin(orderId: string, deliveryType: DeliveryType, note?: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        deliveryType: true,
+        driverId: true,
+        trackingNumber: true,
+        shippingCarrier: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.deliveryType === deliveryType) {
+      throw new BadRequestException(`That order is already going out by ${deliveryType.toLowerCase()}`);
+    }
+
+    // Once it has been handed over or cancelled the question is settled, and
+    // moving it would only make the record disagree with what happened.
+    if (
+      order.status === OrderStatus.DELIVERED ||
+      order.status === OrderStatus.CANCELLED ||
+      order.status === OrderStatus.RETURNED
+    ) {
+      throw new BadRequestException(
+        `An order that is ${order.status.toLowerCase()} cannot change how it ships`,
+      );
+    }
+
+    // A waybill means the parcel is already with the carrier. Quietly dropping
+    // it to put the order on a van would strand a real consignment nobody is
+    // tracking any more.
+    if (deliveryType === DeliveryType.LOCAL && order.trackingNumber) {
+      throw new BadRequestException(
+        `That order is already with ${order.shippingCarrier ?? 'the carrier'} on waybill ` +
+          `${order.trackingNumber}. Cancel the consignment before putting it on a local round.`,
+      );
+    }
+
+    await this.audit.record({
+      action: 'STATUS_CHANGE',
+      entity: 'Order',
+      entityId: order.orderNumber,
+      before: { deliveryType: order.deliveryType, driverId: order.driverId },
+      after: { deliveryType },
+    });
+
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        deliveryType,
+        // A driver assignment belongs to a local round. Leaving it set would
+        // keep the order on that driver's list after it left for the courier.
+        ...(deliveryType === DeliveryType.COURIER ? { driver: { disconnect: true } } : {}),
+        statusHistory: {
+          create: {
+            status: order.status,
+            note:
+              note ??
+              `Fulfilment changed to ${deliveryType === DeliveryType.LOCAL ? 'local delivery' : 'courier'}`,
+          },
+        },
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true, phone: true } },
+        driver: { select: { id: true, name: true } },
+        orderItems: true,
+      },
+    });
+  }
+
   async getOrderStatsAdmin() {
     const [statusCounts, revenue, todayCount] = await Promise.all([
       this.prisma.order.groupBy({ by: ['status'], _count: true }),

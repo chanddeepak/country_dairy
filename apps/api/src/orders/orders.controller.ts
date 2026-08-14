@@ -19,7 +19,7 @@ import { OrdersService } from './orders.service';
 import {
   CancelOrderDto,
   CheckoutDto,
-  UpdateOrderStatusDto,
+  UpdateOrderStatusDto, SetDeliveryTypeDto,
   VerifyPaymentDto,
 } from './dto/orders.dto';
 
@@ -59,6 +59,17 @@ export class OrdersController {
   @Roles(...ORDER_STAFF)
   async getStats() {
     return this.ordersService.getOrderStatsAdmin();
+  }
+
+  /**
+   * Which queue an order belongs to. Nothing at checkout can know whether an
+   * address is inside the van's area, so the desk decides.
+   */
+  @Patch('admin/:id/delivery-type')
+  @UseGuards(RolesGuard)
+  @Roles(...ORDER_STAFF)
+  async setDeliveryType(@Param('id') id: string, @Body() dto: SetDeliveryTypeDto) {
+    return this.ordersService.setDeliveryTypeAdmin(id, dto.deliveryType, dto.note);
   }
 
   @Patch('admin/:id/status')

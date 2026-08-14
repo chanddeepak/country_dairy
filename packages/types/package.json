@@ -5,11 +5,20 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc --build",
-    "clean": "tsc --build --clean"
+    "build": "tsc --build && tsc --project tsconfig.esm.json",
+    "clean": "tsc --build --clean && rm -rf dist/esm"
   },
   "devDependencies": {
     "@country-dairy/tsconfig": "*",
     "typescript": "^5.0.0"
+  },
+  "module": "./dist/esm/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
   }
 }
