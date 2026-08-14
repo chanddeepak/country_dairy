@@ -1,0 +1,57 @@
+# What never belongs in the build context.
+#
+# Without this the daemon was sent 16.4 GB — 13 GB of it local turbo cache —
+# and ran out of disk before the first COPY finished. The Dockerfile runs
+# `turbo prune` and `npm clean-install` from source, so none of these are
+# needed: shipping them only makes the build slower, larger and, on a hosted
+# builder with a disk quota, impossible.
+
+# Installed and built artefacts. The image builds its own.
+node_modules
+**/node_modules
+dist
+**/dist
+build
+**/build
+.next
+**/.next
+out
+**/out
+
+# Local caches. The 13 GB one.
+.turbo
+**/.turbo
+.vite
+**/.vite
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# History and tooling the build has no use for.
+.git
+.github
+.vscode
+.idea
+
+# Tests and their leavings — the image runs the API, not the suite.
+e2e
+playwright.config.ts
+**/.artifacts
+**/.report
+**/test-results
+coverage
+**/coverage
+
+# Secrets must never enter an image layer, even one that is discarded later.
+.env
+.env.*
+!.env.example
+
+# Docs and scratch.
+docs
+*.md
+!README.md
+scripts/**/*.log
+**/*.log
+
+# The mobile app is not part of the API image.
+apps/mobile
