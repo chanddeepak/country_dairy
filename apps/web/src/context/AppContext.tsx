@@ -975,6 +975,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return { ok: false, error: message };
   };
 
+/**
+ * Tidies what a person types into what the API accepts.
+ *
+ * The rule is /^(\+91)?[6-9][0-9]{9}$/ — no spaces, no dashes, no brackets —
+ * while the checkout field demonstrated "+91 98765 43210". Anyone following
+ * the example was told their own mobile number was invalid. Nobody types a
+ * phone number as a bare run of digits by choice, so the interface should do
+ * this rather than the customer.
+ */
+function normalisePhone(value: string): string {
+  const cleaned = value.replace(/[\s\-()]/g, '');
+  return cleaned.startsWith('+91') ? cleaned : cleaned.replace(/^(?:0|91)/, '');
+}
+
+/** Same reasoning: a PIN code pasted with a space is still a PIN code. */
+function normalisePostalCode(value: string): string {
+  return value.replace(/\s/g, '');
+}
+
   const addAddress = async (
     line1: string,
     city: string,
@@ -994,7 +1013,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         },
         // The API field is postalCode; sending `pincode` fails validation
         // outright now that unknown properties are rejected.
-        body: JSON.stringify({ line1, line2: line2 || undefined, city, state, postalCode: pincode, phone }),
+        body: JSON.stringify({
+          line1,
+          line2: line2 || undefined,
+          city,
+          state,
+          postalCode: normalisePostalCode(pincode),
+          phone: normalisePhone(phone),
+        }),
       });
 
       return await handleAddressResponse(res);
@@ -1013,6 +1039,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   ): Promise<AddressResult> => {
     if (!token) return { ok: false, error: 'Please sign in first.', signedOut: true };
 
+    // Same tidying as on create, or editing an address rejects a number that
+    // was accepted when it was first saved.
+    const cleaned = { ...patch };
+    if (typeof cleaned.phone === 'string') cleaned.phone = normalisePhone(cleaned.phone);
+    if (typeof cleaned.postalCode === 'string') {
+      cleaned.postalCode = normalisePostalCode(cleaned.postalCode);
+    }
+
     try {
       const res = await fetch(`${API_URL}/auth/address/${id}`, {
         method: 'PATCH',
@@ -1020,7 +1054,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(patch),
+        body: JSON.stringify(cleaned),
       });
 
       return await handleAddressResponse(res);

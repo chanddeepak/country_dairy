@@ -1,9 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ExternalLink, RefreshCw, HelpCircle, CheckCircle2, Circle, Clock } from 'lucide-react';
+import { trackingLabelFor, trackingUrlFor } from '@country-dairy/types';
+import { whatsAppUrl } from '../../../lib/storeConfig';
+import { useStoreConfig } from '../../../context/StoreConfigContext';
 import { useApp } from '../../../context/AppContext';
 import Navbar from '../../../components/layout/Navbar';
 import Footer from '../../../components/layout/Footer';
@@ -25,7 +28,11 @@ export default function OrderDetailPage() {
   const orderId = params?.orderId as string;
   const isSuccess = searchParams?.get('status') === 'success';
 
-  const { user, isSessionReady, sessionExpired, authFetch } = useApp();
+  const { user, isSessionReady, sessionExpired, authFetch, reorder } = useApp();
+  const { whatsapp } = useStoreConfig();
+  const router = useRouter();
+  const [reordering, setReordering] = useState(false);
+  const [actionNote, setActionNote] = useState('');
   const [order, setOrder] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   // 'missing' covers both "no such order" and "not yours" — the API returns
@@ -107,11 +114,58 @@ export default function OrderDetailPage() {
     );
   }
 
+  const trackingUrl = trackingUrlFor(order.shippingCarrier, order.trackingNumber);
+
+  /**
+   * Help goes to WhatsApp, which is where this business already talks to its
+   * customers. There is no support inbox in the console yet, so a form here
+   * would collect messages nobody would ever read — worse than no button.
+   * The order number is filled in so the shopkeeper knows what it is about.
+   */
+  const helpUrl = whatsapp?.isEnabled
+    ? whatsAppUrl(
+        whatsapp,
+        `Hello, I need help with my order ${order.orderNumber}.`,
+      )
+    : null;
+
+  const handleReorder = async () => {
+    setReordering(true);
+    setActionNote('');
+    try {
+      const result = await reorder(order.id);
+      if (result?.ok === false) {
+        setActionNote(result.error ?? 'Could not add those items to your cart.');
+        return;
+      }
+      router.push('/checkout');
+    } catch {
+      setActionNote('Could not add those items to your cart.');
+    } finally {
+      setReordering(false);
+    }
+  };
+
+  // Each step shows when it happened. These were hardcoded to null, so the
+  // two stages a waiting customer actually cares about — has it shipped, has
+  // it arrived — were ticked with no date against them.
   const timeline = [
     { label: 'Order placed', date: order.createdAt, done: true },
-    { label: 'Payment confirmed', date: order.createdAt, done: order.paymentStatus === 'PAID' },
-    { label: 'Shipped / Out for delivery', date: null, done: ['SHIPPED', 'DELIVERED'].includes(order.status) },
-    { label: 'Delivered', date: null, done: order.status === 'DELIVERED' },
+    {
+      label: 'Payment confirmed',
+      date: order.confirmedAt ?? order.createdAt,
+      done: order.paymentStatus === 'PAID',
+    },
+    {
+      label: 'Shipped / Out for delivery',
+      date: order.shippedAt ?? null,
+      done: ['SHIPPED', 'DELIVERED'].includes(order.status),
+    },
+    {
+      label: 'Delivered',
+      date: order.deliveredAt ?? null,
+      done: order.status === 'DELIVERED',
+    },
   ];
 
   return (
@@ -245,11 +299,28 @@ export default function OrderDetailPage() {
               )}
               {order.trackingNumber && (
                 <>
-                  <p><span className="font-bold text-[#2A2A2A]">Carrier:</span> DELHIVERY</p>
+                  <p>
+                    <span className="font-bold text-[#2A2A2A]">Carrier:</span>{' '}
+                    {order.shippingCarrier ?? 'Courier'}
+                  </p>
                   <p><span className="font-bold text-[#2A2A2A]">AWB:</span> {order.trackingNumber}</p>
-                  <a href="#" className="inline-flex items-center text-xs font-bold text-[#3A6038] mt-2 hover:underline">
-                    Track on Delhivery <ExternalLink className="h-3 w-3 ml-1" />
-                  </a>
+                  {trackingUrl ? (
+                    <a
+                      href={trackingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-xs font-bold text-[#3A6038] mt-2 hover:underline"
+                    >
+                      {trackingLabelFor(order.shippingCarrier)}
+                      <ExternalLink className="h-3 w-3 ml-1" />
+                    </a>
+                  ) : (
+                    // No link rather than a wrong one: sending someone to the
+                    // wrong carrier's site makes them think the parcel is lost.
+                    <p className="text-xs text-[#6b6661] mt-2">
+                      Track this number on {order.shippingCarrier ?? 'the carrier'}&apos;s website.
+                    </p>
+                  )}
                 </>
               )}
             </div>
@@ -276,15 +347,36 @@ export default function OrderDetailPage() {
           </div>
 
           {/* Actions */}
+          {actionNote && (
+            <p className="text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
+              {actionNote}
+            </p>
+          )}
           <div className="flex gap-4">
-            <button className="flex items-center gap-2 bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold py-2.5 px-6 rounded-lg text-sm transition">
-              <RefreshCw className="h-4 w-4" />
-              Reorder Items
+            <button
+              type="button"
+              onClick={handleReorder}
+              disabled={reordering}
+              className="flex items-center gap-2 bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold py-2.5 px-6 rounded-lg text-sm transition disabled:opacity-60"
+            >
+              <RefreshCw className={`h-4 w-4 ${reordering ? 'animate-spin' : ''}`} />
+              {reordering ? 'Adding…' : 'Reorder Items'}
             </button>
-            <button className="flex items-center gap-2 border border-stone-200 text-[#6b6661] hover:text-[#2A2A2A] font-bold py-2.5 px-6 rounded-lg text-sm transition">
-              <HelpCircle className="h-4 w-4" />
-              Need Help?
-            </button>
+
+            {/* Only rendered when there is somewhere for it to go. A button
+                that does nothing is worse than an absent one: it reads as the
+                shop ignoring you. */}
+            {helpUrl && (
+              <a
+                href={helpUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 border border-stone-200 text-[#6b6661] hover:text-[#2A2A2A] font-bold py-2.5 px-6 rounded-lg text-sm transition"
+              >
+                <HelpCircle className="h-4 w-4" />
+                Need Help?
+              </a>
+            )}
           </div>
         </div>
       </main>

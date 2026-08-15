@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { X, Printer, Phone, MapPin, Calendar, Loader2, Search, Truck, Mail } from 'lucide-react';
+import { ArrowRight, Calendar, Loader2, Mail, MapPin, Phone, Printer, Search, Truck, X } from 'lucide-react';
 import StatusBadge from '../components/ui/StatusBadge';
 import { adminApi } from '../services/apiClient';
 import Pagination from '../components/Pagination';
@@ -41,7 +41,12 @@ function escapeHtml(value: string): string {
   );
 }
 
-export default function Orders() {
+export default function Orders({
+  onOpenConsignments,
+}: {
+  /** Jumps to the consignment desk. Courier orders are finished there. */
+  onOpenConsignments?: () => void;
+} = {}) {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [stats, setStats] = useState<OrderStats | null>(null);
   const [drivers, setDrivers] = useState<{ id: string; name: string | null }[]>([]);
@@ -462,6 +467,18 @@ export default function Orders() {
                   Local orders appear on the driver route sheets; courier orders appear on the
                   consignment desk.
                 </p>
+
+                {selectedOrder.deliveryType === 'COURIER' && onOpenConsignments && (
+                  <button
+                    type="button"
+                    data-testid="open-consignments"
+                    onClick={onOpenConsignments}
+                    className="mt-1 inline-flex items-center gap-1.5 text-xs font-bold text-[#064e3b] hover:underline"
+                  >
+                    Open the consignment desk
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
 
               {selectedOrder.deliveryType === 'LOCAL' && drivers.length > 0 && (

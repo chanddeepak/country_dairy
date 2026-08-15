@@ -19,11 +19,41 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000
 // read via StoreConfigContext, so the number is editable from the admin
 // console and cannot diverge between the web and mobile apps.
 
+const PLACEHOLDER_IMAGE = '/images/products/ghee-jar.png';
+let warnedAboutMissingCdn = false;
+
 export function resolveStorefrontImageUrl(url?: string | null): string {
-  if (!url) return '/images/products/ghee-jar.png';
+  if (!url) return PLACEHOLDER_IMAGE;
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   const cdnBase = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+
+  // An object-storage path with no host to put in front of it resolves against
+  // the storefront itself — /storage/v1/... on localhost:3000 — which 404s and
+  // looks like the image is missing rather than the configuration. Say so once
+  // and fall back to the placeholder.
+  if (!cdnBase && url.startsWith('/storage/v1/')) {
+    if (!warnedAboutMissingCdn) {
+      warnedAboutMissingCdn = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[images] NEXT_PUBLIC_SUPABASE_URL is not set, so stored images cannot ' +
+          'be located. Set it in apps/web/.env.local for local development.',
+      );
+    }
+    return PLACEHOLDER_IMAGE;
+  }
   if (url.startsWith('/hero-banners/') || url.startsWith('/products/')) {
+    if (!cdnBase) {
+      if (!warnedAboutMissingCdn) {
+        warnedAboutMissingCdn = true;
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[images] NEXT_PUBLIC_SUPABASE_URL is not set, so stored images cannot ' +
+            'be located. Set it in apps/web/.env.local for local development.',
+        );
+      }
+      return PLACEHOLDER_IMAGE;
+    }
     return `${cdnBase}/storage/v1/object/public${url}`;
   }
   if (url.startsWith('/storage/v1/object/public/')) {

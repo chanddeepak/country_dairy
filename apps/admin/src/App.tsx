@@ -10,7 +10,7 @@ import ProductEditor from './pages/ProductEditor';
 import AddProductWizard from './pages/AddProductWizard';
 import HeroManager from './pages/HeroManager';
 import PurityLabCMS from './pages/PurityLabCMS';
-import type { AdminOrder, Product } from './types';
+import type { Product } from './types';
 import Orders from './pages/Orders';
 import Logistics from './pages/Logistics';
 import Routes from './pages/Routes';
@@ -114,18 +114,10 @@ function AdminMainContent() {
     return () => { cancelled = true; };
   }, [isAuthenticated, user?.id]);
 
-  // Orders and customers are fetched by their own pages, which need the full
-  // API shape rather than the flattened summary this component used to build.
-  const [orders, setOrders] = useState<AdminOrder[]>([]);
-
-  useEffect(() => {
-    if (!isAuthenticated || !user) return;
-    if (!tabsForRole(user.role).includes('orders')) return;
-
-    adminApi.getOrdersAdmin()
-      .then((page) => setOrders(page.items))
-      .catch(() => setOrders([]));
-  }, [isAuthenticated, user?.id]);
+  // Orders are no longer fetched here. The shell used to load them once at
+  // sign-in and hand the same array to the consignment desk, which is why that
+  // desk showed stale data until the page was reloaded. Orders and Logistics
+  // each load their own now, so each shows what is true when you open it.
 
   // Form states
 
@@ -231,13 +223,13 @@ function AdminMainContent() {
 
         {activeTab === 'orders' && (
           <ProtectedRoute requiredRole={['SUPER_ADMIN', 'ORDER_MANAGER']}>
-            <Orders />
+            <Orders onOpenConsignments={() => setActiveTab('logistics')} />
           </ProtectedRoute>
         )}
 
         {activeTab === 'logistics' && (
           <ProtectedRoute requiredRole={['SUPER_ADMIN', 'ORDER_MANAGER']}>
-            <Logistics orders={orders} />
+            <Logistics />
           </ProtectedRoute>
         )}
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
   Check,
@@ -9,26 +9,13 @@ import {
   Printer,
   Truck,
 } from 'lucide-react';
+import { CARRIERS, trackingUrlFor } from '@country-dairy/types';
 import { adminApi } from '../services/apiClient';
 import type { AdminOrder } from '../types';
 
 const field =
   'w-full px-3 py-2 bg-[#FAF8F3] border border-stone-200 rounded-lg text-sm text-[#2A2A2A] focus:outline-none focus:border-[#064e3b] transition-colors';
 const label = 'block text-[11px] font-bold text-[#6b6661] uppercase tracking-wider mb-1.5';
-
-/** Carriers that serve this business, with a tracking URL per carrier. */
-const CARRIERS: { name: string; trackUrl: (awb: string) => string }[] = [
-  { name: 'Delhivery', trackUrl: (awb) => `https://www.delhivery.com/track/package/${awb}` },
-  { name: 'Blue Dart', trackUrl: (awb) => `https://www.bluedart.com/tracking?awb=${awb}` },
-  { name: 'DTDC', trackUrl: (awb) => `https://www.dtdc.in/tracking.asp?strCnno=${awb}` },
-  { name: 'India Post', trackUrl: (awb) => `https://www.indiapost.gov.in/_layouts/15/DOP.Portal.Tracking/TrackConsignment.aspx?logicalname=${awb}` },
-  { name: 'Ekart', trackUrl: (awb) => `https://ekartlogistics.com/shipmenttrack/${awb}` },
-];
-
-function trackingUrlFor(carrier: string | null | undefined, awb: string): string | null {
-  const match = CARRIERS.find((c) => c.name === carrier);
-  return match ? match.trackUrl(awb) : null;
-}
 
 function money(n: number): string {
   return `₹${Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
@@ -58,7 +45,37 @@ function addressLines(order: AdminOrder): string[] {
  * not have yet, so the desk records the waybill the carrier actually issued.
  * The packing slip prints real order data and no barcode it cannot back up.
  */
-export default function Logistics({ orders }: { orders: AdminOrder[] }) {
+export default function Logistics() {
+  /**
+   * Loads its own orders rather than taking a snapshot from the app shell.
+   *
+   * The shell fetched once on sign-in and handed the same array down, so this
+   * desk showed whatever was true when you logged in — a consignment recorded
+   * on the Orders page did not appear here, and switching tabs did not help
+   * because nothing refetched. Only a full page reload did, which is not a
+   * thing anyone should have to know.
+   */
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError('');
+    try {
+      const page = await adminApi.getOrdersAdmin(undefined, undefined, { pageSize: 200 });
+      setOrders(page.items);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Could not load consignments');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
   const [selected, setSelected] = useState<AdminOrder | null>(null);
   const [carrier, setCarrier] = useState(CARRIERS[0].name);
   const [awb, setAwb] = useState('');
@@ -99,8 +116,33 @@ export default function Logistics({ orders }: { orders: AdminOrder[] }) {
       setSaved(selected.id);
       setSelected(null);
       setAwb('');
+      // Re-read rather than patch in place: the order may also have moved on
+      // elsewhere, and the desk should show what the server says.
+      await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not record that consignment.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  /**
+   * Closes a consignment off from the desk.
+   *
+   * A courier order is delivered by the carrier, not by anyone on a round, so
+   * there was no way to record the outcome except by finding the order on the
+   * fulfilment page. The desk that dispatched it is where the news arrives.
+   */
+  const markDelivered = async (order: AdminOrder) => {
+    setIsSaving(true);
+    setError('');
+    try {
+      await adminApi.updateOrderStatusAdmin(order.id, 'DELIVERED', {
+        note: `Delivered by ${order.shippingCarrier ?? 'carrier'}`,
+      });
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not mark that delivered');
     } finally {
       setIsSaving(false);
     }
@@ -178,10 +220,29 @@ export default function Logistics({ orders }: { orders: AdminOrder[] }) {
     <div className="space-y-6 text-[#2A2A2A]">
       {/* Header */}
       <div className="bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm">
-        <div className="flex items-center gap-2 mb-1">
-          <Truck className="h-5 w-5 text-[#064e3b]" />
-          <h1 className="text-xl font-serif font-bold">Courier Consignments</h1>
+        <div className="flex items-center justify-between gap-3 mb-1">
+          <div className="flex items-center gap-2">
+            <Truck className="h-5 w-5 text-[#064e3b]" />
+            <h1 className="text-xl font-serif font-bold">Courier Consignments</h1>
+          </div>
+
+          <button
+            type="button"
+            data-testid="refresh-consignments"
+            onClick={() => void load()}
+            disabled={isLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#064e3b] border border-[#064e3b]/25 rounded-lg hover:bg-[#064e3b] hover:text-white disabled:opacity-50 transition-colors"
+          >
+            {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            {isLoading ? 'Loading' : 'Refresh'}
+          </button>
         </div>
+
+        {loadError && (
+          <p className="mt-2 text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg p-2.5">
+            {loadError}
+          </p>
+        )}
         <p className="text-xs text-[#6b6661]">
           Orders shipped by carrier rather than delivered on a local round. Record the waybill the
           carrier issues and the customer can track it from their order page.
@@ -206,7 +267,7 @@ export default function Logistics({ orders }: { orders: AdminOrder[] }) {
       {saved && (
         <div className="flex items-center gap-2 p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium">
           <Check className="h-4 w-4 shrink-0" />
-          <span>Consignment recorded. Reload the order list to see it move to dispatched.</span>
+          <span>Consignment recorded.</span>
         </div>
       )}
 
@@ -294,6 +355,22 @@ export default function Logistics({ orders }: { orders: AdminOrder[] }) {
                         </div>
 
                         <div className="flex items-center gap-1 shrink-0">
+                          {order.status !== 'DELIVERED' ? (
+                            <button
+                              type="button"
+                              data-testid="mark-delivered"
+                              disabled={isSaving}
+                              onClick={() => markDelivered(order)}
+                              className="px-2.5 py-1.5 text-[11px] font-bold text-[#064e3b] border border-[#064e3b]/30 rounded-lg hover:bg-[#064e3b] hover:text-white disabled:opacity-50 transition-colors"
+                              title="Record that the carrier delivered this"
+                            >
+                              Delivered
+                            </button>
+                          ) : (
+                            <span className="px-2 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 rounded-lg">
+                              Delivered
+                            </span>
+                          )}
                           <button
                             type="button"
                             onClick={() => printPackingSlip(order)}

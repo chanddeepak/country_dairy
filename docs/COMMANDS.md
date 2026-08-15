@@ -394,7 +394,7 @@ routes is faster than reading a timeout.
 Override for a run against something other than localhost:
 
 ```bash
-E2E_STOREFRONT_URL=... E2E_API_URL=... E2E_ADMIN_URL=... npm run e2e
+E2E_WEB_URL=... E2E_API_URL=... E2E_ADMIN_URL=... npm run e2e
 ```
 
 ---
@@ -410,6 +410,14 @@ The e2e suite never signs in as a real customer — every spec registers its own
 throwaway account with a run-unique address, because a spec that writes to
 whichever customer happens to be first in the database puts test orders in
 someone's real order history. It has happened here.
+
+Anything the suite reads can also live in the root `.env` — `playwright.config.ts`
+loads it — which is the tidier place for a password you would otherwise retype
+on every run:
+
+```bash
+E2E_ADMIN_PASSWORD="whatever you seeded with"
+```
 
 Override the admin the suite uses:
 

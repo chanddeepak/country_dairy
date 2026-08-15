@@ -112,7 +112,7 @@ The end-to-end suite takes its targets from the environment, so it can be
 pointed at the deployed dev environment rather than localhost:
 
 ```bash
-E2E_STOREFRONT_URL=https://<preview>.vercel.app \
+E2E_WEB_URL=https://<preview>.vercel.app \
 E2E_ADMIN_URL=https://<admin-preview>.vercel.app \
 E2E_API_URL=https://country-dairy-api-dev.onrender.com/api \
 E2E_ADMIN_EMAIL=admin@countrydairy.in \

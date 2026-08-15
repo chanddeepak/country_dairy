@@ -495,7 +495,7 @@ export default function CheckoutPage() {
                         </div>
                         <input
                           type="tel"
-                          placeholder="Delivery Contact Mobile Number (e.g. +91 98765 43210)"
+                          placeholder="Delivery contact mobile (e.g. 9876543210)"
                           value={newAddr.phone}
                           onChange={(e) => setNewAddr({ ...newAddr, phone: e.target.value })}
                           className="w-full bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#3A6038]"
