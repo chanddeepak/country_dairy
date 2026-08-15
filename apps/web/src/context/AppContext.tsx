@@ -138,10 +138,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const currentToken = localStorage.getItem('cd_token');
       if (!currentToken) return null;
 
+      // A string body with no Content-Type is sent as text/plain, which the
+      // API's JSON parser ignores — the request arrives with an empty body and
+      // fails validation for every field, including ones the customer never
+      // filled in. Set unless the caller has said otherwise, so FormData
+      // uploads keep their own boundary header.
+      const hasBody = init.body !== undefined && init.body !== null;
+      const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData;
+      const callerHeaders = (init.headers ?? {}) as Record<string, string>;
+      const callerSetType = Object.keys(callerHeaders).some(
+        (k) => k.toLowerCase() === 'content-type',
+      );
+
       const res = await fetch(`${API_URL}${path}`, {
         ...init,
         headers: {
-          ...(init.headers || {}),
+          ...(hasBody && !isFormData && !callerSetType
+            ? { 'Content-Type': 'application/json' }
+            : {}),
+          ...callerHeaders,
           Authorization: `Bearer ${currentToken}`,
         },
       });
