@@ -120,7 +120,7 @@ test.describe('Full customer journey', () => {
     await page.locator(SEL.addAddress).click();
     await page.locator(SEL.addressLine1).fill('Bilona House, Mall Road');
     await page.locator(SEL.addressCity).fill('Tanakpur');
-    await page.locator(SEL.addressState).fill('Uttarakhand');
+    await page.locator(SEL.addressState).selectOption('Uttarakhand');
     await page.locator(SEL.addressPincode).fill('262309');
     await page.locator(SEL.addressPhone).fill('9876543210');
     await page.locator(SEL.addressForm).getByRole('button', { name: /save/i }).click();

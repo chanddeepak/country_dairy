@@ -48,9 +48,12 @@ export const SEL = {
   addAddress: '[data-testid="add-address"]',
   addressForm: '[data-testid="address-form"]',
   addressLine1: 'input[placeholder*="Street"]',
-  addressCity: 'input[placeholder="City"]',
-  addressState: 'input[placeholder="State"]',
-  addressPincode: 'input[placeholder="Pincode"]',
+  // Test ids rather than placeholders: State is a dropdown now, and the PIN
+  // code field fills the other two in, so these move around as the form
+  // changes. A placeholder is copy, and copy is meant to change.
+  addressCity: '[data-testid="address-city"]',
+  addressState: '[data-testid="address-state"]',
+  addressPincode: '[data-testid="address-pincode"]',
   addressPhone: 'input[type="tel"]',
   placeOrder: '[data-testid="place-order"]',
   confirmPayment: '[data-testid="confirm-payment"]',

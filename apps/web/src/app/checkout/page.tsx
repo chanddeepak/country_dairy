@@ -5,6 +5,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, CreditCard, Wallet, ShieldCheck, Plus, CheckCircle2, UserCheck, KeyRound, PhoneCall, AlertCircle, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { API_URL } from '../../lib/constants';
+import { INDIAN_STATES, PINCODE_PATTERN, normaliseState } from '../../lib/indianStates';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { useStoreConfig } from '../../context/StoreConfigContext';
@@ -51,6 +53,62 @@ export default function CheckoutPage() {
   // Address form state
   const [showNewAddr, setShowNewAddr] = useState(false);
   const [newAddr, setNewAddr] = useState({ line1: '', city: '', state: '', pincode: '', phone: '' });
+  const [pincodeNote, setPincodeNote] = useState<{ ok: boolean; text: string } | null>(null);
+
+  /**
+   * Fill in the town and state from the PIN code.
+   *
+   * Advisory, never blocking. If the lookup is slow, down, or simply does not
+   * know a code, the customer types the two fields themselves and the order
+   * goes through — an address form that depends on somebody else's uptime is
+   * a checkout that stops working for reasons the shop cannot see or fix.
+   *
+   * Only what the customer has not already filled in is overwritten, so a
+   * deliberate correction is not undone by an answer arriving late.
+   */
+  const onPincodeChange = async (raw: string) => {
+    const pincode = raw.replace(/\D/g, '').slice(0, 6);
+    setNewAddr((prev) => ({ ...prev, pincode }));
+
+    if (pincode.length < 6) {
+      setPincodeNote(null);
+      return;
+    }
+
+    if (!PINCODE_PATTERN.test(pincode)) {
+      setPincodeNote({ ok: false, text: 'That does not look like a PIN code.' });
+      return;
+    }
+
+    setPincodeNote({ ok: true, text: 'Checking…' });
+    try {
+      const res = await fetch(`${API_URL}/geo/pincode/${pincode}`);
+      if (!res.ok) {
+        setPincodeNote({
+          ok: false,
+          text: 'We could not place that PIN code. Please fill in the town and state.',
+        });
+        return;
+      }
+
+      const found = await res.json();
+      const state = normaliseState(found.state);
+
+      setNewAddr((prev) => ({
+        ...prev,
+        city: prev.city.trim() ? prev.city : found.district ?? '',
+        state: prev.state ? prev.state : state,
+      }));
+
+      setPincodeNote({
+        ok: true,
+        text: [found.district, found.state].filter(Boolean).join(', '),
+      });
+    } catch {
+      // Network trouble on our side, and not the customer's problem to solve.
+      setPincodeNote(null);
+    }
+  };
   const [addrSaving, setAddrSaving] = useState(false);
   const [addrError, setAddrError] = useState('');
 
@@ -470,29 +528,59 @@ export default function CheckoutPage() {
                           onChange={(e) => setNewAddr({ ...newAddr, line1: e.target.value })}
                           className="w-full bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#3A6038]"
                         />
+                        {/* PIN code first, because it fills in the other two.
+                            Typing the town and then the code that contradicts
+                            it is how parcels end up in the wrong district. */}
                         <div className="grid grid-cols-3 gap-2">
                           <input
                             type="text"
+                            inputMode="numeric"
+                            maxLength={6}
+                            placeholder="Pincode"
+                            data-testid="address-pincode"
+                            value={newAddr.pincode}
+                            onChange={(e) => onPincodeChange(e.target.value)}
+                            className="bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#3A6038]"
+                          />
+                          <input
+                            type="text"
                             placeholder="City"
+                            data-testid="address-city"
                             value={newAddr.city}
                             onChange={(e) => setNewAddr({ ...newAddr, city: e.target.value })}
                             className="bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#3A6038]"
                           />
-                          <input
-                            type="text"
-                            placeholder="State"
+                          {/* A list rather than free text: the courier matches
+                              on this, and GST turns on whether the supply
+                              crossed a state line. "UK" and "Uttrakhand" for
+                              the same place are not harmless. */}
+                          <select
+                            data-testid="address-state"
                             value={newAddr.state}
                             onChange={(e) => setNewAddr({ ...newAddr, state: e.target.value })}
-                            className="bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#3A6038]"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Pincode"
-                            value={newAddr.pincode}
-                            onChange={(e) => setNewAddr({ ...newAddr, pincode: e.target.value })}
-                            className="bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#3A6038]"
-                          />
+                            className={`bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#3A6038] ${
+                              newAddr.state ? 'text-[#2A2A2A]' : 'text-stone-400'
+                            }`}
+                          >
+                            <option value="">State</option>
+                            {INDIAN_STATES.map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                          </select>
                         </div>
+
+                        {pincodeNote && (
+                          <p
+                            data-testid="pincode-note"
+                            className={`text-[11px] ${
+                              pincodeNote.ok ? 'text-[#3A6038]' : 'text-amber-700'
+                            }`}
+                          >
+                            {pincodeNote.text}
+                          </p>
+                        )}
                         <input
                           type="tel"
                           placeholder="Delivery contact mobile (e.g. 9876543210)"

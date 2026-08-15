@@ -57,7 +57,7 @@ test.describe('Checkout journey', () => {
 
     await page.locator(SEL.addressLine1).fill('Bilona House, Mall Road');
     await page.locator(SEL.addressCity).fill('Tanakpur');
-    await page.locator(SEL.addressState).fill('Uttarakhand');
+    await page.locator(SEL.addressState).selectOption('Uttarakhand');
     await page.locator(SEL.addressPincode).fill('262309');
     await page.locator(SEL.addressPhone).fill('9876543210');
     await page.locator(SEL.addressForm).getByRole('button', { name: /save/i }).click();
@@ -102,6 +102,41 @@ test.describe('Checkout journey', () => {
     await expect(page.getByText(/nan/i)).toHaveCount(0);
   });
 
+  test('the PIN code fills in the town and state', async ({ page }) => {
+    test.setTimeout(180_000);
+
+    const customer = await createCustomer(t);
+
+    // Checkout shows nothing to address if there is nothing to deliver.
+    const variant = await findSellableVariant();
+    const api = await apiClient(customer.token);
+    await api.post(resolve('/cart/add'), { data: { variantId: variant.id, quantity: 1 } });
+    await api.dispose();
+
+    await signInToStorefront(page, customer);
+    await page.goto('/checkout');
+
+    await page.locator(SEL.addAddress).click();
+    await expect(page.locator(SEL.addressForm)).toBeVisible();
+
+    // Dehradun. Typed as a person types it, one field, no tabbing away.
+    await page.locator(SEL.addressPincode).fill('248001');
+
+    // The state is the one that matters: it is a dropdown, so an answer the
+    // postal service spells differently would silently select nothing.
+    await expect(page.locator(SEL.addressState)).toHaveValue('Uttarakhand', {
+      timeout: 15_000,
+    });
+    await expect(page.locator(SEL.addressCity)).not.toHaveValue('');
+
+    // And an unknown code leaves the customer able to carry on by hand rather
+    // than blocking them — the lookup is an assistant, not a gate.
+    await page.locator(SEL.addressPincode).fill('999999');
+    await expect(page.getByTestId('pincode-note')).toBeVisible({ timeout: 15_000 });
+    await page.locator(SEL.addressCity).fill('Somewhere');
+    await expect(page.locator(SEL.addressCity)).toHaveValue('Somewhere');
+  });
+
   test('D4 · a bad PIN code is refused before anything is saved', async ({ page }) => {
     test.setTimeout(120_000);
 
@@ -118,7 +153,7 @@ test.describe('Checkout journey', () => {
     await page.locator(SEL.addAddress).click();
     await page.locator(SEL.addressLine1).fill('Bilona House, Mall Road');
     await page.locator(SEL.addressCity).fill('Tanakpur');
-    await page.locator(SEL.addressState).fill('Uttarakhand');
+    await page.locator(SEL.addressState).selectOption('Uttarakhand');
     await page.locator(SEL.addressPincode).fill('12'); // too short, and starts illegally
     await page.locator(SEL.addressPhone).fill('9876543210');
     await page.locator(SEL.addressForm).getByRole('button', { name: /save/i }).click();
