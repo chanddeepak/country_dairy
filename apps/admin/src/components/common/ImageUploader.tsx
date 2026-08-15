@@ -36,7 +36,7 @@ export function resolveImageUrl(url?: string | null): string {
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
 
   const supabaseUrl =
-    import.meta.env.VITE_SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
+    import.meta.env.VITE_SUPABASE_URL || '';
 
   if (url.startsWith('/storage/v1/object/public/')) {
     return `${supabaseUrl}${url}`;

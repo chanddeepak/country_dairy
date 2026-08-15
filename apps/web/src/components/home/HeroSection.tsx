@@ -49,11 +49,11 @@ const STATIC_HERO_SLIDES = [
 function resolveStorefrontImageUrl(url?: string): string {
   if (!url) return '/images/hero-banner.png';
   if (url.startsWith('/hero-banners/') || url.startsWith('/products/')) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     return `${supabaseUrl}/storage/v1/object/public${url}`;
   }
   if (url.startsWith('/storage/v1/object/public/')) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     return `${supabaseUrl}${url}`;
   }
   if (url.startsWith('/uploads/')) {

@@ -80,7 +80,7 @@ export class MediaController {
 
   private getSupabaseClient() {
 
-    const supabaseUrl = process.env.SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
+    const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
     if (supabaseUrl && supabaseKey) {
       return createClient(supabaseUrl, supabaseKey, {

@@ -32,12 +32,30 @@ export class MediaService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * No fallback URL, deliberately.
+   *
+   * This used to default to the production project when SUPABASE_URL was
+   * unset. A dev deployment that forgot the variable therefore uploaded into
+   * production's buckets — and because this service deletes the previous file
+   * whenever an image is replaced, editing a product on dev could destroy a
+   * production image. Silently writing to production is never the safer
+   * default; doing nothing and saying so is.
+   */
   private getSupabaseClient() {
-    const supabaseUrl = process.env.SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
+    const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY ||
       process.env.SUPABASE_ANON_KEY ||
       process.env.SUPABASE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      this.logger.warn(
+        'Object storage is not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY). ' +
+          'Uploads and deletes are disabled rather than aimed at another project.',
+      );
+      return null;
+    }
 
     if (supabaseUrl && supabaseKey) {
       return createClient(supabaseUrl, supabaseKey, {

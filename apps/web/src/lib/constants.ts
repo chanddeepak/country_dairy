@@ -22,7 +22,7 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000
 export function resolveStorefrontImageUrl(url?: string | null): string {
   if (!url) return '/images/products/ghee-jar.png';
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  const cdnBase = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ieugxahinfowtlryyzmv.supabase.co';
+  const cdnBase = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   if (url.startsWith('/hero-banners/') || url.startsWith('/products/')) {
     return `${cdnBase}/storage/v1/object/public${url}`;
   }
