@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2, MessageCircle, Package, Search, Send } from 'lucide-react';
+import { Loader2, MessageCircle, Package, RefreshCw, Search, Send } from 'lucide-react';
 import { adminApi } from '../services/apiClient';
 import Pagination from '../components/Pagination';
 import OrderPeekModal from '../components/support/OrderPeekModal';
@@ -63,6 +63,29 @@ export default function Support() {
   /** Separate from error: a success in a red box reads as a failure. */
   const [notice, setNotice] = useState('');
 
+  /**
+   * Show the row straight away, then fill in what the list did not carry.
+   *
+   * The row is enough to read the conversation, so it goes up immediately
+   * rather than making the desk wait on a second request. Only the order
+   * panel needs the rest, and it is behind another click.
+   */
+  const openTicket = async (ticket: SupportTicket) => {
+    setSelected(ticket);
+    setDraft('');
+    setPeeking(false);
+
+    try {
+      const full = await adminApi.getTicket(ticket.id);
+      // Guard against a slow response landing after the desk has moved on to
+      // a different thread.
+      setSelected((prev) => (prev?.id === full.id ? full : prev));
+    } catch {
+      // Not worth an error banner: everything except the order breakdown is
+      // already on screen and the conversation is perfectly usable without it.
+    }
+  };
+
   const load = useCallback(async () => {
     setIsLoading(true);
     setError('');
@@ -81,9 +104,14 @@ export default function Support() {
 
       // Keep the open thread in step with what was just fetched, so a reply
       // shows without the desk having to reselect the ticket.
-      setSelected((prev) =>
-        prev ? (result.items.find((t) => t.id === prev.id) ?? prev) : prev,
-      );
+      setSelected((prev) => {
+        if (!prev) return prev;
+        const fresh = result.items.find((t) => t.id === prev.id);
+        if (!fresh) return prev;
+        // The list has newer messages and status, but never line items. Taking
+        // it wholesale would empty the order panel a moment after it filled.
+        return { ...fresh, order: fresh.order ? { ...fresh.order, ...prev.order } : prev.order };
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load queries');
     } finally {
@@ -136,9 +164,26 @@ export default function Support() {
   return (
     <div className="space-y-6 text-[#2A2A2A]">
       <div className="bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm">
-        <div className="flex items-center gap-2 mb-1">
-          <MessageCircle className="h-5 w-5 text-[#064e3b]" />
-          <h1 className="text-xl font-serif font-bold">Customer Queries</h1>
+        <div className="flex items-center justify-between gap-3 mb-1">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-[#064e3b]" />
+            <h1 className="text-xl font-serif font-bold">Customer Queries</h1>
+          </div>
+
+          {/* Queries arrive while the page is open, and nothing pushes them
+              here — without this the only way to see a new one is to reload
+              the browser and lose your place. */}
+          <button
+            type="button"
+            data-testid="refresh-queries"
+            onClick={() => void load()}
+            disabled={isLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#064e3b] border border-[#064e3b]/25 rounded-lg hover:bg-[#064e3b] hover:text-white disabled:opacity-50 transition-colors"
+            title="Check for new queries"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
         <p className="text-xs text-[#6b6661]">
           Questions raised from a customer&apos;s order page. Replying here writes back to the
@@ -220,11 +265,7 @@ export default function Support() {
                   key={t.id}
                   type="button"
                   data-testid="ticket-row"
-                  onClick={() => {
-                    setSelected(t);
-                    setDraft('');
-                    setPeeking(false);
-                  }}
+                  onClick={() => openTicket(t)}
                   className={`w-full text-left px-5 py-4 hover:bg-stone-50 transition ${
                     selected?.id === t.id ? 'bg-stone-50' : ''
                   }`}

@@ -530,6 +530,15 @@ export const adminApi = {
 
 
   // Customer queries
+  /**
+   * One thread, in full. The list omits order line items because no row shows
+   * them and loading every order to render a page of the inbox would be
+   * absurd — so opening a thread has to ask for the rest.
+   */
+  async getTicket(id: string): Promise<SupportTicket> {
+    return fetchJson<SupportTicket>(`/support/admin/${id}`);
+  },
+
   async getTickets(
     filters: { status?: string; search?: string; page?: number; pageSize?: number } = {},
   ): Promise<Page<SupportTicket>> {

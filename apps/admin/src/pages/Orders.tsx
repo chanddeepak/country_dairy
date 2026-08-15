@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowRight, Calendar, Loader2, Mail, MapPin, Phone, Printer, Search, Truck, X } from 'lucide-react';
+import { ArrowRight, Calendar, Loader2, Mail, MapPin, Phone, Printer, RefreshCw, Search, Truck, X } from 'lucide-react';
 import StatusBadge from '../components/ui/StatusBadge';
 import { adminApi } from '../services/apiClient';
 import Pagination from '../components/Pagination';
@@ -253,11 +253,27 @@ export default function Orders({
     <div className="space-y-6">
       <div className="screen-panel bg-white p-6 rounded-2xl border border-stone-200 shadow-sm relative">
         <div className="screen-header mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-stone-800">Order Processing Management</h2>
-            <p className="text-xs text-stone-500">
-              Track and dispatch customer checkout invoices and delivery route sheets.
-            </p>
+          <div className="flex items-start gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-stone-800">Order Processing Management</h2>
+              <p className="text-xs text-stone-500">
+                Track and dispatch customer checkout invoices and delivery route sheets.
+              </p>
+            </div>
+
+            {/* Orders land here from the storefront at any moment and nothing
+                pushes them in. Reloading the browser works but loses the
+                filter and the page you were on. */}
+            <button
+              type="button"
+              data-testid="refresh-orders"
+              onClick={() => void load()}
+              disabled={isLoading}
+              className="shrink-0 p-2 rounded-lg border border-stone-200 text-[#6b6661] hover:bg-stone-50 disabled:opacity-50 transition-colors"
+              title="Check for new orders"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
 
           {stats && (
