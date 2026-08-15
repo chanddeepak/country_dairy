@@ -24,6 +24,43 @@ const TICKET_INCLUDE = {
   messages: { orderBy: { createdAt: 'asc' as const } },
 };
 
+/**
+ * The same, plus what was actually in the box.
+ *
+ * Only for a single opened thread. The inbox lists dozens of tickets at a
+ * time and none of them need line items to render a row, so loading these on
+ * the list would be paying for every order to answer a question about one.
+ *
+ * The item fields are a snapshot taken at checkout, which is the right thing
+ * to show: the answer must describe the jar the customer received, not what
+ * the product page happens to say today. Only the slug is read live, and only
+ * so the row can link somewhere.
+ */
+const STAFF_TICKET_INCLUDE = {
+  ...TICKET_INCLUDE,
+  order: {
+    select: {
+      id: true,
+      orderNumber: true,
+      status: true,
+      totalAmount: true,
+      createdAt: true,
+      orderItems: {
+        select: {
+          id: true,
+          productTitle: true,
+          variantSizeLabel: true,
+          sku: true,
+          imageUrl: true,
+          quantity: true,
+          unitPrice: true,
+          product: { select: { id: true, slug: true } },
+        },
+      },
+    },
+  },
+};
+
 @Injectable()
 export class SupportService {
   private readonly logger = new Logger(SupportService.name);
@@ -252,7 +289,7 @@ export class SupportService {
   async getForStaff(ticketId: string) {
     const ticket = await this.prisma.supportTicket.findUnique({
       where: { id: ticketId },
-      include: TICKET_INCLUDE,
+      include: STAFF_TICKET_INCLUDE,
     });
     if (!ticket) throw new NotFoundException('Ticket not found');
     return ticket;

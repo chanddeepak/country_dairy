@@ -166,26 +166,39 @@ export default function UserManagement() {
                     {u.isActive ? 'Active' : 'Deactivated'}
                   </span>
                 </td>
-                <td className="px-5 py-4 text-right space-x-2">
-                  <button
-                    onClick={() => { setResetModalUser(u); setResetPasswordInput(''); }}
-                    className="px-3 py-1.5 bg-[#FAF8F3] hover:bg-stone-100 text-[#064e3b] border border-stone-200 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition-colors"
-                  >
-                    <Key className="h-3 w-3" /> Reset Password
-                  </button>
+                {/* A flex row, not `text-right space-x-2`: inline-flex
+                    buttons wrap once the column narrows, and the left margin
+                    space-x adds to the second one then lands mid-row, which
+                    is what staggered them. gap spaces both axes evenly. */}
+                <td className="px-5 py-4">
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      onClick={() => { setResetModalUser(u); setResetPasswordInput(''); }}
+                      className="px-3 py-1.5 bg-[#FAF8F3] hover:bg-stone-100 text-[#064e3b] border border-stone-200 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 whitespace-nowrap transition-colors"
+                    >
+                      <Key className="h-3 w-3" /> Reset Password
+                    </button>
 
-                  <button
-                    onClick={() => toggleUserActiveStatus(u)}
-                    disabled={u.id === currentUser?.id}
-                    className={`px-3 py-1.5 border rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition-colors disabled:opacity-40 ${
-                      u.isActive
-                        ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200'
-                        : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
-                    }`}
-                  >
-                    {u.isActive ? <UserX className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
-                    <span>{u.isActive ? 'Deactivate' : 'Activate'}</span>
-                  </button>
+                    <button
+                      onClick={() => toggleUserActiveStatus(u)}
+                      disabled={u.id === currentUser?.id}
+                      // Otherwise the greyed-out button on your own row reads
+                      // as a bug rather than a deliberate guard.
+                      title={
+                        u.id === currentUser?.id
+                          ? 'You cannot deactivate your own account'
+                          : undefined
+                      }
+                      className={`px-3 py-1.5 border rounded-lg text-[11px] font-bold inline-flex items-center gap-1 whitespace-nowrap transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                        u.isActive
+                          ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200'
+                          : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
+                      }`}
+                    >
+                      {u.isActive ? <UserX className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
+                      <span>{u.isActive ? 'Deactivate' : 'Activate'}</span>
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

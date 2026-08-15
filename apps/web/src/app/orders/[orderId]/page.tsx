@@ -38,6 +38,7 @@ export default function OrderDetailPage() {
   const [queryNote, setQueryNote] = useState('');
   /** A failure in the success colour reads as a success. */
   const [queryFailed, setQueryFailed] = useState(false);
+  const [querySentRef, setQuerySentRef] = useState('');
   const [sendingQuery, setSendingQuery] = useState(false);
   const [order, setOrder] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -181,6 +182,7 @@ export default function OrderDetailPage() {
     setSendingQuery(true);
     setQueryNote('');
     setQueryFailed(false);
+    setQuerySentRef('');
     try {
       const res = await authFetch('/support', {
         method: 'POST',
@@ -227,7 +229,11 @@ export default function OrderDetailPage() {
       const ticket = await res.json();
       setQueryText('');
       setQueryOpen(false);
-      setQueryNote(`Sent. Your reference is ${ticket.ticketRef} — we will reply by email.`);
+      // Not "we will reply by email" — nothing emails them, and the reply
+      // lands in a thread they own. Telling them the wrong place to look is
+      // how a question that was answered still feels ignored.
+      setQuerySentRef(ticket.ticketRef);
+      setQueryNote('');
     } catch {
       setQueryNote('Could not reach the server. Please try again.');
     } finally {
@@ -526,6 +532,21 @@ export default function OrderDetailPage() {
               </div>
 
 
+            </div>
+          )}
+
+          {querySentRef && (
+            <div className="mt-4 text-xs rounded-lg p-3 border text-[#3A6038] bg-[#3A6038]/5 border-[#3A6038]/20">
+              <p className="font-bold">
+                Sent. Your reference is {querySentRef}.
+              </p>
+              <p className="mt-1 text-[#3A6038]/85">
+                We usually reply within a working day. You will find our answer under{' '}
+                <Link href="/account?tab=queries" className="font-bold underline underline-offset-2">
+                  My Questions
+                </Link>
+                .
+              </p>
             </div>
           )}
 

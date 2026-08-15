@@ -447,6 +447,30 @@ export interface SupportTicket {
   /** Set instead of `user` when the query came from the contact form. */
   contactName?: string | null;
   contactEmail?: string | null;
-  order?: { id: string; orderNumber: string; status: string; totalAmount: string } | null;
+  /**
+   * `items` and `createdAt` arrive only when a single thread is opened — the
+   * inbox list omits them, so treat them as optional even on a ticket that
+   * has an order.
+   */
+  order?: {
+    id: string;
+    orderNumber: string;
+    status: string;
+    totalAmount: string;
+    createdAt?: string;
+    orderItems?: SupportOrderItem[];
+  } | null;
   messages: SupportMessage[];
+}
+
+/** A line as it was at checkout, not as the catalogue reads today. */
+export interface SupportOrderItem {
+  id: string;
+  productTitle: string;
+  variantSizeLabel: string;
+  sku: string;
+  imageUrl: string | null;
+  quantity: number;
+  unitPrice: string;
+  product?: { id: string; slug: string } | null;
 }

@@ -70,6 +70,55 @@ test.describe('Support @auth', () => {
     await api.dispose();
   });
 
+  test('the desk can see what was in the box', async () => {
+    test.setTimeout(180_000);
+
+    const customer = await createCustomer(t);
+    const variant = await findSellableVariant();
+    const addressId = await addAddress(customer.token);
+    const { orderId } = await placePaidOrder(
+      customer,
+      [{ variantId: variant.id, quantity: 2 }],
+      { addressId },
+    );
+    t.orderIds.push(orderId);
+
+    const asCustomer = await apiClient(customer.token);
+    const ticket = await (
+      await asCustomer.post(resolve('/support'), {
+        data: { subject: `Wrong size ${RUN_ID}`, body: 'I think I was sent the wrong size.', orderId },
+      })
+    ).json();
+    madeTicketIds.push(ticket.id);
+    await asCustomer.dispose();
+
+    const asStaff = await apiClient(await adminToken());
+
+    // The inbox list stays lean — line items there would mean loading every
+    // order on every page of the inbox.
+    const inbox = await (await asStaff.get(resolve('/support/admin'))).json();
+    const row = inbox.items.find((x: { id: string }) => x.id === ticket.id);
+    expect(
+      row.order?.orderItems,
+      'the list is carrying line items it does not need',
+    ).toBeUndefined();
+
+    // Opening one thread is where they arrive.
+    const opened = await (await asStaff.get(resolve(`/support/admin/${ticket.id}`))).json();
+    expect(opened.order.orderItems, 'the desk cannot see what was ordered').toBeTruthy();
+    expect(opened.order.orderItems.length).toBeGreaterThan(0);
+
+    const line = opened.order.orderItems[0];
+    expect(line.productTitle).toBeTruthy();
+    expect(line.variantSizeLabel).toBeTruthy();
+    expect(line.quantity).toBe(2);
+    // The slug is what the modal links to; without it the row has nowhere
+    // to go.
+    expect(line.product?.slug).toBeTruthy();
+
+    await asStaff.dispose();
+  });
+
   test("a customer cannot attach somebody else's order @security", async () => {
     test.setTimeout(180_000);
 

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2, MessageCircle, Search, Send } from 'lucide-react';
+import { Loader2, MessageCircle, Package, Search, Send } from 'lucide-react';
 import { adminApi } from '../services/apiClient';
 import Pagination from '../components/Pagination';
+import OrderPeekModal from '../components/support/OrderPeekModal';
 import type { SupportStatus, SupportTicket } from '../types';
 
 /**
@@ -49,6 +50,7 @@ function when(value?: string | null): string {
 export default function Support() {
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [selected, setSelected] = useState<SupportTicket | null>(null);
+  const [peeking, setPeeking] = useState(false);
   const [status, setStatus] = useState<SupportStatus | 'ALL'>('ALL');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -221,6 +223,7 @@ export default function Support() {
                   onClick={() => {
                     setSelected(t);
                     setDraft('');
+                    setPeeking(false);
                   }}
                   className={`w-full text-left px-5 py-4 hover:bg-stone-50 transition ${
                     selected?.id === t.id ? 'bg-stone-50' : ''
@@ -308,6 +311,14 @@ export default function Support() {
                       {selected.user.phone}
                     </a>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setPeeking(true)}
+                    className="ml-auto inline-flex items-center gap-1 font-bold text-[#064e3b] hover:underline"
+                  >
+                    <Package className="h-3 w-3" />
+                    What was ordered
+                  </button>
                 </div>
               )}
 
@@ -377,6 +388,10 @@ export default function Support() {
           )}
         </div>
       </div>
+
+      {peeking && selected?.order && (
+        <OrderPeekModal order={selected.order} onClose={() => setPeeking(false)} />
+      )}
     </div>
   );
 }
