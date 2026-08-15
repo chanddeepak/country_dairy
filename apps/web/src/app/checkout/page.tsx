@@ -5,8 +5,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, CreditCard, Wallet, ShieldCheck, Plus, CheckCircle2, UserCheck, KeyRound, PhoneCall, AlertCircle, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { API_URL } from '../../lib/constants';
-import { INDIAN_STATES, PINCODE_PATTERN, normaliseState } from '../../lib/indianStates';
+import { INDIAN_STATES } from '../../lib/indianStates';
+import { usePincodeLookup } from '../../lib/usePincodeLookup';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { useStoreConfig } from '../../context/StoreConfigContext';
@@ -53,61 +53,26 @@ export default function CheckoutPage() {
   // Address form state
   const [showNewAddr, setShowNewAddr] = useState(false);
   const [newAddr, setNewAddr] = useState({ line1: '', city: '', state: '', pincode: '', phone: '' });
-  const [pincodeNote, setPincodeNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const { note: pincodeNote, setNote: setPincodeNote, check: checkPincode } = usePincodeLookup();
 
   /**
-   * Fill in the town and state from the PIN code.
+   * Fill the town and state in from the PIN code.
    *
-   * Advisory, never blocking. If the lookup is slow, down, or simply does not
-   * know a code, the customer types the two fields themselves and the order
-   * goes through — an address form that depends on somebody else's uptime is
-   * a checkout that stops working for reasons the shop cannot see or fix.
-   *
-   * Only what the customer has not already filled in is overwritten, so a
+   * Only what the customer has not already typed is overwritten, so a
    * deliberate correction is not undone by an answer arriving late.
    */
   const onPincodeChange = async (raw: string) => {
     const pincode = raw.replace(/\D/g, '').slice(0, 6);
     setNewAddr((prev) => ({ ...prev, pincode }));
 
-    if (pincode.length < 6) {
-      setPincodeNote(null);
-      return;
-    }
+    const filled = await checkPincode(pincode);
+    if (!filled) return;
 
-    if (!PINCODE_PATTERN.test(pincode)) {
-      setPincodeNote({ ok: false, text: 'That does not look like a PIN code.' });
-      return;
-    }
-
-    setPincodeNote({ ok: true, text: 'Checking…' });
-    try {
-      const res = await fetch(`${API_URL}/geo/pincode/${pincode}`);
-      if (!res.ok) {
-        setPincodeNote({
-          ok: false,
-          text: 'We could not place that PIN code. Please fill in the town and state.',
-        });
-        return;
-      }
-
-      const found = await res.json();
-      const state = normaliseState(found.state);
-
-      setNewAddr((prev) => ({
-        ...prev,
-        city: prev.city.trim() ? prev.city : found.district ?? '',
-        state: prev.state ? prev.state : state,
-      }));
-
-      setPincodeNote({
-        ok: true,
-        text: [found.district, found.state].filter(Boolean).join(', '),
-      });
-    } catch {
-      // Network trouble on our side, and not the customer's problem to solve.
-      setPincodeNote(null);
-    }
+    setNewAddr((prev) => ({
+      ...prev,
+      city: prev.city.trim() ? prev.city : filled.district,
+      state: prev.state ? prev.state : filled.state,
+    }));
   };
   const [addrSaving, setAddrSaving] = useState(false);
   const [addrError, setAddrError] = useState('');

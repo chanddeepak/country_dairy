@@ -7,6 +7,8 @@ import { AlertTriangle, ArrowUpRight, Calendar, Check, FileText, LayoutDashboard
 import { useApp } from '../../context/AppContext';
 import { useStoreConfig } from '../../context/StoreConfigContext';
 import QueriesTab from '../../components/account/QueriesTab';
+import { INDIAN_STATES, normaliseState } from '../../lib/indianStates';
+import { usePincodeLookup } from '../../lib/usePincodeLookup';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import Badge from '../../components/ui/Badge';
@@ -105,6 +107,26 @@ function AccountPageContent() {
   // buttons with no onClick, so nothing happened when a customer pressed them.
 
   const emptyAddrForm = { line1: '', line2: '', city: '', state: '', postalCode: '', phone: '' };
+  const { note: pincodeNote, setNote: setPincodeNote, check: checkPincode } = usePincodeLookup();
+
+  /**
+   * Fill the town and state in from the PIN code. Advisory: an unknown code
+   * or a failed lookup leaves both fields to the customer and saves fine.
+   */
+  const onPostalCodeChange = async (raw: string) => {
+    const postalCode = raw.replace(/\D/g, '').slice(0, 6);
+    setAddrForm((prev) => ({ ...prev, postalCode }));
+
+    const filled = await checkPincode(postalCode);
+    if (!filled) return;
+
+    // Only empty fields, so a correction is not undone by a late answer.
+    setAddrForm((prev) => ({
+      ...prev,
+      city: prev.city.trim() ? prev.city : filled.district,
+      state: prev.state ? prev.state : filled.state,
+    }));
+  };
 
   const [isAddrFormOpen, setIsAddrFormOpen] = useState(false);
   const [editingAddrId, setEditingAddrId] = useState<string | null>(null);
@@ -116,6 +138,7 @@ function AccountPageContent() {
 
   const openAddrForm = (addr?: any) => {
     setAddrError('');
+    setPincodeNote(null);
     setEditingAddrId(addr?.id ?? null);
     setAddrForm(
       addr
@@ -123,7 +146,11 @@ function AccountPageContent() {
             line1: addr.line1 ?? '',
             line2: addr.line2 ?? '',
             city: addr.city ?? '',
-            state: addr.state ?? '',
+            // Addresses saved before the dropdown hold free text — "UK",
+            // "uttarakhand", "Uttranchal". An unmatched value selects nothing,
+            // so the field would look empty and the customer would be told to
+            // fill in something they already had.
+            state: normaliseState(addr.state) || '',
             postalCode: addr.postalCode ?? '',
             phone: addr.phone ?? '',
           }
@@ -137,6 +164,9 @@ function AccountPageContent() {
     setEditingAddrId(null);
     setAddrForm(emptyAddrForm);
     setAddrError('');
+    // Otherwise the last address's "Dehradun, Uttarakhand" is still sitting
+    // under the next one's empty fields.
+    setPincodeNote(null);
   };
 
   /** Mirrors the API's DTO so a bad field is caught before the round trip. */
@@ -1051,31 +1081,44 @@ function AccountPageContent() {
                       />
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* PIN code first: it fills the other two in, and a
+                            town typed before the code that contradicts it is
+                            how a parcel reaches the wrong district. */}
                         <input
                           type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          data-testid="account-postal-code"
+                          value={addrForm.postalCode}
+                          onChange={(e) => onPostalCodeChange(e.target.value)}
+                          placeholder="6-digit PIN code *"
+                          className={addrField}
+                        />
+                        <input
+                          type="text"
+                          data-testid="account-city"
                           value={addrForm.city}
                           onChange={(e) => setAddrForm({ ...addrForm, city: e.target.value })}
                           placeholder="City *"
                           className={addrField}
                         />
-                        <input
-                          type="text"
+                        {/* A list, not free text — the courier matches on this
+                            and GST turns on whether the supply crossed a state
+                            line, so four spellings of one place is not
+                            harmless. */}
+                        <select
+                          data-testid="account-state"
                           value={addrForm.state}
                           onChange={(e) => setAddrForm({ ...addrForm, state: e.target.value })}
-                          placeholder="State *"
-                          className={addrField}
-                        />
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          maxLength={6}
-                          value={addrForm.postalCode}
-                          onChange={(e) =>
-                            setAddrForm({ ...addrForm, postalCode: e.target.value.replace(/\D/g, '') })
-                          }
-                          placeholder="6-digit PIN code *"
-                          className={addrField}
-                        />
+                          className={`${addrField} ${addrForm.state ? '' : 'text-stone-400'}`}
+                        >
+                          <option value="">State *</option>
+                          {INDIAN_STATES.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
                         <input
                           type="tel"
                           maxLength={10}
@@ -1087,6 +1130,17 @@ function AccountPageContent() {
                           className={addrField}
                         />
                       </div>
+
+                      {pincodeNote && (
+                        <p
+                          data-testid="account-pincode-note"
+                          className={`text-[11px] ${
+                            pincodeNote.ok ? 'text-[#3A6038]' : 'text-amber-700'
+                          }`}
+                        >
+                          {pincodeNote.text}
+                        </p>
+                      )}
 
                       <div className="flex items-center gap-2 pt-1">
                         <button
