@@ -8,14 +8,14 @@ import {
   TouchableOpacity, 
   Dimensions,
   Linking,
-  Alert
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { 
   COLORS, 
-  FALLBACK_PRODUCTS, 
   WHATSAPP_NUMBER,
   WHATSAPP_MESSAGE_TEMPLATE,
   ENABLE_CART,
@@ -24,6 +24,7 @@ import {
   ENABLE_SUBSCRIPTIONS,
   ProductVariant
 } from '../constants';
+import { useCatalogue } from '../hooks/use-catalogue';
 import NutritionFacts from '../components/product/NutritionFacts';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -33,7 +34,10 @@ export default function ProductDetailsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   
-  const product = FALLBACK_PRODUCTS.find(p => p.slug === slug) || FALLBACK_PRODUCTS[0];
+  // Falling back to the first product when the slug is unknown would show
+  // someone a different jar than the one they tapped, at a different price.
+  const { products, isLoading } = useCatalogue();
+  const product = products.find((p) => p.slug === slug) ?? null;
 
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [activeImage, setActiveImage] = useState<any>(null);
@@ -51,6 +55,31 @@ export default function ProductDetailsScreen() {
       setActiveImage(defaultVar?.image || product.imageUrls?.[0]);
     }
   }, [slug, variantQuery, product]);
+
+  // Rendering nothing is better than rendering the wrong jar: a stale or
+  // mistyped slug used to fall through to the first product in the list, so
+  // the page showed a product the customer had not asked for, at its price.
+  if (!product) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          {isLoading ? (
+            <ActivityIndicator color={COLORS.forest} />
+          ) : (
+            <>
+              <Ionicons name="basket-outline" size={32} color={COLORS.muted} />
+              <Text style={{ marginTop: 12, fontWeight: '700', color: COLORS.charcoal }}>
+                We could not find that product.
+              </Text>
+              <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
+                <Text style={{ color: COLORS.forest, fontWeight: '700' }}>Go back</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const handleVariantSelect = (variant: ProductVariant) => {
     setSelectedVariant(variant);

@@ -10,7 +10,8 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FALLBACK_PRODUCTS, getExpandedProducts, Product } from '../constants';
+import { COLORS, getExpandedProducts, Product } from '../constants';
+import { useCatalogue } from '../hooks/use-catalogue';
 import ProductCard from '../components/product/ProductCard';
 
 const CATEGORIES = [
@@ -26,8 +27,10 @@ export default function ProductsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
 
-  // Expanded variant products list
-  const allVariantProducts = useMemo(() => getExpandedProducts(FALLBACK_PRODUCTS), []);
+  const { products } = useCatalogue();
+
+  // One card per size, so a shopper picks the jar rather than the product.
+  const allVariantProducts = useMemo(() => getExpandedProducts(products), [products]);
 
   const filteredProducts = useMemo(() => {
     return allVariantProducts.filter((product) => {

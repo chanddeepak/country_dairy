@@ -8,11 +8,14 @@ import {
   TouchableOpacity, 
   Dimensions, 
   NativeSyntheticEvent, 
-  NativeScrollEvent 
+  NativeScrollEvent,
+  ActivityIndicator,
+  RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FALLBACK_PRODUCTS, HERO_IMAGE, WHATSAPP_BANNER_IMAGE, ENABLE_USER_ACCOUNTS } from '../constants';
+import { COLORS, HERO_IMAGE, WHATSAPP_BANNER_IMAGE, ENABLE_USER_ACCOUNTS } from '../constants';
+import { useCatalogue } from '../hooks/use-catalogue';
 import ValueBanner from '../components/home/ValueBanner';
 import ProductGrid from '../components/home/ProductGrid';
 
@@ -42,6 +45,9 @@ const CAROUSEL_ITEMS = [
 
 export default function HomeScreen() {
   const [activeSlide, setActiveSlide] = useState(0);
+  // The shelf comes from the database. It used to be a hardcoded array, which
+  // looks identical on screen right up until a price changes.
+  const { products, isLoading, isStale, reload } = useCatalogue();
   const scrollRef = useRef<ScrollView>(null);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -131,13 +137,41 @@ export default function HomeScreen() {
         <ValueBanner />
 
         {/* Product Catalogue */}
-        <ProductGrid products={FALLBACK_PRODUCTS} />
+        {isStale && (
+          <TouchableOpacity onPress={() => void reload()} style={styles.staleBanner}>
+            <Ionicons name="cloud-offline-outline" size={14} color={COLORS.gold} />
+            <Text style={styles.staleText}>
+              Showing saved products — could not reach the shop. Tap to retry.
+            </Text>
+          </TouchableOpacity>
+        )}
+        {isLoading && products.length === 0 ? (
+          <ActivityIndicator color={COLORS.forest} style={{ marginVertical: 32 }} />
+        ) : (
+          <ProductGrid products={products} />
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  staleBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(197,155,39,0.12)',
+  },
+  staleText: {
+    flex: 1,
+    fontSize: 11,
+    color: COLORS.charcoal,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF', // Clean White Header background

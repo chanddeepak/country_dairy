@@ -9,7 +9,21 @@ export const COLORS = {
   muted: '#6b6661',
 } as const;
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+/**
+ * Where the API lives.
+ *
+ * This read `process.env.NEXT_PUBLIC_API_URL` — a Next.js variable name in an
+ * Expo app. Expo only inlines names beginning `EXPO_PUBLIC_`, so it was always
+ * undefined and the app always fell back to localhost. That works in the
+ * simulator, which is precisely why it went unnoticed, and cannot work on a
+ * handset: localhost there is the phone itself.
+ *
+ * Written as a plain static property access on purpose. Expo substitutes the
+ * value at build time by matching that exact syntax — destructuring it or
+ * reaching for it with a bracket would silently not be replaced, leaving
+ * undefined in the bundle with nothing to show for it.
+ */
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 // Feature flags
 export const ENABLE_SUBSCRIPTIONS = false;
