@@ -290,6 +290,38 @@ export default function Support() {
                 </div>
               </div>
 
+              {selected.order && (
+                /* The question is usually about this. Having to leave the
+                   thread to find out what was bought is how a two-minute
+                   reply becomes a five-minute one. */
+                <div className="px-5 py-3 bg-stone-50 border-b border-stone-100 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px]">
+                  <span className="font-bold text-[#064e3b]">{selected.order.orderNumber}</span>
+                  <span className="text-stone-600">{selected.order.status}</span>
+                  <span className="text-stone-600">
+                    ₹{Number(selected.order.totalAmount).toLocaleString('en-IN')}
+                  </span>
+                  {selected.user?.phone && (
+                    <a
+                      href={`tel:${selected.user.phone}`}
+                      className="text-[#064e3b] font-bold hover:underline"
+                    >
+                      {selected.user.phone}
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {!selected.user && selected.contactEmail && (
+                /* A guest query has no account behind it, so the reply address
+                   is the only way back to them. */
+                <div className="px-5 py-3 bg-amber-50 border-b border-amber-100 text-[11px] text-amber-900">
+                  From the contact form · reply to{' '}
+                  <a href={`mailto:${selected.contactEmail}`} className="font-bold hover:underline">
+                    {selected.contactEmail}
+                  </a>
+                </div>
+              )}
+
               <div className="p-5 space-y-4 max-h-96 overflow-y-auto">
                 {selected.messages.map((m) => (
                   <div

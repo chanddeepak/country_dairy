@@ -36,6 +36,8 @@ export default function OrderDetailPage() {
   const [queryOpen, setQueryOpen] = useState(false);
   const [queryText, setQueryText] = useState('');
   const [queryNote, setQueryNote] = useState('');
+  /** A failure in the success colour reads as a success. */
+  const [queryFailed, setQueryFailed] = useState(false);
   const [sendingQuery, setSendingQuery] = useState(false);
   const [order, setOrder] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -178,6 +180,7 @@ export default function OrderDetailPage() {
     }
     setSendingQuery(true);
     setQueryNote('');
+    setQueryFailed(false);
     try {
       const res = await authFetch('/support', {
         method: 'POST',
@@ -205,7 +208,14 @@ export default function OrderDetailPage() {
         // must be shorter than or equal to 120 characters" is meaningless to
         // someone who only saw one box and never typed a subject, so only
         // messages about what they can actually change are passed through.
+        // Humanised for the reader, but the real reason still goes to the
+        // console — a friendly message that hides the cause makes the next
+        // failure take an hour to find.
+        // eslint-disable-next-line no-console
+        console.error('[support] query rejected:', problem);
+
         const aboutTheirText = typeof raw === 'string' && /body|more so we can help/i.test(raw);
+        setQueryFailed(true);
         setQueryNote(
           aboutTheirText
             ? 'That message is too long. Could you shorten it a little?'
@@ -515,15 +525,18 @@ export default function OrderDetailPage() {
                 )}
               </div>
 
-              <p className="text-[11px] text-[#6b6661]">
-                Your question goes to the shop with order {order.orderNumber} attached, and we
-                reply by email. WhatsApp is quicker if you need an answer now.
-              </p>
+
             </div>
           )}
 
           {queryNote && (
-            <p className="text-xs font-bold text-[#3A6038] bg-[#3A6038]/5 border border-[#3A6038]/20 rounded-lg p-3">
+            <p
+              className={`mt-4 text-xs font-bold rounded-lg p-3 border ${
+                queryFailed
+                  ? 'text-red-700 bg-red-50 border-red-200'
+                  : 'text-[#3A6038] bg-[#3A6038]/5 border-[#3A6038]/20'
+              }`}
+            >
               {queryNote}
             </p>
           )}

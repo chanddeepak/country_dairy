@@ -443,7 +443,10 @@ export interface SupportTicket {
   status: SupportStatus;
   createdAt: string;
   lastReplyAt?: string | null;
-  user?: { id: string; name: string | null; email: string | null; phone: string | null };
+  user?: { id: string; name: string | null; email: string | null; phone: string | null } | null;
+  /** Set instead of `user` when the query came from the contact form. */
+  contactName?: string | null;
+  contactEmail?: string | null;
   order?: { id: string; orderNumber: string; status: string; totalAmount: string } | null;
   messages: SupportMessage[];
 }
