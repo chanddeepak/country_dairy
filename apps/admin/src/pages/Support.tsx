@@ -58,6 +58,8 @@ export default function Support() {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
   const [draft, setDraft] = useState('');
+  /** Separate from error: a success in a red box reads as a failure. */
+  const [notice, setNotice] = useState('');
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -100,10 +102,17 @@ export default function Support() {
     if (!selected || !draft.trim()) return;
     setIsSending(true);
     setError('');
+    setNotice('');
     try {
       await adminApi.replyToTicket(selected.id, draft.trim());
       setDraft('');
       await load();
+      // Replying moves the ticket to "waiting on customer", so under the
+      // "needs a reply" filter it leaves the list while its thread stays open
+      // beside an empty column. Worth saying rather than looking broken.
+      if (status === 'OPEN') {
+        setNotice('Replied. It has moved to “Waiting on customer”.');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not send that reply');
     } finally {
@@ -167,9 +176,15 @@ export default function Support() {
             {error}
           </p>
         )}
+
+        {notice && (
+          <p className="mt-3 text-xs font-bold text-[#064e3b] bg-[#064e3b]/5 border border-[#064e3b]/20 rounded-lg p-2.5">
+            {notice}
+          </p>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
         {/* List */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-stone-200/80 shadow-sm overflow-hidden">
           {isLoading ? (
@@ -177,8 +192,24 @@ export default function Support() {
               <Loader2 className="h-4 w-4 animate-spin" /> Loading queries…
             </div>
           ) : tickets.length === 0 ? (
-            <div className="py-16 text-center text-xs text-stone-500 font-medium">
-              Nothing here. That is a good sign.
+            <div className="py-16 px-6 text-center text-xs text-stone-500 font-medium">
+              {status === 'ALL' && !search ? (
+                'No queries yet. That is a good sign.'
+              ) : (
+                <>
+                  Nothing matches this filter.
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStatus('ALL');
+                      setSearch('');
+                    }}
+                    className="block mx-auto mt-2 font-bold text-[#064e3b] hover:underline"
+                  >
+                    Show all queries
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <div className="divide-y divide-stone-100 max-h-[32rem] overflow-y-auto">

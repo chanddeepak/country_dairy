@@ -69,9 +69,48 @@ export default function OrderDetailPage() {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar onCartOpen={() => {}} onAuthOpen={() => setIsAuthOpen(true)} />
-        <div className="flex-1 flex items-center justify-center bg-[#FAF8F3]">
-          <div className="animate-pulse text-[#6b6661]">Loading order details…</div>
-        </div>
+        <main className="flex-1 bg-[#FAF8F3]">
+          {/* Shaped like the real page so nothing jumps when it arrives. */}
+          <div
+            className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-pulse"
+            role="status"
+            aria-label="Loading order"
+          >
+            <div className="h-3 w-40 rounded bg-stone-200/80" />
+
+            <div className="bg-white border border-stone-200 rounded-xl p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="h-5 w-48 rounded bg-stone-200/80" />
+                <div className="h-6 w-24 rounded-full bg-stone-200/80" />
+              </div>
+              <div className="h-3 w-32 rounded bg-stone-200/80" />
+            </div>
+
+            <div className="bg-white border border-stone-200 rounded-xl p-6 space-y-4">
+              {[0, 1].map((i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded bg-stone-200/80" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3.5 w-2/5 rounded bg-stone-200/80" />
+                    <div className="h-3 w-1/4 rounded bg-stone-200/80" />
+                  </div>
+                  <div className="h-4 w-16 rounded bg-stone-200/80" />
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-white border border-stone-200 rounded-xl p-6 space-y-3">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="h-5 w-5 rounded-full bg-stone-200/80" />
+                  <div className="h-3 w-44 rounded bg-stone-200/80" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <span className="sr-only">Loading order details</span>
+        </main>
         <Footer />
       </div>
     );
@@ -438,7 +477,7 @@ export default function OrderDetailPage() {
           </div>
 
           {queryOpen && (
-            <div className="bg-white border border-stone-200 rounded-xl p-5 space-y-3">
+            <div className="mt-4 bg-white border border-stone-200 rounded-xl p-5 space-y-3">
               <label className="block text-xs font-bold text-[#2A2A2A]">
                 What can we help with?
               </label>
