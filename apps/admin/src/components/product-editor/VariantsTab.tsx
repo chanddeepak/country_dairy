@@ -58,6 +58,9 @@ export default function VariantsTab({ form }: { form: ProductFormState }) {
                 <th className="pb-2 pr-3">Stock</th>
                 <th className="pb-2 pr-3">Low at</th>
                 <th className="pb-2 pr-3">Packaging</th>
+                <th className="pb-2 pr-3 text-center" title="Give this size its own card on the homepage">
+                  On home
+                </th>
                 <th className="pb-2 w-10"></th>
               </tr>
             </thead>
@@ -145,6 +148,19 @@ export default function VariantsTab({ form }: { form: ProductFormState }) {
                         </option>
                       ))}
                     </select>
+                  </td>
+                  <td className="py-2.5 pr-3 text-center">
+                    {/* Per size, not per product: a product with four sizes
+                        would otherwise fill the shelf on its own. */}
+                    <input
+                      type="checkbox"
+                      checked={v.showOnHome ?? false}
+                      onChange={(e) =>
+                        variantMatrix.update(idx, { showOnHome: e.target.checked })
+                      }
+                      className="h-4 w-4 accent-[#064e3b] cursor-pointer"
+                      aria-label={`Show ${v.sizeLabel || 'this size'} on the homepage`}
+                    />
                   </td>
                   <td className="py-2.5">
                     <button

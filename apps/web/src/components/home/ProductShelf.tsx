@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { FALLBACK_PRODUCTS, API_URL, Product, getExpandedProducts } from '../../lib/constants';
-import { mapApiProducts } from '../../lib/mapProduct';
+import { mapApiProducts, expandHomeVariants } from '../../lib/mapProduct';
 import ProductCard from '../product/ProductCard';
 
 interface ProductShelfProps {
@@ -33,7 +33,8 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
       if (res.ok) {
         const liveProducts = await res.json();
         if (liveProducts && liveProducts.length > 0) {
-          setProducts(mapApiProducts(liveProducts));
+          // Flagged sizes get their own cards; everything else appears once.
+          setProducts(expandHomeVariants(mapApiProducts(liveProducts)));
           return;
         }
       }

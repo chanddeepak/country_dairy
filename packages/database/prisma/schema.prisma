@@ -435,6 +435,11 @@ model ProductVariant {
 
   imageUrl          String?
   isActive          Boolean          @default(true)
+  /// Gives this size its own card on the homepage shelf, instead of the
+  /// product appearing once at its default size. Per variant rather than per
+  /// product because a product with four sizes would otherwise flood the
+  /// shelf — the shopkeeper picks the one or two worth featuring.
+  showOnHome        Boolean          @default(false)
   displayOrder      Int              @default(1)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt

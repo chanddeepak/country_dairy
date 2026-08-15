@@ -321,6 +321,7 @@ export class CatalogService {
             weightGrams: v.weightGrams,
             imageUrl: v.imageUrl ? sanitizeProductStoragePath(v.imageUrl) : null,
             isActive: v.isActive ?? true,
+            showOnHome: v.showOnHome ?? false,
             displayOrder: idx + 1,
           })),
         },
@@ -397,6 +398,7 @@ export class CatalogService {
           weightGrams: v.weightGrams,
           imageUrl: v.imageUrl ? sanitizeProductStoragePath(v.imageUrl) : null,
           isActive: v.isActive ?? true,
+          showOnHome: v.showOnHome ?? false,
           displayOrder: idx + 1,
         };
 

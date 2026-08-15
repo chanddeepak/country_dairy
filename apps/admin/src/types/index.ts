@@ -227,6 +227,8 @@ export interface ProductVariant {
   displayOrder: number;
   createdAt: string;
   updatedAt: string;
+  /** Gives this size its own card on the homepage shelf. */
+  showOnHome?: boolean;
 }
 
 export type MediaType = 'IMAGE' | 'VIDEO';

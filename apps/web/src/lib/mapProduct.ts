@@ -24,6 +24,7 @@ interface ApiVariant {
   packagingCode?: string | null;
   imageUrl?: string | null;
   isDefault?: boolean;
+  showOnHome?: boolean;
   displayOrder?: number;
 }
 
@@ -77,6 +78,7 @@ export function mapApiProduct(p: ApiProduct): Product {
       packagingCode: v.packagingCode ?? undefined,
       image: v.imageUrl ?? undefined,
       isDefault: v.isDefault ?? false,
+      showOnHome: v.showOnHome ?? false,
     };
   });
 
@@ -112,4 +114,51 @@ export function mapApiProduct(p: ApiProduct): Product {
 
 export function mapApiProducts(products: ApiProduct[]): Product[] {
   return products.map(mapApiProduct);
+}
+
+/**
+ * Gives a flagged variant its own card on the homepage shelf.
+ *
+ * A product normally appears once, at its default size. Where the shopkeeper
+ * has ticked "show on home" for particular sizes, those sizes get their own
+ * cards instead — so a shelf can carry "Ghee 500ml" and "Ghee 1L" side by
+ * side, priced separately, without the product also appearing a third time.
+ *
+ * Products with nothing flagged are untouched, which is why turning this on
+ * for one variant cannot disturb the rest of the shelf.
+ */
+export function expandHomeVariants(products: Product[]): Product[] {
+  const shelf: Product[] = [];
+
+  for (const product of products) {
+    const featured = (product.variants ?? []).filter((v) => v.showOnHome);
+
+    if (featured.length === 0) {
+      shelf.push(product);
+      continue;
+    }
+
+    for (const variant of featured) {
+      shelf.push({
+        ...product,
+        // Distinct id and a variant-specific link, so two cards for the same
+        // product are separate cards rather than one React key collision that
+        // silently drops the second.
+        id: `${product.id}--${variant.id}`,
+        name: `${product.name} — ${variant.volumeOrWeight}`,
+        price: variant.price,
+        originalPrice: variant.originalPrice,
+        discountBadge: variant.discountPercent,
+        imageUrls: variant.image ? [variant.image] : product.imageUrls,
+        // The card adds to cart with the default variant, so the default has
+        // to be the one this card is actually showing.
+        variants: (product.variants ?? []).map((v) => ({
+          ...v,
+          isDefault: v.id === variant.id,
+        })),
+      } as unknown as Product);
+    }
+  }
+
+  return shelf;
 }

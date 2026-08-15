@@ -60,6 +60,8 @@ export interface ProductVariant {
   discountPercent?: string;
   image?: string;
   isDefault?: boolean;
+  /** Ticked in the admin console to give this size its own homepage card. */
+  showOnHome?: boolean;
   /**
    * Null means the API did not say, which is not the same as zero. Unknown is
    * treated as available and the server remains the authority; a known zero is

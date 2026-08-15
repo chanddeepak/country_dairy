@@ -75,6 +75,11 @@ export class ProductVariantDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  /** Gives this size its own card on the homepage shelf. */
+  @IsOptional()
+  @IsBoolean()
+  showOnHome?: boolean;
 }
 
 export class ProductImageDto {
