@@ -106,6 +106,60 @@ export interface Page<T> {
   hasMore: boolean;
 }
 
+/**
+ * Removes the fields the server owns before a product is sent back.
+ *
+ * The console loads a product from the API and posts the same shape back. That
+ * payload carries ids, timestamps, foreign keys and computed display orders,
+ * and the API validates with forbidNonWhitelisted — so every edit of an
+ * existing product was rejected outright with a 400 listing thirty-odd
+ * properties, while creating a new one worked because a blank form has none of
+ * them. The console showed no error, so the save looked like it had happened.
+ *
+ * A variant keeps its `id`: the API matches on it to update a variant in place
+ * rather than deleting and recreating it, which is what protects order history.
+ */
+function forSaving(product: Record<string, unknown>): Record<string, unknown> {
+  const { id, createdAt, updatedAt, ...rest } = product;
+  void id;
+  void createdAt;
+  void updatedAt;
+
+  const strip = <T extends Record<string, unknown>>(row: T, keep: string[]) => {
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(row)) {
+      if (keep.includes(key)) out[key] = value;
+    }
+    return out;
+  };
+
+  // Allow-listed rather than deny-listed. A new column added to the database
+  // then appears in the payload the moment the API accepts it, instead of
+  // breaking every save until somebody remembers to add it to a deny list.
+  const VARIANT_FIELDS = [
+    'id', 'sku', 'sizeLabel', 'sellingPrice', 'mrpPrice', 'stockQuantity',
+    'lowStockThreshold', 'packagingCode', 'weightGrams', 'barcode',
+    'lengthCm', 'widthCm', 'heightCm', 'imageUrl', 'isActive', 'showOnHome',
+  ];
+  const IMAGE_FIELDS = [
+    'imageUrl', 'mediaType', 'thumbnailUrl', 'durationSeconds', 'isPrimary',
+    'variantId', 'isVariantPrimary', 'altText',
+  ];
+
+  if (Array.isArray(rest.variants)) {
+    rest.variants = (rest.variants as Record<string, unknown>[]).map((v) =>
+      strip(v, VARIANT_FIELDS),
+    );
+  }
+  if (Array.isArray(rest.galleryImages)) {
+    rest.galleryImages = (rest.galleryImages as Record<string, unknown>[]).map((g) =>
+      strip(g, IMAGE_FIELDS),
+    );
+  }
+
+  return rest;
+}
+
 export const adminApi = {
   // Auth API
   async login(email: string, password: string): Promise<{ accessToken: string; user: UserProfile }> {
@@ -213,14 +267,14 @@ export const adminApi = {
   async createProduct(product: Product): Promise<Product> {
     return fetchJson<Product>('/catalog/products', {
       method: 'POST',
-      body: JSON.stringify(product),
+      body: JSON.stringify(forSaving(product as unknown as Record<string, unknown>)),
     });
   },
 
   async updateProduct(id: string, product: Partial<Product>): Promise<Product> {
     return fetchJson<Product>(`/catalog/products/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(product),
+      body: JSON.stringify(forSaving(product as unknown as Record<string, unknown>)),
     });
   },
 

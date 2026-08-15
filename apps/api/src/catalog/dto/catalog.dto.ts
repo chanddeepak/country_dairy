@@ -73,6 +73,26 @@ export class ProductVariantDto {
   imageUrl?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  barcode?: string;
+
+  // Courier rates are charged on volumetric weight, so a parcel cannot be
+  // quoted or booked without these. They belong to the variant and the console
+  // is where they are entered.
+  @IsOptional()
+  @IsNumber()
+  lengthCm?: number;
+
+  @IsOptional()
+  @IsNumber()
+  widthCm?: number;
+
+  @IsOptional()
+  @IsNumber()
+  heightCm?: number;
+
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 

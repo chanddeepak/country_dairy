@@ -122,4 +122,45 @@ test.describe('Featuring a size on the homepage @money', () => {
     expect(after.id, 'the variant was recreated rather than updated').toBe(before.id);
     expect(after.showOnHome).toBe(true);
   });
+
+  test('a product loaded from the API can be saved straight back', async () => {
+    const id = await makeProduct([
+      { sizeLabel: '500 ml', sellingPrice: 780, mrpPrice: 850, showOnHome: true },
+    ]);
+
+    const api = await apiClient(await adminToken());
+
+    // Exactly what the console does: read the product, then write it back.
+    // The read carries ids, timestamps, foreign keys and display orders, and
+    // the API validates with forbidNonWhitelisted — so this used to fail with
+    // a 400 listing thirty properties, and every edit of an existing product
+    // was silently rejected.
+    const loaded = await (await api.get(resolve(`/catalog/admin/products/${id}`))).json();
+
+    const res = await api.put(resolve(`/catalog/products/${id}`), {
+      data: {
+        title: loaded.title,
+        variants: loaded.variants.map((v: Record<string, unknown>) => ({
+          id: v.id,
+          sku: v.sku,
+          sizeLabel: v.sizeLabel,
+          sellingPrice: Number(v.sellingPrice),
+          mrpPrice: Number(v.mrpPrice),
+          stockQuantity: v.stockQuantity,
+          barcode: v.barcode ?? undefined,
+          lengthCm: v.lengthCm ?? undefined,
+          widthCm: v.widthCm ?? undefined,
+          heightCm: v.heightCm ?? undefined,
+          isActive: v.isActive,
+          showOnHome: v.showOnHome,
+        })),
+      },
+    });
+
+    expect(res.status(), await res.text()).toBeLessThan(300);
+    await api.dispose();
+
+    const after = await db.productVariant.findFirstOrThrow({ where: { productId: id } });
+    expect(after.showOnHome, 'the round trip lost the flag').toBe(true);
+  });
 });
