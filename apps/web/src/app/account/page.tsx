@@ -7,7 +7,8 @@ import { AlertTriangle, ArrowUpRight, Calendar, Check, FileText, LayoutDashboard
 import { useApp } from '../../context/AppContext';
 import { useStoreConfig } from '../../context/StoreConfigContext';
 import QueriesTab from '../../components/account/QueriesTab';
-import { INDIAN_STATES, normaliseState } from '../../lib/indianStates';
+import { normaliseState } from '../../lib/indianStates';
+import StateSelect from '../../components/address/StateSelect';
 import { usePincodeLookup } from '../../lib/usePincodeLookup';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
@@ -107,7 +108,14 @@ function AccountPageContent() {
   // buttons with no onClick, so nothing happened when a customer pressed them.
 
   const emptyAddrForm = { line1: '', line2: '', city: '', state: '', postalCode: '', phone: '' };
-  const { note: pincodeNote, setNote: setPincodeNote, check: checkPincode } = usePincodeLookup();
+  const {
+    note: pincodeNote,
+    setNote: setPincodeNote,
+    check: checkPincode,
+    mergeFill,
+    markTyped,
+    resetOwnership,
+  } = usePincodeLookup();
 
   /**
    * Fill the town and state in from the PIN code. Advisory: an unknown code
@@ -120,12 +128,7 @@ function AccountPageContent() {
     const filled = await checkPincode(postalCode);
     if (!filled) return;
 
-    // Only empty fields, so a correction is not undone by a late answer.
-    setAddrForm((prev) => ({
-      ...prev,
-      city: prev.city.trim() ? prev.city : filled.district,
-      state: prev.state ? prev.state : filled.state,
-    }));
+    setAddrForm((prev) => mergeFill(prev, filled));
   };
 
   const [isAddrFormOpen, setIsAddrFormOpen] = useState(false);
@@ -139,6 +142,9 @@ function AccountPageContent() {
   const openAddrForm = (addr?: any) => {
     setAddrError('');
     setPincodeNote(null);
+    // Whatever is already on a saved address is theirs, so a later lookup
+    // must not overwrite it without being asked.
+    resetOwnership();
     setEditingAddrId(addr?.id ?? null);
     setAddrForm(
       addr
@@ -1098,7 +1104,10 @@ function AccountPageContent() {
                           type="text"
                           data-testid="account-city"
                           value={addrForm.city}
-                          onChange={(e) => setAddrForm({ ...addrForm, city: e.target.value })}
+                          onChange={(e) => {
+                            markTyped('city');
+                            setAddrForm({ ...addrForm, city: e.target.value });
+                          }}
                           placeholder="City *"
                           className={addrField}
                         />
@@ -1106,19 +1115,16 @@ function AccountPageContent() {
                             and GST turns on whether the supply crossed a state
                             line, so four spellings of one place is not
                             harmless. */}
-                        <select
-                          data-testid="account-state"
+                        <StateSelect
+                          testId="account-state"
+                          placeholder="State *"
                           value={addrForm.state}
-                          onChange={(e) => setAddrForm({ ...addrForm, state: e.target.value })}
-                          className={`${addrField} ${addrForm.state ? '' : 'text-stone-400'}`}
-                        >
-                          <option value="">State *</option>
-                          {INDIAN_STATES.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(state) => {
+                            markTyped('state');
+                            setAddrForm({ ...addrForm, state });
+                          }}
+                          className={addrField}
+                        />
                         <input
                           type="tel"
                           maxLength={10}

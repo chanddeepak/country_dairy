@@ -53,6 +53,40 @@ test.describe('Addresses on the account page @auth', () => {
     expect(saved.postalCode).toBe('248001');
   });
 
+  test('changing the PIN code again moves the town and state with it', async ({ page }) => {
+    test.setTimeout(180_000);
+
+    const customer = await createCustomer(t);
+    await signInToStorefront(page, customer);
+    await page.goto('/account?tab=addresses');
+
+    await page.getByRole('button', { name: /add.*address/i }).first().click();
+
+    // Dehradun.
+    await page.getByTestId('account-postal-code').fill('248001');
+    await expect(page.getByTestId('account-state')).toHaveValue('Uttarakhand', {
+      timeout: 15_000,
+    });
+
+    // Now somewhere else entirely. The first version of this only filled
+    // fields that were empty, so the second code changed nothing and the
+    // address kept Dehradun — a wrong town under a right PIN code, which is
+    // worse than no help at all.
+    await page.getByTestId('account-postal-code').fill('400001');
+    await expect(page.getByTestId('account-state')).toHaveValue('Maharashtra', {
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId('account-city')).not.toHaveValue('Dehradun');
+
+    // But a town the customer typed themselves is theirs, and survives.
+    await page.getByTestId('account-city').fill('My Own Village');
+    await page.getByTestId('account-postal-code').fill('248001');
+    await expect(page.getByTestId('account-state')).toHaveValue('Uttarakhand', {
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId('account-city')).toHaveValue('My Own Village');
+  });
+
   test('an address saved before the dropdown still opens on its own state', async ({ page }) => {
     test.setTimeout(180_000);
 

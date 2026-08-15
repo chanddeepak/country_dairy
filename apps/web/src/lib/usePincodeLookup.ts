@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { API_URL } from './constants';
 import { PINCODE_PATTERN, normaliseState, type IndianState } from './indianStates';
 
@@ -28,6 +28,19 @@ export interface PincodeFill {
  */
 export function usePincodeLookup() {
   const [note, setNote] = useState<PincodeNote | null>(null);
+
+  /**
+   * Which of the two fields the lookup put there, as opposed to the customer.
+   *
+   * The first attempt at this only ever filled empty fields, to avoid undoing
+   * a deliberate correction. The effect was that the lookup worked exactly
+   * once: after the first PIN code the town and state were no longer empty,
+   * so correcting the code changed nothing and the address kept the old town.
+   *
+   * "Empty" was the wrong test. The question is who last set the value — our
+   * guess is ours to replace, theirs is not.
+   */
+  const ours = useRef({ city: false, state: false });
 
   const check = useCallback(async (pincode: string): Promise<PincodeFill | null> => {
     if (pincode.length < 6) {
@@ -72,5 +85,38 @@ export function usePincodeLookup() {
     }
   }, []);
 
-  return { note, setNote, check };
+  /**
+   * Apply a lookup to the form, overwriting only what the lookup itself put
+   * there last time — or what is still blank.
+   */
+  const mergeFill = useCallback(
+    <T extends { city: string; state: string }>(prev: T, filled: PincodeFill): T => {
+      const takeCity = ours.current.city || !prev.city.trim();
+      const takeState = ours.current.state || !prev.state;
+
+      // Only claim a field we actually wrote to, or a later correction to a
+      // field we left alone would be treated as ours to overwrite.
+      if (takeCity && filled.district) ours.current.city = true;
+      if (takeState && filled.state) ours.current.state = true;
+
+      return {
+        ...prev,
+        city: takeCity && filled.district ? filled.district : prev.city,
+        state: takeState && filled.state ? filled.state : prev.state,
+      };
+    },
+    [],
+  );
+
+  /** The customer edited it themselves, so it is no longer ours to replace. */
+  const markTyped = useCallback((field: 'city' | 'state') => {
+    ours.current[field] = false;
+  }, []);
+
+  /** A fresh form has nothing of ours in it. */
+  const resetOwnership = useCallback(() => {
+    ours.current = { city: false, state: false };
+  }, []);
+
+  return { note, setNote, check, mergeFill, markTyped, resetOwnership };
 }

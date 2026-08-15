@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, CreditCard, Wallet, ShieldCheck, Plus, CheckCircle2, UserCheck, KeyRound, PhoneCall, AlertCircle, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { INDIAN_STATES } from '../../lib/indianStates';
+import StateSelect from '../../components/address/StateSelect';
 import { usePincodeLookup } from '../../lib/usePincodeLookup';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
@@ -53,7 +53,13 @@ export default function CheckoutPage() {
   // Address form state
   const [showNewAddr, setShowNewAddr] = useState(false);
   const [newAddr, setNewAddr] = useState({ line1: '', city: '', state: '', pincode: '', phone: '' });
-  const { note: pincodeNote, setNote: setPincodeNote, check: checkPincode } = usePincodeLookup();
+  const {
+    note: pincodeNote,
+    setNote: setPincodeNote,
+    check: checkPincode,
+    mergeFill,
+    markTyped,
+  } = usePincodeLookup();
 
   /**
    * Fill the town and state in from the PIN code.
@@ -68,11 +74,7 @@ export default function CheckoutPage() {
     const filled = await checkPincode(pincode);
     if (!filled) return;
 
-    setNewAddr((prev) => ({
-      ...prev,
-      city: prev.city.trim() ? prev.city : filled.district,
-      state: prev.state ? prev.state : filled.state,
-    }));
+    setNewAddr((prev) => mergeFill(prev, filled));
   };
   const [addrSaving, setAddrSaving] = useState(false);
   const [addrError, setAddrError] = useState('');
@@ -512,28 +514,26 @@ export default function CheckoutPage() {
                             placeholder="City"
                             data-testid="address-city"
                             value={newAddr.city}
-                            onChange={(e) => setNewAddr({ ...newAddr, city: e.target.value })}
+                            onChange={(e) => {
+                              markTyped('city');
+                              setNewAddr({ ...newAddr, city: e.target.value });
+                            }}
                             className="bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#3A6038]"
                           />
-                          {/* A list rather than free text: the courier matches
-                              on this, and GST turns on whether the supply
-                              crossed a state line. "UK" and "Uttrakhand" for
-                              the same place are not harmless. */}
-                          <select
-                            data-testid="address-state"
+                          {/* A list rather than free text: the courier
+                              matches on this, and GST turns on whether the
+                              supply crossed a state line. "UK" and
+                              "Uttrakhand" for the same place are not
+                              harmless. */}
+                          <StateSelect
+                            testId="address-state"
                             value={newAddr.state}
-                            onChange={(e) => setNewAddr({ ...newAddr, state: e.target.value })}
-                            className={`bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#3A6038] ${
-                              newAddr.state ? 'text-[#2A2A2A]' : 'text-stone-400'
-                            }`}
-                          >
-                            <option value="">State</option>
-                            {INDIAN_STATES.map((s) => (
-                              <option key={s} value={s}>
-                                {s}
-                              </option>
-                            ))}
-                          </select>
+                            onChange={(state) => {
+                              markTyped('state');
+                              setNewAddr({ ...newAddr, state });
+                            }}
+                            className="bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#3A6038]"
+                          />
                         </div>
 
                         {pincodeNote && (
