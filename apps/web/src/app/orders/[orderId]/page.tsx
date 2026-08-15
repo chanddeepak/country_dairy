@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ExternalLink, RefreshCw, HelpCircle, CheckCircle2, Circle, Clock } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, Clock, ExternalLink, HelpCircle, MessageCircle, RefreshCw } from 'lucide-react';
 import { trackingLabelFor, trackingUrlFor } from '@country-dairy/types';
 import { whatsAppUrl } from '../../../lib/storeConfig';
 import { useStoreConfig } from '../../../context/StoreConfigContext';
@@ -33,6 +33,10 @@ export default function OrderDetailPage() {
   const router = useRouter();
   const [reordering, setReordering] = useState(false);
   const [actionNote, setActionNote] = useState('');
+  const [queryOpen, setQueryOpen] = useState(false);
+  const [queryText, setQueryText] = useState('');
+  const [queryNote, setQueryNote] = useState('');
+  const [sendingQuery, setSendingQuery] = useState(false);
   const [order, setOrder] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   // 'missing' covers both "no such order" and "not yours" — the API returns
@@ -117,10 +121,9 @@ export default function OrderDetailPage() {
   const trackingUrl = trackingUrlFor(order.shippingCarrier, order.trackingNumber);
 
   /**
-   * Help goes to WhatsApp, which is where this business already talks to its
-   * customers. There is no support inbox in the console yet, so a form here
-   * would collect messages nobody would ever read — worse than no button.
-   * The order number is filled in so the shopkeeper knows what it is about.
+   * WhatsApp remains for anyone who wants an answer in the next five minutes.
+   * The written query beside it goes to the console inbox, where it leaves a
+   * record — which is what WhatsApp alone never did.
    */
   const helpUrl = whatsapp?.isEnabled
     ? whatsAppUrl(
@@ -128,6 +131,49 @@ export default function OrderDetailPage() {
         `Hello, I need help with my order ${order.orderNumber}.`,
       )
     : null;
+
+  const submitQuery = async () => {
+    if (queryText.trim().length < 10) {
+      setQueryNote('Tell us a little more so we can help.');
+      return;
+    }
+    setSendingQuery(true);
+    setQueryNote('');
+    try {
+      const res = await authFetch('/support', {
+        method: 'POST',
+        body: JSON.stringify({
+          subject: `Question about order ${order.orderNumber}`,
+          body: queryText.trim(),
+          orderId: order.id,
+        }),
+      });
+
+      // authFetch returns null when the session has ended; it has already
+      // signed the customer out, so saying "try again" would be a lie.
+      if (!res) {
+        setQueryNote('Your session ended. Sign in again to send this.');
+        return;
+      }
+
+      if (!res.ok) {
+        const problem = await res.json().catch(() => null);
+        setQueryNote(
+          Array.isArray(problem?.message) ? problem.message[0] : problem?.message ?? 'Could not send that.',
+        );
+        return;
+      }
+
+      const ticket = await res.json();
+      setQueryText('');
+      setQueryOpen(false);
+      setQueryNote(`Sent. Your reference is ${ticket.ticketRef} — we will reply by email.`);
+    } catch {
+      setQueryNote('Could not reach the server. Please try again.');
+    } finally {
+      setSendingQuery(false);
+    }
+  };
 
   const handleReorder = async () => {
     setReordering(true);
@@ -363,6 +409,18 @@ export default function OrderDetailPage() {
               {reordering ? 'Adding…' : 'Reorder Items'}
             </button>
 
+            {/* Writes to the console inbox, so the question survives past the
+                moment it was asked. */}
+            <button
+              type="button"
+              data-testid="ask-a-question"
+              onClick={() => setQueryOpen((open) => !open)}
+              className="flex items-center gap-2 border border-stone-200 text-[#6b6661] hover:text-[#2A2A2A] font-bold py-2.5 px-6 rounded-lg text-sm transition"
+            >
+              <HelpCircle className="h-4 w-4" />
+              Need Help?
+            </button>
+
             {/* Only rendered when there is somewhere for it to go. A button
                 that does nothing is worse than an absent one: it reads as the
                 shop ignoring you. */}
@@ -373,11 +431,46 @@ export default function OrderDetailPage() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 border border-stone-200 text-[#6b6661] hover:text-[#2A2A2A] font-bold py-2.5 px-6 rounded-lg text-sm transition"
               >
-                <HelpCircle className="h-4 w-4" />
-                Need Help?
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp
               </a>
             )}
           </div>
+
+          {queryOpen && (
+            <div className="bg-white border border-stone-200 rounded-xl p-5 space-y-3">
+              <label className="block text-xs font-bold text-[#2A2A2A]">
+                What can we help with?
+              </label>
+              <textarea
+                value={queryText}
+                onChange={(e) => setQueryText(e.target.value)}
+                rows={4}
+                data-testid="query-body"
+                placeholder="Tell us what happened — the more detail, the faster we can sort it."
+                className="w-full bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm resize-none focus:outline-none focus:border-[#3A6038]"
+              />
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={submitQuery}
+                  disabled={sendingQuery}
+                  className="bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold text-xs px-4 py-2.5 rounded-lg disabled:opacity-50 transition"
+                >
+                  {sendingQuery ? 'Sending…' : 'Send question'}
+                </button>
+                <span className="text-[11px] text-[#6b6661]">
+                  Goes straight to the shop with your order number attached.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {queryNote && (
+            <p className="text-xs font-bold text-[#3A6038] bg-[#3A6038]/5 border border-[#3A6038]/20 rounded-lg p-3">
+              {queryNote}
+            </p>
+          )}
         </div>
       </main>
 

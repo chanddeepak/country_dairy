@@ -13,6 +13,7 @@ import PurityLabCMS from './pages/PurityLabCMS';
 import type { Product } from './types';
 import Orders from './pages/Orders';
 import Logistics from './pages/Logistics';
+import Support from './pages/Support';
 import Routes from './pages/Routes';
 import Customers from './pages/Customers';
 import Wallets from './pages/Wallets';
@@ -224,6 +225,12 @@ function AdminMainContent() {
         {activeTab === 'orders' && (
           <ProtectedRoute requiredRole={['SUPER_ADMIN', 'ORDER_MANAGER']}>
             <Orders onOpenConsignments={() => setActiveTab('logistics')} />
+          </ProtectedRoute>
+        )}
+
+        {activeTab === 'support' && (
+          <ProtectedRoute requiredRole={['SUPER_ADMIN', 'ORDER_MANAGER']}>
+            <Support />
           </ProtectedRoute>
         )}
 

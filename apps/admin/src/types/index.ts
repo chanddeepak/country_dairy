@@ -424,3 +424,26 @@ export interface RouteSheetResponse {
   totalStops: number;
   totalCashToCollect: number;
 }
+
+export type SupportStatus = 'OPEN' | 'AWAITING_CUSTOMER' | 'RESOLVED' | 'CLOSED';
+
+export interface SupportMessage {
+  id: string;
+  authorName: string;
+  /** Recorded on the message, not derived from the author's current role. */
+  fromStaff: boolean;
+  body: string;
+  createdAt: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  ticketRef: string;
+  subject: string;
+  status: SupportStatus;
+  createdAt: string;
+  lastReplyAt?: string | null;
+  user?: { id: string; name: string | null; email: string | null; phone: string | null };
+  order?: { id: string; orderNumber: string; status: string; totalAmount: string } | null;
+  messages: SupportMessage[];
+}

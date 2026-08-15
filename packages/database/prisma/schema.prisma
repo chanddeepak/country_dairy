@@ -131,19 +131,19 @@ enum StockMovementReason {
 // ---------------------------------------------------------------------------
 
 model User {
-  id            String    @id @default(uuid())
-  name          String?
-  phone         String?   @unique
-  email         String?   @unique
-  passwordHash  String?
-  role          Role      @default(CUSTOMER)
-  isActive      Boolean   @default(true)
+  id           String  @id @default(uuid())
+  name         String?
+  phone        String? @unique
+  email        String? @unique
+  passwordHash String?
+  role         Role    @default(CUSTOMER)
+  isActive     Boolean @default(true)
 
   /// Set when the customer exercises their right to erasure under the DPDP
   /// Act. The row survives because orders must reference a buyer and the
   /// invoices are retained for GST, but every identifying field on it is
   /// cleared. See AuthService.deleteOwnAccount for exactly what is kept.
-  deletedAt     DateTime?
+  deletedAt DateTime?
 
   /// Per-channel consent. Defaults to on for email because a customer who
   /// places an order has asked to be told what happens to it; marketing on any
@@ -156,16 +156,18 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  identities    AuthIdentity[]
-  addresses     Address[]
-  orders        Order[]
-  subscriptions Subscription[]
-  transactions  WalletTransaction[]
-  cartItems     CartItem[]
-  reviews       ProductReview[]
-  auditLogs     AuditLog[]
-  resetTokens   PasswordResetToken[]
-  assignedOrders Order[] @relation("DriverAssignment")
+  identities      AuthIdentity[]
+  addresses       Address[]
+  orders          Order[]
+  subscriptions   Subscription[]
+  transactions    WalletTransaction[]
+  cartItems       CartItem[]
+  reviews         ProductReview[]
+  auditLogs       AuditLog[]
+  resetTokens     PasswordResetToken[]
+  assignedOrders  Order[]              @relation("DriverAssignment")
+  supportTickets  SupportTicket[]
+  supportMessages SupportMessage[]
 
   @@index([role])
   @@index([isActive])
@@ -192,13 +194,13 @@ model AuthIdentity {
 // OTP must survive a redeploy and be shared across API instances — the previous
 // in-memory Map broke on both.
 model OtpVerification {
-  id          String    @id @default(uuid())
-  phone       String
-  codeHash    String
-  attempts    Int       @default(0)
-  expiresAt   DateTime
-  consumedAt  DateTime?
-  createdAt   DateTime  @default(now())
+  id         String    @id @default(uuid())
+  phone      String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
 
   @@index([phone, expiresAt])
 }
@@ -233,7 +235,7 @@ model Address {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  orders     Order[]
+  orders Order[]
 
   @@index([userId])
 }
@@ -259,24 +261,24 @@ enum CollectionType {
 
 /// A merchandising grouping that cuts across the category tree.
 model Collection {
-  id           String              @id @default(uuid())
-  slug         String              @unique
+  id           String         @id @default(uuid())
+  slug         String         @unique
   title        String
   subtitle     String?
   description  String?
-  type         CollectionType      @default(CURATED)
+  type         CollectionType @default(CURATED)
   iconName     String?
   imageUrl     String?
   /// Seasonal shelves appear and retire on their own rather than needing
   /// somebody to remember on the morning of the festival.
   startsAt     DateTime?
   endsAt       DateTime?
-  displayOrder Int                 @default(1)
-  isActive     Boolean             @default(true)
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  displayOrder Int            @default(1)
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
-  products     ProductCollection[]
+  products ProductCollection[]
 
   @@index([type, isActive, displayOrder])
   @@index([startsAt, endsAt])
@@ -317,76 +319,76 @@ model Category {
 // As a table, adding "Amber Glass Bottle" for cold-pressed oil or a honey
 // squeeze bottle is an admin action, not a migration + redeploy.
 model PackagingOption {
-  id           String           @id @default(uuid())
-  code         String           @unique
+  id           String   @id @default(uuid())
+  code         String   @unique
   label        String
-  displayOrder Int              @default(1)
-  isActive     Boolean          @default(true)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  displayOrder Int      @default(1)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  variants     ProductVariant[]
+  variants ProductVariant[]
 }
 
 model Product {
-  id                    String        @id @default(uuid())
-  categoryId            String
-  category              Category      @relation(fields: [categoryId], references: [id])
-  title                 String
-  slug                  String        @unique
-  tagline               String?
-  storyDescription      String?
-  status                ProductStatus @default(DRAFT)
+  id               String        @id @default(uuid())
+  categoryId       String
+  category         Category      @relation(fields: [categoryId], references: [id])
+  title            String
+  slug             String        @unique
+  tagline          String?
+  storyDescription String?
+  status           ProductStatus @default(DRAFT)
 
   // Manual storefront override, kept separate from lifecycle status so the two
   // can never disagree. Real availability = LIVE && !forceOutOfStock && stock>0.
-  forceOutOfStock       Boolean       @default(false)
+  forceOutOfStock Boolean @default(false)
 
   badgeText             String?
-  isFeatured            Boolean       @default(false)
-  displayOrder          Int           @default(1)
-  isSubscriptionAllowed Boolean       @default(false)
+  isFeatured            Boolean @default(false)
+  displayOrder          Int     @default(1)
+  isSubscriptionAllowed Boolean @default(false)
 
   /// What a customer saves by subscribing rather than buying once. Shown on
   /// the product page — a subscription with no visible saving is only a
   /// commitment.
-  subscriptionDiscountPercent Int      @default(0)
+  subscriptionDiscountPercent Int @default(0)
 
   /// A bundle is sold as one line but ships as its components. A flag rather
   /// than a separate model, so hampers stay in one catalogue, one editor and
   /// one set of storefront queries.
-  isBundle              Boolean       @default(false)
+  isBundle Boolean @default(false)
 
-  batchCode             String?
-  verified              Boolean       @default(false)
+  batchCode String?
+  verified  Boolean @default(false)
 
   // Indian GST compliance — rates differ per product line (milk 0%, honey 5%,
   // ghee 12%), so this belongs on the product, not a global constant.
-  hsnCode               String?
-  gstRate               Decimal       @default(0.00) @db.Decimal(5, 2)
+  hsnCode String?
+  gstRate Decimal @default(0.00) @db.Decimal(5, 2)
 
-  metaTitle             String?
-  metaDescription       String?
+  metaTitle       String?
+  metaDescription String?
 
   // Per-category attributes stay schemaless on purpose: dairy needs fat content
   // and Bilona process, oil needs extraction method, honey needs floral source.
   // A rigid column set or an EAV table would both be worse here.
-  specifications        Json?
-  nutritionFacts        Json?
-  metadata              Json?
+  specifications Json?
+  nutritionFacts Json?
+  metadata       Json?
 
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  variants              ProductVariant[]
-  bundleItems           BundleItem[]        @relation("BundleContents")
-  collections           ProductCollection[]
-  galleryImages         ProductImage[]
-  orderItems            OrderItem[]
-  cartItems             CartItem[]
-  subscriptions         Subscription[]
-  labReports            LabReport[]
-  reviews               ProductReview[]
+  variants      ProductVariant[]
+  bundleItems   BundleItem[]        @relation("BundleContents")
+  collections   ProductCollection[]
+  galleryImages ProductImage[]
+  orderItems    OrderItem[]
+  cartItems     CartItem[]
+  subscriptions Subscription[]
+  labReports    LabReport[]
+  reviews       ProductReview[]
 
   @@index([categoryId])
   @@index([status])
@@ -412,44 +414,44 @@ model BundleItem {
 }
 
 model ProductVariant {
-  id                String           @id @default(uuid())
+  id                String  @id @default(uuid())
   productId         String
-  product           Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
-  sku               String           @unique
+  product           Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku               String  @unique
   barcode           String?
   sizeLabel         String
-  sellingPrice      Decimal          @db.Decimal(10, 2)
-  mrpPrice          Decimal          @db.Decimal(10, 2)
-  stockQuantity     Int              @default(0)
-  lowStockThreshold Int              @default(10)
+  sellingPrice      Decimal @db.Decimal(10, 2)
+  mrpPrice          Decimal @db.Decimal(10, 2)
+  stockQuantity     Int     @default(0)
+  lowStockThreshold Int     @default(10)
 
-  packagingCode     String?
-  packaging         PackagingOption? @relation(fields: [packagingCode], references: [code])
+  packagingCode String?
+  packaging     PackagingOption? @relation(fields: [packagingCode], references: [code])
 
   // Courier rates are charged per kg and per volumetric weight — without these
   // we cannot quote or book a Delhivery shipment.
-  weightGrams       Int?
-  lengthCm          Float?
-  widthCm           Float?
-  heightCm          Float?
+  weightGrams Int?
+  lengthCm    Float?
+  widthCm     Float?
+  heightCm    Float?
 
-  imageUrl          String?
-  isActive          Boolean          @default(true)
+  imageUrl     String?
+  isActive     Boolean  @default(true)
   /// Gives this size its own card on the homepage shelf, instead of the
   /// product appearing once at its default size. Per variant rather than per
   /// product because a product with four sizes would otherwise flood the
   /// shelf — the shopkeeper picks the one or two worth featuring.
-  showOnHome        Boolean          @default(false)
-  displayOrder      Int              @default(1)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  showOnHome   Boolean  @default(false)
+  displayOrder Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  cartItems         CartItem[]
-  orderItems        OrderItem[]
-  subscriptions     Subscription[]
-  stockMovements    StockMovement[]
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+  subscriptions  Subscription[]
+  stockMovements StockMovement[]
 
-  bundledIn         BundleItem[]
+  bundledIn BundleItem[]
 
   @@index([productId])
   @@index([productId, isActive])
@@ -486,16 +488,16 @@ model ProductImage {
 // Every stock change is an auditable row. "Why is this SKU at 3 units?" should
 // be answerable without guessing.
 model StockMovement {
-  id          String              @id @default(uuid())
-  variantId   String
-  variant     ProductVariant      @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  change      Int // negative for a sale, positive for a restock
+  id           String              @id @default(uuid())
+  variantId    String
+  variant      ProductVariant      @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  change       Int // negative for a sale, positive for a restock
   balanceAfter Int
-  reason      StockMovementReason
-  referenceId String? // order id, subscription delivery id, etc.
-  note        String?
-  actorId     String?
-  createdAt   DateTime            @default(now())
+  reason       StockMovementReason
+  referenceId  String? // order id, subscription delivery id, etc.
+  note         String?
+  actorId      String?
+  createdAt    DateTime            @default(now())
 
   @@index([variantId, createdAt])
   @@index([referenceId])
@@ -555,74 +557,74 @@ model CartItem {
 }
 
 model Coupon {
-  id               String       @id @default(uuid())
-  code             String       @unique
-  description      String?
-  discountType     DiscountType @default(PERCENTAGE)
-  discountValue    Decimal      @db.Decimal(10, 2)
-  maxDiscountAmount Decimal?    @db.Decimal(10, 2)
-  minOrderAmount   Decimal      @default(0.00) @db.Decimal(10, 2)
-  usageLimit       Int?
-  usageCount       Int          @default(0)
-  perUserLimit     Int?         @default(1)
-  startsAt         DateTime?
-  expiresAt        DateTime?
-  isActive         Boolean      @default(true)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id                String       @id @default(uuid())
+  code              String       @unique
+  description       String?
+  discountType      DiscountType @default(PERCENTAGE)
+  discountValue     Decimal      @db.Decimal(10, 2)
+  maxDiscountAmount Decimal?     @db.Decimal(10, 2)
+  minOrderAmount    Decimal      @default(0.00) @db.Decimal(10, 2)
+  usageLimit        Int?
+  usageCount        Int          @default(0)
+  perUserLimit      Int?         @default(1)
+  startsAt          DateTime?
+  expiresAt         DateTime?
+  isActive          Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
-  orders           Order[]
+  orders Order[]
 
   @@index([isActive, expiresAt])
 }
 
 model Order {
   // Human-readable and quotable over WhatsApp — customers cannot read a UUID.
-  orderNumber      String        @unique
-  id               String        @id @default(uuid())
-  userId           String
-  user             User          @relation(fields: [userId], references: [id])
+  orderNumber String @unique
+  id          String @id @default(uuid())
+  userId      String
+  user        User   @relation(fields: [userId], references: [id])
 
   // Kept for reference, but the authoritative shipping destination is the
   // snapshot below: editing a saved address must not rewrite past orders.
-  addressId        String?
-  address          Address?      @relation(fields: [addressId], references: [id], onDelete: SetNull)
-  shippingAddress  Json
+  addressId       String?
+  address         Address? @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  shippingAddress Json
 
-  subtotal         Decimal       @db.Decimal(10, 2)
-  discountAmount   Decimal       @default(0.00) @db.Decimal(10, 2)
-  taxAmount        Decimal       @default(0.00) @db.Decimal(10, 2)
-  deliveryCharges  Decimal       @default(0.00) @db.Decimal(10, 2)
-  totalAmount      Decimal       @db.Decimal(10, 2)
-  currency         String        @default("INR")
+  subtotal        Decimal @db.Decimal(10, 2)
+  discountAmount  Decimal @default(0.00) @db.Decimal(10, 2)
+  taxAmount       Decimal @default(0.00) @db.Decimal(10, 2)
+  deliveryCharges Decimal @default(0.00) @db.Decimal(10, 2)
+  totalAmount     Decimal @db.Decimal(10, 2)
+  currency        String  @default("INR")
 
-  couponId         String?
-  coupon           Coupon?       @relation(fields: [couponId], references: [id], onDelete: SetNull)
-  couponCode       String?
+  couponId   String?
+  coupon     Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  couponCode String?
 
-  status           OrderStatus   @default(PENDING)
-  paymentStatus    PaymentStatus @default(PENDING)
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
 
   // Logistics
-  deliveryType     DeliveryType  @default(LOCAL)
+  deliveryType     DeliveryType @default(LOCAL)
   driverId         String?
-  driver           User?         @relation("DriverAssignment", fields: [driverId], references: [id], onDelete: SetNull)
+  driver           User?        @relation("DriverAssignment", fields: [driverId], references: [id], onDelete: SetNull)
   shippingCarrier  String?
   trackingNumber   String?
   shippingLabelUrl String?
   shippingStatus   String?
   deliveryOtp      String?
 
-  customerNote     String?
-  internalNote     String?
-  cancelReason     String?
+  customerNote String?
+  internalNote String?
+  cancelReason String?
 
   /// Ghee and honey are gifting products in India. A gift ships to someone who
   /// did not order it, carries a message, and must not have the price on the
   /// packing slip.
-  isGift           Boolean       @default(false)
-  giftMessage      String?
-  giftSenderName   String?
+  isGift         Boolean @default(false)
+  giftMessage    String?
+  giftSenderName String?
 
   /// Set when the customer has been asked to review what they bought, so they
   /// are asked once rather than every time a job runs.
@@ -632,19 +634,20 @@ model Order {
   /// A GST invoice series must be consecutive with no gaps for the financial
   /// year, so an order cancelled before dispatch must never consume a number —
   /// which is exactly what reusing orderNumber here would have done.
-  invoiceNumber    String?       @unique
-  invoicedAt       DateTime?
+  invoiceNumber String?   @unique
+  invoicedAt    DateTime?
 
-  confirmedAt      DateTime?
-  shippedAt        DateTime?
-  deliveredAt      DateTime?
-  cancelledAt      DateTime?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  confirmedAt DateTime?
+  shippedAt   DateTime?
+  deliveredAt DateTime?
+  cancelledAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  orderItems       OrderItem[]
-  payments         Payment[]
-  statusHistory    OrderStatusHistory[]
+  orderItems     OrderItem[]
+  payments       Payment[]
+  statusHistory  OrderStatusHistory[]
+  supportTickets SupportTicket[]
 
   @@index([userId])
   @@index([status])
@@ -670,27 +673,27 @@ model OrderStatusHistory {
 // the invoice years later is copied in at purchase time — renaming or archiving
 // a product must never alter order history.
 model OrderItem {
-  id                 String          @id @default(uuid())
-  orderId            String
-  order              Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id      String @id @default(uuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  productId          String?
-  product            Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
-  variantId          String?
-  variant            ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  productId String?
+  product   Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
-  productTitle       String
-  variantSizeLabel   String
-  sku                String
-  imageUrl           String?
-  hsnCode            String?
+  productTitle     String
+  variantSizeLabel String
+  sku              String
+  imageUrl         String?
+  hsnCode          String?
 
-  quantity           Int
-  unitPrice          Decimal         @db.Decimal(10, 2)
-  mrpPrice           Decimal         @db.Decimal(10, 2)
-  gstRate            Decimal         @default(0.00) @db.Decimal(5, 2)
-  taxAmount          Decimal         @default(0.00) @db.Decimal(10, 2)
-  lineTotal          Decimal         @db.Decimal(10, 2)
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  mrpPrice  Decimal @db.Decimal(10, 2)
+  gstRate   Decimal @default(0.00) @db.Decimal(5, 2)
+  taxAmount Decimal @default(0.00) @db.Decimal(10, 2)
+  lineTotal Decimal @db.Decimal(10, 2)
 
   @@index([orderId])
   @@index([productId])
@@ -721,24 +724,24 @@ model WebhookEvent {
 }
 
 model Payment {
-  id                String          @id @default(uuid())
-  orderId           String
-  order             Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  amount            Decimal         @db.Decimal(10, 2)
-  currency          String          @default("INR")
-  provider          PaymentProvider @default(RAZORPAY)
-  status            PaymentStatus   @default(PENDING)
+  id       String          @id @default(uuid())
+  orderId  String
+  order    Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount   Decimal         @db.Decimal(10, 2)
+  currency String          @default("INR")
+  provider PaymentProvider @default(RAZORPAY)
+  status   PaymentStatus   @default(PENDING)
 
   // Single source of truth for gateway state — these no longer also live on
   // Order, where they could drift out of sync.
-  gatewayOrderId    String?
-  gatewayPaymentId  String?         @unique
-  gatewaySignature  String?
-  refundedAmount    Decimal         @default(0.00) @db.Decimal(10, 2)
-  failureReason     String?
-  rawPayload        Json?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  gatewayOrderId   String?
+  gatewayPaymentId String?  @unique
+  gatewaySignature String?
+  refundedAmount   Decimal  @default(0.00) @db.Decimal(10, 2)
+  failureReason    String?
+  rawPayload       Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@index([orderId])
   @@index([gatewayOrderId])
@@ -750,25 +753,25 @@ model Payment {
 // ---------------------------------------------------------------------------
 
 model Subscription {
-  id           String                 @id @default(uuid())
+  id           String                @id @default(uuid())
   userId       String
-  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   productId    String
-  product      Product                @relation(fields: [productId], references: [id])
+  product      Product               @relation(fields: [productId], references: [id])
   variantId    String
-  variant      ProductVariant         @relation(fields: [variantId], references: [id])
-  quantity     Int                    @default(1)
-  frequency    SubscriptionFrequency  @default(DAILY)
+  variant      ProductVariant        @relation(fields: [variantId], references: [id])
+  quantity     Int                   @default(1)
+  frequency    SubscriptionFrequency @default(DAILY)
   daysOfWeek   Int[]
   startDate    DateTime
   endDate      DateTime?
-  status       SubscriptionStatus     @default(ACTIVE)
+  status       SubscriptionStatus    @default(ACTIVE)
   nextDelivery DateTime
   pausedUntil  DateTime?
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
 
-  deliveries   SubscriptionDelivery[]
+  deliveries SubscriptionDelivery[]
 
   @@index([userId])
   @@index([status, nextDelivery])
@@ -810,26 +813,26 @@ model WalletTransaction {
 // ---------------------------------------------------------------------------
 
 model ProductReview {
-  id                  String       @id @default(uuid())
-  userId              String
-  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  productId           String
-  product             Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
-  rating              Int
-  title               String?
-  comment             String?
+  id                 String       @id @default(uuid())
+  userId             String
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId          String
+  product            Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  rating             Int
+  title              String?
+  comment            String?
   /// Customer photos and video. Parallel arrays: mediaTypes[i] describes
   /// mediaUrls[i], so a review can mix both without a join table.
-  mediaUrls           String[]
-  mediaTypes          MediaType[]
+  mediaUrls          String[]
+  mediaTypes         MediaType[]
   /// Reviews publish immediately; moderation is a takedown, not a gate.
-  status              ReviewStatus @default(APPROVED)
-  isVerifiedPurchase  Boolean      @default(false)
-  moderatedBy         String?
-  moderatedAt         DateTime?
-  editedAt            DateTime?
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  status             ReviewStatus @default(APPROVED)
+  isVerifiedPurchase Boolean      @default(false)
+  moderatedBy        String?
+  moderatedAt        DateTime?
+  editedAt           DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   // No unique on [userId, productId]: a customer may review a product more
   // than once, for instance after reordering a later batch.
@@ -911,16 +914,16 @@ model TrustBadge {
 }
 
 model AnnouncementBanner {
-  id           String    @id @default(uuid())
-  message      String
-  linkUrl      String?
-  backgroundColor String @default("#3A6038")
-  textColor    String    @default("#FFFFFF")
-  startsAt     DateTime?
-  endsAt       DateTime?
-  isActive     Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id              String    @id @default(uuid())
+  message         String
+  linkUrl         String?
+  backgroundColor String    @default("#3A6038")
+  textColor       String    @default("#FFFFFF")
+  startsAt        DateTime?
+  endsAt          DateTime?
+  isActive        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([isActive])
 }
@@ -966,19 +969,87 @@ model FeatureFlag {
 // Storefront events land here so the admin Overview dashboard reports real
 // numbers instead of the hardcoded arrays it renders today.
 model AnalyticsEvent {
-  id          String   @id @default(uuid())
-  eventName   String
-  productId   String?
-  variantId   String?
-  sessionId   String?
-  userId      String?
-  deviceType  String?
-  referrer    String?
-  path        String?
-  metadata    Json?
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  eventName  String
+  productId  String?
+  variantId  String?
+  sessionId  String?
+  userId     String?
+  deviceType String?
+  referrer   String?
+  path       String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
 
   @@index([eventName, createdAt])
   @@index([productId, createdAt])
   @@index([createdAt])
+}
+
+/// A question from a customer, and the conversation that answers it.
+///
+/// Support used to happen entirely on WhatsApp, which is immediate but leaves
+/// no record: nobody could see what was asked last week, whether it was
+/// answered, or how often the same thing comes up. This keeps the thread
+/// against the order it is about.
+model SupportTicket {
+  id        String  @id @default(uuid())
+  ticketRef String  @unique
+  /// Null for a query sent from the contact form by someone who has not
+  /// signed in. A contact form that demands an account turns away the person
+  /// most likely to be asking whether they should buy at all.
+  userId    String?
+  user      User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  /// How to answer a guest. Ignored when userId is set, so the account stays
+  /// the source of truth and the form cannot claim to be someone else.
+  contactName  String?
+  contactEmail String?
+
+  /// Most questions are about a specific order. Null for the general ones.
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  subject     String
+  status      SupportStatus @default(OPEN)
+  /// Set when staff reply, so an inbox can be sorted by who is waiting.
+  lastReplyAt DateTime?
+  closedAt    DateTime?
+
+  messages SupportMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+}
+
+model SupportMessage {
+  id       String        @id @default(uuid())
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  /// Null once the author closes their account — the thread survives erasure
+  /// with the person removed from it.
+  authorId   String?
+  author     User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  /// Recorded rather than derived from the author's current role: a staff
+  /// member who later becomes a customer must not turn old replies into
+  /// customer messages.
+  fromStaff  Boolean @default(false)
+  authorName String
+
+  body String
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+}
+
+enum SupportStatus {
+  OPEN
+  AWAITING_CUSTOMER
+  RESOLVED
+  CLOSED
 }

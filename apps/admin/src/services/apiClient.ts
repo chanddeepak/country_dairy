@@ -19,6 +19,7 @@ import type {
   LabParameter,
   DeliveryStop,
   RouteSheetResponse,
+  SupportTicket,
 } from '../types';
 
 // Accepts either name: .env.staging defines VITE_API_URL while the original
@@ -511,6 +512,38 @@ export const adminApi = {
     return fetchJson<WhatsAppConfig>('/cms/whatsapp', {
       method: 'PUT',
       body: JSON.stringify(config),
+    });
+  },
+
+
+  // Customer queries
+  async getTickets(
+    filters: { status?: string; search?: string; page?: number; pageSize?: number } = {},
+  ): Promise<Page<SupportTicket>> {
+    const q = new URLSearchParams();
+    if (filters.status) q.append('status', filters.status);
+    if (filters.search) q.append('search', filters.search);
+    if (filters.page) q.append('page', String(filters.page));
+    if (filters.pageSize) q.append('pageSize', String(filters.pageSize));
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    return fetchJson<Page<SupportTicket>>(`/support/admin${qs}`);
+  },
+
+  async getTicketStats(): Promise<Record<string, number>> {
+    return fetchJson<Record<string, number>>('/support/admin/stats');
+  },
+
+  async replyToTicket(id: string, body: string): Promise<unknown> {
+    return fetchJson(`/support/${id}/reply`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    });
+  },
+
+  async setTicketStatus(id: string, status: string): Promise<SupportTicket> {
+    return fetchJson<SupportTicket>(`/support/admin/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
     });
   },
 

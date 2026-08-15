@@ -15,6 +15,7 @@ import { LabReportsModule } from './lab-reports/lab-reports.module';
 import { DeliveryModule } from './delivery/delivery.module';
 import { UsersModule } from './users/users.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { SupportModule } from './support/support.module';
 import { AuditModule } from './audit/audit.module';
 
 @Module({
@@ -34,6 +35,7 @@ import { AuditModule } from './audit/audit.module';
     UsersModule,
     AnalyticsModule,
     AuditModule,
+    SupportModule,
   ],
   controllers: [AppController],
   providers: [AppService],

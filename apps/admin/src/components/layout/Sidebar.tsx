@@ -1,7 +1,5 @@
 import React from 'react';
-import { 
-  Package, ShoppingCart, Truck, Map, BarChart3, Users, Wallet, Star, ShieldCheck, LogOut, Sliders, Layout, FlaskConical
-} from 'lucide-react';
+import { BarChart3, FlaskConical, Layout, LogOut, Map, MessageCircle, Package, ShieldCheck, ShoppingCart, Sliders, Star, Truck, Users, Wallet } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { displayName, type UserRole } from '../../types';
 
@@ -10,6 +8,7 @@ export type TabType =
   | 'inventory' 
   | 'hero' 
   | 'orders' 
+  | 'support' 
   | 'logistics' 
   | 'routes' 
   | 'customers' 
@@ -71,6 +70,12 @@ export const NAV_LINKS: NavItem[] = [
       key: 'orders', 
       label: 'Order Queue & Fulfillment', 
       icon: <ShoppingCart className="h-4 w-4" />,
+      allowedRoles: ['SUPER_ADMIN', 'ORDER_MANAGER']
+    },
+    {
+      key: 'support',
+      label: 'Customer Queries',
+      icon: <MessageCircle className="h-4 w-4" />,
       allowedRoles: ['SUPER_ADMIN', 'ORDER_MANAGER']
     },
     { 
