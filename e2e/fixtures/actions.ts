@@ -13,9 +13,23 @@ import { ADMIN, STOREFRONT } from '../../playwright.config';
  * until then, changing a selector means changing it here and nowhere else.
  */
 export const SEL = {
-  emailInput: 'input[type="email"]',
-  passwordInput: 'input[type="password"]',
-  submit: 'button[type="submit"]',
+  // Scoped to the modal, not the page. The footer carries a contact form with
+  // its own email field on every route, so a bare input[type="email"] matches
+  // twice and trips strict mode — which is how three specs broke on a change
+  // that never touched them. A selector shared across specs has to name the
+  // thing it means, not the first element that happens to look like it.
+  authModal: '[data-testid="auth-modal"]',
+  emailInput: '[data-testid="auth-modal"] input[type="email"]',
+  passwordInput: '[data-testid="auth-modal"] input[type="password"]',
+  submit: '[data-testid="auth-modal"] button[type="submit"]',
+
+  // The console is a separate app with a full-page sign-in and no footer, so
+  // these stay unscoped. They were the same three selectors until scoping the
+  // storefront's broke the console's sign-in — one name cannot mean the modal
+  // on one host and the whole page on another.
+  adminEmailInput: 'input[type="email"]',
+  adminPasswordInput: 'input[type="password"]',
+  adminSubmit: 'button[type="submit"]',
 
   // Icon-only controls carry no accessible name, so these are the only stable
   // way to reach them — and they survive copy changes, which a text selector
@@ -72,9 +86,9 @@ export async function registerOnStorefront(
  */
 export async function signInToAdmin(page: Page, email: string, password: string): Promise<void> {
   await page.goto(ADMIN);
-  await page.locator(SEL.emailInput).fill(email);
-  await page.locator(SEL.passwordInput).fill(password);
-  await page.locator(SEL.submit).click();
+  await page.locator(SEL.adminEmailInput).fill(email);
+  await page.locator(SEL.adminPasswordInput).fill(password);
+  await page.locator(SEL.adminSubmit).click();
 }
 
 /**
