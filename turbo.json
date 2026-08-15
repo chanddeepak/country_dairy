@@ -2,15 +2,35 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": [".next/**", "dist/**", "build/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        ".next/**",
+        "dist/**",
+        "build/**"
+      ],
+      "env": [
+        "NEXT_PUBLIC_*",
+        "VITE_*",
+        "NODE_ENV",
+        "ANALYZE"
+      ]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": [
+        "^lint"
+      ]
     },
     "dev": {
       "cache": false,
       "persistent": true
     }
-  }
+  },
+  "globalEnv": [
+    "NODE_ENV",
+    "VERCEL",
+    "VERCEL_ENV",
+    "CI"
+  ]
 }
