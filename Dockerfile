@@ -37,6 +37,11 @@ COPY --from=installer /app/apps/api/package.json ./apps/api/package.json
 COPY --from=installer /app/node_modules ./node_modules
 COPY --from=installer /app/apps/api/dist ./apps/api/dist
 COPY --from=installer /app/packages/database ./packages/database
+# node_modules holds a symlink to each workspace package, so the directory it
+# points at has to travel too or the link dangles. The API requires this one at
+# runtime — parseHeroLayout, not just types, which disappear at compile time —
+# and without it the image builds and then dies with MODULE_NOT_FOUND.
+COPY --from=installer /app/packages/types ./packages/types
 
 EXPOSE 4000
 CMD ["node", "apps/api/dist/main"]
