@@ -3,35 +3,23 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import {
-  Package,
-  Calendar,
-  Wallet,
-  MapPin,
-  LayoutDashboard,
-  Plus,
-  ArrowUpRight,
-  UserCog,
-  Check,
-  RotateCcw,
-  FileText,
-  AlertTriangle,
-} from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, Calendar, Check, FileText, LayoutDashboard, MapPin, MessageCircle, Package, Plus, RotateCcw, UserCog, Wallet } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useStoreConfig } from '../../context/StoreConfigContext';
+import QueriesTab from '../../components/account/QueriesTab';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import Badge from '../../components/ui/Badge';
 import AuthModal from '../../components/modals/AuthModal';
 import CartDrawer from '../../components/cart/CartDrawer';
 
-type Tab = 'overview' | 'orders' | 'profile' | 'subscriptions' | 'wallet' | 'addresses';
+type Tab = 'overview' | 'orders' | 'queries' | 'profile' | 'subscriptions' | 'wallet' | 'addresses';
 
 const addrField =
   'w-full px-3 py-2.5 bg-[#FAF8F3] border border-stone-200 rounded-lg text-sm text-[#2A2A2A] focus:outline-none focus:border-[#3A6038] transition';
 const addrLabel = 'block text-[11px] font-bold text-[#6b6661] uppercase tracking-wider mb-1.5';
 
-const TAB_KEYS: Tab[] = ['overview', 'orders', 'profile', 'subscriptions', 'wallet', 'addresses'];
+const TAB_KEYS: Tab[] = ['overview', 'orders', 'queries', 'profile', 'subscriptions', 'wallet', 'addresses'];
 
 function isTab(value: string | null): value is Tab {
   return !!value && (TAB_KEYS as string[]).includes(value);
@@ -409,6 +397,7 @@ function AccountPageContent() {
   const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'overview', label: 'Overview', icon: <LayoutDashboard className="h-4 w-4" /> },
     { key: 'orders', label: 'Orders', icon: <Package className="h-4 w-4" /> },
+    { key: 'queries', label: 'My Questions', icon: <MessageCircle className="h-4 w-4" /> },
     ...(subscriptionsEnabled
       ? [{ key: 'subscriptions' as Tab, label: 'Subscriptions', icon: <Calendar className="h-4 w-4" /> }]
       : []),
@@ -621,6 +610,17 @@ function AccountPageContent() {
                   )}
                 </div>
               )}
+
+              {visibleTab === 'queries' && (
+                <div>
+                  <h3 className="font-bold text-sm text-[#2A2A2A] mb-1">My Questions</h3>
+                  <p className="text-xs text-[#6b6661] mb-4">
+                    Anything you have asked us, and what we said back.
+                  </p>
+                  <QueriesTab authFetch={authFetch} />
+                </div>
+              )}
+
 
               {/* SUBSCRIPTIONS */}
               {visibleTab === 'subscriptions' && (
