@@ -9,6 +9,7 @@ import { Prisma, Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { pageParams, paginate } from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuthService } from '../auth/auth.service';
 import { AuditService } from '../audit/audit.service';
 
 const BCRYPT_ROUNDS = 12;
@@ -39,6 +40,10 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    // UsersModule already imports AuthModule, which exports this, so the
+    // erasure has one implementation rather than a second copy here that
+    // slowly stops matching the first.
+    private auth: AuthService,
   ) {}
 
   // --- Staff accounts ---
@@ -187,6 +192,9 @@ export class UsersService {
         select: {
           ...STAFF_SELECT,
           walletBalance: true,
+          // So the console can tell an erased account from a live one. Without
+          // it a closed account still offers an Erase button, which then fails.
+          deletedAt: true,
           _count: { select: { orders: true, subscriptions: true, reviews: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -219,6 +227,7 @@ export class UsersService {
       select: {
         ...STAFF_SELECT,
         walletBalance: true,
+        deletedAt: true,
         addresses: true,
         orders: {
           select: {
@@ -241,4 +250,12 @@ export class UsersService {
 
     return customer;
   }
+  /**
+   * Erasure, on a customer's behalf. The work belongs to AuthService, which
+   * owns the session cache that has to be invalidated with it.
+   */
+  async eraseCustomer(customerId: string, reason?: string) {
+    return this.auth.eraseCustomerAsAdmin(customerId, reason);
+  }
+
 }

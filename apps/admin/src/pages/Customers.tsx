@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Search, X, Phone, Mail, Wallet, ShoppingBag, Loader2, IndianRupee } from 'lucide-react';
+import { Search, X, Phone, Mail, Wallet, ShoppingBag, Loader2, IndianRupee, ShieldAlert } from 'lucide-react';
 import { adminApi } from '../services/apiClient';
 import Pagination from '../components/Pagination';
 import { displayName, type AdminCustomer } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 const money = (value: string | number | undefined) => Number(value ?? 0).toLocaleString('en-IN');
 
@@ -15,6 +16,7 @@ interface CustomersProps {
 }
 
 export default function Customers({ walletEnabled = false }: CustomersProps) {
+  const { user: currentUser } = useAuth();
   const [customers, setCustomers] = useState<AdminCustomer[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -24,6 +26,32 @@ export default function Customers({ walletEnabled = false }: CustomersProps) {
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [page, setPage] = useState(1);
   const [pageInfo, setPageInfo] = useState({ total: 0, totalPages: 1, pageSize: 50 });
+
+  // Erasure cannot be undone, so it is deliberately several steps away: open
+  // the customer, open the danger section, and type their name.
+  const [eraseOpen, setEraseOpen] = useState(false);
+  const [eraseConfirm, setEraseConfirm] = useState('');
+  const [eraseReason, setEraseReason] = useState('');
+  const [isErasing, setIsErasing] = useState(false);
+  const [eraseError, setEraseError] = useState('');
+
+  const eraseCustomer = async () => {
+    if (!selectedCust) return;
+    setIsErasing(true);
+    setEraseError('');
+    try {
+      await adminApi.eraseCustomer(selectedCust.id, eraseReason);
+      setSelectedCust(null);
+      setEraseOpen(false);
+      setEraseConfirm('');
+      setEraseReason('');
+      await load();
+    } catch (err) {
+      setEraseError(err instanceof Error ? err.message : 'Could not erase that account.');
+    } finally {
+      setIsErasing(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -158,7 +186,13 @@ export default function Customers({ walletEnabled = false }: CustomersProps) {
               <p className="text-xs text-stone-500 font-mono mt-0.5">{selectedCust.id}</p>
             </div>
             <button
-              onClick={() => setSelectedCust(null)}
+              onClick={() => {
+                setSelectedCust(null);
+                setEraseOpen(false);
+                setEraseConfirm('');
+                setEraseReason('');
+                setEraseError('');
+              }}
               className="text-stone-400 hover:text-stone-600 transition"
             >
               <X className="h-5 w-5" />
@@ -277,6 +311,74 @@ export default function Customers({ walletEnabled = false }: CustomersProps) {
                 <p className="text-xs text-stone-400 font-medium">No orders yet.</p>
               )}
             </div>
+
+            {/* Erasure. Super admin only, and folded away — a control this
+                final should take a decision to reach, not sit next to the
+                phone number waiting to be brushed. */}
+            {currentUser?.role === 'SUPER_ADMIN' && !selectedCust.deletedAt && (
+              <div className="border border-red-200 rounded-xl overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setEraseOpen((v) => !v)}
+                  className="w-full flex items-center gap-2 px-4 py-3 bg-red-50/60 hover:bg-red-50 text-left transition"
+                >
+                  <ShieldAlert className="h-4 w-4 text-red-600 shrink-0" />
+                  <span className="text-xs font-bold text-red-800">
+                    Erase this customer's data
+                  </span>
+                </button>
+
+                {eraseOpen && (
+                  <div className="p-4 space-y-3 border-t border-red-200">
+                    <p className="text-[11px] text-stone-600 leading-relaxed">
+                      Removes their name, email, phone, addresses, reviews and
+                      questions, and signs them out everywhere. This cannot be
+                      undone.
+                      <br />
+                      <span className="font-bold text-stone-700">
+                        Past orders are kept with the address redacted
+                      </span>{' '}
+                      — the invoice is a tax record and cannot go with the person.
+                    </p>
+
+                    <input
+                      value={eraseReason}
+                      onChange={(e) => setEraseReason(e.target.value)}
+                      placeholder="Why? e.g. asked us by phone on 14 Aug"
+                      className="w-full border border-stone-200 px-3 py-2 rounded-lg text-xs focus:outline-none focus:border-red-400"
+                    />
+
+                    <div>
+                      <label className="text-[11px] font-bold text-stone-600 block mb-1">
+                        Type <span className="font-mono">{displayName(selectedCust)}</span> to
+                        confirm
+                      </label>
+                      <input
+                        value={eraseConfirm}
+                        onChange={(e) => setEraseConfirm(e.target.value)}
+                        className="w-full border border-stone-200 px-3 py-2 rounded-lg text-xs focus:outline-none focus:border-red-400"
+                      />
+                    </div>
+
+                    {eraseError && (
+                      <p className="text-[11px] font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg p-2">
+                        {eraseError}
+                      </p>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={eraseCustomer}
+                      disabled={isErasing || eraseConfirm !== displayName(selectedCust)}
+                      className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      {isErasing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                      {isErasing ? 'Erasing…' : 'Erase permanently'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

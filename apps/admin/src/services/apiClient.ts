@@ -433,6 +433,19 @@ export const adminApi = {
     return fetchJson<AdminCustomer>(`/users/customers/${id}`);
   },
 
+  /**
+   * Erase a customer at their request. Irreversible, super admin only.
+   *
+   * Past orders survive with the address redacted, because the invoice is a
+   * tax record and cannot go with the person.
+   */
+  async eraseCustomer(id: string, reason?: string): Promise<{ ordersRetained: number; message: string }> {
+    return fetchJson(`/users/customers/${id}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ reason: reason?.trim() || undefined }),
+    });
+  },
+
   // WhatsApp ordering config
   // --- Local delivery ---
 

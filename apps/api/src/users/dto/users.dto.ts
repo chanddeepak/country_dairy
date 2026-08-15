@@ -49,3 +49,14 @@ export class ResetPasswordDto {
   @MaxLength(128)
   password: string;
 }
+
+/**
+ * Optional, but worth asking for: an erasure is irreversible and this is the
+ * only place the reason for it is ever recorded.
+ */
+export class EraseCustomerDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+}

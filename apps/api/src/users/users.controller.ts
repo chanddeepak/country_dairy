@@ -1,11 +1,11 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { UsersService } from './users.service';
-import { CreateStaffDto, ResetPasswordDto, UpdateStaffDto } from './dto/users.dto';
+import { CreateStaffDto, EraseCustomerDto, ResetPasswordDto, UpdateStaffDto } from './dto/users.dto';
 
 @Controller('users')
 @UseGuards(AuthGuard, RolesGuard)
@@ -68,5 +68,19 @@ export class UsersController {
   @Roles(Role.SUPER_ADMIN, Role.ORDER_MANAGER)
   async getCustomer(@Param('id') id: string) {
     return this.usersService.getCustomer(id);
+  }
+
+  /**
+   * Erase a customer, for the deletion request that arrives by phone or email
+   * rather than through the storefront's own form.
+   *
+   * Super admin only, and deliberately narrower than the read routes above:
+   * an order manager needs to see customers to do their job, which is not the
+   * same as being able to erase one.
+   */
+  @Delete('customers/:id')
+  @Roles(Role.SUPER_ADMIN)
+  async eraseCustomer(@Param('id') id: string, @Body() dto: EraseCustomerDto) {
+    return this.usersService.eraseCustomer(id, dto?.reason);
   }
 }

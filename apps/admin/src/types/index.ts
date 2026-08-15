@@ -102,6 +102,8 @@ export interface AdminOrder {
 
 export interface AdminCustomer extends UserProfile {
   walletBalance?: string | number;
+  /** Set once the account has been erased; the row stays, the person does not. */
+  deletedAt?: string | null;
   totalOrders?: number;
   totalSpent?: number;
   addresses?: {

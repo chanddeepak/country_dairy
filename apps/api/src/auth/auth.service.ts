@@ -450,30 +450,17 @@ export class AuthService {
    * Erased: name, email, phone, saved addresses, cart, reviews and their
    * photographs, sign-in identities, and the street address on past orders.
    */
-  async deleteOwnAccount(userId: string, password: string, reason?: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, passwordHash: true, role: true, deletedAt: true, email: true },
-    });
-
-    if (!user) {
-      throw new NotFoundException('Account not found');
-    }
-
-    if (user.deletedAt) {
-      throw new BadRequestException('This account has already been closed');
-    }
-
-    // Staff accounts are removed by a super admin through user management, so
-    // this route cannot be used to delete the last administrator.
-    if (user.role !== Role.CUSTOMER) {
-      throw new ForbiddenException('Staff accounts are closed from the admin console');
-    }
-
-    if (!user.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
-      throw new UnauthorizedException('That password is not correct');
-    }
-
+  /**
+   * The erasure itself.
+   *
+   * Shared by the customer closing their own account and by a super admin
+   * doing it on their behalf, because two erasures written separately drift,
+   * and the way you find out is a regulator asking why a name is still in the
+   * database. The callers differ only in how they establish the right to do
+   * it: the customer proves it with their password, the super admin with
+   * their role.
+   */
+  private async eraseCustomerRecord(userId: string, reason?: string) {
     const reviews = await this.prisma.productReview.findMany({
       where: { userId },
       select: { id: true, mediaUrls: true },
@@ -505,6 +492,7 @@ export class AuthService {
       });
     });
 
+    const tickets = await this.prisma.supportTicket.count({ where: { userId } });
     const closedAt = new Date();
 
     await this.prisma.$transaction([
@@ -513,6 +501,10 @@ export class AuthService {
       this.prisma.cartItem.deleteMany({ where: { userId } }),
       this.prisma.authIdentity.deleteMany({ where: { userId } }),
       this.prisma.passwordResetToken.deleteMany({ where: { userId } }),
+      // Support came along after this function was first written, and until
+      // this line a closed account left the customer's own words behind under
+      // their own name. Messages go with the thread — the relation cascades.
+      this.prisma.supportTicket.deleteMany({ where: { userId } }),
       ...redactions,
       this.prisma.user.update({
         where: { id: userId },
@@ -541,32 +533,118 @@ export class AuthService {
       }
     }
 
+    // Otherwise a token minted before the erasure keeps working, because the
+    // guard reads this cache rather than the row it was built from.
     this.userCache.delete(userId);
+
+    return {
+      reviewsRemoved: reviews.length,
+      ordersRedacted: orders.length,
+      ticketsRemoved: tickets,
+      reason: reason ?? null,
+    };
+  }
+
+  async deleteOwnAccount(userId: string, password: string, reason?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, passwordHash: true, role: true, deletedAt: true, email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Account not found');
+    }
+
+    if (user.deletedAt) {
+      throw new BadRequestException('This account has already been closed');
+    }
+
+    // Staff accounts are removed by a super admin through user management, so
+    // this route cannot be used to delete the last administrator.
+    if (user.role !== Role.CUSTOMER) {
+      throw new ForbiddenException('Staff accounts are closed from the admin console');
+    }
+
+    if (!user.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
+      throw new UnauthorizedException('That password is not correct');
+    }
+
+    const summary = await this.eraseCustomerRecord(userId, reason);
 
     await this.audit.record({
       action: 'DELETE',
       entity: 'User',
       entityId: userId,
       before: { role: user.role },
-      after: {
-        closed: true,
-        reason: reason ?? null,
-        reviewsRemoved: reviews.length,
-        ordersRedacted: orders.length,
-      },
+      after: { closed: true, ...summary },
     });
 
     this.logger.log(
-      `Account ${userId} closed on request: ${reviews.length} reviews removed, ` +
-        `${orders.length} orders redacted`,
+      `Account ${userId} closed on request: ${summary.reviewsRemoved} reviews removed, ` +
+        `${summary.ordersRedacted} orders redacted, ${summary.ticketsRemoved} queries removed`,
     );
 
     return {
       success: true as const,
-      ordersRetained: orders.length,
+      ordersRetained: summary.ordersRedacted,
       message:
         'Your account is closed and your personal details have been erased. ' +
         'Invoices for past orders are kept because tax law requires it.',
+    };
+  }
+
+  /**
+   * The same erasure, asked for by phone or email and carried out by a super
+   * admin — which in practice is how most such requests arrive.
+   *
+   * There is no password to check here, so the guard is the role plus the
+   * audit entry: erasure cannot be undone, and one person doing it to another
+   * has to leave a record of who and why that outlives what it destroyed.
+   */
+  async eraseCustomerAsAdmin(customerId: string, reason?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: customerId },
+      select: { id: true, role: true, deletedAt: true, email: true, name: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    if (user.deletedAt) {
+      throw new BadRequestException('This account has already been closed');
+    }
+
+    // Colleagues are removed through staff management, which has its own
+    // guard against deleting the last administrator. Without this check that
+    // guard could be walked around by way of the customer route.
+    if (user.role !== Role.CUSTOMER) {
+      throw new BadRequestException(
+        'This is a staff account. Staff are removed from user management.',
+      );
+    }
+
+    const summary = await this.eraseCustomerRecord(customerId, reason);
+
+    await this.audit.record({
+      action: 'DELETE',
+      entity: 'User',
+      entityId: customerId,
+      before: { role: user.role, email: user.email },
+      after: { closed: true, erasedByStaff: true, ...summary },
+    });
+
+    this.logger.log(
+      `Customer ${customerId} erased by staff: ${summary.reviewsRemoved} reviews removed, ` +
+        `${summary.ordersRedacted} orders redacted, ${summary.ticketsRemoved} queries removed`,
+    );
+
+    return {
+      success: true as const,
+      ordersRetained: summary.ordersRedacted,
+      message:
+        'The customer\'s personal details have been erased. Their past orders are ' +
+        'kept, with the address redacted, because tax law requires the invoice.',
     };
   }
 
