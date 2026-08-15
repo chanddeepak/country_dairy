@@ -205,3 +205,91 @@ npm run build
 # Run API in production
 npm run start --filter=api
 ```
+
+---
+
+## 7. Database migrations
+
+### How they are applied
+
+The container applies them. `scripts/docker-entrypoint.sh` runs
+`prisma migrate deploy` and only then execs the API, so the schema a build
+needs is applied by that build or the build does not serve at all.
+
+Before this existed nothing in the pipeline ran migrations — the image went
+straight to `node apps/api/dist/main`, and the schema was kept current by
+someone remembering. That is how a deploy went out whose code expected a
+column the database did not have, surfacing as a 500 from an endpoint that
+looked unrelated.
+
+Two consequences worth knowing:
+
+- **A failed migration means the service does not start.** That is deliberate.
+  An API serving against a schema it was not built for produces corrupt data,
+  which is worse and much harder to undo than downtime.
+- **`DIRECT_URL` must bypass the pooler.** Prisma runs migrations over it, and
+  they cannot run through pgbouncer in transaction mode. On Supabase that is
+  the port 5432 string, not the 6543 one.
+
+`RUN_MIGRATIONS=false` starts the API without applying anything. It exists for
+the case where a migration is itself what is broken and you need to boot in
+order to look. It is not a normal setting.
+
+### Before the first deploy to an environment
+
+Check what the deploy would do. This reads and changes nothing:
+
+```sh
+DIRECT_URL='postgresql://…:5432/postgres' sh scripts/check-prod-schema.sh
+```
+
+It reports whether the database has a migration history, and prints the SQL
+that would be needed to bring it up to the current schema. Empty SQL means the
+database already matches.
+
+### Baselining a `db push` database
+
+**The production database needs this before it can ever take a deploy.** It was
+created with `prisma db push`, which builds tables without recording a
+migration history, so it has no `_prisma_migrations` table. `migrate deploy`
+against it fails with P3005 — it cannot tell which migrations are already
+reflected there, so it refuses to guess.
+
+Two ways out. Pick by what `check-prod-schema.sh` prints:
+
+**If the drift SQL is empty** — the database already matches the current
+schema. Mark every migration as applied without running any of them:
+
+```sh
+export DATABASE_URL='…' DIRECT_URL='…'
+for m in packages/database/prisma/migrations/*/; do
+  npx prisma migrate resolve --applied "$(basename "$m")" \
+    --schema=packages/database/prisma/schema.prisma
+done
+npx prisma migrate status --schema=packages/database/prisma/schema.prisma
+```
+
+**If the drift SQL is not empty** — the database is behind the schema. Do NOT
+baseline everything; that would mark migrations as applied whose tables do not
+exist, and the missing ones would never be created. Baseline only up to the
+last migration the database genuinely contains, then let `migrate deploy`
+apply the rest.
+
+If the database is also empty of data, the simplest correct option is to drop
+the schema and let `migrate deploy` build it from nothing, which yields a clean
+history with no baselining at all. **That destroys everything in it**, so
+confirm the row counts first and take a Supabase backup regardless.
+
+### Adding a migration
+
+Never `prisma migrate dev` against a shared database — it prompts, and it can
+reset. Generate the SQL and apply it deliberately:
+
+```sh
+npx prisma migrate diff \
+  --from-url "$DIRECT_URL" \
+  --to-schema-datamodel packages/database/prisma/schema.prisma \
+  --script > packages/database/prisma/migrations/<timestamp>_<name>/migration.sql
+
+npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma
+```

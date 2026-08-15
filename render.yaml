@@ -36,9 +36,14 @@ services:
       - key: PORT
         value: 4000
 
-      # Point at a dev database, not production. The API runs migrations
-      # against whatever this names, and a staging deploy aimed at the
-      # production database is the fastest way to lose real orders.
+      # Point at a dev database, not production. The container applies
+      # migrations to whatever this names before the API starts, so a staging
+      # deploy aimed at the production database is the fastest way to lose
+      # real orders.
+      #
+      # DIRECT_URL must bypass the connection pooler — Prisma runs migrations
+      # over it, and they cannot run through pgbouncer in transaction mode.
+      # Supabase gives both strings; the direct one is port 5432.
       - key: DATABASE_URL
         sync: false
       - key: DIRECT_URL

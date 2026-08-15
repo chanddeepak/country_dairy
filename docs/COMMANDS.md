@@ -133,6 +133,40 @@ npm run db:generate                      # regenerate the client afterwards
 Read the generated SQL before deploying. A `DROP COLUMN` in there is the
 warning you get.
 
+### Checking a database before deploying to it
+
+Read-only. Reports whether the database has a Prisma migration history and
+prints the SQL that would be needed to bring it up to the current schema.
+Empty SQL means it already matches.
+
+```bash
+DIRECT_URL='postgresql://…:5432/postgres' sh scripts/check-prod-schema.sh
+```
+
+Pass the credential in the environment, not as an argument — an argument lands
+in shell history and in the process list.
+
+### Is this database up to date?
+
+```bash
+set -a; . ./.env; set +a
+cd packages/database && npx prisma migrate status --schema=prisma/schema.prisma
+```
+
+Prisma reads `DIRECT_URL` from the environment, and the schema declares it, so
+without loading `.env` first this fails with P1012 rather than a connection
+error — which is confusing, because nothing is wrong with the connection.
+
+### How migrations reach a deployed environment
+
+`scripts/docker-entrypoint.sh` runs `prisma migrate deploy` and then execs the
+API, so a deploy applies its own schema changes. A failed migration stops the
+container from starting, deliberately. `RUN_MIGRATIONS=false` skips it, for
+when a migration is itself what is broken and you need to boot to look.
+
+The production database has no migration history and must be baselined before
+it can take a deploy — see `docs/deployment.md` §7.
+
 ### Storage
 
 Media lives in Supabase Storage across four buckets: `hero-banners`,

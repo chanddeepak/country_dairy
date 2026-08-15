@@ -31,6 +31,11 @@ RUN useradd --system --uid 1001 -g nodejs nestjs
 # EACCES.
 RUN mkdir -p /app/uploads && chown -R nestjs:nodejs /app
 
+# Copied while still root, because the bit that makes it executable cannot be
+# set afterwards by the user that has to run it.
+COPY scripts/docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh && chown nestjs:nodejs /app/docker-entrypoint.sh
+
 USER nestjs
 
 COPY --from=installer /app/apps/api/package.json ./apps/api/package.json
@@ -44,4 +49,7 @@ COPY --from=installer /app/packages/database ./packages/database
 COPY --from=installer /app/packages/types ./packages/types
 
 EXPOSE 4000
-CMD ["node", "apps/api/dist/main"]
+# The entrypoint applies migrations first and then execs the API. Nothing else
+# in the pipeline runs `migrate deploy`, so without this a deployed build can
+# be newer than the schema it is talking to.
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
