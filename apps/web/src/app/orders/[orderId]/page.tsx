@@ -182,7 +182,9 @@ export default function OrderDetailPage() {
       const res = await authFetch('/support', {
         method: 'POST',
         body: JSON.stringify({
-          subject: `Question about order ${order.orderNumber}`,
+          // Built by us, so it is capped here rather than left to fail
+          // validation with a message about a field the customer never saw.
+          subject: `Question about order ${order.orderNumber}`.slice(0, 120),
           body: queryText.trim(),
           orderId: order.id,
         }),
@@ -197,8 +199,17 @@ export default function OrderDetailPage() {
 
       if (!res.ok) {
         const problem = await res.json().catch(() => null);
+        const raw = Array.isArray(problem?.message) ? problem.message[0] : problem?.message;
+
+        // The API validates field by field and names those fields. "subject
+        // must be shorter than or equal to 120 characters" is meaningless to
+        // someone who only saw one box and never typed a subject, so only
+        // messages about what they can actually change are passed through.
+        const aboutTheirText = typeof raw === 'string' && /body|more so we can help/i.test(raw);
         setQueryNote(
-          Array.isArray(problem?.message) ? problem.message[0] : problem?.message ?? 'Could not send that.',
+          aboutTheirText
+            ? 'That message is too long. Could you shorten it a little?'
+            : 'Could not send that just now. Please try again, or use WhatsApp.',
         );
         return;
       }
@@ -460,20 +471,7 @@ export default function OrderDetailPage() {
               Need Help?
             </button>
 
-            {/* Only rendered when there is somewhere for it to go. A button
-                that does nothing is worse than an absent one: it reads as the
-                shop ignoring you. */}
-            {helpUrl && (
-              <a
-                href={helpUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 border border-stone-200 text-[#6b6661] hover:text-[#2A2A2A] font-bold py-2.5 px-6 rounded-lg text-sm transition"
-              >
-                <MessageCircle className="h-4 w-4" />
-                WhatsApp
-              </a>
-            )}
+
           </div>
 
           {queryOpen && (
@@ -489,7 +487,7 @@ export default function OrderDetailPage() {
                 placeholder="Tell us what happened — the more detail, the faster we can sort it."
                 className="w-full bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm resize-none focus:outline-none focus:border-[#3A6038]"
               />
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
                   onClick={submitQuery}
@@ -498,10 +496,29 @@ export default function OrderDetailPage() {
                 >
                   {sendingQuery ? 'Sending…' : 'Send question'}
                 </button>
-                <span className="text-[11px] text-[#6b6661]">
-                  Goes straight to the shop with your order number attached.
-                </span>
+
+                {/* The two ways of asking sit together, because they are the
+                    same decision: write it down, or talk to someone now. */}
+                {helpUrl && (
+                  <>
+                    <span className="text-[11px] text-[#6b6661]">or</span>
+                    <a
+                      href={helpUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 border border-stone-200 text-[#2A2A2A] font-bold text-xs px-4 py-2.5 rounded-lg hover:border-[#3A6038] transition"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5 text-[#3A6038]" />
+                      Chat on WhatsApp
+                    </a>
+                  </>
+                )}
               </div>
+
+              <p className="text-[11px] text-[#6b6661]">
+                Your question goes to the shop with order {order.orderNumber} attached, and we
+                reply by email. WhatsApp is quicker if you need an answer now.
+              </p>
             </div>
           )}
 
