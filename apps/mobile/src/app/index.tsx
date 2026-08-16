@@ -13,6 +13,7 @@ import {
   RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, HERO_IMAGE, WHATSAPP_BANNER_IMAGE, ENABLE_USER_ACCOUNTS } from '../constants';
 import { useCatalogue } from '../hooks/use-catalogue';
@@ -44,6 +45,7 @@ const CAROUSEL_ITEMS = [
 ];
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [activeSlide, setActiveSlide] = useState(0);
   // The shelf comes from the database. It used to be a hardcoded array, which
   // looks identical on screen right up until a price changes.
@@ -68,11 +70,20 @@ export default function HomeScreen() {
         </View>
         {ENABLE_USER_ACCOUNTS && (
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerButton}>
-              <Ionicons name="notifications-outline" size={22} color={COLORS.forest} />
-              <View style={styles.badgeDot} />
+            {/* No notifications bell until something actually sends one. A
+                button that has never had anything to show is furniture. */}
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => router.push('/orders')}
+              accessibilityLabel="My orders"
+            >
+              <Ionicons name="receipt-outline" size={22} color={COLORS.forest} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.headerButton}>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => router.push('/account')}
+              accessibilityLabel="Account"
+            >
               <Ionicons name="person-outline" size={22} color={COLORS.forest} />
             </TouchableOpacity>
           </View>
