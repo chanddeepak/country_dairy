@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight
 import type { Product } from '../types';
 import { resolveImageUrl } from '../components/common/ImageUploader';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import { useConfirm } from '../hooks/useConfirm';
 import { adminApi } from '../services/apiClient';
 
 interface InventoryProps {
@@ -21,8 +22,8 @@ export default function Inventory({
   onEditProduct,
 }: InventoryProps) {
   // Deletion Modal states
-  const [deletingProduct, setDeletingProduct] = useState<{ id: string; title: string } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const confirm = useConfirm(setDeleteError);
 
   const toggleSubscription = async (productId: string) => {
     const updated = products.map(p => {
@@ -58,27 +59,31 @@ export default function Inventory({
     }
   };
 
-  const handleDeleteProduct = (productId: string, title: string) => {
-    setDeletingProduct({ id: productId, title });
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!deletingProduct) return;
-    const { id } = deletingProduct;
-    setIsDeleting(true);
-    onUpdateProducts(products.filter(p => p.id !== id));
-    try {
-      await adminApi.deleteProduct(id);
-    } catch (err) {
-      console.warn('Failed to delete product on API:', err);
-    } finally {
-      setIsDeleting(false);
-      setDeletingProduct(null);
-    }
-  };
+  const handleDeleteProduct = (productId: string, title: string) =>
+    confirm.ask({
+      title: 'Permanently Delete Product?',
+      message: `Are you sure you want to PERMANENTLY delete "${title}"?\n\nThis will completely remove the product and all associated variants, images, lab reports, and reviews from the database. This action cannot be undone.`,
+      confirmLabel: 'Permanently Delete',
+      onConfirm: async () => {
+        // The row used to be dropped from the list before the request went
+        // out, and a failure was swallowed into console.warn — so a delete
+        // that did not happen still looked like it had, until a reload put
+        // the product back. The API answers first now.
+        await adminApi.deleteProduct(productId);
+        onUpdateProducts(products.filter((p) => p.id !== productId));
+      },
+    });
 
   return (
     <div className="space-y-8 text-[#2A2A2A]">
+      {/* A failed delete used to go to console.warn, where nobody was
+          looking, while the row vanished from the table regardless. */}
+      {deleteError && (
+        <div className="p-3 text-xs bg-red-50 border border-red-200 text-red-700 rounded-xl font-medium">
+          {deleteError}
+        </div>
+      )}
+
       {/* Product Catalog Panel */}
       <div className="bg-white p-6 rounded-2xl border border-stone-200/80 shadow-sm space-y-6">
         {/* Panel Header */}
@@ -332,18 +337,7 @@ export default function Inventory({
         </div>
       </div>
 
-      {/* Modern Aesthetic Delete Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={!!deletingProduct}
-        title="Permanently Delete Product?"
-        message={deletingProduct ? `Are you sure you want to PERMANENTLY delete "${deletingProduct.title}"?\n\nThis will completely remove the product and all associated variants, images, lab reports, and reviews from the database. This action cannot be undone.` : ''}
-        confirmLabel="Permanently Delete"
-        cancelLabel="Keep Product"
-        variant="danger"
-        isLoading={isDeleting}
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setDeletingProduct(null)}
-      />
+      <ConfirmDialog {...confirm.dialogProps} />
     </div>
   );
 }

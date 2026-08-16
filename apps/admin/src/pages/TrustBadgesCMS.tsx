@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Save, Plus, Trash2, Loader2, Check, GripVertical } from 'lucide-react';
 import { adminApi } from '../services/apiClient';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import { useConfirm } from '../hooks/useConfirm';
 import type { TrustBadge } from '../types';
 
 /** Lucide names the storefront already renders. */
@@ -23,9 +24,8 @@ export default function TrustBadgesCMS() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const confirm = useConfirm(setError);
   const [savedAt, setSavedAt] = useState<number | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<{ index: number; badge: DraftBadge } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     adminApi
@@ -44,25 +44,17 @@ export default function TrustBadgesCMS() {
       { title: '', subtitle: '', iconName: 'ShieldCheck', displayOrder: prev.length + 1, isActive: true },
     ]);
 
-  const handleDelete = async () => {
-    if (!pendingDelete) return;
-    const { index, badge } = pendingDelete;
-    setIsDeleting(true);
-    setError('');
-
-    try {
-      // Only rows that exist server-side need a delete call.
-      if (badge.id) await adminApi.deleteTrustBadge(badge.id);
-      setBadges((prev) => prev.filter((_, i) => i !== index));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete the badge');
-    } finally {
-      // Closed either way: an error rendered behind an open dialog is an
-      // error nobody sees.
-      setPendingDelete(null);
-      setIsDeleting(false);
-    }
-  };
+  const askDelete = (index: number, badge: DraftBadge) =>
+    confirm.ask({
+      title: 'Remove this badge?',
+      message: `"${badge.title || 'This badge'}" will no longer appear on the homepage.`,
+      confirmLabel: 'Remove badge',
+      onConfirm: async () => {
+        // Only rows that exist server-side need a delete call.
+        if (badge.id) await adminApi.deleteTrustBadge(badge.id);
+        setBadges((prev) => prev.filter((_, i) => i !== index));
+      },
+    });
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -169,7 +161,7 @@ export default function TrustBadgesCMS() {
                   <GripVertical className="h-3.5 w-3.5" /> Card {idx + 1}
                 </div>
                 <button
-                  onClick={() => setPendingDelete({ index: idx, badge })}
+                  onClick={() => askDelete(idx, badge)}
                   className="p-1.5 text-stone-400 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
                   title="Remove badge"
                 >
@@ -230,15 +222,7 @@ export default function TrustBadgesCMS() {
         </div>
       )}
 
-      <ConfirmDialog
-        isOpen={!!pendingDelete}
-        title="Remove this badge?"
-        message={`"${pendingDelete?.badge.title || 'This badge'}" will no longer appear on the homepage.`}
-        confirmLabel="Remove badge"
-        isLoading={isDeleting}
-        onConfirm={handleDelete}
-        onCancel={() => setPendingDelete(null)}
-      />
+      <ConfirmDialog {...confirm.dialogProps} />
     </div>
   );
 }

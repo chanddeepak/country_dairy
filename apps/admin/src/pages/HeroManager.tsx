@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Layout, Plus, Trash2, ArrowUp, ArrowDown, Save, AlertCircle, Loader2, CheckCircle2, X } from 'lucide-react';
 import ImageUploader from '../components/common/ImageUploader';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import { useConfirm } from '../hooks/useConfirm';
 import HeroPreviewSimulator from '../components/cms/HeroPreviewSimulator';
 import type { HeroSlide } from '../types';
 import HeroLayoutEditor from '../components/HeroLayoutEditor';
@@ -23,6 +24,7 @@ export default function HeroManager() {
   const [activeDeviceType, setActiveDeviceType] = useState<'DESKTOP' | 'MOBILE'>('DESKTOP');
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const confirm = useConfirm((message) => setToast({ type: 'error', message }));
 
   const showNotification = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -135,33 +137,31 @@ export default function HeroManager() {
     setSlides(newSlides);
   };
 
-  const [deletingSlideId, setDeletingSlideId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = (id: string) => {
     if (slides.length <= 1) {
-      alert('At least 1 hero slide must remain in the carousel.');
+      // A toast, not alert(): the page already has one, and a native
+      // dialog blocks the whole tab for a rule the reader did not break.
+      setToast({ type: 'error', message: 'At least one hero slide must remain in the carousel.' });
       return;
     }
-    setDeletingSlideId(id);
-  };
 
-  const handleConfirmDeleteSlide = async () => {
-    if (!deletingSlideId) return;
-    const id = deletingSlideId;
-    setIsDeleting(true);
-    setSlides(prev => prev.filter(s => s.id !== id));
-    if (activeEditingSlide?.id === id) {
-      setActiveEditingSlide(null);
-    }
-    try {
-      await adminApi.deleteHeroBanner(id);
-    } catch (err) {
-      console.warn('API deleteHeroBanner error:', err);
-    } finally {
-      setIsDeleting(false);
-      setDeletingSlideId(null);
-    }
+    confirm.ask({
+      title: 'Delete Hero Banner Slide?',
+      message:
+        'Are you sure you want to remove this hero slide from the homepage carousel? This change will be published immediately.',
+      confirmLabel: 'Delete Banner',
+      onConfirm: async () => {
+        // The API first: the slide used to be pulled from the carousel before
+        // the request, with failures going to console.warn, so a banner that
+        // was still live looked deleted until the next reload.
+        await adminApi.deleteHeroBanner(id);
+        setSlides((prev) => prev.filter((s) => s.id !== id));
+        if (activeEditingSlide?.id === id) {
+          setActiveEditingSlide(null);
+        }
+      },
+    });
   };
 
   const handleSaveSlide = async (e: React.FormEvent) => {
@@ -506,18 +506,7 @@ export default function HeroManager() {
         </div>
       )}
 
-      {/* Modern Aesthetic Delete Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={!!deletingSlideId}
-        title="Delete Hero Banner Slide?"
-        message="Are you sure you want to remove this hero slide from the homepage carousel? This change will be published immediately."
-        confirmLabel="Delete Banner"
-        cancelLabel="Keep Slide"
-        variant="danger"
-        isLoading={isDeleting}
-        onConfirm={handleConfirmDeleteSlide}
-        onCancel={() => setDeletingSlideId(null)}
-      />
+      <ConfirmDialog {...confirm.dialogProps} />
     </div>
   );
 }

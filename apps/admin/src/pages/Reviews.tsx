@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Star, ShieldAlert, Trash2, Loader2, Search, BadgeCheck, Play, X, Undo2 } from 'lucide-react';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import { adminApi } from '../services/apiClient';
+import { useConfirm } from '../hooks/useConfirm';
 import { resolveImageUrl } from '../components/common/ImageUploader';
 import type { AdminReview } from '../types';
 
@@ -31,12 +32,11 @@ export default function Reviews() {
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({ live: 0, deleted: 0 });
   const [showDeleted, setShowDeleted] = useState(false);
-  const [pendingDestroy, setPendingDestroy] = useState<AdminReview | null>(null);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const confirm = useConfirm(setError);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<AdminReview | null>(null);
   const [preview, setPreview] = useState<{ url: string; isVideo: boolean } | null>(null);
 
   const load = useCallback(async () => {
@@ -69,14 +69,18 @@ export default function Reviews() {
     setPage(1);
   }, [showDeleted, search]);
 
+  /** Shared by every row action: run it, then bring the list back in step. */
+  const afterChange = async () => {
+    await load();
+    setStats(await adminApi.getReviewStats());
+  };
+
   const handleRestore = async (review: AdminReview) => {
     setBusyId(review.id);
     setError('');
     try {
       await adminApi.restoreReview(review.id);
-      // It belongs on the other list now, so it leaves this one.
-      setReviews((prev) => prev.filter((r) => r.id !== review.id));
-      setStats(await adminApi.getReviewStats());
+      await afterChange();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not restore the review');
     } finally {
@@ -84,39 +88,31 @@ export default function Reviews() {
     }
   };
 
-  const handleDestroy = async () => {
-    if (!pendingDestroy) return;
-    setBusyId(pendingDestroy.id);
-    setError('');
-    try {
-      await adminApi.destroyReview(pendingDestroy.id);
-      setReviews((prev) => prev.filter((r) => r.id !== pendingDestroy.id));
-      setStats(await adminApi.getReviewStats());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not remove the review');
-    } finally {
-      // Closed either way: a failure message rendered behind an open dialog is
-      // a failure nobody sees.
-      setPendingDestroy(null);
-      setBusyId(null);
-    }
-  };
+  const askDelete = (review: AdminReview) =>
+    confirm.ask({
+      title: 'Delete this review?',
+      message: `This hides the review by ${
+        review.user.name || review.user.email || 'this customer'
+      } on ${review.product.title} from customers. You can put it back from the Deleted list.`,
+      confirmLabel: 'Delete review',
+      onConfirm: async () => {
+        await adminApi.deleteReview(review.id);
+        await afterChange();
+      },
+    });
 
-  const handleDelete = async () => {
-    if (!pendingDelete) return;
-    setBusyId(pendingDelete.id);
-    setError('');
-    try {
-      await adminApi.deleteReview(pendingDelete.id);
-      setReviews((prev) => prev.filter((r) => r.id !== pendingDelete.id));
-      setStats(await adminApi.getReviewStats());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete the review');
-    } finally {
-      setPendingDelete(null);
-      setBusyId(null);
-    }
-  };
+  const askDestroy = (review: AdminReview) =>
+    confirm.ask({
+      title: 'Delete permanently?',
+      message: `This destroys the review by ${
+        review.user.name || review.user.email || 'this customer'
+      } on ${review.product.title}, along with any photographs attached to it. It cannot be recovered.`,
+      confirmLabel: 'Delete for ever',
+      onConfirm: async () => {
+        await adminApi.destroyReview(review.id);
+        await afterChange();
+      },
+    });
 
   return (
     <div className="space-y-6">
@@ -297,7 +293,7 @@ export default function Reviews() {
                           {/* Only reachable from this list, so nothing can be
                               destroyed in one step from the published one. */}
                           <button
-                            onClick={() => setPendingDestroy(r)}
+                            onClick={() => askDestroy(r)}
                             className="bg-red-50 hover:bg-red-100 text-red-800 p-1.5 rounded transition"
                             title="Delete permanently — cannot be undone"
                           >
@@ -306,7 +302,7 @@ export default function Reviews() {
                         </div>
                       ) : (
                         <button
-                          onClick={() => setPendingDelete(r)}
+                          onClick={() => askDelete(r)}
                           className="bg-stone-50 hover:bg-stone-100 text-stone-500 hover:text-red-700 p-1.5 rounded transition ml-auto block"
                           title="Hide from customers — recoverable"
                         >
@@ -376,31 +372,7 @@ export default function Reviews() {
         </div>
       )}
 
-      {/* Two dialogs, because the two actions are not the same thing and must
-          not read as though they are. */}
-      <ConfirmDialog
-        isOpen={!!pendingDelete}
-        title="Delete this review?"
-        message={`This hides the review by ${
-          pendingDelete?.user.name || pendingDelete?.user.email || 'this customer'
-        } on ${pendingDelete?.product.title} from customers. You can put it back from the Deleted list.`}
-        confirmLabel="Delete review"
-        isLoading={busyId === pendingDelete?.id}
-        onConfirm={handleDelete}
-        onCancel={() => setPendingDelete(null)}
-      />
-
-      <ConfirmDialog
-        isOpen={!!pendingDestroy}
-        title="Delete permanently?"
-        message={`This destroys the review by ${
-          pendingDestroy?.user.name || pendingDestroy?.user.email || 'this customer'
-        } on ${pendingDestroy?.product.title}, along with any photographs attached to it. It cannot be recovered.`}
-        confirmLabel="Delete for ever"
-        isLoading={busyId === pendingDestroy?.id}
-        onConfirm={handleDestroy}
-        onCancel={() => setPendingDestroy(null)}
-      />
+      <ConfirmDialog {...confirm.dialogProps} />
     </div>
   );
 }
