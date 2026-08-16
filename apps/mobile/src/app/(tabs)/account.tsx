@@ -10,8 +10,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, WHATSAPP_NUMBER } from '../constants';
-import { useAuth } from '../context/AuthContext';
+import { COLORS, WHATSAPP_NUMBER } from '../../constants';
+import { useAuth } from '../../context/AuthContext';
+import AppHeader from '../../components/layout/AppHeader';
 
 /**
  * The account screen.
@@ -27,6 +28,7 @@ export default function AccountScreen() {
   if (!isReady) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
+        <AppHeader title="Account" />
         <ActivityIndicator color={COLORS.forest} style={{ marginTop: 48 }} />
       </SafeAreaView>
     );
@@ -35,13 +37,7 @@ export default function AccountScreen() {
   if (!user) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={22} color={COLORS.charcoal} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Account</Text>
-          <View style={{ width: 22 }} />
-        </View>
+        <AppHeader title="Account" />
 
         <View style={styles.empty}>
           <Ionicons name="person-circle-outline" size={40} color={COLORS.muted} />
@@ -61,13 +57,7 @@ export default function AccountScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={22} color={COLORS.charcoal} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Account</Text>
-        <View style={{ width: 22 }} />
-      </View>
+      <AppHeader title="Account" />
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <View style={styles.identity}>

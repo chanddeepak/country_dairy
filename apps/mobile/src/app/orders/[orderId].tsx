@@ -16,6 +16,7 @@ import { trackingLabelFor, trackingUrlFor } from '@country-dairy/types';
 import { COLORS, WHATSAPP_NUMBER } from '../../constants';
 import { rupees } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import AppHeader from '../../components/layout/AppHeader';
 
 interface OrderDetail {
   id: string;
@@ -78,6 +79,7 @@ export default function OrderDetailScreen() {
   if (loading || !isReady) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
+        <AppHeader showBack />
         <ActivityIndicator color={COLORS.forest} style={{ marginTop: 48 }} />
       </SafeAreaView>
     );
@@ -86,6 +88,7 @@ export default function OrderDetailScreen() {
   if (!order) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
+        <AppHeader showBack />
         <View style={styles.empty}>
           <Ionicons name="alert-circle-outline" size={34} color={COLORS.muted} />
           <Text style={styles.emptyTitle}>{error || 'We could not find that order.'}</Text>
@@ -116,13 +119,7 @@ export default function OrderDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={22} color={COLORS.charcoal} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{order.orderNumber}</Text>
-        <View style={{ width: 22 }} />
-      </View>
+      <AppHeader title={order.orderNumber} showBack />
 
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}

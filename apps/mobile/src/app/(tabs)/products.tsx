@@ -10,9 +10,9 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, getExpandedProducts, Product } from '../constants';
-import { useCatalogue } from '../hooks/use-catalogue';
-import ProductCard from '../components/product/ProductCard';
+import { COLORS, getExpandedProducts, Product } from '../../constants';
+import { useCatalogue } from '../../hooks/use-catalogue';
+import ProductCard from '../../components/product/ProductCard';
 
 const CATEGORIES = [
   { id: 'All', label: 'All Products' },

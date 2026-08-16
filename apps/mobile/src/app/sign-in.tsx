@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants';
 import { useAuth } from '../context/AuthContext';
+import AppHeader from '../components/layout/AppHeader';
 
 /**
  * Sign in, or start an account.
@@ -71,11 +72,8 @@ export default function SignInScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        <AppHeader showBack />
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-            <Ionicons name="arrow-back" size={22} color={COLORS.charcoal} />
-          </TouchableOpacity>
-
           <Text style={styles.title}>
             {isRegistering ? 'Create your account' : 'Welcome back'}
           </Text>

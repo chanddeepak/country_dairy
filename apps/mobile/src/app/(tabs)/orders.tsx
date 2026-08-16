@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
 import { rupees } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import AppHeader from '../../components/layout/AppHeader';
 
 interface OrderRow {
   id: string;
@@ -87,6 +88,7 @@ export default function OrdersScreen() {
   if (!isReady || loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
+        <AppHeader title="My orders" />
         <ActivityIndicator color={COLORS.forest} style={{ marginTop: 48 }} />
       </SafeAreaView>
     );
@@ -95,6 +97,7 @@ export default function OrdersScreen() {
   if (!user) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
+        <AppHeader title="My orders" />
         <View style={styles.empty}>
           <Ionicons name="receipt-outline" size={34} color={COLORS.muted} />
           <Text style={styles.emptyTitle}>Sign in to see your orders</Text>
@@ -108,13 +111,7 @@ export default function OrdersScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={22} color={COLORS.charcoal} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My orders</Text>
-        <View style={{ width: 22 }} />
-      </View>
+      <AppHeader title="My orders" />
 
       <FlatList
         data={orders}

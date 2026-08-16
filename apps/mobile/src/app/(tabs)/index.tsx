@@ -15,10 +15,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, HERO_IMAGE, WHATSAPP_BANNER_IMAGE, ENABLE_USER_ACCOUNTS } from '../constants';
-import { useCatalogue } from '../hooks/use-catalogue';
-import ValueBanner from '../components/home/ValueBanner';
-import ProductGrid from '../components/home/ProductGrid';
+import { COLORS, HERO_IMAGE, WHATSAPP_BANNER_IMAGE, ENABLE_USER_ACCOUNTS } from '../../constants';
+import { useCatalogue } from '../../hooks/use-catalogue';
+import AppHeader from '../../components/layout/AppHeader';
+import ValueBanner from '../../components/home/ValueBanner';
+import ProductGrid from '../../components/home/ProductGrid';
 
 const { width: screenWidth } = Dimensions.get('window');
 const SLIDER_WIDTH = screenWidth - 32;
@@ -61,34 +62,10 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      {/* Custom Premium Header */}
-      <View style={styles.header}>
-        <View style={styles.brandContainer}>
-          <Text style={styles.brandTitleGreen}>
-            Country <Text style={styles.brandTitleGold}>Dairy</Text>
-          </Text>
-        </View>
-        {ENABLE_USER_ACCOUNTS && (
-          <View style={styles.headerActions}>
-            {/* No notifications bell until something actually sends one. A
-                button that has never had anything to show is furniture. */}
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={() => router.push('/orders')}
-              accessibilityLabel="My orders"
-            >
-              <Ionicons name="receipt-outline" size={22} color={COLORS.forest} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={() => router.push('/account')}
-              accessibilityLabel="Account"
-            >
-              <Ionicons name="person-outline" size={22} color={COLORS.forest} />
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
+      {/* The shared bar, so the logo sits in the same place on every screen.
+          Orders and Account used to be icons here too; they are tabs now, and
+          two doors to the same room is one more than anyone needs. */}
+      <AppHeader />
 
       <ScrollView 
         style={styles.container} 

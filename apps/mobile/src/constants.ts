@@ -53,6 +53,9 @@ export const PRODUCT_IMAGES: Record<string, any> = {
   'raw-wild-forest-honey-500g': require('../assets/images/products/wild-honey.jpg'),
 };
 
+/** The wordmark, used in the top bar on every screen. */
+export const BRAND_LOGO = require('../assets/images/icon.png');
+
 export const HERO_IMAGE = require('../assets/images/hero-banner.png');
 export const WHATSAPP_BANNER_IMAGE = require('../assets/images/whatsapp-banner.png');
 

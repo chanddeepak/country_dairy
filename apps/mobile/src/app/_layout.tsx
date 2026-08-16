@@ -21,27 +21,11 @@ export default function RootLayout() {
           },
         }}
       >
-        <Stack.Screen 
-          name="index" 
-          options={{ 
-            headerShown: false,
-          }} 
-        />
-        <Stack.Screen 
-          name="products" 
-          options={{ 
-            headerShown: false,
-          }} 
-        />
-        <Stack.Screen 
-          name="[slug]" 
-          options={{ 
-            headerShown: false,
-          }} 
-        />
+        {/* The tab bar is the app. Everything below is pushed on top of it
+            and dismissed back to wherever it was opened from. */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="[slug]" options={{ headerShown: false }} />
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-        <Stack.Screen name="account" options={{ headerShown: false }} />
-        <Stack.Screen name="orders/index" options={{ headerShown: false }} />
         <Stack.Screen name="orders/[orderId]" options={{ headerShown: false }} />
       </Stack>
     </AuthProvider>
