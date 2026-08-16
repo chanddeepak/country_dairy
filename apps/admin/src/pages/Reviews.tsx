@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Star, ShieldAlert, Check, Trash2, Loader2, Search, BadgeCheck, Play, X } from 'lucide-react';
-import StatusBadge from '../components/ui/StatusBadge';
+import { Star, ShieldAlert, Trash2, Loader2, Search, BadgeCheck, Play, X, Undo2 } from 'lucide-react';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import { adminApi } from '../services/apiClient';
 import { resolveImageUrl } from '../components/common/ImageUploader';
-import type { AdminReview, ReviewStatus } from '../types';
+import type { AdminReview } from '../types';
 
-const FILTERS: { label: string; value: ReviewStatus | 'ALL' }[] = [
-  { label: 'Pending', value: 'PENDING' },
-  { label: 'Approved', value: 'APPROVED' },
-  { label: 'Rejected', value: 'REJECTED' },
-  { label: 'All', value: 'ALL' },
+/**
+ * Two lists, not three states.
+ *
+ * Reviews publish the moment they are written, so approving one was always a
+ * no-op and "pending" never meant anything — the only decision anyone actually
+ * makes is whether something should come down.
+ */
+const TABS: { label: string; deleted: boolean }[] = [
+  { label: 'Published', deleted: false },
+  { label: 'Deleted', deleted: true },
 ];
 
 function formatDate(iso: string): string {
@@ -25,8 +29,9 @@ export default function Reviews() {
   const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
-  const [filter, setFilter] = useState<ReviewStatus | 'ALL'>('PENDING');
+  const [stats, setStats] = useState({ live: 0, deleted: 0 });
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [pendingDestroy, setPendingDestroy] = useState<AdminReview | null>(null);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -39,7 +44,7 @@ export default function Reviews() {
     setError('');
     try {
       const [list, counts] = await Promise.all([
-        adminApi.getReviewsAdmin(filter === 'ALL' ? undefined : filter, search || undefined, page),
+        adminApi.getReviewsAdmin(showDeleted, search || undefined, page),
         adminApi.getReviewStats(),
       ]);
       setReviews(list.items);
@@ -50,7 +55,7 @@ export default function Reviews() {
     } finally {
       setIsLoading(false);
     }
-  }, [filter, search, page]);
+  }, [showDeleted, search, page]);
 
   // Debounced so typing in the search box does not fire a request per keystroke.
   useEffect(() => {
@@ -62,21 +67,34 @@ export default function Reviews() {
   // can land on a page that no longer exists.
   useEffect(() => {
     setPage(1);
-  }, [filter, search]);
+  }, [showDeleted, search]);
 
-  const handleAction = async (review: AdminReview, status: 'APPROVED' | 'REJECTED') => {
+  const handleRestore = async (review: AdminReview) => {
     setBusyId(review.id);
     setError('');
     try {
-      const updated = await adminApi.moderateReview(review.id, status);
-      setReviews((prev) =>
-        filter === 'ALL'
-          ? prev.map((r) => (r.id === updated.id ? updated : r))
-          : prev.filter((r) => r.id !== updated.id),
-      );
+      await adminApi.restoreReview(review.id);
+      // It belongs on the other list now, so it leaves this one.
+      setReviews((prev) => prev.filter((r) => r.id !== review.id));
       setStats(await adminApi.getReviewStats());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not update the review');
+      setError(err instanceof Error ? err.message : 'Could not restore the review');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleDestroy = async () => {
+    if (!pendingDestroy) return;
+    setBusyId(pendingDestroy.id);
+    setError('');
+    try {
+      await adminApi.destroyReview(pendingDestroy.id);
+      setReviews((prev) => prev.filter((r) => r.id !== pendingDestroy.id));
+      setStats(await adminApi.getReviewStats());
+      setPendingDestroy(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not remove the review');
     } finally {
       setBusyId(null);
     }
@@ -105,33 +123,40 @@ export default function Reviews() {
           <div>
             <h2 className="text-lg font-bold text-stone-850">Customer Reviews Moderation Panel</h2>
             <p className="text-xs text-stone-500">
-              Approve or reject customer review entries prior to storefront publication.
+              Reviews publish as soon as a customer writes them. Take one down and it
+              moves to Deleted, where it can be put back.
             </p>
           </div>
 
           <div className="flex items-center gap-3 text-xs font-bold">
-            <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-              {stats.pending} pending
-            </span>
             <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              {stats.approved} approved
+              {stats.live} live
             </span>
+            {stats.deleted > 0 && (
+              <span className="px-2.5 py-1 rounded-full bg-stone-100 text-stone-600 border border-stone-200">
+                {stats.deleted} deleted
+              </span>
+            )}
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 mb-5">
           <div className="flex gap-1.5">
-            {FILTERS.map((f) => (
+            {TABS.map((t) => (
               <button
-                key={f.value}
-                onClick={() => setFilter(f.value)}
+                key={t.label}
+                onClick={() => setShowDeleted(t.deleted)}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-colors ${
-                  filter === f.value
+                  showDeleted === t.deleted
                     ? 'bg-[#064e3b] text-white border-[#064e3b]'
                     : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'
                 }`}
               >
-                {f.label}
+                {t.label}
+                <span className={showDeleted === t.deleted ? 'opacity-70' : 'text-stone-400'}>
+                  {' '}
+                  {t.deleted ? stats.deleted : stats.live}
+                </span>
               </button>
             ))}
           </div>
@@ -159,9 +184,11 @@ export default function Reviews() {
           </div>
         ) : reviews.length === 0 ? (
           <div className="py-16 text-center text-xs text-stone-500 font-medium">
-            {filter === 'PENDING'
-              ? 'Nothing waiting for moderation.'
-              : 'No reviews match this filter.'}
+            {showDeleted
+              ? 'Nothing has been taken down.'
+              : search
+                ? 'No reviews match that search.'
+                : 'No reviews yet.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -243,35 +270,45 @@ export default function Reviews() {
                     </td>
                     <td className="p-4 text-stone-500 whitespace-nowrap">{formatDate(r.createdAt)}</td>
                     <td className="p-4">
-                      <StatusBadge status={r.status} />
+                      {r.deletedAt ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-stone-200 text-stone-600 whitespace-nowrap">
+                          Deleted {formatDate(r.deletedAt)}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">
+                          Live
+                        </span>
+                      )}
                     </td>
                     <td className="p-4 text-right">
                       {busyId === r.id ? (
                         <Loader2 className="h-4 w-4 animate-spin text-stone-400 ml-auto" />
-                      ) : r.status === 'PENDING' ? (
+                      ) : r.deletedAt ? (
                         <div className="flex gap-1.5 justify-end">
                           <button
-                            onClick={() => handleAction(r, 'APPROVED')}
+                            onClick={() => handleRestore(r)}
                             className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 p-1.5 rounded transition"
-                            title="Approve Review"
+                            title="Put this review back on the product page"
                           >
-                            <Check className="h-4 w-4" />
+                            <Undo2 className="h-4 w-4" />
                           </button>
+                          {/* Only reachable from this list, so nothing can be
+                              destroyed in one step from the published one. */}
                           <button
-                            onClick={() => handleAction(r, 'REJECTED')}
+                            onClick={() => setPendingDestroy(r)}
                             className="bg-red-50 hover:bg-red-100 text-red-800 p-1.5 rounded transition"
-                            title="Flag / Reject Review"
+                            title="Delete permanently — cannot be undone"
                           >
-                            <ShieldAlert className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       ) : (
                         <button
                           onClick={() => setPendingDelete(r)}
                           className="bg-stone-50 hover:bg-stone-100 text-stone-500 hover:text-red-700 p-1.5 rounded transition ml-auto block"
-                          title="Delete permanently"
+                          title="Hide from customers — recoverable"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <ShieldAlert className="h-4 w-4" />
                         </button>
                       )}
                     </td>
@@ -337,15 +374,28 @@ export default function Reviews() {
         </div>
       )}
 
+      {/* Two dialogs, because the two actions are not the same thing and must
+          not read as though they are. */}
       <ConfirmDialog
         isOpen={!!pendingDelete}
         title="Delete this review?"
-        message={`This permanently removes the review by ${
+        message={`This hides the review by ${
           pendingDelete?.user.name || pendingDelete?.user.email || 'this customer'
-        } on ${pendingDelete?.product.title}. It cannot be undone.`}
+        } on ${pendingDelete?.product.title} from customers. You can put it back from the Deleted list.`}
         confirmLabel="Delete review"
         onConfirm={handleDelete}
         onCancel={() => setPendingDelete(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={!!pendingDestroy}
+        title="Delete permanently?"
+        message={`This destroys the review by ${
+          pendingDestroy?.user.name || pendingDestroy?.user.email || 'this customer'
+        } on ${pendingDestroy?.product.title}, along with any photographs attached to it. It cannot be recovered.`}
+        confirmLabel="Delete for ever"
+        onConfirm={handleDestroy}
+        onCancel={() => setPendingDestroy(null)}
       />
     </div>
   );

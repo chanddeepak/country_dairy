@@ -5,10 +5,11 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { MediaType, OrderStatus, PaymentStatus, ReviewStatus } from '@prisma/client';
+import { MediaType, OrderStatus, PaymentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FLAG, FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import { MediaService } from '../media/media.service';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class ReviewsService {
@@ -18,6 +19,7 @@ export class ReviewsService {
     private prisma: PrismaService,
     private featureFlags: FeatureFlagsService,
     private media: MediaService,
+    private audit: AuditService,
   ) {}
 
   /**
@@ -35,7 +37,8 @@ export class ReviewsService {
     const pageSize = Math.min(Math.max(options.pageSize ?? 5, 1), 50);
     const page = Math.max(options.page ?? 1, 1);
 
-    const where = { productId, status: ReviewStatus.APPROVED };
+    // Everything that has not been taken down. There is no approval gate.
+    const where = { productId, deletedAt: null };
 
     const [grouped, reviews] = await Promise.all([
       this.prisma.productReview.groupBy({ by: ['rating'], where, _count: true }),
@@ -131,9 +134,6 @@ export class ReviewsService {
         // length and the storefront can pair them positionally.
         mediaTypes: (mediaUrls ?? []).map((_, i) => mediaTypes?.[i] ?? MediaType.IMAGE),
         isVerifiedPurchase: !!purchased,
-        // Published on submission. Moderation is a takedown rather than a
-        // gate, so a customer sees their own words straight away.
-        status: ReviewStatus.APPROVED,
       },
       include: { user: { select: { name: true } } },
     });
@@ -195,8 +195,15 @@ export class ReviewsService {
 
   // --- Admin moderation ---
 
+  /**
+   * The moderation list, in one of two states.
+   *
+   * There is no approval queue: reviews publish the moment they are written,
+   * so the only question a moderator ever answers is whether something should
+   * come down. `deleted` picks which of the two lists they are looking at.
+   */
   async listForModeration(
-    status?: ReviewStatus,
+    deleted: boolean,
     search?: string,
     options: { page?: number; pageSize?: number } = {},
   ) {
@@ -204,16 +211,16 @@ export class ReviewsService {
     const page = Math.max(options.page ?? 1, 1);
 
     const where = {
-        ...(status ? { status } : {}),
-        ...(search
-          ? {
-              OR: [
-                { title: { contains: search, mode: 'insensitive' as const } },
-                { comment: { contains: search, mode: 'insensitive' as const } },
-                { product: { title: { contains: search, mode: 'insensitive' as const } } },
-              ],
-            }
-          : {}),
+      deletedAt: deleted ? { not: null } : null,
+      ...(search
+        ? {
+            OR: [
+              { title: { contains: search, mode: 'insensitive' as const } },
+              { comment: { contains: search, mode: 'insensitive' as const } },
+              { product: { title: { contains: search, mode: 'insensitive' as const } } },
+            ],
+          }
+        : {}),
     };
 
     const [items, total] = await Promise.all([
@@ -225,7 +232,9 @@ export class ReviewsService {
           user: { select: { id: true, name: true, email: true } },
           product: { select: { id: true, title: true, slug: true } },
         },
-        orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+        // Most recently removed first when looking at the deleted list —
+        // a mistake is usually noticed straight after it is made.
+        orderBy: deleted ? { deletedAt: 'desc' } : { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
@@ -235,36 +244,92 @@ export class ReviewsService {
     return { items, total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
   }
 
-  async moderate(reviewId: string, status: ReviewStatus, moderatorId: string) {
-    if (status === ReviewStatus.PENDING) {
-      throw new BadRequestException('Choose approve or reject');
-    }
-
+  /**
+   * Take a review down. Recoverable, and the attachments stay where they are.
+   *
+   * Removing the photographs here would make "restore" a lie: the review would
+   * come back with empty frames where the customer's pictures used to be.
+   */
+  async softDelete(reviewId: string, actorId: string) {
     const review = await this.prisma.productReview.findUnique({ where: { id: reviewId } });
-    if (!review) {
-      throw new NotFoundException('Review not found');
-    }
+    if (!review) throw new NotFoundException('Review not found');
+    if (review.deletedAt) throw new BadRequestException('That review is already deleted');
 
-    return this.prisma.productReview.update({
+    const updated = await this.prisma.productReview.update({
       where: { id: reviewId },
-      data: { status, moderatedBy: moderatorId, moderatedAt: new Date() },
+      data: { deletedAt: new Date(), deletedBy: actorId },
       include: {
         user: { select: { id: true, name: true, email: true } },
         product: { select: { id: true, title: true, slug: true } },
       },
     });
+
+    await this.audit.record({
+      action: 'UPDATE',
+      entity: 'ProductReview',
+      entityId: reviewId,
+      before: { deletedAt: null },
+      after: { deletedAt: updated.deletedAt },
+    });
+
+    this.logger.log(`Review ${reviewId} hidden from customers`);
+    return updated;
   }
 
-  async deleteReview(reviewId: string) {
+  /** Put it back on the product page, exactly as it was. */
+  async restore(reviewId: string) {
     const review = await this.prisma.productReview.findUnique({ where: { id: reviewId } });
-    if (!review) {
-      throw new NotFoundException('Review not found');
+    if (!review) throw new NotFoundException('Review not found');
+    if (!review.deletedAt) throw new BadRequestException('That review is not deleted');
+
+    const updated = await this.prisma.productReview.update({
+      where: { id: reviewId },
+      data: { deletedAt: null, deletedBy: null },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        product: { select: { id: true, title: true, slug: true } },
+      },
+    });
+
+    await this.audit.record({
+      action: 'UPDATE',
+      entity: 'ProductReview',
+      entityId: reviewId,
+      before: { deletedAt: review.deletedAt },
+      after: { deletedAt: null },
+    });
+
+    this.logger.log(`Review ${reviewId} restored`);
+    return updated;
+  }
+
+  /**
+   * Gone for good, attachments and all.
+   *
+   * Only reachable from the deleted list, so nothing can be destroyed in one
+   * step from the page a moderator spends their time on. Refusing to do this
+   * to a live review is the guard that makes that true rather than merely
+   * conventional.
+   */
+  async deleteForever(reviewId: string) {
+    const review = await this.prisma.productReview.findUnique({ where: { id: reviewId } });
+    if (!review) throw new NotFoundException('Review not found');
+    if (!review.deletedAt) {
+      throw new BadRequestException('Delete the review first, then remove it permanently');
     }
 
     await this.prisma.productReview.delete({ where: { id: reviewId } });
     await this.releaseMedia(review.mediaUrls);
 
-    this.logger.log(`Review ${reviewId} removed with ${review.mediaUrls.length} attachment(s)`);
+    await this.audit.record({
+      action: 'DELETE',
+      entity: 'ProductReview',
+      entityId: reviewId,
+      before: { rating: review.rating, productId: review.productId },
+      after: { permanent: true, attachmentsRemoved: review.mediaUrls.length },
+    });
+
+    this.logger.log(`Review ${reviewId} destroyed with ${review.mediaUrls.length} attachment(s)`);
     return { success: true };
   }
 
@@ -286,15 +351,11 @@ export class ReviewsService {
   }
 
   async getModerationStats() {
-    const counts = await this.prisma.productReview.groupBy({
-      by: ['status'],
-      _count: true,
-    });
+    const [live, deleted] = await Promise.all([
+      this.prisma.productReview.count({ where: { deletedAt: null } }),
+      this.prisma.productReview.count({ where: { deletedAt: { not: null } } }),
+    ]);
 
-    return {
-      pending: counts.find((c) => c.status === ReviewStatus.PENDING)?._count ?? 0,
-      approved: counts.find((c) => c.status === ReviewStatus.APPROVED)?._count ?? 0,
-      rejected: counts.find((c) => c.status === ReviewStatus.REJECTED)?._count ?? 0,
-    };
+    return { live, deleted };
   }
 }

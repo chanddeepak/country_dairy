@@ -1,6 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { cleanup, db, tracked, type Tracked } from '../fixtures/db';
-import { apiClient, createCustomer, findSellableVariant, resolve } from '../fixtures/api';
+import { cleanup, db, tracked, RUN_ID, type Tracked } from '../fixtures/db';
+import {
+  adminToken,
+  apiClient,
+  createCustomer,
+  createStaff,
+  findSellableVariant,
+  resolve,
+} from '../fixtures/api';
 
 /**
  * QA plan §8 — reviews, their attachments, and the storage behind them.
@@ -63,8 +70,8 @@ test.describe('Reviews @auth', () => {
     const review = await db.productReview.findUniqueOrThrow({ where: { id } });
     // Held for moderation would mean an honest review is invisible until
     // someone gets round to it. The product's choice is to publish and moderate
-    // afterwards.
-    expect(review.status).toBe('APPROVED');
+    // afterwards, so a new review is simply not deleted.
+    expect(review.deletedAt).toBeNull();
     expect(review.rating).toBe(5);
     expect(review.userId).toBe(customer.id);
   });
@@ -247,7 +254,8 @@ test.describe('Reviews @auth', () => {
     await api.dispose();
 
     const truth = await db.productReview.aggregate({
-      where: { productId, status: 'APPROVED' },
+      // Every review still standing — there is no approval state now.
+      where: { productId, deletedAt: null },
       _avg: { rating: true },
       _count: true,
     });
@@ -268,5 +276,132 @@ test.describe('Reviews @auth', () => {
 
     expect(tailBody.hasMore).toBe(false);
     expect(Number(tailBody.averageRating)).toBeCloseTo(Number(body.averageRating), 2);
+  });
+});
+
+/**
+ * Taking a review down, and changing your mind.
+ *
+ * A takedown is the only moderation decision that exists, so it is the one
+ * that has to be safe. Deleting is recoverable; destroying is deliberately
+ * two steps away and reachable only from the deleted list.
+ */
+test.describe('Review takedown @security', () => {
+  let t: Tracked;
+
+  test.beforeEach(() => {
+    t = tracked();
+  });
+
+  test.afterEach(async () => {
+    await cleanup(t);
+  });
+
+  test('a deleted review disappears for customers and comes back intact', async () => {
+    test.setTimeout(180_000);
+
+    const customer = await createCustomer(t);
+    const productId = (await findSellableVariant()).productId;
+    const { id } = await createReview(customer.token, productId, {
+      rating: 5,
+      comment: `Lovely ghee ${RUN_ID}`,
+    });
+    t.reviewIds.push(id);
+
+    const anon = await apiClient();
+    const visibleBefore = await (
+      await anon.get(resolve(`/products/${productId}/reviews`))
+    ).json();
+    expect(
+      visibleBefore.reviews.some((r: { id: string }) => r.id === id),
+      'a new review was not on the product page',
+    ).toBe(true);
+
+    const asStaff = await apiClient(await adminToken());
+    const removed = await asStaff.delete(resolve(`/reviews/admin/${id}`));
+    expect(removed.ok(), await removed.text()).toBeTruthy();
+
+    // Hidden, but still there — and the photographs are kept, or restoring it
+    // would bring back a review with empty frames where the pictures were.
+    const row = await db.productReview.findUniqueOrThrow({ where: { id } });
+    expect(row.deletedAt).toBeTruthy();
+    expect(row.deletedBy).toBeTruthy();
+
+    const visibleAfter = await (
+      await anon.get(resolve(`/products/${productId}/reviews`))
+    ).json();
+    expect(
+      visibleAfter.reviews.some((r: { id: string }) => r.id === id),
+      'a deleted review was still on the product page',
+    ).toBe(false);
+
+    // And back again.
+    const restored = await asStaff.post(resolve(`/reviews/admin/${id}/restore`));
+    expect(restored.ok()).toBeTruthy();
+    expect((await db.productReview.findUniqueOrThrow({ where: { id } })).deletedAt).toBeNull();
+
+    const visibleAgain = await (
+      await anon.get(resolve(`/products/${productId}/reviews`))
+    ).json();
+    expect(visibleAgain.reviews.some((r: { id: string }) => r.id === id)).toBe(true);
+
+    await anon.dispose();
+    await asStaff.dispose();
+  });
+
+  test('a live review cannot be destroyed in one step', async () => {
+    test.setTimeout(180_000);
+
+    const customer = await createCustomer(t);
+    const productId = (await findSellableVariant()).productId;
+    const { id } = await createReview(customer.token, productId, {
+      rating: 4,
+      comment: `Still standing ${RUN_ID}`,
+    });
+    t.reviewIds.push(id);
+
+    const asStaff = await apiClient(await adminToken());
+
+    // The guard that makes "two steps" real rather than a matter of which
+    // button the console happens to render.
+    const tooSoon = await asStaff.delete(resolve(`/reviews/admin/${id}/permanent`));
+    expect(tooSoon.status()).toBe(400);
+    expect(await db.productReview.findUnique({ where: { id } })).not.toBeNull();
+
+    await asStaff.delete(resolve(`/reviews/admin/${id}`));
+    const now = await asStaff.delete(resolve(`/reviews/admin/${id}/permanent`));
+    expect(now.ok(), await now.text()).toBeTruthy();
+    expect(await db.productReview.findUnique({ where: { id } })).toBeNull();
+
+    await asStaff.dispose();
+  });
+
+  test('only review staff may take one down @security', async () => {
+    test.setTimeout(180_000);
+
+    const author = await createCustomer(t, 'Author');
+    const stranger = await createCustomer(t, 'Stranger');
+    const driver = await createStaff(t, 'DELIVERY_DRIVER');
+    const productId = (await findSellableVariant()).productId;
+    const { id } = await createReview(author.token, productId, {
+      rating: 3,
+      comment: `Not yours to remove ${RUN_ID}`,
+    });
+    t.reviewIds.push(id);
+
+    for (const [who, token, expected] of [
+      ['an anonymous caller', undefined, 401],
+      ['another customer', stranger.token, 403],
+      ['a delivery driver', driver.token, 403],
+    ] as const) {
+      const api = await apiClient(token);
+      expect(
+        (await api.delete(resolve(`/reviews/admin/${id}`))).status(),
+        `${who} removed a review`,
+      ).toBe(expected);
+      await api.dispose();
+    }
+
+    expect((await db.productReview.findUniqueOrThrow({ where: { id } })).deletedAt).toBeNull();
   });
 });

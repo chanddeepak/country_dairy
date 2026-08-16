@@ -1,11 +1,11 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { ReviewStatus, Role } from '@prisma/client';
+import { Role } from '@prisma/client';
 import { ReviewsService } from './reviews.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { CreateReviewDto, ModerateReviewDto, UpdateReviewDto } from './dto/reviews.dto';
+import { CreateReviewDto, UpdateReviewDto } from './dto/reviews.dto';
 
 const REVIEW_STAFF = [Role.SUPER_ADMIN, Role.CATALOG_MANAGER] as const;
 
@@ -18,12 +18,12 @@ export class ReviewsAdminController {
   @Get('admin')
   @Roles(...REVIEW_STAFF)
   async list(
-    @Query('status') status?: ReviewStatus,
+    @Query('deleted') deleted?: string,
     @Query('search') search?: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
   ) {
-    return this.reviewsService.listForModeration(status, search, {
+    return this.reviewsService.listForModeration(deleted === 'true', search, {
       page: Number(page) || 1,
       pageSize: Number(pageSize) || 20,
     });
@@ -35,20 +35,32 @@ export class ReviewsAdminController {
     return this.reviewsService.getModerationStats();
   }
 
-  @Patch('admin/:id/moderate')
-  @Roles(...REVIEW_STAFF)
-  async moderate(
-    @CurrentUser() user: { id: string },
-    @Param('id') id: string,
-    @Body() dto: ModerateReviewDto,
-  ) {
-    return this.reviewsService.moderate(id, dto.status, user.id);
-  }
-
+  /**
+   * Take a review down. Recoverable — it moves to the deleted list rather
+   * than disappearing, and the customer's photographs are kept so that
+   * restoring it brings back what they actually wrote.
+   */
   @Delete('admin/:id')
   @Roles(...REVIEW_STAFF)
-  async remove(@Param('id') id: string) {
-    return this.reviewsService.deleteReview(id);
+  async remove(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+    return this.reviewsService.softDelete(id, user.id);
+  }
+
+  @Post('admin/:id/restore')
+  @Roles(...REVIEW_STAFF)
+  async restore(@Param('id') id: string) {
+    return this.reviewsService.restore(id);
+  }
+
+  /**
+   * Destroy it, attachments included. Separate verb and separate route from
+   * the takedown on purpose: nothing on the day-to-day list should be one
+   * click away from being unrecoverable.
+   */
+  @Delete('admin/:id/permanent')
+  @Roles(...REVIEW_STAFF)
+  async destroy(@Param('id') id: string) {
+    return this.reviewsService.deleteForever(id);
   }
 }
 

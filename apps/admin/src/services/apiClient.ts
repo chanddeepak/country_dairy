@@ -602,32 +602,36 @@ export const adminApi = {
     return fetchJson<StockAlert[]>('/analytics/stock-alerts');
   },
 
-  // Reviews moderation API
+  // Reviews. There is no approval queue — reviews publish immediately, so the
+  // only two lists are what is live and what has been taken down.
   async getReviewsAdmin(
-    status?: string,
+    deleted = false,
     search?: string,
     page = 1,
     pageSize = 20,
   ): Promise<Paginated<AdminReview>> {
     const query = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
-    if (status) query.append('status', status);
+    if (deleted) query.append('deleted', 'true');
     if (search) query.append('search', search);
     return fetchJson<Paginated<AdminReview>>(`/reviews/admin?${query.toString()}`);
   },
 
-  async getReviewStats(): Promise<{ pending: number; approved: number; rejected: number }> {
-    return fetchJson<{ pending: number; approved: number; rejected: number }>('/reviews/admin/stats');
+  async getReviewStats(): Promise<{ live: number; deleted: number }> {
+    return fetchJson<{ live: number; deleted: number }>('/reviews/admin/stats');
   },
 
-  async moderateReview(id: string, status: 'APPROVED' | 'REJECTED'): Promise<AdminReview> {
-    return fetchJson<AdminReview>(`/reviews/admin/${id}/moderate`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
-    });
+  /** Hide from customers. Recoverable, and the attachments are kept. */
+  async deleteReview(id: string): Promise<AdminReview> {
+    return fetchJson<AdminReview>(`/reviews/admin/${id}`, { method: 'DELETE' });
   },
 
-  async deleteReview(id: string): Promise<void> {
-    return fetchJson<void>(`/reviews/admin/${id}`, { method: 'DELETE' });
+  async restoreReview(id: string): Promise<AdminReview> {
+    return fetchJson<AdminReview>(`/reviews/admin/${id}/restore`, { method: 'POST' });
+  },
+
+  /** Gone for good, attachments included. Only valid on an already-deleted review. */
+  async destroyReview(id: string): Promise<void> {
+    return fetchJson<void>(`/reviews/admin/${id}/permanent`, { method: 'DELETE' });
   },
 
   // Admin Orders API

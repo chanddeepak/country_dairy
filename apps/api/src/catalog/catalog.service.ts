@@ -191,7 +191,9 @@ export class CatalogService {
           },
           reviews: {
             // Only moderated reviews reach the storefront.
-            where: options.liveOnly ? { status: 'APPROVED' } : undefined,
+            // Ratings count every review still standing. There is no approval
+            // gate any more — only a takedown, which sets deletedAt.
+            where: options.liveOnly ? { deletedAt: null } : undefined,
             include: {
               user: {
                 select: { name: true },

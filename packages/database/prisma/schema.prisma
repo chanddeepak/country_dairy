@@ -91,12 +91,6 @@ enum ProductStatus {
   ARCHIVED
 }
 
-enum ReviewStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
 enum DeliveryType {
   LOCAL
   COURIER
@@ -825,11 +819,12 @@ model ProductReview {
   /// mediaUrls[i], so a review can mix both without a join table.
   mediaUrls          String[]
   mediaTypes         MediaType[]
-  /// Reviews publish immediately; moderation is a takedown, not a gate.
-  status             ReviewStatus @default(APPROVED)
   isVerifiedPurchase Boolean      @default(false)
-  moderatedBy        String?
-  moderatedAt        DateTime?
+  /// Reviews publish immediately, so there is no approval state — only a
+  /// takedown. Set means hidden from customers but recoverable; the row is
+  /// only really gone when it is deleted a second time, from the deleted list.
+  deletedAt          DateTime?
+  deletedBy          String?
   editedAt           DateTime?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
@@ -837,8 +832,8 @@ model ProductReview {
   // No unique on [userId, productId]: a customer may review a product more
   // than once, for instance after reordering a later batch.
   @@index([userId, productId])
-  @@index([productId, status])
-  @@index([status, createdAt])
+  @@index([productId, deletedAt])
+  @@index([deletedAt, createdAt])
 }
 
 // ---------------------------------------------------------------------------

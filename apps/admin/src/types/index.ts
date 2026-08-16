@@ -176,8 +176,6 @@ export interface Paginated<T> {
   totalPages: number;
 }
 
-export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
-
 export interface AdminReview {
   id: string;
   rating: number;
@@ -186,11 +184,12 @@ export interface AdminReview {
   mediaUrls: string[];
   /** Parallel to mediaUrls: mediaTypes[i] describes mediaUrls[i]. */
   mediaTypes?: MediaType[];
-  status: ReviewStatus;
   isVerifiedPurchase: boolean;
   createdAt: string;
   editedAt?: string | null;
-  moderatedAt?: string | null;
+  /** Set means hidden from customers but recoverable from the deleted list. */
+  deletedAt?: string | null;
+  deletedBy?: string | null;
   user: { id: string; name: string | null; email: string | null };
   product: { id: string; title: string; slug: string };
 }

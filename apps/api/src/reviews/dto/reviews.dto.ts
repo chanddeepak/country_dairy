@@ -1,4 +1,4 @@
-import { MediaType, ReviewStatus } from '@prisma/client';
+import { MediaType } from '@prisma/client';
 import {
   ArrayMaxSize,
   IsArray,
@@ -55,9 +55,4 @@ export class UpdateReviewDto extends CreateReviewDto {
   @Min(1, { message: 'Rating must be between 1 and 5' })
   @Max(5, { message: 'Rating must be between 1 and 5' })
   declare rating: number;
-}
-
-export class ModerateReviewDto {
-  @IsEnum(ReviewStatus, { message: 'Choose approve or reject' })
-  status: ReviewStatus;
 }
