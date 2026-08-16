@@ -92,10 +92,12 @@ export default function Reviews() {
       await adminApi.destroyReview(pendingDestroy.id);
       setReviews((prev) => prev.filter((r) => r.id !== pendingDestroy.id));
       setStats(await adminApi.getReviewStats());
-      setPendingDestroy(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not remove the review');
     } finally {
+      // Closed either way: a failure message rendered behind an open dialog is
+      // a failure nobody sees.
+      setPendingDestroy(null);
       setBusyId(null);
     }
   };
@@ -108,10 +110,10 @@ export default function Reviews() {
       await adminApi.deleteReview(pendingDelete.id);
       setReviews((prev) => prev.filter((r) => r.id !== pendingDelete.id));
       setStats(await adminApi.getReviewStats());
-      setPendingDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not delete the review');
     } finally {
+      setPendingDelete(null);
       setBusyId(null);
     }
   };
@@ -383,6 +385,7 @@ export default function Reviews() {
           pendingDelete?.user.name || pendingDelete?.user.email || 'this customer'
         } on ${pendingDelete?.product.title} from customers. You can put it back from the Deleted list.`}
         confirmLabel="Delete review"
+        isLoading={busyId === pendingDelete?.id}
         onConfirm={handleDelete}
         onCancel={() => setPendingDelete(null)}
       />
@@ -394,6 +397,7 @@ export default function Reviews() {
           pendingDestroy?.user.name || pendingDestroy?.user.email || 'this customer'
         } on ${pendingDestroy?.product.title}, along with any photographs attached to it. It cannot be recovered.`}
         confirmLabel="Delete for ever"
+        isLoading={busyId === pendingDestroy?.id}
         onConfirm={handleDestroy}
         onCancel={() => setPendingDestroy(null)}
       />

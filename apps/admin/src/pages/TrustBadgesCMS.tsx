@@ -25,6 +25,7 @@ export default function TrustBadgesCMS() {
   const [error, setError] = useState('');
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ index: number; badge: DraftBadge } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     adminApi
@@ -46,14 +47,20 @@ export default function TrustBadgesCMS() {
   const handleDelete = async () => {
     if (!pendingDelete) return;
     const { index, badge } = pendingDelete;
+    setIsDeleting(true);
+    setError('');
 
     try {
       // Only rows that exist server-side need a delete call.
       if (badge.id) await adminApi.deleteTrustBadge(badge.id);
       setBadges((prev) => prev.filter((_, i) => i !== index));
-      setPendingDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not delete the badge');
+    } finally {
+      // Closed either way: an error rendered behind an open dialog is an
+      // error nobody sees.
+      setPendingDelete(null);
+      setIsDeleting(false);
     }
   };
 
@@ -228,6 +235,7 @@ export default function TrustBadgesCMS() {
         title="Remove this badge?"
         message={`"${pendingDelete?.badge.title || 'This badge'}" will no longer appear on the homepage.`}
         confirmLabel="Remove badge"
+        isLoading={isDeleting}
         onConfirm={handleDelete}
         onCancel={() => setPendingDelete(null)}
       />
