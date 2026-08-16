@@ -166,7 +166,13 @@ export default function Sidebar({ activeTab, setActiveTab, featureFlags = {} }: 
   });
 
   return (
-    <aside className="admin-sidebar bg-[#064e3b] text-[#FAF8F3] p-5 flex flex-col justify-between min-h-screen w-64 border-r border-[#065f46] shrink-0 shadow-xl">
+    // h-screen with self-start, not min-h-screen. The parent is a flex row, so
+    // the default align-items: stretch grew this to whatever the tallest item
+    // was — on a long page the green ran the full length of the content and
+    // dragged the account card down out of sight with it. self-start stops the
+    // stretch, h-screen pins it to the viewport, and sticky keeps it there
+    // while the page scrolls past.
+    <aside className="admin-sidebar bg-[#064e3b] text-[#FAF8F3] p-5 flex flex-col justify-between h-screen sticky top-0 self-start overflow-y-auto w-64 border-r border-[#065f46] shrink-0 shadow-xl">
       <div>
         {/* Brand Header */}
         <div className="brand-header flex items-center gap-3 mb-6 pb-4 border-b border-[#065f46]/80">
