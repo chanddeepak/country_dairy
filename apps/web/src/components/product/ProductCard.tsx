@@ -116,6 +116,18 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
           </span>
         )}
 
+        {/* Provenance seal, bottom-left so it clears the discount and highlight
+            tags at the top. Small enough that the words in it cannot be read —
+            it works as a mark you come to recognise, not as something anyone
+            reads on a card. The product page carries the legible version. */}
+        {!isOutOfStock && (
+          <img
+            src="/badges/made-in-uttarakhand.jpg"
+            alt="Made in Uttarakhand"
+            className="absolute bottom-3 left-3 z-10 w-14 h-14 rounded-full shadow-md ring-1 ring-black/5 pointer-events-none"
+          />
+        )}
+
         <Image
           src={imageSrc}
           alt={product.name}

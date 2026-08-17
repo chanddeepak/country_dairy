@@ -593,6 +593,26 @@ export default function ProductDetailPage() {
                 <span>✨</span> {product.tagline || product.description}
               </p>
 
+              {/* Provenance seal, beside the product rather than over it.
+                  There is room here for the artwork to be legible and for the
+                  words it carries at print size to be written out — which is
+                  what the 56px version on a card cannot do. Nothing covers the
+                  photograph, which is what actually sells food. */}
+              <div className="flex items-center gap-3 bg-[#FAF8F3] border border-stone-200 rounded-xl p-3">
+                <img
+                  src="/badges/made-in-uttarakhand.jpg"
+                  alt=""
+                  className="w-16 h-16 rounded-full shrink-0 ring-1 ring-black/5"
+                />
+                <div>
+                  <p className="text-xs font-bold text-[#2A2A2A]">Made in Uttarakhand</p>
+                  <p className="text-[11px] text-[#6b6661] leading-snug">
+                    Pure hills, pure cows, pure milk, pure ghee — churned in Tanakpur,
+                    in the foothills of Devbhoomi.
+                  </p>
+                </div>
+              </div>
+
               {/* VARIANT SELECTOR */}
               {product.variants && product.variants.length > 0 && (
                 <div className="pt-2">
