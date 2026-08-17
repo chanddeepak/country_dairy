@@ -116,6 +116,16 @@ export function mapApiProducts(products: ApiProduct[]): Product[] {
   return products.map(mapApiProduct);
 }
 
+/** True when no size of this product can be bought right now. */
+export function isSoldOut(product: Product): boolean {
+  const variants = product.variants ?? [];
+  // A product whose stock the API did not send is treated as available. Not
+  // knowing is not the same as knowing there is none, and hiding a product on
+  // a missing field would silently empty the shelf.
+  if (variants.length === 0) return false;
+  return variants.every((v) => typeof v.stockQuantity === 'number' && v.stockQuantity <= 0);
+}
+
 /**
  * Every size, each as its own card. For the shop page.
  *

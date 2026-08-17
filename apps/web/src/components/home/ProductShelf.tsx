@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { FALLBACK_PRODUCTS, API_URL, Product, getExpandedProducts } from '../../lib/constants';
-import { mapApiProducts, expandHomeVariants } from '../../lib/mapProduct';
+import { mapApiProducts, expandHomeVariants, isSoldOut } from '../../lib/mapProduct';
 import ProductCard from '../product/ProductCard';
 
 interface ProductShelfProps {
@@ -34,7 +34,12 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
         const liveProducts = await res.json();
         if (liveProducts && liveProducts.length > 0) {
           // Flagged sizes get their own cards; everything else appears once.
-          setProducts(expandHomeVariants(mapApiProducts(liveProducts)));
+          // The homepage is the shop window. Something nobody can buy has no
+          // business in it — a customer who taps through only to be told it is
+          // sold out has been sent on an errand for nothing.
+          setProducts(
+            expandHomeVariants(mapApiProducts(liveProducts)).filter((p) => !isSoldOut(p)),
+          );
           return;
         }
       }

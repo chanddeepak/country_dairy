@@ -10,7 +10,7 @@ import AuthModal from '../../components/modals/AuthModal';
 import SubscriptionModal from '../../components/modals/SubscriptionModal';
 import CartDrawer from '../../components/cart/CartDrawer';
 import { FALLBACK_PRODUCTS, API_URL, getExpandedProducts } from '../../lib/constants';
-import { mapApiProducts, expandAllVariants } from '../../lib/mapProduct';
+import { mapApiProducts, expandAllVariants, isSoldOut } from '../../lib/mapProduct';
 import { useStoreConfig } from '../../context/StoreConfigContext';
 import { useRouter } from 'next/navigation';
 
@@ -97,6 +97,11 @@ export default function ProductsPage() {
     return result;
   }, [products, searchQuery, activeCategory, sortBy]);
 
+  // Split for display only — filtering and sorting still run over everything,
+  // so a search that matches a sold-out size still finds it.
+  const inStock = filteredProducts.filter((p) => !isSoldOut(p));
+  const soldOut = filteredProducts.filter((p) => isSoldOut(p));
+
   const handleSubscribe = (product: any) => {
     if (!user) { setIsAuthOpen(true); return; }
     setSubscrProduct(product);
@@ -172,16 +177,43 @@ export default function ProductsPage() {
               <p className="text-sm font-bold text-stone-400">No products found matching your criteria.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={addToCart}
-                  onSubscribe={handleSubscribe}
-                />
-              ))}
-            </div>
+            <>
+              {/* Sold-out sizes are shown, but below the shelf rather than
+                  scattered through it. Hiding them entirely would leave a
+                  regular wondering whether we had stopped making their size;
+                  mixing them in wastes the attention of everyone else. */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+                {inStock.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAddToCart={addToCart}
+                    onSubscribe={handleSubscribe}
+                  />
+                ))}
+              </div>
+
+              {soldOut.length > 0 && (
+                <section className="mt-14">
+                  <h2 className="font-serif font-bold text-lg text-[#2A2A2A] mb-1">
+                    Currently out of stock
+                  </h2>
+                  <p className="text-xs text-[#6b6661] mb-5">
+                    Back as soon as the next batch is churned.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+                    {soldOut.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onAddToCart={addToCart}
+                        onSubscribe={handleSubscribe}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
           )}
         </div>
       </main>
