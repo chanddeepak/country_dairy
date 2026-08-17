@@ -117,6 +117,51 @@ export function mapApiProducts(products: ApiProduct[]): Product[] {
 }
 
 /**
+ * Every size, each as its own card. For the shop page.
+ *
+ * Distinct from expandHomeVariants, and deliberately not driven by the same
+ * flag. "Show on home" curates the homepage shelf — it is a decision about
+ * what to put in the window. The shop is the whole catalogue, so a size a
+ * customer can buy has to be a size they can find: listing ghee once meant
+ * the 500ml jar existed only for someone who thought to open the product and
+ * look.
+ *
+ * A product with a single size is left alone. Suffixing "— 1 Litre" onto the
+ * only size there is adds nothing but noise.
+ */
+export function expandAllVariants(products: Product[]): Product[] {
+  const shelf: Product[] = [];
+
+  for (const product of products) {
+    // Inactive sizes are already dropped by the mapper above.
+    const variants = product.variants ?? [];
+
+    if (variants.length <= 1) {
+      shelf.push(product);
+      continue;
+    }
+
+    for (const variant of variants) {
+      shelf.push({
+        ...product,
+        // Distinct id, or React drops the second card as a key collision.
+        id: `${product.id}--${variant.id}`,
+        name: `${product.name} — ${variant.volumeOrWeight}`,
+        price: variant.price,
+        originalPrice: variant.originalPrice,
+        discountBadge: variant.discountPercent,
+        imageUrls: variant.image ? [variant.image] : product.imageUrls,
+        // The card adds to cart with the default variant, so the default has
+        // to be the size the card is showing.
+        variants: variants.map((v) => ({ ...v, isDefault: v.id === variant.id })),
+      } as unknown as Product);
+    }
+  }
+
+  return shelf;
+}
+
+/**
  * Gives a flagged variant its own card on the homepage shelf.
  *
  * A product normally appears once, at its default size. Where the shopkeeper

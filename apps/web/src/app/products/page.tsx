@@ -10,7 +10,7 @@ import AuthModal from '../../components/modals/AuthModal';
 import SubscriptionModal from '../../components/modals/SubscriptionModal';
 import CartDrawer from '../../components/cart/CartDrawer';
 import { FALLBACK_PRODUCTS, API_URL, getExpandedProducts } from '../../lib/constants';
-import { mapApiProducts } from '../../lib/mapProduct';
+import { mapApiProducts, expandAllVariants } from '../../lib/mapProduct';
 import { useStoreConfig } from '../../context/StoreConfigContext';
 import { useRouter } from 'next/navigation';
 
@@ -50,7 +50,9 @@ export default function ProductsPage() {
       if (res.ok) {
         const liveProducts = await res.json();
         if (liveProducts && liveProducts.length > 0) {
-          const mapped = mapApiProducts(liveProducts);
+          // One card per size. Listing ghee once hid the 500ml jar from
+          // anyone who did not think to open the product and look.
+          const mapped = expandAllVariants(mapApiProducts(liveProducts));
           setProducts(mapped);
 
           // Only categories that actually have live products get a chip.
