@@ -1,47 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import {
-  Award,
-  BadgeCheck,
-  Heart,
-  Leaf,
-  PackageCheck,
-  ShieldCheck,
-  Sparkles,
-  Truck,
-} from 'lucide-react';
-import { API_URL } from '../../lib/constants';
 
-interface TrustBadge {
-  id: string;
-  title: string;
-  subtitle: string;
-  iconName: string;
-}
-
-/**
- * The icons the console offers, resolved by name.
- *
- * A badge saved with an icon this map does not know still renders — with the
- * default shield rather than a hole where a picture should be. The console's
- * list and this one can drift; only one of them should be able to break a
- * page, and it is not this one.
- */
-const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  ShieldCheck,
-  Truck,
-  Award,
-  Heart,
-  Leaf,
-  Sparkles,
-  BadgeCheck,
-  PackageCheck,
-};
-
-// The fallback. Shown until the console has badges of its own, so a fresh
-// install never presents an empty band where the reasons to trust us go.
+// Value proposition cards matching "Why Country Dairy" section
 const values = [
   {
     icon: (
@@ -91,26 +53,6 @@ const values = [
 ];
 
 export default function ValueBanner() {
-  // The console owns this band. Until it has badges, the copy above stands in.
-  const [badges, setBadges] = useState<TrustBadge[]>([]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    fetch(`${API_URL}/cms/trust-badges`)
-      .then((res) => (res.ok ? res.json() : []))
-      .then((rows) => {
-        if (!cancelled && Array.isArray(rows)) setBadges(rows);
-      })
-      // A failed fetch leaves the fallback in place, which is the point of
-      // having one. This band is reassurance, not information the page needs.
-      .catch(() => undefined);
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const handleScrollToAbout = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith('#')) {
       e.preventDefault();
@@ -128,23 +70,7 @@ export default function ValueBanner() {
           Why Country Dairy
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-          {badges.length > 0
-            ? badges.map((badge) => {
-                const Icon = ICONS[badge.iconName] ?? ShieldCheck;
-                return (
-                  <div
-                    key={badge.id}
-                    className="bg-white border border-stone-200 rounded-xl p-6 text-center hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex justify-center mb-4">
-                      <Icon className="w-10 h-10 text-[#3A6038]" />
-                    </div>
-                    <h4 className="font-bold text-sm text-[#2A2A2A] mb-2">{badge.title}</h4>
-                    <p className="text-xs text-[#6b6661] leading-relaxed">{badge.subtitle}</p>
-                  </div>
-                );
-              })
-            : values.map((value) => (
+          {values.map((value) => (
             <div
               key={value.title}
               className="bg-white border border-stone-200 rounded-xl p-6 text-center hover:shadow-md transition-shadow flex flex-col justify-between"
