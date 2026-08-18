@@ -104,14 +104,53 @@ Fetch token from our API, call `HeadlessCheckout.addToCart(event, token,
 
 ## What does not fit, and needs a decision
 
-- **Coupons.** We have a `Coupon` table and `couponCode` on the order.
-  Discounts inside their checkout are theirs. Either we stop offering coupons
-  while the flag is on, or we use their custom-price variant of the access
-  token API. Worth asking Abhishek.
 - **Subscriptions.** Their checkout is one-shot. Standing orders stay on our
   flow whatever happens.
 - **Cart.** Our server-side cart still holds the items; we only hand them the
   list at the moment of checkout. Nothing changes there.
+
+## Coupons: theirs, decided
+
+Discounts are Shiprocket's while the flag is on. Their webhook reports the
+whole breakdown, so nothing is lost by not owning it:
+
+```
+coupon_codes[]           coupon_discount     prepaid_discount
+total_discount           subtotal_price      total_amount_payable
+discount_detail.discount_data[]  -> code, mode, amount, provider
+```
+
+Three consequences.
+
+**Our `discountAmount` is one number and theirs is several.** A prepaid
+discount and a coupon discount arriving separately collapse into a single
+figure on the order. The breakdown must survive somewhere or the checkout
+summary starts disagreeing with the invoice — `Payment.rawPayload` is a Json
+column and already exists for exactly this kind of thing.
+
+**`coupon_codes` is an array; our `couponCode` is one string.** Their checkout
+allows more than one. Store the first in `couponCode` for display and keep the
+full list in the raw payload, or the second code silently disappears.
+
+**`Order.couponId` stays null.** It is a foreign key to our `Coupon` table and
+their codes are not in it. The column is already optional, so nothing breaks —
+but any report that joins through `couponId` will under-count, and that is the
+sort of thing discovered a quarter later.
+
+### The operational trap
+
+Two coupon systems now exist, and only one is live at a time.
+
+With the flag on, a coupon created in our console does nothing — the customer
+never touches our checkout. Staff will create one, test it, and find it
+ignored, exactly as the trust badge editor was ignored for months.
+
+Whoever builds this should hide or clearly label the console's Coupons page
+when the flag is on. A dead admin page is worse than a missing one: somebody
+maintains it believing it works.
+
+Our own `Coupon` table stays regardless, because our checkout remains the
+fallback their script insists on.
 
 ## Answer for Shiprocket
 
@@ -120,5 +159,5 @@ Fetch token from our API, call `HeadlessCheckout.addToCart(event, token,
 > documented shape and a registered webhook URL, both authenticated with
 > `X-Api-Key` and `X-Api-HMAC-SHA256`. We need a **staging API key and secret**
 > to begin, and confirmation on three points: per-order pricing, whose
-> Razorpay account settles the payment, and whether discounts and coupons can
-> be applied through the custom-price access token.
+> Razorpay account settles the payment,. Coupons and discounts will be
+> managed in Shiprocket's dashboard rather than ours.
