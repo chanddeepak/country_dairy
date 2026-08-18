@@ -15,6 +15,7 @@ import { LabReportsModule } from './lab-reports/lab-reports.module';
 import { DeliveryModule } from './delivery/delivery.module';
 import { UsersModule } from './users/users.module';
 import { GeoModule } from './geo/geo.module';
+import { ShiprocketModule } from './shiprocket/shiprocket.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { SupportModule } from './support/support.module';
 import { AuditModule } from './audit/audit.module';
@@ -35,6 +36,7 @@ import { AuditModule } from './audit/audit.module';
     DeliveryModule,
     UsersModule,
     GeoModule,
+    ShiprocketModule,
     AnalyticsModule,
     AuditModule,
     SupportModule,

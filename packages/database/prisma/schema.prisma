@@ -291,6 +291,9 @@ model ProductCollection {
 
 model Category {
   id            String     @id @default(uuid())
+  /// Stable numeric id, for the same reason as Product.externalId —
+  /// Shiprocket's collections must be identified by a long.
+  externalId  BigInt   @unique @default(autoincrement())
   name          String
   slug          String     @unique
   description   String?
