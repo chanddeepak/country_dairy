@@ -157,6 +157,39 @@ whether the webhook carries everything an invoice needs.
 - **Subscriptions.** Their checkout is one-shot. Standing dairy orders will
   need our own flow whatever happens here.
 
+## Login: use theirs on the site too
+
+Confirmed by observation rather than documentation — signing in on
+anveshan.farm asks for a mobile number and the OTP arrives from Shiprocket.
+They run "Login with Shiprocket" on the storefront itself, not only inside
+checkout.
+
+That matters because full checkout on its own leaves a hole. Their checkout
+logs the customer into *their* network; we learn the phone and email from the
+webhook and upsert a customer who has no password. They have an order with us
+and no way to sign in and look at it. Shopify merchants get away with this
+because Shopify sends a hosted order-status page needing no login. We have no
+such page — our tracking sits behind our own auth.
+
+Three ways to close it, and the cheapest is not the one I first suggested:
+
+1. **Login with Shiprocket (S2S).** `s2s-login/initiate` -> `verify` ->
+   `customer-data`. Four endpoints. No SMS provider, no per-message cost, the
+   address book arrives with the customer, and it is the same identity their
+   checkout used. This is what Anveshan does.
+2. **Our own OTP.** Already written — sendOtp/verifyOtp, rate limited, behind
+   ENABLE_OTP_LOGIN — and missing only an SMS provider. Costs a contract and a
+   per-message fee to arrive at a worse version of 1: the address book is
+   still ours to build and the identity is still separate inside checkout.
+3. **An order-status link by email.** No login at all. Smallest, and worth
+   having regardless for someone who never signs in.
+
+Recommendation: 1, with 3 alongside it.
+
+The trade is a deeper dependency on Shiprocket — identity as well as checkout.
+Not a trap: we store the phone number ourselves, so moving to our own OTP
+later is a provider swap rather than a migration of customers.
+
 ## The cheaper alternative
 
 `POST /api/v1/access-token/s2s-login/initiate` → `…/verify` →
