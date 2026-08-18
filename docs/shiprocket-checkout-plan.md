@@ -11,7 +11,8 @@ do not apply to us.
 Yes. Their checkout UI handles OTP login and address autofill itself — that is
 the product. The separate "S2S Login" and "Login Iframe" collections exist for
 merchants who want the login and address network *without* handing over
-checkout. See `## The cheaper alternative` at the end.
+checkout. Which of the two to use is settled in `## Login: use their iframe,
+not S2S` below — the answer is not the one this document originally gave.
 
 ## How the flow works
 
@@ -157,40 +158,65 @@ whether the webhook carries everything an invoice needs.
 - **Subscriptions.** Their checkout is one-shot. Standing dairy orders will
   need our own flow whatever happens here.
 
-## Login: use theirs on the site too
+## Login: use their iframe, not S2S
 
-Confirmed by observation rather than documentation — signing in on
-anveshan.farm asks for a mobile number and the OTP arrives from Shiprocket.
-They run "Login with Shiprocket" on the storefront itself, not only inside
-checkout.
+Corrects a recommendation made twice earlier in this document's history. There
+are three products here, not two, and the difference decides whether a
+customer types their phone number once or twice.
 
-That matters because full checkout on its own leaves a hole. Their checkout
-logs the customer into *their* network; we learn the phone and email from the
-webhook and upsert a customer who has no password. They have an order with us
-and no way to sign in and look at it. Shopify merchants get away with this
-because Shopify sends a hosted order-status page needing no login. We have no
-such page — our tracking sits behind our own auth.
+| | Runs where | Does their checkout inherit the session? |
+| --- | --- | --- |
+| **Login iframe** (`login.js`) | the browser, on their domain | **Yes** |
+| **S2S login** | our server, back channel | **No** |
+| Login inside checkout | their checkout window | n/a — it is the checkout |
 
-Three ways to close it, and the cheapest is not the one I first suggested:
+### Why the iframe and not S2S
 
-1. **Login with Shiprocket (S2S).** `s2s-login/initiate` -> `verify` ->
-   `customer-data`. Four endpoints. No SMS provider, no per-message cost, the
-   address book arrives with the customer, and it is the same identity their
-   checkout used. This is what Anveshan does.
-2. **Our own OTP.** Already written — sendOtp/verifyOtp, rate limited, behind
-   ENABLE_OTP_LOGIN — and missing only an SMS provider. Costs a contract and a
-   per-message fee to arrive at a worse version of 1: the address book is
-   still ours to build and the identity is still separate inside checkout.
-3. **An order-status link by email.** No login at all. Smallest, and worth
-   having regardless for someone who never signs in.
+```
+POST /api/v1/access-token/login   { address: true, timestamp }  -> token
+  load  checkout-ui.shiprocket.com/assets/js/channels/login.js
+  dialog: phone + OTP, and optionally address selection
+  dialog returns an authorised token
+POST /api/v1/customer-data        { token }  -> phone + full address
+```
 
-Recommendation: 1, with 3 alongside it.
+That dialog is served from `checkout-ui.shiprocket.com` — the same host that
+serves the checkout UI. Logging in there establishes the customer's session
+with Shiprocket **in the browser**, so when checkout opens it is the same
+origin and the same session, and the phone step is skipped.
 
-The trade is a deeper dependency on Shiprocket — identity as well as checkout.
-Not a trap: we store the phone number ourselves, so moving to our own OTP
-later is a provider swap rather than a migration of customers.
+S2S does the same authentication over a back channel from our server. We would
+learn who the customer is, and the browser would never have met Shiprocket —
+so their checkout would still ask for the number. Correct for a merchant who
+wants the identity without their UI; wrong for us, because avoiding the second
+ask is the entire point.
 
-## The cheaper alternative
+`address: true` on the token request lets the dialog do address selection too,
+so their chosen address is known before checkout opens.
+
+### Confirmation
+
+Signing in on anveshan.farm asks for a mobile number, the OTP arrives from
+Shiprocket, and checkout does not ask again. Observed on the live site.
+
+The endpoints, the script host and the flow are read from their collection.
+That the session carries into checkout is inference from the shared origin —
+the documentation does not state it. The observation above is the evidence,
+and it is better evidence than the documentation would have been.
+
+### What this means for us
+
+- Our email/password sign-in is replaced by their dialog, or kept only as a
+  fallback. New customers never set a password.
+- `User.phone` becomes the identity anchor. It is already unique.
+- Whether they arrive through checkout or the site, it is one person and one
+  order history.
+- Task #4, OTP login with MSG91, can be closed. It would cost an SMS contract
+  to build a worse version of what the dialog does.
+- Now is the cheapest possible moment: production holds two accounts, a driver
+  and one customer. There is no migration.
+
+## The cheaper alternative, if full checkout is ever reconsidered
 
 `POST /api/v1/access-token/s2s-login/initiate` → `…/verify` →
 `…/customer-data` → `…/customer-rto-risk`
@@ -200,5 +226,6 @@ RTO risk score — while we keep our checkout, Razorpay, invoice series, stock
 guard and subscription path. No catalogue sync, no numeric-id migration, no
 payment handover.
 
-It gives us the three things we actually wanted from this and forecloses
-nothing: full checkout can still follow.
+Note this is the *server-side* login, which is the right shape only when their
+checkout is not in the picture. Alongside full checkout it is the wrong one:
+see the login section above.
