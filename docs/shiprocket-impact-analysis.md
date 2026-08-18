@@ -109,9 +109,27 @@ Fetch token from our API, call `HeadlessCheckout.addToCart(event, token,
 - **Cart.** Our server-side cart still holds the items; we only hand them the
   list at the moment of checkout. Nothing changes there.
 
-## Coupons: theirs, decided
+## Coupons: configured in their dashboard, decided
 
-Discounts are Shiprocket's while the flag is on. Their webhook reports the
+To be clear about who decides: **we do, either way.** Shiprocket is a checkout
+surface, not a merchandiser — they neither invent discounts nor fund them.
+What is being chosen here is only *where the rule lives*.
+
+There are two mechanisms, and their documentation supports both:
+
+1. **Configure in their dashboard.** Their checkout applies the rule. This is
+   what we are doing.
+2. **Compute in ours and pass it at token creation.** The Custom Price /
+   Discount variant of the access-token API accepts
+   `cart_discount: {coupon_code, amount}` — "If specified, only this fixed
+   discount is applied." Our `Coupon` table stays authoritative and their
+   checkout is simply told the answer.
+
+Option 2 keeps our coupon engine, our console page and our reporting alive at
+the cost of a validation call before the handover. Worth revisiting if the
+dead-Coupons-page problem below turns out to bite in practice.
+
+Discounts are configured in Shiprocket while the flag is on. Their webhook reports the
 whole breakdown, so nothing is lost by not owning it:
 
 ```
@@ -158,6 +176,6 @@ fallback their script insists on.
 > not WordPress. We will provide the three catalogue endpoints in the
 > documented shape and a registered webhook URL, both authenticated with
 > `X-Api-Key` and `X-Api-HMAC-SHA256`. We need a **staging API key and secret**
-> to begin, and confirmation on three points: per-order pricing, whose
-> Razorpay account settles the payment,. Coupons and discounts will be
-> managed in Shiprocket's dashboard rather than ours.
+> to begin, and confirmation on two points: per-order pricing, and whose
+> Razorpay account settles the payment. Coupons and discounts will be
+> configured in Shiprocket's dashboard rather than ours.
