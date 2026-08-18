@@ -326,6 +326,12 @@ model PackagingOption {
 
 model Product {
   id               String        @id @default(uuid())
+  /// A stable numeric id for systems that cannot hold a UUID. Shiprocket
+  /// Checkout requires a long, stores it, and sends it back on every order, so
+  /// it must never be reused — a recycled number points their existing orders
+  /// at a different product. The UUID remains the primary key; nothing
+  /// internal reads this one.
+  externalId       BigInt        @unique @default(autoincrement())
   categoryId       String
   category         Category      @relation(fields: [categoryId], references: [id])
   title            String
@@ -409,6 +415,12 @@ model BundleItem {
 
 model ProductVariant {
   id                String  @id @default(uuid())
+  /// A stable numeric id for systems that cannot hold a UUID. Shiprocket
+  /// Checkout requires a long, stores it, and sends it back on every order, so
+  /// it must never be reused — a recycled number points their existing orders
+  /// at a different size. The UUID remains the primary key; nothing
+  /// internal reads this one.
+  externalId       BigInt        @unique @default(autoincrement())
   productId         String
   product           Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   sku               String  @unique
