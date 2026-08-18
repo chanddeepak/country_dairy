@@ -71,6 +71,13 @@ test.describe('Shiprocket catalogue feed @security', () => {
     expect(variant.quantity).toBe(live.stockQuantity);
     expect(variant.price).toBe(String(live.sellingPrice));
 
+    // Couriers price on weight. A jar that weighs nothing gets a rate nobody
+    // can honour, and this shipped that way until the editor grew a field for
+    // it — the API accepted the value all along, nothing ever asked for it.
+    expect(variant.grams, 'variant has no weight').toBeGreaterThan(0);
+    expect(variant.weight).toBeCloseTo(variant.grams / 1000, 3);
+    expect(variant.weight_unit).toBe('kg');
+
     // A relative path resolves against *their* domain and 404s, so a picture
     // that is set at all must be absolute.
     if (product.image.src) {

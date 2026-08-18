@@ -230,6 +230,21 @@ export interface ProductVariant {
   updatedAt: string;
   /** Gives this size its own card on the homepage shelf. */
   showOnHome?: boolean;
+
+  /**
+   * Shipping dimensions. Couriers price on weight, and on volumetric weight
+   * where the box is bulky for what it holds — a courier quote without these
+   * is a guess.
+   *
+   * They were saveable through the API and absent from this type, so the
+   * product editor had no way to offer them and every variant went out
+   * weighing nothing.
+   */
+  weightGrams?: number | null;
+  lengthCm?: number | null;
+  widthCm?: number | null;
+  heightCm?: number | null;
+  barcode?: string | null;
 }
 
 export type MediaType = 'IMAGE' | 'VIDEO';
