@@ -19,12 +19,31 @@ requirement of theirs.
 cache. One more key:
 
 ```ts
-SHIPROCKET_CHECKOUT: 'ENABLE_SHIPROCKET_CHECKOUT',
+SHIPROCKET_CHECKOUT:  'ENABLE_SHIPROCKET_CHECKOUT',
+SHIPROCKET_OUR_COUPONS: 'ENABLE_SHIPROCKET_OUR_COUPONS',
 ```
 
-Off: the Checkout button behaves exactly as today. On: it fetches a token and
-hands over to their script, with our checkout still reachable as the fallback.
-Nothing is deleted, and switching back is a toggle rather than a deploy.
+**The first** decides whether checkout is theirs. Off: the Checkout button
+behaves exactly as today. On: it fetches a token and hands over to their
+script, with our checkout still reachable as the fallback. Nothing is deleted,
+and switching back is a toggle rather than a deploy.
+
+**The second** decides where the discount rule lives, and only means anything
+while the first is on:
+
+| `OUR_COUPONS` | Behaviour |
+| --- | --- |
+| off *(built first)* | Coupons configured in Shiprocket's dashboard; their checkout applies them |
+| on *(built second)* | We validate against our own `Coupon` table and pass `cart_discount` at token creation |
+
+They are mutually exclusive by their design, not ours — "If specified, only
+this fixed discount is applied", so passing `cart_discount` switches their
+dashboard coupons off for that order. One flag, two states, never both at
+once. A customer seeing one discount while the invoice shows another is the
+failure this prevents.
+
+Build order: the first mechanism, then the second behind its flag, so the two
+can be compared on real orders rather than argued about.
 
 ## Reused as-is
 
