@@ -12,10 +12,18 @@ interface ProductShelfProps {
   onSubscribe: (product: Product) => void;
 }
 
-const CATEGORIES = [
-  { id: 'All', label: 'All Products' },
-  { id: 'A2 Desi Ghee', label: 'Ghee' },
-];
+/**
+ * The chips were hardcoded to 'A2 Desi Ghee', a category that does not exist.
+ * The taxonomy calls it 'Dairy', so clicking Ghee filtered to nothing at all —
+ * a shelf that looked broken because a label in the source disagreed with the
+ * database.
+ *
+ * Derived from the products on the shelf instead, the same way /products does
+ * it. A category cannot go stale if nobody writes it down twice, and a chip
+ * can never filter to an empty shelf because it only exists if something is
+ * under it.
+ */
+const ALL = 'All';
 
 export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
   const { addToCart } = useApp();
@@ -58,6 +66,11 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
     });
     setProducts(primaryVariants);
   };
+
+  const categories = [
+    ALL,
+    ...Array.from(new Set(products.map((p) => p.category).filter(Boolean))).sort(),
+  ];
 
   const filteredProducts = activeCategory === 'All'
     ? products
@@ -123,19 +136,19 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
       {/* Category Filter Tabs & Navigation Controls */}
       <div className="flex items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto pb-2 scrollbar-none mx-auto sm:mx-0">
-          {CATEGORIES.map((cat) => {
-            const isActive = activeCategory === cat.id;
+          {categories.map((cat) => {
+            const isActive = activeCategory === cat;
             return (
               <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
                 className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap ${
                   isActive
                     ? 'bg-[#3A6038] text-white shadow-sm'
                     : 'bg-white text-[#6b6661] hover:text-[#2A2A2A] border border-stone-200 hover:border-[#3A6038]'
                 }`}
               >
-                {cat.label}
+                {cat === ALL ? 'All Products' : cat}
               </button>
             );
           })}

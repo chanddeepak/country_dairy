@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronRight, Minus, Plus, Calendar, ShoppingBag, MessageCircle, Share2, Check, Truck, Headphones, RotateCcw, ClipboardCheck, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Minus, Plus, Calendar, ShoppingBag, MessageCircle, Share2, Check, Truck, Headphones, RotateCcw, ClipboardCheck, Loader2 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import Navbar from '../../../components/layout/Navbar';
 import Footer from '../../../components/layout/Footer';
@@ -402,6 +402,25 @@ export default function ProductDetailPage() {
   ].filter(Boolean) as string[];
   const allImages = Array.from(new Set(galleryPool));
 
+  /**
+   * Move through the gallery from the main image itself.
+   *
+   * The thumbnails below already switch it, but on a phone they sit under the
+   * fold — someone looking at the jar has no way to see the second photograph
+   * without scrolling away from it. Wraps at both ends so neither arrow is
+   * ever a dead control.
+   */
+  const stepImage = (direction: 1 | -1) => {
+    if (allImages.length < 2) return;
+    const resolvedActive = resolveStorefrontImageUrl(activeImage);
+    const current = allImages.findIndex(
+      (img) => resolveStorefrontImageUrl(img) === resolvedActive,
+    );
+    const from = current === -1 ? 0 : current;
+    const next = (from + direction + allImages.length) % allImages.length;
+    setActiveImage(resolveStorefrontImageUrl(allImages[next]));
+  };
+
   const galleryThumbnails = allImages.map((imgUrl, index) => ({
     id: `thumb-${index}`,
     url: imgUrl,
@@ -491,12 +510,52 @@ export default function ProductDetailPage() {
                 <Image
                   src={resolveStorefrontImageUrl(activeImage)}
                   alt={product.name || 'Country Dairy Product Image'}
+                  data-testid="gallery-main"
                   fill
                   className="object-contain p-2 sm:p-4 transition-all duration-300"
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   priority
                   loading="eager"
                 />
+
+                {/* Only where there is somewhere to go. A single-photograph
+                    product showing arrows promises more than it has. */}
+                {allImages.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => stepImage(-1)}
+                      aria-label="Previous image"
+                      data-testid="gallery-prev"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/90 hover:bg-white border border-stone-200 shadow-sm flex items-center justify-center text-[#2A2A2A] transition"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => stepImage(1)}
+                      aria-label="Next image"
+                      data-testid="gallery-next"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/90 hover:bg-white border border-stone-200 shadow-sm flex items-center justify-center text-[#2A2A2A] transition"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+
+                    {/* Which of how many — otherwise the arrows give no sense
+                        of where you are in the set. */}
+                    <span className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 text-[10px] font-bold text-[#6b6661] bg-white/85 border border-stone-200 rounded-full px-2.5 py-1">
+                      {Math.max(
+                        1,
+                        allImages.findIndex(
+                          (img) =>
+                            resolveStorefrontImageUrl(img) ===
+                            resolveStorefrontImageUrl(activeImage),
+                        ) + 1,
+                      )}{' '}
+                      / {allImages.length}
+                    </span>
+                  </>
+                )}
               </div>
 
               {/* Gallery Thumbnails Row */}
