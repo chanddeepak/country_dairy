@@ -129,6 +129,10 @@ export class CatalogService {
             select: {
               name: true,
               slug: true,
+              // The shelf this type sits on. Filter chips group by it, so
+              // "A2 Desi Ghee" appears under "Ghee" rather than becoming a
+              // chip of its own.
+              parent: { select: { name: true, slug: true } },
             },
           },
           variants: {
@@ -165,6 +169,10 @@ export class CatalogService {
         return {
           ...product,
           categoryName: product.category?.name || 'Dairy',
+          // The top-level shelf. Equal to categoryName when the product's
+          // category has no parent, so a consumer can use it unconditionally.
+          parentCategoryName: product.category?.parent?.name ?? product.category?.name ?? null,
+          parentCategorySlug: product.category?.parent?.slug ?? product.category?.slug ?? null,
           averageRating,
           totalReviews,
           latestBatchNumber: latest?.batchNumber ?? null,

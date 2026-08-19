@@ -17,11 +17,21 @@ test.describe('Home category filter', () => {
   test('every chip filters to something', async ({ page }) => {
     test.setTimeout(120_000);
 
+    // Shelves, not kinds. A chip exists for a top-level category that has live
+    // products either directly or through one of its types — "Ghee" carries
+    // "A2 Desi Ghee" rather than each variety earning a chip of its own.
     const categories = await db.category.findMany({
-      where: { isActive: true, products: { some: { status: 'LIVE' } } },
+      where: {
+        isActive: true,
+        parentId: null,
+        OR: [
+          { products: { some: { status: 'LIVE' } } },
+          { subCategories: { some: { products: { some: { status: 'LIVE' } } } } },
+        ],
+      },
       select: { name: true },
     });
-    test.skip(categories.length === 0, 'no category has live products');
+    test.skip(categories.length === 0, 'no shelf has live products');
 
     await page.goto('/');
     await expect(page.locator(SEL.productCardLink).first()).toBeVisible({ timeout: 30_000 });
@@ -51,7 +61,12 @@ test.describe('Home category filter', () => {
 
   test('no chip exists for a category with nothing in it', async ({ page }) => {
     const empty = await db.category.findFirst({
-      where: { isActive: true, products: { none: { status: 'LIVE' } } },
+      where: {
+        isActive: true,
+        parentId: null,
+        products: { none: { status: 'LIVE' } },
+        subCategories: { none: { products: { some: { status: 'LIVE' } } } },
+      },
       select: { name: true },
     });
     test.skip(!empty, 'every category has live products');
@@ -114,5 +129,47 @@ test.describe('Product gallery arrows', () => {
     await expect
       .poll(async () => main.getAttribute('src'), { timeout: 10_000 })
       .toBe(before);
+  });
+});
+
+/**
+ * Chips show the shelf, not the kind.
+ *
+ * A product filed under "A2 Desi Ghee" must appear beneath a "Ghee" chip. The
+ * type is a filter between kinds of the same thing and belongs on the category
+ * page, not on a homepage that would otherwise grow a chip per variety.
+ */
+test.describe('Filter chips group by shelf', () => {
+  test('a product in a type appears under its parent category', async ({ page }) => {
+    test.setTimeout(120_000);
+
+    const typed = await db.product.findFirst({
+      where: { status: 'LIVE', category: { parentId: { not: null } } },
+      include: { category: { include: { parent: true } } },
+    });
+    test.skip(!typed, 'no product sits inside a type');
+
+    const shelf = typed!.category.parent!.name;
+    const kind = typed!.category.name;
+
+    await page.goto('/products');
+    await expect(page.locator(SEL.productCardLink).first()).toBeVisible({ timeout: 30_000 });
+
+    await expect(
+      page.getByRole('button', { name: shelf, exact: true }),
+      `no chip for the "${shelf}" shelf`,
+    ).toBeVisible({ timeout: 20_000 });
+
+    // The kind must not have become a chip of its own.
+    await expect(
+      page.getByRole('button', { name: kind, exact: true }),
+      `"${kind}" is a type and should not be a chip`,
+    ).toHaveCount(0);
+
+    // And the shelf chip still finds the product.
+    await page.getByRole('button', { name: shelf, exact: true }).click();
+    await expect
+      .poll(async () => page.locator(SEL.productCardLink).count(), { timeout: 15_000 })
+      .toBeGreaterThan(0);
   });
 });

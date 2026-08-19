@@ -41,6 +41,8 @@ interface ApiProduct {
   forceOutOfStock?: boolean;
   isSubscriptionAllowed?: boolean;
   categoryName?: string;
+  /** The top-level shelf. Equals categoryName when there is no parent. */
+  parentCategoryName?: string;
   category?: string | { name?: string };
   averageRating?: number;
   totalReviews?: number;
@@ -89,10 +91,17 @@ export function mapApiProduct(p: ApiProduct): Product {
     name: p.title || p.name || 'Product',
     title: p.title || p.name,
     slug: p.slug,
+    // The shelf, not the type. Filter chips group by this, so a product filed
+    // under "A2 Desi Ghee" appears beneath "Ghee" rather than becoming a chip
+    // of its own — types belong on the category page, as filters between
+    // kinds of the same thing.
     category:
+      p.parentCategoryName ||
       p.categoryName ||
       (typeof p.category === 'string' ? p.category : p.category?.name) ||
       '',
+    /** The specific kind. Used by the category page's type filters. */
+    productType: p.categoryName ?? '',
     tagline: p.tagline ?? '',
     description: p.storyDescription || p.description || '',
     badgeText: p.badgeText ?? '',
