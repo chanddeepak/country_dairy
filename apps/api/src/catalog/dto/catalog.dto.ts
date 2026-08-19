@@ -298,7 +298,16 @@ export class CategoryDto {
   @IsBoolean()
   isActive?: boolean;
 
+  /**
+   * The category this is a type of — Desi Ghee under Ghee. Absent for a
+   * category in its own right.
+   */
   @IsOptional()
   @IsString()
   parentId?: string;
+
+  /** Promoted to the storefront nav bar rather than living in its dropdown. */
+  @IsOptional()
+  @IsBoolean()
+  showInNav?: boolean;
 }

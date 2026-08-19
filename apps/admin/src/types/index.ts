@@ -208,6 +208,13 @@ export interface Category {
   iconName?: string;
   displayOrder: number;
   isActive: boolean;
+  /**
+   * Set when this is a type within a category — Desi Ghee under Ghee. Null for
+   * a category in its own right. Two levels only; a type cannot have types.
+   */
+  parentId?: string | null;
+  /** Promoted to the storefront nav bar rather than living in its dropdown. */
+  showInNav?: boolean;
   createdAt: string;
   updatedAt: string;
 }

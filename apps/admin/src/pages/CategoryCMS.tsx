@@ -10,6 +10,10 @@ export interface CategoryItem {
   iconName?: string;
   displayOrder?: number;
   isActive?: boolean;
+  /** Set when this is a type within a category — Desi Ghee under Ghee. */
+  parentId?: string | null;
+  /** Promoted to the storefront nav bar rather than its dropdown. */
+  showInNav?: boolean;
 }
 
 interface CategoryCMSProps {
@@ -31,14 +35,25 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
 
   // Form State
   const [nameInput, setNameInput] = useState('');
+  const [parentInput, setParentInput] = useState<string>('');
+  const [navInput, setNavInput] = useState(false);
   const [descInput, setDescInput] = useState('');
   const [orderInput, setOrderInput] = useState('1');
+
+  // Only a category can be a parent. Two levels is the whole model, so a type
+  // must never be offered as somewhere to put another type.
+  const topLevel = categories.filter((c) => !c.parentId);
+
+  const parentName = (cat: CategoryItem) =>
+    cat.parentId ? categories.find((c) => c.id === cat.parentId)?.name : undefined;
 
   const handleOpenAdd = () => {
     setEditingCategory(null);
     setNameInput('');
     setDescInput('');
     setOrderInput((categories.length + 1).toString());
+    setParentInput('');
+    setNavInput(false);
     setIsModalOpen(true);
   };
 
@@ -47,6 +62,8 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
     setNameInput(cat.name);
     setDescInput(cat.description || '');
     setOrderInput((cat.displayOrder || 1).toString());
+    setParentInput(cat.parentId || '');
+    setNavInput(!!cat.showInNav);
     setIsModalOpen(true);
   };
 
@@ -63,6 +80,9 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
         slug,
         description: descInput.trim(),
         displayOrder: parseInt(orderInput) || 1,
+        parentId: parentInput || null,
+        // A type lives inside its category's page, never in the bar.
+        showInNav: parentInput ? false : navInput,
       };
       setCategories(prev => prev.map(c => c.id === editingCategory.id ? updatedCat : c));
       try {
@@ -79,6 +99,8 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
         iconName: 'Package',
         displayOrder: parseInt(orderInput) || categories.length + 1,
         isActive: true,
+        parentId: parentInput || null,
+        showInNav: parentInput ? false : navInput,
       };
       setCategories(prev => [...prev, newCat]);
       try {
@@ -156,7 +178,19 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
             {categories.slice().sort((a, b) => (a.displayOrder || 1) - (b.displayOrder || 1)).map((cat) => (
               <tr key={cat.id} className="hover:bg-stone-800/50 transition-colors">
                 <td className="px-4 py-3.5 font-mono text-amber-400 font-bold">{cat.displayOrder}</td>
-                <td className="px-4 py-3.5 font-bold text-stone-100">{cat.name}</td>
+                <td className="px-4 py-3.5 font-bold text-stone-100">
+                  {/* "Ghee › Desi Ghee", so the shape is readable without
+                      opening every row to find out what belongs where. */}
+                  {parentName(cat) && (
+                    <span className="text-stone-400 font-normal">{parentName(cat)} › </span>
+                  )}
+                  {cat.name}
+                  {cat.showInNav && (
+                    <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                      in nav
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3.5 font-mono text-stone-400">{cat.slug}</td>
                 <td className="px-4 py-3.5 text-stone-400 max-w-xs truncate">{cat.description}</td>
                 <td className="px-4 py-3.5">
@@ -210,6 +244,48 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
                   placeholder="e.g. Organic Oils"
                 />
               </div>
+
+              <div>
+                <label className="block text-stone-300 mb-1 font-semibold">Belongs to</label>
+                <select
+                  value={parentInput}
+                  onChange={(e) => setParentInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-900 border border-stone-700 rounded-lg text-stone-100"
+                >
+                  <option value="">A category of its own</option>
+                  {topLevel
+                    .filter((c) => c.id !== editingCategory?.id)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        A type of {c.name}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-[11px] text-stone-400 mt-1">
+                  {parentInput
+                    ? 'Shown as a filter on that category\u2019s page, not in the nav bar.'
+                    : 'Ghee, Oils, Honey. Types like Desi Ghee belong inside one of these.'}
+                </p>
+              </div>
+
+              {/* Only a category can be promoted. A type lives inside its
+                  category's page, so offering the choice would be a lie. */}
+              {!parentInput && (
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={navInput}
+                    onChange={(e) => setNavInput(e.target.checked)}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    <span className="block text-stone-300 font-semibold">Show in the nav bar</span>
+                    <span className="block text-[11px] text-stone-400">
+                      Unticked, it still appears under \u201cShop by category\u201d.
+                    </span>
+                  </span>
+                </label>
+              )}
 
               <div>
                 <label className="block text-stone-300 mb-1 font-semibold">Display Order</label>

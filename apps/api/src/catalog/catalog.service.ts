@@ -63,6 +63,10 @@ export class CatalogService {
         iconName: dto.iconName || 'Package',
         displayOrder: dto.displayOrder ? Number(dto.displayOrder) : 1,
         isActive: dto.isActive !== undefined ? dto.isActive : true,
+        parentId: await this.assertParentIsTopLevel(dto.parentId),
+        // A type lives inside its category's page, so it can never be in
+        // the bar — enforced here rather than trusting a form to hide a box.
+        showInNav: dto.parentId ? false : (dto.showInNav ?? false),
       },
     });
   }
@@ -81,6 +85,12 @@ export class CatalogService {
         iconName: dto.iconName ?? existing.iconName,
         displayOrder: dto.displayOrder !== undefined ? Number(dto.displayOrder) : existing.displayOrder,
         isActive: dto.isActive !== undefined ? dto.isActive : existing.isActive,
+        parentId:
+          dto.parentId !== undefined
+            ? await this.assertParentIsTopLevel(dto.parentId)
+            : existing.parentId,
+        showInNav:
+          dto.parentId ? false : (dto.showInNav ?? existing.showInNav),
       },
     });
   }
@@ -585,4 +595,31 @@ export class CatalogService {
 
     return { success: true, id, archived: false };
   }
+
+  /**
+   * Two levels, and no deeper.
+   *
+   * A type cannot be a type of a type. Enforced here rather than by table
+   * structure, because the alternative — a separate subcategory table — makes
+   * a category with no types pretend to be its own subcategory, and every
+   * query afterwards has to remember it.
+   */
+  private async assertParentIsTopLevel(parentId?: string | null): Promise<string | null> {
+    if (!parentId) return null;
+
+    const parent = await this.prisma.category.findUnique({
+      where: { id: parentId },
+      select: { id: true, parentId: true, name: true },
+    });
+
+    if (!parent) throw new BadRequestException('That category does not exist');
+    if (parent.parentId) {
+      throw new BadRequestException(
+        `${parent.name} is already a type. Types cannot contain other types.`,
+      );
+    }
+
+    return parent.id;
+  }
+
 }
