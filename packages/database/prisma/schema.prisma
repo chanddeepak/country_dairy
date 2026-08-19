@@ -301,6 +301,12 @@ model Category {
   iconName      String?    @default("Package")
   displayOrder  Int        @default(1)
   isActive      Boolean    @default(true)
+  /// Promoted to the navigation bar rather than living in its dropdown.
+  ///
+  /// A merchandising decision, not a structural one — which is why it is a
+  /// flag and not a level. Both comparable brands in this market keep the bar
+  /// flat and promote a handful, rather than nesting it.
+  showInNav     Boolean    @default(false)
   parentId      String?
   parent        Category?  @relation("SubCategories", fields: [parentId], references: [id])
   subCategories Category[] @relation("SubCategories")

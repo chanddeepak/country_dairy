@@ -1,105 +1,89 @@
-# Category hierarchy — two levels
+# Categories and types
 
-Decided 19 August 2026. Nothing built yet.
+Rewritten 19 August 2026. The first version of this document was wrong twice
+over, and both corrections are worth keeping.
 
-Categories are a flat list today: Ghee, Oils, Honey, each unrelated to the
-others. The model wanted is one level of nesting, with a product attached to
-the leaf.
+## What changed, and why
+
+**The nesting is not Dairy → Ghee.** It is **Ghee → Desi, Cultured, Buffalo,
+Herbal** — types of a thing, at the narrow end. Two Brothers' own ghee page
+filters by exactly that, with counts, and neither they nor Anveshan nest
+anything in their navigation. Nobody shops by "Dairy"; people shop by "ghee",
+and then by which kind.
+
+**And `Category.parentId` already existed** — self-relation, index and all,
+unused since the schema was written, along with `imageUrl` which an earlier
+version of this document claimed was missing. Both were asserted from grepping
+for particular fields rather than reading the model. Only `showInNav` was
+genuinely absent.
+
+## The model
 
 ```
-Dairy ──┬── Ghee          Oils ──┬── Mustard
-        ├── Milk                 └── Coconut
-        └── Paneer         Honey
+Category(id, name, slug, description, imageUrl, iconName, displayOrder,
+         isActive, externalId, parentId?, showInNav)
 ```
 
-A product belongs to **Ghee**, never to Dairy. That is what makes the parent
-worth having: "Dairy" then means "everything beneath Dairy" and stays true as
-the catalogue grows, instead of being a label somebody has to remember to keep
-in step.
+| Level | Examples | Where it shows |
+| --- | --- | --- |
+| Category — `parentId` null | Ghee, Oils, Honey | The nav bar, or its dropdown |
+| Type — `parentId` set | Desi Ghee, Cultured Ghee, Mustard | Checkboxes on the category page |
 
-## Schema
+A category with no types has no children. Nothing pretends to be its own
+subcategory, which is the special case a separate subcategory table would have
+forced into every query.
 
-Self-relation on `Category`, additive:
+`showInNav` decides what is promoted to the bar rather than the dropdown. A
+merchandising choice, not a structural one — hence a flag, not a level.
 
-```prisma
-model Category {
-  parentId String?
-  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
-  children Category[] @relation("CategoryTree")
+Products point at **one** category: the specific one. The parent is derived.
+Storing both would let them disagree, and nothing would stop it.
 
-  @@index([parentId, displayOrder])
-}
-```
+## Navigation
 
-Existing rows become top-level with `parentId` null, so nothing breaks and no
-backfill is needed.
+Flat, as both comparables have it: two or three promoted, the rest in one
+"Shop by category" dropdown, then "Shop all". No tree. Their catalogues are far
+larger than ours and they still do not nest here.
 
-**Two levels only.** Not because deeper is hard, but because a dairy with one
-product does not need a tree, and every screen that renders a tree is harder
-than one that renders two rows. Enforce it in the service — a category whose
-parent already has a parent is rejected — rather than leaving it to
-convention.
+## The category page
 
-## Storefront
+`/category/ghee` — a real route, not `/products?category=…`, so it has its own
+title for search, a clean URL to advertise, and somewhere for
+`Category.description` to finally appear.
 
-Two rows on `/products`, which is the long-term shape:
+Types are **checkboxes with counts**, multi-select. A type with no products
+shows greyed at (0) rather than being hidden: it tells a customer the thing
+exists and is coming, and it cannot be ticked, so it can never produce an empty
+grid.
 
-- **Top row**: top-level categories, plus All. Selecting one shows everything
-  beneath it.
-- **Second row**: appears only once a parent with children is selected, and
-  lists those children. Selecting one narrows further.
+Counts come from the same query that fills the grid. A count that disagrees
+with the results is worse than no count.
 
-The second row must not appear for a parent with no children — an empty row
-that flickers in and out is worse than no row.
+## The console
 
-Both rows derive from the data, never a hardcoded list. That is what caused
-the Ghee filter to empty the shelf: a label in the source disagreed with the
-database. A chip should exist only because something is under it.
+The product form lists **types**, grouped by category, and sets the category
+itself. Whoever adds a product picks "Desi Ghee", not "Ghee" and then "Desi
+Ghee". A category with no types is pickable directly.
 
-The homepage shelf stays single-row and top-level. It is a window, not a
-catalogue.
+## Latency
 
-## Admin
-
-- Parent picker on the category form, listing only top-level categories, and
-  excluding the category being edited so nothing can parent itself.
-- The categories list shows "Dairy › Ghee" so the shape is visible at a
-  glance.
-- A parent with children cannot be deleted while they exist — offer to move
-  them up a level instead of cascading a delete nobody intended.
-- The product form's category picker should show leaves, since that is where
-  products attach, with the parent as context.
-
-## Shiprocket
-
-Their collections are flat, so both levels are sent as collections:
-
-- A **leaf** collection returns its own products.
-- A **parent** collection returns everything beneath it.
-
-`GET /shiprocket/collection-products?collection_id=…` already takes one id;
-it needs to resolve descendants when that id is a parent. Nothing about the
-feed's shape changes.
-
-Categories already carry `externalId`, so both levels have the numeric id
-their sync requires.
+The nav tree is a handful of rows that change monthly. Cached in the API with
+a short TTL, the way `FeatureFlagsService` already does it, and invalidated
+when a category is written. The storefront fetches it in the layout with
+`revalidate`, so moving between pages costs no database work.
 
 ## Order of work
 
-1. Migration and schema — additive, safe to ship alone
-2. Admin: parent picker, list display, delete guard
-3. Storefront: two-row filter on `/products`
-4. Shiprocket: descendant resolution in `collection-products`
-5. Tests: a parent chip shows the union of its children; a leaf chip shows
-   only its own; no empty second row; a two-level limit that actually refuses
-
-Steps 1 and 2 are useful on their own — the hierarchy can be entered and seen
-before any storefront change ships.
+1. `showInNav` — done
+2. Console: parent picker on categories, type picker on the product form
+3. API: nav tree and per-category counts, both cached
+4. Storefront: the bar, then `/category/[slug]` with type filters
+5. Shiprocket: `collection-products` resolving a parent to its descendants
 
 ## Not doing
 
 - Deeper than two levels
-- Products attached to a parent as well as a leaf. One home per product; a
-  product in two places is a product that disagrees with itself.
-- Category images. `Category` has no image column and their collection feed
-  sends an empty `src` today. Add it only when a design calls for it.
+- A product in more than one category
+- Campaign and content links in the bar (Gift Hampers, Farm Life). Both
+  comparables carry them; they are pages, not categories, and adding them as
+  plain links when there is something to promote beats building a nav CMS now.
