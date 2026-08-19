@@ -5,6 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { ShoppingBag, Search, User, Menu, X, Wallet, LogOut, Package, ChevronDown } from 'lucide-react';
+import CategoryBar from './CategoryBar';
+import { useNavTree } from '../../lib/useNavTree';
 import { useApp } from '../../context/AppContext';
 import { useStoreConfig } from '../../context/StoreConfigContext';
 
@@ -23,6 +25,7 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const navTree = useNavTree();
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -283,6 +286,29 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
           {navLink('about', 'About', 'block text-sm font-semibold text-[#2A2A2A]')}
           {navLink('values', 'Farm', 'block text-sm font-semibold text-[#2A2A2A]')}
           {navLink('contact', 'Contact', 'block text-sm font-semibold text-[#2A2A2A]')}
+
+          {/* The categories, which on desktop are their own bar. There is no
+              room for a second strip of chrome on a phone, so they come here
+              rather than nowhere. */}
+          {navTree.length > 0 && (
+            <div className="pt-2 border-t border-stone-100 space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#6b6661]">
+                Shop by category
+              </p>
+              {navTree.map((cat) => (
+                <Link
+                  key={cat.id}
+                  href={`/category/${cat.slug}`}
+                  data-testid="mobile-category-link"
+                  className="block text-sm font-semibold text-[#2A2A2A]"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {cat.name}
+                </Link>
+              ))}
+            </div>
+          )}
+
           {ENABLE_USER_ACCOUNTS && (
             user ? (
               <div className="pt-2 border-t border-stone-100 space-y-2">
@@ -305,6 +331,11 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
         </div>
       )}
       </nav>
+
+      {/* The category bar, below the main nav and inside the sticky header so
+          it travels with it. Desktop only — on a phone the categories live in
+          the burger menu rather than in a second strip of chrome. */}
+      <CategoryBar />
     </header>
   );
 }

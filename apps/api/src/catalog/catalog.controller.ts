@@ -50,8 +50,9 @@ export class CatalogController {
   async getPublicProducts(
     @Query('categoryId') categoryId?: string,
     @Query('search') search?: string,
+    @Query('categorySlug') categorySlug?: string,
   ) {
-    return this.catalogService.getProducts(categoryId, search, 'LIVE');
+    return this.catalogService.getProducts(categoryId, search, 'LIVE', categorySlug);
   }
 
   @Get('products/:slugOrId')

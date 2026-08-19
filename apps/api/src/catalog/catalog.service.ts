@@ -32,6 +32,9 @@ export interface NavCategoryType {
 export interface NavCategory extends Omit<NavCategoryType, 'productCount'> {
   showInNav: boolean;
   productCount: number;
+  // Carried so the category page has something to say under its heading. The
+  // column has existed since the schema was written and has never been read.
+  description: string | null;
   types: NavCategoryType[];
 }
 
@@ -118,13 +121,27 @@ export class CatalogService {
     return await this.prisma.category.delete({ where: { id } });
   }
 
-  async getProducts(categoryId?: string, search?: string, status?: string) {
+  async getProducts(
+    categoryId?: string,
+    search?: string,
+    status?: string,
+    categorySlug?: string,
+  ) {
     this.logger.log(`Fetching products (category: ${categoryId}, search: ${search}, status: ${status})`);
     try {
       const whereClause: Prisma.ProductWhereInput = {};
 
       if (categoryId) {
         whereClause.categoryId = categoryId;
+      }
+
+      if (categorySlug) {
+        // A shelf holds what sits on it and what sits on its types. Matching
+        // the slug alone would show Ghee as empty while every jar we sell is
+        // filed under A2 Desi Ghee.
+        whereClause.category = {
+          OR: [{ slug: categorySlug }, { parent: { slug: categorySlug } }],
+        };
       }
 
       if (status) {
@@ -299,6 +316,7 @@ export class CatalogService {
         id: true,
         name: true,
         slug: true,
+        description: true,
         iconName: true,
         showInNav: true,
         parentId: true,
@@ -329,6 +347,7 @@ export class CatalogService {
           id: shelf.id,
           name: shelf.name,
           slug: shelf.slug,
+          description: shelf.description,
           iconName: shelf.iconName,
           showInNav: shelf.showInNav,
           // A product can sit on the shelf itself or on one of its types, so
