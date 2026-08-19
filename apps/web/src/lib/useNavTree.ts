@@ -7,6 +7,8 @@ export interface NavCategoryType {
   id: string;
   name: string;
   slug: string;
+  /** A Lucide icon name, set in the console. See lib/categoryIcon. */
+  iconName: string | null;
   productCount: number;
 }
 

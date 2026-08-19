@@ -38,10 +38,16 @@ test.describe('Category bar', () => {
     if (await more.isVisible()) await more.click();
 
     for (const shelf of all) {
-      await expect(
-        page.locator(`${BAR_LINK}[href="/category/${shelf.slug}"]`),
-        `"${shelf.name}" is not reachable from the category bar`,
-      ).toHaveCount(1);
+      // At least one, not exactly one: a promoted category appears both in the
+      // bar and again in the panel, because a menu called "Shop by category"
+      // that omits a category you can see next to it is a puzzle. What matters
+      // here is that every shelf can be reached, not how many doors it has.
+      await expect
+        .poll(
+          async () => page.locator(`${BAR_LINK}[href="/category/${shelf.slug}"]`).count(),
+          { message: `"${shelf.name}" is not reachable from the category bar` },
+        )
+        .toBeGreaterThan(0);
     }
   });
 

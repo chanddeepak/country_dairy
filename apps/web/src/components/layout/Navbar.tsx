@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { ShoppingBag, Search, User, Menu, X, Wallet, LogOut, Package, ChevronDown } from 'lucide-react';
 import CategoryBar from './CategoryBar';
 import { useNavTree } from '../../lib/useNavTree';
+import { categoryIcon } from '../../lib/categoryIcon';
 import { useApp } from '../../context/AppContext';
 import { useStoreConfig } from '../../context/StoreConfigContext';
 
@@ -298,17 +299,27 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
               <p className="text-[11px] font-bold uppercase tracking-wider text-[#6b6661]">
                 Shop by category
               </p>
-              {navTree.map((cat) => (
-                <Link
-                  key={cat.id}
-                  href={`/category/${cat.slug}`}
-                  data-testid="mobile-category-link"
-                  className="block text-sm font-semibold text-[#2A2A2A]"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {cat.name}
-                </Link>
-              ))}
+              <div className="grid grid-cols-3 gap-2">
+                {navTree.map((cat) => {
+                  const Icon = categoryIcon(cat.iconName);
+                  return (
+                    <Link
+                      key={cat.id}
+                      href={`/category/${cat.slug}`}
+                      data-testid="mobile-category-link"
+                      className="flex flex-col items-center gap-1.5 rounded-xl border border-stone-200 px-2 py-3"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <span className="grid h-10 w-10 place-items-center rounded-full bg-[#3A6038]/10 text-[#3A6038]">
+                        <Icon className="h-5 w-5" strokeWidth={1.5} />
+                      </span>
+                      <span className="text-center text-[11px] font-bold leading-tight text-[#2A2A2A]">
+                        {cat.name}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           )}
 
