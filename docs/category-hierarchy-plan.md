@@ -75,10 +75,27 @@ when a category is written. The storefront fetches it in the layout with
 ## Order of work
 
 1. `showInNav` — done
-2. Console: parent picker on categories, type picker on the product form
-3. API: nav tree and per-category counts, both cached
-4. Storefront: the bar, then `/category/[slug]` with type filters
-5. Shiprocket: `collection-products` resolving a parent to its descendants
+2. Console: parent picker on categories, type picker on the product form — done
+3. API: nav tree and per-category counts, both cached — done
+4. Storefront: the bar, then `/category/[slug]` with type filters — done
+5. Shiprocket: `collection-products` resolving a parent to its descendants —
+   still blocked on staging credentials
+
+### Two things the build taught us
+
+**The count on the page is not the count from the API.** The grid shows one
+card per size, so a shelf holding one product in two jars is two cards. The
+sidebar reads its numbers from the array that fills the grid; the nav tree's
+`productCount` is for the bar, where it counts products and nothing contradicts
+it.
+
+**The 404 has to come from the layout.** `/category/[slug]/page.tsx` is a
+client component — checkboxes, cart drawer, auth modal — so its `notFound()`
+runs after hydration, when the 200 has already been sent. A crawler would
+record a real page at a URL that does not exist. The layout is a server
+component and does the existence check there; it distinguishes "no such
+category" from "could not reach the API", because 404-ing a real shelf over a
+failed fetch would quietly delete pages from search results.
 
 ## Not doing
 
