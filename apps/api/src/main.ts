@@ -25,6 +25,24 @@ function resolveAllowedOrigins(isProduction: boolean): string[] {
   return PROD_ORIGINS;
 }
 
+/**
+ * JSON.stringify throws on a BigInt — "Do not know how to serialize a BigInt"
+ * — and Nest serialises every response with it. Adding Product.externalId
+ * turned the entire catalogue into a 500 the moment the column existed, which
+ * is a spectacular way for a new id to take a shop down.
+ *
+ * Number rather than String because that is the shape Shiprocket's feed
+ * expects: their sample sends `"id": 632910392`, unquoted. These are
+ * sequential from 1, so the 2^53 ceiling on a JavaScript number is not a
+ * ceiling anyone will reach — a dairy would need to add a product every
+ * second for 285 million years.
+ */
+(BigInt.prototype as unknown as { toJSON: () => number }).toJSON = function toJSON(
+  this: bigint,
+): number {
+  return Number(this);
+};
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const isProduction = process.env.NODE_ENV === 'production';
@@ -40,6 +58,12 @@ async function bootstrap() {
   // whitespace, and every signature check would fail.
   app.use(
     '/api/orders/webhook/razorpay',
+    express.raw({ type: '*/*', limit: '1mb' }),
+  );
+
+  // Same reasoning for Shiprocket, whose HMAC is over the body they sent.
+  app.use(
+    '/api/shiprocket/webhook/order',
     express.raw({ type: '*/*', limit: '1mb' }),
   );
 

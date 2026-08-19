@@ -48,7 +48,7 @@ export default function VariantsTab({ form }: { form: ProductFormState }) {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[900px]">
+          <table className="w-full text-left min-w-[1180px]">
             <thead>
               <tr className="text-[10px] font-bold text-[#6b6661] uppercase tracking-wider border-b border-stone-200">
                 <th className="pb-2 pr-3">Size Label</th>
@@ -58,6 +58,12 @@ export default function VariantsTab({ form }: { form: ProductFormState }) {
                 <th className="pb-2 pr-3">Stock</th>
                 <th className="pb-2 pr-3">Low at</th>
                 <th className="pb-2 pr-3">Packaging</th>
+                {/* What the courier prices on. Without a weight a shipping
+                    rate is either wrong or refused outright. */}
+                <th className="pb-2 pr-3">Weight (g)</th>
+                <th className="pb-2 pr-3" title="Used for volumetric weight">
+                  Box L×W×H (cm)
+                </th>
                 <th className="pb-2 pr-3 text-center" title="Give this size its own card on the homepage">
                   On home
                 </th>
@@ -148,6 +154,47 @@ export default function VariantsTab({ form }: { form: ProductFormState }) {
                         </option>
                       ))}
                     </select>
+                  </td>
+
+                  <td className="py-2.5 pr-3">
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder="0"
+                      value={v.weightGrams ?? ''}
+                      onChange={(e) =>
+                        variantMatrix.update(idx, {
+                          // Empty means unknown, not zero. A jar that weighs
+                          // nothing is not a jar, and sending 0 to a courier
+                          // gets a rate nobody can honour.
+                          weightGrams: e.target.value === '' ? null : Number(e.target.value),
+                        })
+                      }
+                      className={`${field} w-24`}
+                    />
+                  </td>
+
+                  <td className="py-2.5 pr-3">
+                    <div className="flex items-center gap-1">
+                      {(['lengthCm', 'widthCm', 'heightCm'] as const).map((dim, i) => (
+                        <span key={dim} className="flex items-center gap-1">
+                          {i > 0 && <span className="text-stone-400 text-[10px]">×</span>}
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.1"
+                            placeholder={dim === 'lengthCm' ? 'L' : dim === 'widthCm' ? 'W' : 'H'}
+                            value={(v[dim] as number | null | undefined) ?? ''}
+                            onChange={(e) =>
+                              variantMatrix.update(idx, {
+                                [dim]: e.target.value === '' ? null : Number(e.target.value),
+                              })
+                            }
+                            className={`${field} w-14`}
+                          />
+                        </span>
+                      ))}
+                    </div>
                   </td>
                   <td className="py-2.5 pr-3 text-center">
                     {/* Per size, not per product: a product with four sizes

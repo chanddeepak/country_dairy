@@ -291,6 +291,9 @@ model ProductCollection {
 
 model Category {
   id            String     @id @default(uuid())
+  /// Stable numeric id, for the same reason as Product.externalId —
+  /// Shiprocket's collections must be identified by a long.
+  externalId  BigInt   @unique @default(autoincrement())
   name          String
   slug          String     @unique
   description   String?
@@ -326,6 +329,12 @@ model PackagingOption {
 
 model Product {
   id               String        @id @default(uuid())
+  /// A stable numeric id for systems that cannot hold a UUID. Shiprocket
+  /// Checkout requires a long, stores it, and sends it back on every order, so
+  /// it must never be reused — a recycled number points their existing orders
+  /// at a different product. The UUID remains the primary key; nothing
+  /// internal reads this one.
+  externalId       BigInt        @unique @default(autoincrement())
   categoryId       String
   category         Category      @relation(fields: [categoryId], references: [id])
   title            String
@@ -409,6 +418,12 @@ model BundleItem {
 
 model ProductVariant {
   id                String  @id @default(uuid())
+  /// A stable numeric id for systems that cannot hold a UUID. Shiprocket
+  /// Checkout requires a long, stores it, and sends it back on every order, so
+  /// it must never be reused — a recycled number points their existing orders
+  /// at a different size. The UUID remains the primary key; nothing
+  /// internal reads this one.
+  externalId       BigInt        @unique @default(autoincrement())
   productId         String
   product           Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   sku               String  @unique
@@ -576,6 +591,11 @@ model Order {
   // Human-readable and quotable over WhatsApp — customers cannot read a UUID.
   orderNumber String @unique
   id          String @id @default(uuid())
+  /// Their id for an order their checkout took. Unique, because their
+  /// documentation warns webhooks may arrive more than once and a replay must
+  /// not create a second order, take stock twice, or burn another invoice
+  /// number. Null for orders taken through our own checkout.
+  shiprocketOrderId String? @unique
   userId      String
   user        User   @relation(fields: [userId], references: [id])
 

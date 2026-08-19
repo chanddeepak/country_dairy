@@ -11,6 +11,26 @@ export const FLAG = {
   WALLET: 'ENABLE_WALLET',
   OTP_LOGIN: 'ENABLE_OTP_LOGIN',
   GOOGLE_LOGIN: 'ENABLE_GOOGLE_LOGIN',
+
+  /**
+   * Hands checkout to Shiprocket. Off, the Checkout button behaves as it
+   * always has. Their own script requires a fallbackUrl pointing at our
+   * native checkout for when their server is down, so ours keeps working
+   * either way — this adds a path rather than replacing one.
+   */
+  SHIPROCKET_CHECKOUT: 'ENABLE_SHIPROCKET_CHECKOUT',
+
+  /**
+   * Where the discount rule lives, and only meaningful while the above is on.
+   * Off, coupons are configured in Shiprocket's dashboard. On, we validate
+   * against our own Coupon table and pass cart_discount at token creation.
+   *
+   * Never both: "If specified, only this fixed discount is applied" — passing
+   * cart_discount switches their dashboard coupons off for that order. A
+   * customer seeing one discount while the invoice shows another is the
+   * failure this single flag prevents.
+   */
+  SHIPROCKET_OUR_COUPONS: 'ENABLE_SHIPROCKET_OUR_COUPONS',
 } as const;
 
 export type FlagKey = (typeof FLAG)[keyof typeof FLAG];

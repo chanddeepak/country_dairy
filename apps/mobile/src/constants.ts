@@ -47,7 +47,7 @@ export const WHATSAPP_MESSAGE_TEMPLATE = (
 // Local product image map keyed by slug
 export const PRODUCT_IMAGES: Record<string, any> = {
   'country-dairy-a2-cow-milk-1l': require('../assets/images/products/milk-bottle.jpg'),
-  'country-dairy-a2-vedic-ghee-1l': require('../assets/images/products/ghee-jar.jpg'),
+  'country-dairy-a2-vedic-ghee': require('../assets/images/products/ghee-jar.jpg'),
   'country-dairy-a2-gir-cow-ghee-1l': require('../assets/images/products/ghee-jar.jpg'),
   'organic-wood-pressed-mustard-oil-1l': require('../assets/images/products/mustard-oil.jpg'),
   'raw-wild-forest-honey-500g': require('../assets/images/products/wild-honey.jpg'),
@@ -147,7 +147,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
   {
     id: '30c195de-b5dd-4510-b236-fb8224a9d00e',
     name: 'Country Dairy A2 Desi Cow Ghee',
-    slug: 'country-dairy-a2-vedic-ghee-1l',
+    slug: 'country-dairy-a2-vedic-ghee',
     category: 'A2 Desi Ghee',
     description: 'Every Spoon Carries the Soul of Devbhoomi.',
     price: '1450',
