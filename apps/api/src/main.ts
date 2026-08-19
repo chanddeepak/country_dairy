@@ -61,6 +61,12 @@ async function bootstrap() {
     express.raw({ type: '*/*', limit: '1mb' }),
   );
 
+  // Same reasoning for Shiprocket, whose HMAC is over the body they sent.
+  app.use(
+    '/api/shiprocket/webhook/order',
+    express.raw({ type: '*/*', limit: '1mb' }),
+  );
+
   const allowedOrigins = resolveAllowedOrigins(isProduction);
 
   app.enableCors({

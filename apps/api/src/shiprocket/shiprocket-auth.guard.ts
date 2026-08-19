@@ -26,7 +26,7 @@ export class ShiprocketAuthGuard implements CanActivate {
   private readonly logger = new Logger(ShiprocketAuthGuard.name);
 
   canActivate(context: ExecutionContext): boolean {
-    const req = context.switchToHttp().getRequest<Request & { rawBody?: Buffer }>();
+    const req = context.switchToHttp().getRequest<Request>();
 
     const apiKey = process.env.SHIPROCKET_API_KEY;
     const apiSecret = process.env.SHIPROCKET_API_SECRET;
@@ -45,9 +45,13 @@ export class ShiprocketAuthGuard implements CanActivate {
 
     const presentedDigest = req.header('X-Api-HMAC-SHA256') ?? '';
 
-    // A GET carries no body, so the digest is over an empty string. Their
-    // collection sends the header on every request either way.
-    const body = req.rawBody ? req.rawBody.toString('utf8') : '';
+    // express.raw is mounted on the webhook path in main.ts, so req.body is a
+    // Buffer of the exact bytes they signed. Re-serialising a parsed object
+    // changes key order and whitespace, and every digest would fail.
+    //
+    // A GET carries no body, so the digest is over an empty string — the
+    // catalogue endpoints are signed that way.
+    const body = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : '';
     const expected = crypto.createHmac('sha256', apiSecret).update(body).digest('base64');
 
     if (!safeEqual(presentedDigest, expected)) {

@@ -591,6 +591,11 @@ model Order {
   // Human-readable and quotable over WhatsApp — customers cannot read a UUID.
   orderNumber String @unique
   id          String @id @default(uuid())
+  /// Their id for an order their checkout took. Unique, because their
+  /// documentation warns webhooks may arrive more than once and a replay must
+  /// not create a second order, take stock twice, or burn another invoice
+  /// number. Null for orders taken through our own checkout.
+  shiprocketOrderId String? @unique
   userId      String
   user        User   @relation(fields: [userId], references: [id])
 
