@@ -12,6 +12,26 @@ const field =
 const label = 'block text-xs font-bold text-[#2A2A2A] mb-1.5';
 
 export default function CoreInfoTab({ form, categories }: CoreInfoTabProps) {
+  // A product belongs to the specific thing — Desi Ghee, not Ghee — so the
+  // list offers leaves. Anything with types beneath it is a heading, not a
+  // choice: putting a product directly in Ghee when Desi Ghee exists would
+  // leave it out of every type filter on the storefront.
+  const hasTypes = (id: string) => categories.some((c) => c.parentId === id);
+
+  const grouped = categories
+    .filter((c) => !c.parentId && hasTypes(c.id))
+    .map((parent) => ({
+      parent,
+      types: categories.filter((c) => c.parentId === parent.id),
+    }));
+
+  const standalone = categories.filter((c) => !c.parentId && !hasTypes(c.id));
+
+  const selected = categories.find((c) => c.name === form.core.categoryName);
+  const derivedCategory = selected?.parentId
+    ? categories.find((c) => c.id === selected.parentId)?.name
+    : selected?.name;
+
   const { core } = form;
 
   return (
@@ -47,18 +67,48 @@ export default function CoreInfoTab({ form, categories }: CoreInfoTabProps) {
         </div>
 
         <div>
-          <label className={label}>Category</label>
+          <label className={label}>Type</label>
           <select
             value={core.categoryName}
             onChange={(e) => core.setCategoryName(e.target.value)}
             className={`${field} font-bold`}
           >
-            {categories.map((c) => (
-              <option key={c.id} value={c.name}>
-                {c.name}
-              </option>
+            <option value="">Choose one…</option>
+
+            {/* Grouped by the category each type belongs to, so the list reads
+                as Ghee → Desi Ghee rather than as a flat wall of names. */}
+            {grouped.map((group) => (
+              <optgroup key={group.parent.id} label={group.parent.name}>
+                {group.types.map((t) => (
+                  <option key={t.id} value={t.name}>
+                    {t.name}
+                  </option>
+                ))}
+              </optgroup>
             ))}
+
+            {/* A category with no types is pickable in its own right — Honey
+                needs no sub-type to be sold. */}
+            {standalone.length > 0 && (
+              <optgroup label="Categories">
+                {standalone.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
+          <p className="text-[11px] text-[#6b6661] mt-1">
+            {derivedCategory ? (
+              <>
+                Category: <span className="font-bold text-[#064e3b]">{derivedCategory}</span> —
+                set from the type, never chosen twice.
+              </>
+            ) : (
+              'Pick the specific thing. The category follows from it.'
+            )}
+          </p>
         </div>
 
         <div>

@@ -79,4 +79,39 @@ test.describe('Category types @security', () => {
 
     await api.dispose();
   });
+
+  test('a product saved with a type points at the type, not its category', async () => {
+    test.setTimeout(120_000);
+
+    const api = await apiClient(await adminToken());
+    const parent = await db.category.findFirstOrThrow({ where: { parentId: null } });
+
+    const type = await (
+      await api.post(resolve('/catalog/categories'), {
+        data: { name: `Buffalo Ghee ${RUN_ID}`, parentId: parent.id },
+      })
+    ).json();
+    made.push(type.id);
+
+    // The console sends the name, so this is the path a real save takes.
+    const res = await api.post(resolve('/catalog/products'), {
+      data: {
+        title: `Test jar ${RUN_ID}`,
+        categoryName: type.name,
+        status: 'DRAFT',
+      },
+    });
+    expect(res.status(), await res.text()).toBeLessThan(300);
+    const product = await res.json();
+
+    try {
+      // The leaf, not the parent. A product filed under Ghee when Desi Ghee
+      // exists would be missing from every type filter on the storefront.
+      expect(product.categoryId).toBe(type.id);
+      expect(product.categoryId).not.toBe(parent.id);
+    } finally {
+      await db.product.delete({ where: { id: product.id } }).catch(() => undefined);
+      await api.dispose();
+    }
+  });
 });
