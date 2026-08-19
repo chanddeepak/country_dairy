@@ -273,6 +273,9 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
           <button
             className="md:hidden p-2 text-[#2A2A2A]"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            data-testid="mobile-menu-toggle"
+            aria-expanded={mobileMenuOpen}
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>

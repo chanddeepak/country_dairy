@@ -81,6 +81,30 @@ test.describe('Category bar', () => {
     });
   });
 
+  test('on a phone the categories are in the burger menu', async ({ page }) => {
+    test.setTimeout(60_000);
+
+    const all = await shelves();
+    test.skip(all.length === 0, 'no active categories');
+
+    // The bar is desktop-only — a second strip of chrome does not fit on a
+    // phone. That is only a defensible choice if the categories are somewhere
+    // else, so this asserts the somewhere else actually exists.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+
+    await expect(page.locator(BAR_LINK).first()).toBeHidden();
+
+    await page.locator('[data-testid="mobile-menu-toggle"]').click();
+
+    for (const shelf of all) {
+      await expect(
+        page.locator(`[data-testid="mobile-category-link"][href="/category/${shelf.slug}"]`),
+        `"${shelf.name}" is unreachable on a phone`,
+      ).toBeVisible({ timeout: 15_000 });
+    }
+  });
+
   test('the bar is on every storefront page, not just the homepage', async ({ page }) => {
     test.setTimeout(60_000);
 

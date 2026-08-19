@@ -127,7 +127,9 @@ export class CatalogService {
     status?: string,
     categorySlug?: string,
   ) {
-    this.logger.log(`Fetching products (category: ${categoryId}, search: ${search}, status: ${status})`);
+    this.logger.log(
+      `Fetching products (category: ${categoryId}, slug: ${categorySlug}, search: ${search}, status: ${status})`,
+    );
     try {
       const whereClause: Prisma.ProductWhereInput = {};
 
