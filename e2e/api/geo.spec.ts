@@ -29,14 +29,21 @@ test.describe('PIN codes', () => {
   test('the second lookup is served from memory', async () => {
     const api = await apiClient();
 
-    await api.get(resolve('/geo/pincode/110001'));
+    // The cache only holds successes — a failed lookup is deliberately not
+    // stored, because a timeout describes the network this minute rather than
+    // the PIN code. So this test needs the first call to have actually worked;
+    // without that check it measures India Post's uptime instead of our cache,
+    // which is how it failed once with nothing wrong on our side.
+    const warm = await api.get(resolve('/geo/pincode/110001'));
+    test.skip(!warm.ok(), 'the postal API is unreachable, so nothing was cached to test');
+
     const started = Date.now();
     const again = await api.get(resolve('/geo/pincode/110001'));
     const elapsed = Date.now() - started;
 
     expect(again.ok()).toBeTruthy();
-    // Generous — this is asserting "did not go to the postal API", not a
-    // latency budget. A round trip to Delhi and back cannot beat this.
+    // Generous — this asserts "did not go to the postal API", not a latency
+    // budget. A round trip to Delhi and back cannot beat this.
     expect(elapsed, 'the lookup was not cached').toBeLessThan(300);
 
     await api.dispose();
