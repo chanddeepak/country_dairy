@@ -19,6 +19,22 @@ function sanitizeProductStoragePath(url?: string): string | undefined {
   return url;
 }
 
+const NAV_CACHE_TTL_MS = 30_000;
+
+export interface NavCategoryType {
+  id: string;
+  name: string;
+  slug: string;
+  iconName: string | null;
+  productCount: number;
+}
+
+export interface NavCategory extends Omit<NavCategoryType, 'productCount'> {
+  showInNav: boolean;
+  productCount: number;
+  types: NavCategoryType[];
+}
+
 @Injectable()
 export class CatalogService {
   private readonly logger = new Logger(CatalogService.name);
@@ -55,6 +71,7 @@ export class CatalogService {
   async createCategory(dto: CategoryDto) {
     this.logger.log(`Creating category: ${dto.name}`);
     const slug = dto.slug || dto.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    this.invalidateNav();
     return await this.prisma.category.create({
       data: {
         name: dto.name,
@@ -73,6 +90,7 @@ export class CatalogService {
 
   async updateCategory(id: string, dto: CategoryDto) {
     this.logger.log(`Updating category: ${id}`);
+    this.invalidateNav();
     const existing = await this.prisma.category.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException(`Category ${id} not found`);
 
@@ -255,6 +273,84 @@ export class CatalogService {
   }
 
   /** Resolves a category by id or name, creating it by name if needed. */
+  /**
+   * The navigation tree, cached.
+   *
+   * Every page on the storefront renders this bar, and it is a handful of rows
+   * that change perhaps monthly. Hitting Postgres for it on every view would
+   * be paying a query for something that is almost always the same answer —
+   * the concern raised when this was designed.
+   *
+   * Thirty seconds, matching FeatureFlagsService, and cleared whenever a
+   * category is written so an edit in the console shows up straight away.
+   */
+  private navCache: NavCategory[] | null = null;
+  private navCachedAt = 0;
+
+  async getNavTree(): Promise<NavCategory[]> {
+    if (this.navCache && Date.now() - this.navCachedAt < NAV_CACHE_TTL_MS) {
+      return this.navCache;
+    }
+
+    const rows = await this.prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        iconName: true,
+        showInNav: true,
+        parentId: true,
+        _count: { select: { products: { where: { status: ProductStatus.LIVE } } } },
+      },
+    });
+
+    const byParent = new Map<string, typeof rows>();
+    for (const row of rows) {
+      if (!row.parentId) continue;
+      const siblings = byParent.get(row.parentId) ?? [];
+      siblings.push(row);
+      byParent.set(row.parentId, siblings);
+    }
+
+    const tree: NavCategory[] = rows
+      .filter((row) => !row.parentId)
+      .map((shelf) => {
+        const types = (byParent.get(shelf.id) ?? []).map((type) => ({
+          id: type.id,
+          name: type.name,
+          slug: type.slug,
+          iconName: type.iconName,
+          productCount: type._count.products,
+        }));
+
+        return {
+          id: shelf.id,
+          name: shelf.name,
+          slug: shelf.slug,
+          iconName: shelf.iconName,
+          showInNav: shelf.showInNav,
+          // A product can sit on the shelf itself or on one of its types, so
+          // the count has to be both — otherwise Ghee reads as empty while
+          // holding every jar we sell.
+          productCount:
+            shelf._count.products + types.reduce((sum, t) => sum + t.productCount, 0),
+          types,
+        };
+      });
+
+    this.navCache = tree;
+    this.navCachedAt = Date.now();
+    return tree;
+  }
+
+  /** Called after any category write, so an edit is not hidden by the cache. */
+  invalidateNav(): void {
+    this.navCachedAt = 0;
+    this.navCache = null;
+  }
+
   private async resolveCategoryId(dto: {
     categoryId?: string;
     categoryName?: string;

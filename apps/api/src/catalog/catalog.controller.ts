@@ -31,6 +31,18 @@ export class CatalogController {
   }
 
   /**
+   * The navigation tree: shelves, the types beneath each, and how many live
+   * products sit under them.
+   *
+   * Public, and cached — every page renders this bar, and it changes about as
+   * often as the shop's signage.
+   */
+  @Get('categories/nav')
+  async getNavTree() {
+    return this.catalogService.getNavTree();
+  }
+
+  /**
    * Storefront listing. Status is pinned to LIVE rather than taken from the
    * query, so an unauthenticated caller cannot page through drafts.
    */
