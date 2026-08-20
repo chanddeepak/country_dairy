@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Check, ChevronRight } from 'lucide-react';
+import { ChevronRight, X } from 'lucide-react';
 import { API_URL } from '../../../lib/constants';
 import { mapApiProducts, expandAllVariants, isSoldOut } from '../../../lib/mapProduct';
 import Navbar from '../../../components/layout/Navbar';
@@ -11,7 +11,12 @@ import ProductCard from '../../../components/product/ProductCard';
 import AuthModal from '../../../components/modals/AuthModal';
 import CartDrawer from '../../../components/cart/CartDrawer';
 import { useApp } from '../../../context/AppContext';
-import { categoryIcon } from '../../../lib/categoryIcon';
+import FilterDrawer, {
+  FilterButton,
+  countSelected,
+  type FilterGroup,
+  type Selection,
+} from '../../../components/product/FilterDrawer';
 import type { NavCategory } from '../../../lib/useNavTree';
 import { notFound, useParams, useRouter } from 'next/navigation';
 
@@ -39,7 +44,8 @@ export default function CategoryPage() {
 
   const [shelf, setShelf] = useState<NavShelf | null>(null);
   const [products, setProducts] = useState<any[]>([]);
-  const [checked, setChecked] = useState<string[]>([]);
+  const [selection, setSelection] = useState<Selection>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -83,33 +89,100 @@ export default function CategoryPage() {
     void load();
   }, [load]);
 
-  const toggle = (name: string) =>
-    setChecked((prev) =>
-      prev.includes(name) ? prev.filter((t) => t !== name) : [...prev, name],
-    );
+  const toggle = (groupId: string, value: string) =>
+    setSelection((prev) => {
+      const current = prev[groupId] ?? [];
+      const next = current.includes(value)
+        ? current.filter((v) => v !== value)
+        : [...current, value];
+      // Drop the key rather than leaving an empty array behind, so "is anything
+      // filtered" stays a simple question.
+      const { [groupId]: _drop, ...rest } = prev;
+      return next.length ? { ...rest, [groupId]: next } : rest;
+    });
 
-  // Counts are derived from the very array that fills the grid, never from the
-  // API's own product count. The grid shows one card per size, so a shelf
-  // holding one product in two jars is two cards — a sidebar reading "(1)"
-  // beside two results is worse than no number at all.
-  const countsByType = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const p of products) {
-      const type = (p as { productType?: string }).productType;
-      if (type) counts.set(type, (counts.get(type) ?? 0) + 1);
+  // What a card is filtered by. All three read the card that is actually on
+  // screen: the grid shows one card per size, so the size of a card is the size
+  // of its default variant, not the product's whole range.
+  const facets = {
+    type: (p: any) => p.productType ?? '',
+    size: (p: any) =>
+      (p.variants ?? []).find((v: any) => v.isDefault)?.volumeOrWeight ??
+      (p.variants ?? [])[0]?.volumeOrWeight ??
+      '',
+    availability: (p: any) => (isSoldOut(p) ? 'out' : 'in'),
+  } as const;
+
+  /** Everything except one group, so that group's counts show what ticking it would give. */
+  const matches = (p: any, sel: Selection, skip?: string) =>
+    Object.entries(sel).every(([groupId, values]) => {
+      if (groupId === skip || values.length === 0) return true;
+      const read = facets[groupId as keyof typeof facets];
+      return read ? values.includes(read(p)) : true;
+    });
+
+  // Counts come from the very array that fills the grid, never from the API's
+  // own product count. The grid shows one card per size, so a shelf holding one
+  // product in two jars is two cards — a "(1)" beside two results is worse than
+  // no number at all. Each group counts against the *other* groups, so a number
+  // always says what ticking that box would actually leave.
+  const countIn = (groupId: string, value: string) =>
+    products.filter(
+      (p) => facets[groupId as keyof typeof facets]?.(p) === value && matches(p, selection, groupId),
+    ).length;
+
+  const groups: FilterGroup[] = useMemo(() => {
+    if (!shelf) return [];
+    const built: FilterGroup[] = [];
+
+    if (shelf.types.length > 0) {
+      built.push({
+        id: 'type',
+        label: 'Type',
+        options: shelf.types.map((t) => ({
+          value: t.name,
+          label: t.name,
+          iconName: t.iconName,
+          count: countIn('type', t.name),
+        })),
+      });
     }
-    return counts;
-  }, [products]);
 
-  // Nothing ticked means everything, which is what a customer expects from a
-  // set of checkboxes they have not touched.
+    // Sizes are read off the shelf rather than configured: whatever jars exist
+    // are the sizes on offer, so this needs no maintenance when one is added.
+    const sizes = Array.from(new Set(products.map(facets.size).filter(Boolean)));
+    if (sizes.length > 1) {
+      built.push({
+        id: 'size',
+        label: 'Size',
+        options: sizes.map((size) => ({
+          value: size,
+          label: size,
+          count: countIn('size', size),
+        })),
+      });
+    }
+
+    // Only worth offering once something is actually out of stock.
+    if (products.some((p) => isSoldOut(p))) {
+      built.push({
+        id: 'availability',
+        label: 'Availability',
+        options: [{ value: 'in', label: 'In stock', count: countIn('availability', 'in') }],
+      });
+    }
+
+    return built;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shelf, products, selection]);
+
   const shown = useMemo(
-    () =>
-      checked.length === 0
-        ? products
-        : products.filter((p) => checked.includes((p as { productType?: string }).productType ?? '')),
-    [products, checked],
+    () => products.filter((p) => matches(p, selection)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [products, selection],
   );
+
+  const activeCount = countSelected(selection);
 
   if (missing) notFound();
 
@@ -145,97 +218,35 @@ export default function CategoryPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6">
-          {/* Types, as filters between kinds of the same thing. */}
-          {shelf && shelf.types.length > 0 && (
-            <aside className="bg-white border border-stone-200 rounded-2xl p-4 h-fit lg:sticky lg:top-40">
-              <div className="flex items-baseline justify-between mb-3">
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#3A6038]">
-                  Type
-                </h2>
-                {/* Only once there is something to clear. A permanently visible
-                    Clear on an untouched filter invites a pointless click. */}
-                {checked.length > 0 && (
-                  <button
-                    onClick={() => setChecked([])}
-                    className="text-[11px] font-semibold text-[#6b6661] hover:text-[#3A6038] transition"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
+        {/* Choosing is behind a button; what is chosen is not. A drawer hides
+            filters, and hidden filters get used less — so whatever is applied
+            stays on the page as removable chips, and only the picking costs a
+            click. */}
+        {groups.length > 0 && (
+          <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-stone-200 pb-4">
+            <FilterButton onClick={() => setFiltersOpen(true)} count={activeCount} />
 
-              {/* Wraps on a phone, stacks on a desktop. A single tall column of
-                  one row above the grid wastes the width a phone has. */}
-              <div className="flex flex-wrap gap-2 lg:flex-col">
-                {shelf.types.map((type) => {
-                  const count = countsByType.get(type.name) ?? 0;
-                  const none = count === 0;
-                  const on = checked.includes(type.name);
-                  const Icon = categoryIcon(type.iconName);
+            {Object.entries(selection).flatMap(([groupId, values]) =>
+              values.map((value) => (
+                <button
+                  key={`${groupId}:${value}`}
+                  onClick={() => toggle(groupId, value)}
+                  data-testid="applied-filter"
+                  className="flex items-center gap-1.5 rounded-full bg-[#3A6038]/10 px-3 py-1.5 text-[12px] font-semibold text-[#3A6038] transition hover:bg-[#3A6038]/20"
+                >
+                  {value === 'in' ? 'In stock' : value}
+                  <X className="h-3 w-3" />
+                </button>
+              )),
+            )}
 
-                  return (
-                    <label
-                      key={type.id}
-                      className={`group relative flex items-center gap-2.5 rounded-xl border px-3 py-2.5 transition ${
-                        none
-                          ? 'cursor-not-allowed border-stone-200 bg-stone-50 opacity-60'
-                          : on
-                            ? 'cursor-pointer border-[#3A6038] bg-[#3A6038]/8'
-                            : 'cursor-pointer border-stone-200 hover:border-[#3A6038]/40 hover:bg-[#FAF8F3]'
-                      }`}
-                    >
-                      {/* A real checkbox, restyled rather than replaced: it keeps
-                          the keyboard and screen-reader behaviour that a div
-                          pretending to be one throws away. */}
-                      <input
-                        type="checkbox"
-                        data-testid="type-filter"
-                        disabled={none}
-                        checked={on}
-                        onChange={() => toggle(type.name)}
-                        className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
-                      />
-                      <span
-                        aria-hidden="true"
-                        className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg transition peer-focus-visible:ring-2 peer-focus-visible:ring-[#3A6038]/40 ${
-                          on ? 'bg-[#3A6038] text-white' : 'bg-stone-100 text-[#6b6661]'
-                        }`}
-                      >
-                        {on ? <Check className="h-4 w-4" /> : <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />}
-                      </span>
+            <span className="ml-auto text-[12px] text-[#6b6661]">
+              {shown.length} {shown.length === 1 ? 'product' : 'products'}
+            </span>
+          </div>
+        )}
 
-                      <span
-                        className={`flex-1 text-[13px] font-semibold ${
-                          on ? 'text-[#3A6038]' : 'text-[#2A2A2A]'
-                        }`}
-                      >
-                        {type.name}
-                      </span>
-
-                      {/* A kind we do not stock yet still shows, so a customer
-                          learns it is coming — but it says so in words. "(0)"
-                          beside a name reads as a fault. It cannot be ticked,
-                          so it can never empty the grid. */}
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                          none
-                            ? 'bg-stone-100 text-[#6b6661]'
-                            : on
-                              ? 'bg-[#3A6038] text-white'
-                              : 'bg-stone-100 text-[#6b6661]'
-                        }`}
-                      >
-                        {none ? 'Soon' : count}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </aside>
-          )}
-
-          <div className={shelf && shelf.types.length > 0 ? '' : 'lg:col-span-2'}>
+        <div>
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
                 {[0, 1, 2].map((i) => (
@@ -282,9 +293,18 @@ export default function CategoryPage() {
                 )}
               </>
             )}
-          </div>
         </div>
       </main>
+
+      <FilterDrawer
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        groups={groups}
+        selection={selection}
+        onToggle={toggle}
+        onClearAll={() => setSelection({})}
+        resultCount={shown.length}
+      />
 
       <Footer />
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />

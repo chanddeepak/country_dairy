@@ -2,7 +2,9 @@ import { test, expect } from '@playwright/test';
 import { db } from '../fixtures/db';
 import { SEL } from '../fixtures/actions';
 
-const TYPE_FILTER = '[data-testid="type-filter"]';
+const TYPE_FILTER = '[data-testid="filter-type"]';
+const OPEN_FILTERS = '[data-testid="filter-open"]';
+const APPLY_FILTERS = '[data-testid="filter-apply"]';
 
 /**
  * The category page, /category/[slug].
@@ -88,6 +90,12 @@ test.describe('Category page', () => {
       await page.goto(`/category/${shelf.slug}`);
       await expect(page.locator(SEL.productCardLink).first()).toBeVisible({ timeout: 30_000 });
 
+      // The filters live in a drawer now, so they have to be asked for.
+      const opener = page.locator(OPEN_FILTERS);
+      if (await opener.count() === 0) continue; // nothing filterable on this shelf
+      await opener.click();
+      await expect(page.locator('[data-testid="filter-drawer"]')).toBeVisible({ timeout: 15_000 });
+
       const boxes = page.locator(TYPE_FILTER);
       const n = await boxes.count();
 
@@ -95,24 +103,88 @@ test.describe('Category page', () => {
         const box = boxes.nth(i);
         if (await box.isDisabled()) continue;
 
-        // The row ends with its count in a badge; take the number from the page
-        // itself rather than recomputing it, so the test compares what a
-        // customer sees against what they get. A type with nothing in it reads
-        // "Soon" instead of a number and is disabled, so it never gets here.
+        // The row ends with its count; take the number from the page itself
+        // rather than recomputing it, so the test compares what a customer sees
+        // against what they get. A type with nothing in it reads "Soon" instead
+        // of a number and is disabled, so it never gets here.
         const label = await box.locator('xpath=..').innerText();
         const claimed = Number(label.match(/(\d+)\s*$/)?.[1] ?? -1);
         expect(claimed, `no count rendered for filter ${i}`).toBeGreaterThanOrEqual(0);
 
         await box.check();
+        await page.locator(APPLY_FILTERS).click();
+
         await expect
           .poll(async () => page.locator(SEL.productCardLink).count(), {
             message: `filter ${i} on ${shelf.slug} claimed ${claimed} but the grid disagreed`,
             timeout: 15_000,
           })
           .toBe(claimed);
+
+        // The chip beside the button is how a shut drawer still says what is on.
+        await expect(
+          page.locator('[data-testid="applied-filter"]'),
+          'an applied filter left no trace on the page',
+        ).toHaveCount(1);
+
+        await opener.click();
         await box.uncheck();
       }
+      await page.locator(APPLY_FILTERS).click();
     }
+  });
+
+  test('size is filterable, and clears from the chip beside the button', async ({ page }) => {
+    test.setTimeout(90_000);
+
+    // Sizes are not configured anywhere — they are read off whatever jars the
+    // shelf holds. This is the group the drawer was chosen for: adding one cost
+    // a few lines of data, not another piece of layout.
+    const shelf = await db.category.findFirst({
+      where: {
+        isActive: true,
+        parentId: null,
+        OR: [
+          { products: { some: { status: 'LIVE' } } },
+          { subCategories: { some: { products: { some: { status: 'LIVE' } } } } },
+        ],
+      },
+      select: { slug: true },
+    });
+    test.skip(!shelf, 'no shelf has live products');
+
+    await page.goto(`/category/${shelf!.slug}`);
+    await expect(page.locator(SEL.productCardLink).first()).toBeVisible({ timeout: 30_000 });
+    const all = await page.locator(SEL.productCardLink).count();
+
+    await page.locator(OPEN_FILTERS).click();
+    const sizes = page.locator('[data-testid="filter-size"]');
+    test.skip((await sizes.count()) < 2, 'this shelf sells only one size');
+
+    await sizes.first().check();
+    await page.locator(APPLY_FILTERS).click();
+
+    // Narrower than everything, and not empty.
+    await expect
+      .poll(async () => page.locator(SEL.productCardLink).count(), {
+        message: 'filtering by size changed nothing',
+        timeout: 15_000,
+      })
+      .toBeLessThan(all);
+    expect(await page.locator(SEL.productCardLink).count()).toBeGreaterThan(0);
+
+    // Removing it from the chip is the shortcut that makes a hidden filter
+    // bearable: no reopening the drawer to undo one thing.
+    const chip = page.locator('[data-testid="applied-filter"]');
+    await expect(chip).toHaveCount(1);
+    await chip.click();
+
+    await expect
+      .poll(async () => page.locator(SEL.productCardLink).count(), {
+        message: 'dismissing the chip did not restore the grid',
+        timeout: 15_000,
+      })
+      .toBe(all);
   });
 
   test('the slug is never shown as the heading while loading', async ({ page }) => {
