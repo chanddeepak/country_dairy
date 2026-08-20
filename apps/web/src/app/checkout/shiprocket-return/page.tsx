@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, CircleAlert, Loader2 } from 'lucide-react';
@@ -19,7 +19,7 @@ import AuthModal from '../../../components/modals/AuthModal';
  * So the job here is only to say what happened, and to be honest about the
  * short gap where their redirect has landed but their webhook has not.
  */
-export default function ShiprocketReturnPage() {
+function ReturnContent() {
   const params = useSearchParams();
   const status = (params.get('ost') || '').toUpperCase();
   const orderRef = params.get('oid');
@@ -114,5 +114,19 @@ export default function ShiprocketReturnPage() {
       <Footer />
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </div>
+  );
+}
+
+/**
+ * `useSearchParams` opts a route out of static rendering, and Next refuses to
+ * prerender a page that reads it without a boundary to fall back to. Without
+ * this the production build fails outright — it compiled and type-checked
+ * perfectly and still could not be built, which is its own small lesson.
+ */
+export default function ShiprocketReturnPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#FAF8F3]" />}>
+      <ReturnContent />
+    </Suspense>
   );
 }
