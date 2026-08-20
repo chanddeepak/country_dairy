@@ -5,7 +5,7 @@ import { FeatureFlagsService, FLAG } from '../feature-flags/feature-flags.servic
 import { ShiprocketClient, type CartItem } from './shiprocket-client.service';
 
 export interface RequestedLine {
-  variantExternalId: number;
+  variantId: string;
   quantity: number;
 }
 
@@ -50,21 +50,22 @@ export class ShiprocketCheckoutService {
       throw new BadRequestException('There is nothing in that basket');
     }
 
-    const ids = lines.map((l) => BigInt(l.variantExternalId));
+    const ids = lines.map((l) => l.variantId);
 
     // Live products only, active sizes only. Their catalogue sync runs on a
     // schedule, so it can still be offering something we withdrew an hour ago;
     // this is the check that stops a customer buying it.
     const variants = await this.prisma.productVariant.findMany({
       where: {
-        externalId: { in: ids },
+        id: { in: ids },
         isActive: true,
         product: { status: ProductStatus.LIVE },
       },
-      select: { externalId: true, stockQuantity: true, sizeLabel: true },
+      select: { id: true, externalId: true, stockQuantity: true, sizeLabel: true },
     });
 
-    const known = new Map(variants.map((v) => [v.externalId.toString(), v]));
+    // Our id in, their id out. The translation happens here and nowhere else.
+    const known = new Map(variants.map((v) => [v.id, v]));
 
     const items: CartItem[] = [];
     for (const line of lines) {
@@ -73,7 +74,7 @@ export class ShiprocketCheckoutService {
         throw new BadRequestException('That quantity is not a number we can sell');
       }
 
-      const variant = known.get(String(line.variantExternalId));
+      const variant = known.get(line.variantId);
       if (!variant) {
         throw new BadRequestException('One of those items is no longer on sale');
       }

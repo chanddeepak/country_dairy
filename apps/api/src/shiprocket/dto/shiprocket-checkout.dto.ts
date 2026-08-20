@@ -1,11 +1,16 @@
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsInt, Min, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsInt, IsUUID, Min, ValidateNested } from 'class-validator';
 
 export class CheckoutLineDto {
-  /** The numeric id Shiprocket knows this size by — ProductVariant.externalId. */
-  @IsInt()
-  @Type(() => Number)
-  variantExternalId: number;
+  /**
+   * Our own variant id, the one already in the cart.
+   *
+   * Deliberately not Shiprocket's numeric id: the browser has no business
+   * knowing their identifiers, and translating here means a caller cannot name
+   * a variant by an id we never gave it.
+   */
+  @IsUUID()
+  variantId: string;
 
   @IsInt()
   @Min(1)

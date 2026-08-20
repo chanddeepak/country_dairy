@@ -58,7 +58,8 @@ function loadScript(): Promise<void> {
 }
 
 export interface CartLine {
-  variantExternalId: number;
+  /** Our own variant id, straight from the cart. The API translates it. */
+  variantId: string;
   quantity: number;
 }
 

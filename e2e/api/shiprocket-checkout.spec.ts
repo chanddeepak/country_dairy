@@ -37,11 +37,11 @@ test.describe('Shiprocket checkout token @security', () => {
     test.skip(await flagIsOn(), 'Shiprocket checkout is switched on');
 
     const api = await apiClient();
-    const variant = await db.productVariant.findFirst({ select: { externalId: true } });
+    const variant = await db.productVariant.findFirst({ select: { id: true } });
     test.skip(!variant, 'no variants to ask for');
 
     const res = await api.post(resolve(ROUTE), {
-      data: { items: [{ variantExternalId: Number(variant!.externalId), quantity: 1 }] },
+      data: { items: [{ variantId: variant!.id, quantity: 1 }] },
     });
 
     // 404 rather than 403: an unreleased checkout should not confirm its own
@@ -60,11 +60,12 @@ test.describe('Shiprocket checkout token @security', () => {
     const rubbish = [
       {},
       { items: [] },
-      { items: [{ variantExternalId: 1 }] },
-      { items: [{ variantExternalId: 1, quantity: 0 }] },
-      { items: [{ variantExternalId: 1, quantity: -4 }] },
-      { items: [{ variantExternalId: 'not-a-number', quantity: 1 }] },
-      { items: [{ variantExternalId: 1, quantity: 1, redirectUrl: 'https://evil.test' }] },
+      { items: [{ variantId: '00000000-0000-4000-8000-000000000000' }] },
+      { items: [{ variantId: '00000000-0000-4000-8000-000000000000', quantity: 0 }] },
+      { items: [{ variantId: '00000000-0000-4000-8000-000000000000', quantity: -4 }] },
+      // Not a uuid at all: our id shape is the first thing checked.
+      { items: [{ variantId: 'nope', quantity: 1 }] },
+      { items: [{ variantId: '00000000-0000-4000-8000-000000000000', quantity: 1, redirectUrl: 'https://evil.test' }] },
     ];
 
     for (const data of rubbish) {
@@ -80,7 +81,7 @@ test.describe('Shiprocket checkout token @security', () => {
 
   test('the caller cannot choose where customers are sent afterwards', async () => {
     const api = await apiClient();
-    const variant = await db.productVariant.findFirst({ select: { externalId: true } });
+    const variant = await db.productVariant.findFirst({ select: { id: true } });
     test.skip(!variant, 'no variants to ask for');
 
     // The redirect is signed with our API secret, so accepting one from the
@@ -88,7 +89,7 @@ test.describe('Shiprocket checkout token @security', () => {
     // does not allow the property, and the global pipe rejects unknown ones.
     const res = await api.post(resolve(ROUTE), {
       data: {
-        items: [{ variantExternalId: Number(variant!.externalId), quantity: 1 }],
+        items: [{ variantId: variant!.id, quantity: 1 }],
         redirectUrl: 'https://evil.test/collect',
       },
     });
@@ -103,10 +104,10 @@ test.describe('Shiprocket checkout token @security', () => {
 
     const api = await apiClient();
 
-    // An id nothing owns. Their checkout prices from the catalogue they synced,
-    // so a line we forward unchecked is a line they will charge for.
+    // A well-formed id nothing owns. Their checkout prices from the catalogue
+    // they synced, so a line we forward unchecked is one they will charge for.
     const res = await api.post(resolve(ROUTE), {
-      data: { items: [{ variantExternalId: 999_999_999, quantity: 1 }] },
+      data: { items: [{ variantId: '00000000-0000-4000-8000-000000000000', quantity: 1 }] },
     });
 
     expect(res.status(), 'an unknown variant was forwarded').toBe(400);

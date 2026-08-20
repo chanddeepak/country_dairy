@@ -10,6 +10,7 @@ import { usePincodeLookup } from '../../lib/usePincodeLookup';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { useStoreConfig } from '../../context/StoreConfigContext';
+import { useShiprocketCheckout } from '../../lib/useShiprocketCheckout';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -20,6 +21,12 @@ export default function CheckoutPage() {
 
   const [selectedAddress, setSelectedAddress] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'wallet'>('razorpay');
+  const shiprocketOn = isFlagOn('ENABLE_SHIPROCKET_CHECKOUT');
+  const {
+    startCheckout: startShiprocket,
+    starting: shiprocketStarting,
+    error: shiprocketError,
+  } = useShiprocketCheckout();
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
 
@@ -662,6 +669,48 @@ export default function CheckoutPage() {
                 <CheckCircle2 className="h-5 w-5" />
                 {processing ? 'Processing Order...' : `Place Order — ₹${total}`}
               </button>
+
+              {/* The second path, and only ever a second one. Their own script
+                  wants a fallbackUrl pointing back at this page for when their
+                  server is down, so ours has to keep working regardless — this
+                  adds a way to pay, it never replaces one. */}
+              {shiprocketOn && (
+                <>
+                  <div className="flex items-center gap-3 my-4">
+                    <span className="h-px flex-1 bg-stone-200" />
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6b6661]">
+                      or
+                    </span>
+                    <span className="h-px flex-1 bg-stone-200" />
+                  </div>
+
+                  <button
+                    onClick={(e) =>
+                      startShiprocket(
+                        e,
+                        cart.map((item: any) => ({
+                          variantId: item.variantId ?? item.variant?.id,
+                          quantity: item.quantity,
+                        })),
+                      )
+                    }
+                    disabled={shiprocketStarting || processing}
+                    data-testid="shiprocket-checkout"
+                    className="w-full border-2 border-[#3A6038] text-[#3A6038] hover:bg-[#3A6038] hover:text-white font-bold py-3.5 rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {shiprocketStarting ? 'Opening…' : 'Express checkout'}
+                  </button>
+
+                  {shiprocketError && (
+                    <p
+                      data-testid="shiprocket-error"
+                      className="mt-2 text-center text-xs text-red-600"
+                    >
+                      {shiprocketError} — you can still pay above.
+                    </p>
+                  )}
+                </>
+              )}
 
               <p className="flex items-center justify-center gap-1 text-xs text-[#6b6661] mt-4">
                 <ShieldCheck className="h-3.5 w-3.5" />
