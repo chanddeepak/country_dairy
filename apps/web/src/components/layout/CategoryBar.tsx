@@ -99,6 +99,36 @@ function PanelTile({ cat, onNavigate }: { cat: NavCategory; onNavigate: () => vo
 }
 
 /**
+ * The bar's own shape, while the tree is on its way.
+ *
+ * It holds exactly the height of the real thing. Returning nothing until the
+ * request lands means the bar appears from nowhere and pushes the page down by
+ * 56px underneath whoever is already reading it — the placeholder costs the
+ * same space, so nothing moves when the real links arrive.
+ */
+function BarSkeleton() {
+  return (
+    <div
+      data-testid="category-bar-skeleton"
+      className="hidden border-b border-stone-200 bg-white md:block"
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-14 animate-pulse items-center justify-center gap-1">
+          {[0, 1].map((i) => (
+            <div key={i} className="flex items-center gap-2 px-3 py-2">
+              <span className="h-8 w-8 rounded-full bg-stone-200" />
+              <span className="h-2.5 w-16 rounded-full bg-stone-200" />
+            </div>
+          ))}
+          <span className="mx-2 h-5 w-px bg-stone-200" />
+          <span className="h-7 w-24 rounded-full bg-stone-200" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * The category bar.
  *
  * Flat, the way Two Brothers and Anveshan both have it: a few categories
@@ -117,7 +147,7 @@ function PanelTile({ cat, onNavigate }: { cat: NavCategory; onNavigate: () => vo
  */
 export default function CategoryBar() {
   const pathname = usePathname();
-  const tree = useNavTree();
+  const { tree, loading } = useNavTree();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -144,8 +174,12 @@ export default function CategoryBar() {
   // Route changes close it too, or the menu outlives the page it was opened on.
   useEffect(() => setOpen(false), [pathname]);
 
+  if (loading) return <BarSkeleton />;
+
   // Nothing to show is not an empty bar — it is no bar. A strip of chrome with
-  // one link in it looks broken in a way that no link at all does not.
+  // one link in it looks broken in a way that no link at all does not. This is
+  // reached only once the request has settled, so it means "no categories"
+  // rather than "not yet".
   if (tree.length === 0) return null;
 
   const promoted = tree.filter((c) => c.showInNav);
@@ -153,7 +187,10 @@ export default function CategoryBar() {
   const active = (slug: string) => pathname === `/category/${slug}`;
 
   return (
-    <div className="hidden border-b border-stone-200 bg-white md:block">
+    <div
+      data-testid="category-bar"
+      className="hidden border-b border-stone-200 bg-white md:block"
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Centred as a group. Left-aligned links with the pill pushed to
             the far right leaves a void down the middle of the bar until the

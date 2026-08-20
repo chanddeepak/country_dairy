@@ -87,6 +87,46 @@ test.describe('Category bar', () => {
     });
   });
 
+  test('a placeholder holds the bar\'s space while the tree loads', async ({ page }) => {
+    test.setTimeout(60_000);
+
+    const all = await shelves();
+    test.skip(all.length === 0, 'no active categories');
+
+    // Held long enough to observe. Locally the tree comes back in a few
+    // milliseconds, which is exactly why this cannot be eyeballed.
+    await page.route('**/catalog/categories/nav', async (route) => {
+      await new Promise((r) => setTimeout(r, 2_000));
+      await route.continue();
+    });
+
+    await page.goto('/');
+
+    const skeleton = page.locator('[data-testid="category-bar-skeleton"]');
+    await expect(skeleton, 'nothing holds the space while the tree loads').toBeVisible({
+      timeout: 15_000,
+    });
+
+    // The point of the placeholder is not that something is on screen — it is
+    // that the bar does not shove the page down when the real links arrive.
+    // Both boxes are the bar's own container, so this compares like with like:
+    // measuring a link inside the loaded bar instead reports its padding as a
+    // layout shift.
+    const before = await skeleton.boundingBox();
+
+    const bar = page.locator('[data-testid="category-bar"]');
+    await expect(bar).toBeVisible({ timeout: 20_000 });
+    const after = await bar.boundingBox();
+
+    expect(before, 'the placeholder had no box').not.toBeNull();
+    expect(after, 'the loaded bar had no box').not.toBeNull();
+    expect(after!.y, 'the bar moved when it finished loading').toBeCloseTo(before!.y, 0);
+    expect(after!.height, 'the bar changed height when it loaded').toBeCloseTo(
+      before!.height,
+      0,
+    );
+  });
+
   test('on a phone the categories are in the burger menu', async ({ page }) => {
     test.setTimeout(60_000);
 

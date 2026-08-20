@@ -26,7 +26,7 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const navTree = useNavTree();
+  const { tree: navTree } = useNavTree();
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
