@@ -11,6 +11,19 @@ import SubscriptionModal from '../../components/modals/SubscriptionModal';
 import CartDrawer from '../../components/cart/CartDrawer';
 import { FALLBACK_PRODUCTS, API_URL, getExpandedProducts } from '../../lib/constants';
 import { mapApiProducts, expandAllVariants, isSoldOut } from '../../lib/mapProduct';
+import FilterDrawer, {
+  FilterButton,
+  countSelected,
+  type FilterGroup,
+  type Selection,
+} from '../../components/product/FilterDrawer';
+import {
+  buildFilterGroups,
+  filterChipLabel,
+  matchesSelection,
+  toggleInSelection,
+} from '../../lib/productFilters';
+import { X } from 'lucide-react';
 import { useStoreConfig } from '../../context/StoreConfigContext';
 import { useRouter } from 'next/navigation';
 
@@ -33,6 +46,8 @@ export default function ProductsPage() {
   // than the hardcoded ['All', 'Ghee'] which matched nothing in the taxonomy.
   const [categories, setCategories] = useState<string[]>(['All']);
   const [sortBy, setSortBy] = useState('relevance');
+  const [selection, setSelection] = useState<Selection>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Modal state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -89,13 +104,40 @@ export default function ProductsPage() {
       });
     }
 
+    // Type, size and availability. Category stays a chip above — it is how
+    // someone browses here, where the others refine what browsing found.
+    result = result.filter((p) => matchesSelection(p, selection));
+
     // Sort
     if (sortBy === 'price-asc') result.sort((a, b) => Number(a.price) - Number(b.price));
     if (sortBy === 'price-desc') result.sort((a, b) => Number(b.price) - Number(a.price));
     if (sortBy === 'rating') result.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
 
     return result;
-  }, [products, searchQuery, activeCategory, sortBy]);
+  }, [products, searchQuery, activeCategory, sortBy, selection]);
+
+  const toggle = (groupId: string, value: string) =>
+    setSelection((prev) => toggleInSelection(prev, groupId, value));
+
+  // Built from what the chosen category leaves, so the numbers describe the
+  // shelf being looked at rather than the whole catalogue.
+  const inCategory = useMemo(
+    () =>
+      activeCategory === 'All'
+        ? products
+        : products.filter((p) => {
+            const cat = (typeof p.category === 'string' ? p.category : p.category?.name) || '';
+            return cat === activeCategory;
+          }),
+    [products, activeCategory],
+  );
+
+  const groups: FilterGroup[] = useMemo(
+    () => buildFilterGroups(inCategory, selection),
+    [inCategory, selection],
+  );
+
+  const activeCount = countSelected(selection);
 
   // Split for display only — filtering and sorting still run over everything,
   // so a search that matches a sold-out size still finds it.
@@ -138,7 +180,11 @@ export default function ProductsPage() {
               />
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              {groups.length > 0 && (
+                <FilterButton onClick={() => setFiltersOpen(true)} count={activeCount} />
+              )}
+
               {/* Category Chips */}
               <div className="flex gap-2 flex-wrap">
                 {categories.map((cat) => (
@@ -168,6 +214,29 @@ export default function ProductsPage() {
               </select>
             </div>
           </div>
+
+          {/* What is applied stays on the page. The drawer hides the choosing,
+              which is the price of a drawer; it must not also hide the state. */}
+          {activeCount > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mt-4">
+              {Object.entries(selection).flatMap(([groupId, values]) =>
+                values.map((value) => (
+                  <button
+                    key={`${groupId}:${value}`}
+                    onClick={() => toggle(groupId, value)}
+                    data-testid="applied-filter"
+                    className="flex items-center gap-1.5 rounded-full bg-[#3A6038]/10 px-3 py-1.5 text-[12px] font-semibold text-[#3A6038] transition hover:bg-[#3A6038]/20"
+                  >
+                    {filterChipLabel(groupId, value)}
+                    <X className="h-3 w-3" />
+                  </button>
+                )),
+              )}
+              <span className="ml-auto text-[12px] text-[#6b6661]">
+                {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Product Grid */}
@@ -217,6 +286,25 @@ export default function ProductsPage() {
           )}
         </div>
       </main>
+
+      <FilterDrawer
+
+        open={filtersOpen}
+
+        onClose={() => setFiltersOpen(false)}
+
+        groups={groups}
+
+        selection={selection}
+
+        onToggle={toggle}
+
+        onClearAll={() => setSelection({})}
+
+        resultCount={filteredProducts.length}
+
+      />
+
 
       <Footer />
 

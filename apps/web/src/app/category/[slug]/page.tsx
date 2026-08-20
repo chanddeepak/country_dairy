@@ -17,6 +17,12 @@ import FilterDrawer, {
   type FilterGroup,
   type Selection,
 } from '../../../components/product/FilterDrawer';
+import {
+  buildFilterGroups,
+  filterChipLabel,
+  matchesSelection,
+  toggleInSelection,
+} from '../../../lib/productFilters';
 import type { NavCategory } from '../../../lib/useNavTree';
 import { notFound, useParams, useRouter } from 'next/navigation';
 
@@ -90,95 +96,18 @@ export default function CategoryPage() {
   }, [load]);
 
   const toggle = (groupId: string, value: string) =>
-    setSelection((prev) => {
-      const current = prev[groupId] ?? [];
-      const next = current.includes(value)
-        ? current.filter((v) => v !== value)
-        : [...current, value];
-      // Drop the key rather than leaving an empty array behind, so "is anything
-      // filtered" stays a simple question.
-      const { [groupId]: _drop, ...rest } = prev;
-      return next.length ? { ...rest, [groupId]: next } : rest;
-    });
+    setSelection((prev) => toggleInSelection(prev, groupId, value));
 
-  // What a card is filtered by. All three read the card that is actually on
-  // screen: the grid shows one card per size, so the size of a card is the size
-  // of its default variant, not the product's whole range.
-  const facets = {
-    type: (p: any) => p.productType ?? '',
-    size: (p: any) =>
-      (p.variants ?? []).find((v: any) => v.isDefault)?.volumeOrWeight ??
-      (p.variants ?? [])[0]?.volumeOrWeight ??
-      '',
-    availability: (p: any) => (isSoldOut(p) ? 'out' : 'in'),
-  } as const;
-
-  /** Everything except one group, so that group's counts show what ticking it would give. */
-  const matches = (p: any, sel: Selection, skip?: string) =>
-    Object.entries(sel).every(([groupId, values]) => {
-      if (groupId === skip || values.length === 0) return true;
-      const read = facets[groupId as keyof typeof facets];
-      return read ? values.includes(read(p)) : true;
-    });
-
-  // Counts come from the very array that fills the grid, never from the API's
-  // own product count. The grid shows one card per size, so a shelf holding one
-  // product in two jars is two cards — a "(1)" beside two results is worse than
-  // no number at all. Each group counts against the *other* groups, so a number
-  // always says what ticking that box would actually leave.
-  const countIn = (groupId: string, value: string) =>
-    products.filter(
-      (p) => facets[groupId as keyof typeof facets]?.(p) === value && matches(p, selection, groupId),
-    ).length;
-
-  const groups: FilterGroup[] = useMemo(() => {
-    if (!shelf) return [];
-    const built: FilterGroup[] = [];
-
-    if (shelf.types.length > 0) {
-      built.push({
-        id: 'type',
-        label: 'Type',
-        options: shelf.types.map((t) => ({
-          value: t.name,
-          label: t.name,
-          iconName: t.iconName,
-          count: countIn('type', t.name),
-        })),
-      });
-    }
-
-    // Sizes are read off the shelf rather than configured: whatever jars exist
-    // are the sizes on offer, so this needs no maintenance when one is added.
-    const sizes = Array.from(new Set(products.map(facets.size).filter(Boolean)));
-    if (sizes.length > 1) {
-      built.push({
-        id: 'size',
-        label: 'Size',
-        options: sizes.map((size) => ({
-          value: size,
-          label: size,
-          count: countIn('size', size),
-        })),
-      });
-    }
-
-    // Only worth offering once something is actually out of stock.
-    if (products.some((p) => isSoldOut(p))) {
-      built.push({
-        id: 'availability',
-        label: 'Availability',
-        options: [{ value: 'in', label: 'In stock', count: countIn('availability', 'in') }],
-      });
-    }
-
-    return built;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shelf, products, selection]);
+  const groups: FilterGroup[] = useMemo(
+    // The shelf's own types are passed in, so a type stocking nothing yet still
+    // appears — disabled, saying "Soon" — rather than vanishing from a list of
+    // what this shelf sells.
+    () => (shelf ? buildFilterGroups(products, selection, shelf.types) : []),
+    [shelf, products, selection],
+  );
 
   const shown = useMemo(
-    () => products.filter((p) => matches(p, selection)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    () => products.filter((p) => matchesSelection(p, selection)),
     [products, selection],
   );
 
@@ -234,7 +163,7 @@ export default function CategoryPage() {
                   data-testid="applied-filter"
                   className="flex items-center gap-1.5 rounded-full bg-[#3A6038]/10 px-3 py-1.5 text-[12px] font-semibold text-[#3A6038] transition hover:bg-[#3A6038]/20"
                 >
-                  {value === 'in' ? 'In stock' : value}
+                  {filterChipLabel(groupId, value)}
                   <X className="h-3 w-3" />
                 </button>
               )),
