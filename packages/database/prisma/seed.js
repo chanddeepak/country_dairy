@@ -40,6 +40,18 @@ const FEATURE_FLAGS = [
   { key: 'ENABLE_WALLET', description: 'Customer wallet balance and subscription auto-debit' },
   { key: 'ENABLE_OTP_LOGIN', description: 'Phone OTP sign-in (needs an SMS provider)' },
   { key: 'ENABLE_GOOGLE_LOGIN', description: 'Google sign-in (needs GOOGLE_CLIENT_ID)' },
+  // Declared in code since the integration was written, but never given rows —
+  // so the console had no switch for them and the storefront could not read
+  // them. Off, and off is also what an unknown flag reads as, so nothing here
+  // turns anything on.
+  {
+    key: 'ENABLE_SHIPROCKET_CHECKOUT',
+    description: 'Hand checkout to Shiprocket (needs SHIPROCKET_API_KEY and SECRET)',
+  },
+  {
+    key: 'ENABLE_SHIPROCKET_OUR_COUPONS',
+    description: 'Validate coupons against our own table rather than Shiprocket\'s dashboard',
+  },
 ];
 
 // GST and HSN differ per product line, which is exactly why they sit on the
