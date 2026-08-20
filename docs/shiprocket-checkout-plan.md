@@ -59,6 +59,18 @@ They pull our catalogue. We must expose, behind the same API-key + HMAC auth:
 - `GET  …/collections?page=1&limit=100`
 - `GET  …/collection-products?collection_id=…&page=1&limit=100`
 
+**A collection is a shelf, never a type.** Ghee is a collection; "A2 Desi
+Ghee" is not, because it travels on each product as Shopify's `product_type`,
+which is what that field is for. Offering both would list the same jars twice
+under two names in their checkout.
+
+`collection-products` therefore resolves a shelf to itself *and* its types.
+This was briefly wrong in a way worth recording: when the taxonomy gained
+parents and the jars moved onto a type, an exact category match meant Ghee
+vanished from `collections` altogether and would have returned an empty
+collection if asked for by id — while the storefront showed two products.
+Nobody would have noticed until their first pull.
+
 The response shape is Shopify's, not ours:
 
 ```

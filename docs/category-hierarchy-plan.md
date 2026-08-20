@@ -51,13 +51,36 @@ larger than ours and they still do not nest here.
 title for search, a clean URL to advertise, and somewhere for
 `Category.description` to finally appear.
 
-Types are **checkboxes with counts**, multi-select. A type with no products
-shows greyed at (0) rather than being hidden: it tells a customer the thing
-exists and is coming, and it cannot be ticked, so it can never produce an empty
-grid.
+Filtering is a **drawer**, opened from a Filter button, on every viewport. It
+began as an inline sidebar; the sidebar was replaced because a panel is generic
+over a list of groups, and size, price and availability were coming. Adding one
+is now a few lines of data rather than another piece of layout. `/products`
+uses the same drawer, and both share `lib/productFilters`.
 
-Counts come from the same query that fills the grid. A count that disagrees
-with the results is worse than no count.
+The groups are derived from the products on the page, never configured:
+
+| Group | Where it comes from |
+| --- | --- |
+| Type | The shelf's types, with their icons |
+| Size | Whatever sizes the shelf's jars actually are |
+| Availability | Offered only once something is out of stock |
+
+**A group with one option is not offered at all** — it filters everything down
+to everything. That rule is what fixed the original complaint that the filter
+box "looked wrong": it was a control that could not change the page.
+
+A type with no products shows disabled and says **"Soon"** rather than "(0)": a
+zero beside a name reads as a fault, the word reads as news, and it cannot be
+ticked, so it can never produce an empty grid.
+
+Counts come from the same array that fills the grid, and each group counts
+against the *other* groups — so a number says what ticking that box would leave
+given everything else already ticked. A count that disagrees with the results is
+worse than no count.
+
+The cost of a drawer is that hidden filters get used less than visible ones.
+What is applied therefore stays on the page as removable chips beside the
+button: only the choosing is behind a click, never the state.
 
 ## The console
 
@@ -78,8 +101,9 @@ when a category is written. The storefront fetches it in the layout with
 2. Console: parent picker on categories, type picker on the product form — done
 3. API: nav tree and per-category counts, both cached — done
 4. Storefront: the bar, then `/category/[slug]` with type filters — done
-5. Shiprocket: `collection-products` resolving a parent to its descendants —
-   still blocked on staging credentials
+5. Shiprocket: the feed resolving a shelf to its types — done. Collections are
+   shelves; the type travels as Shopify's `product_type`. The rest of that
+   integration is still blocked on staging credentials
 
 ### Two things the build taught us
 

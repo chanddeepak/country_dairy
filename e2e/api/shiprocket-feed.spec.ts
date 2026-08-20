@@ -113,11 +113,65 @@ test.describe('Shiprocket catalogue feed @security', () => {
       expect(typeof c.id).toBe('number');
       expect(c.handle).toBeTruthy();
 
+      // Counted the way the shelf is defined, not by exact category. A shelf
+      // whose jars are all filed under one of its types is not empty, and
+      // counting it exactly is what made this endpoint wrong.
       const count = await db.product.count({
-        where: { status: 'LIVE', category: { externalId: BigInt(c.id) } },
+        where: {
+          status: 'LIVE',
+          category: {
+            OR: [{ externalId: BigInt(c.id) }, { parent: { externalId: BigInt(c.id) } }],
+          },
+        },
       });
       expect(count, `collection ${c.title} is empty`).toBeGreaterThan(0);
     }
+
+    await api.dispose();
+  });
+
+  test('a collection is a shelf, never a type', async () => {
+    const api = await apiClient();
+    const body = await (
+      await api.get(resolve('/shiprocket/collections'), { headers: signed() })
+    ).json();
+
+    const ids = body.data.collections.map((c: { id: number }) => BigInt(c.id));
+    test.skip(ids.length === 0, 'nothing is on sale');
+
+    // The narrower kind travels as Shopify's product_type on each product, so
+    // offering it as a collection as well would list the same jars twice under
+    // two names in their checkout.
+    const asTypes = await db.category.count({
+      where: { externalId: { in: ids }, parentId: { not: null } },
+    });
+    expect(asTypes, 'a type was offered to Shiprocket as a collection').toBe(0);
+
+    await api.dispose();
+  });
+
+  test('a shelf collection carries the products filed under its types', async () => {
+    const api = await apiClient();
+
+    // A type that actually holds stock, with a parent — the exact shape that
+    // used to return an empty collection.
+    const type = await db.category.findFirst({
+      where: { parentId: { not: null }, products: { some: { status: 'LIVE' } } },
+      select: { parent: { select: { externalId: true, name: true } } },
+    });
+    test.skip(!type?.parent, 'no type holds live products');
+
+    const res = await api.get(
+      resolve(`/shiprocket/collection-products?collection_id=${type!.parent!.externalId}`),
+      { headers: signed() },
+    );
+    expect(res.ok(), await res.text()).toBeTruthy();
+    const body = await res.json();
+
+    expect(
+      body.data.products.length,
+      `the ${type!.parent!.name} collection was empty although its types hold stock`,
+    ).toBeGreaterThan(0);
 
     await api.dispose();
   });

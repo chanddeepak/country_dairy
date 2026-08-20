@@ -43,7 +43,13 @@ export class ShiprocketService {
   async listProductsByCollection(collectionExternalId: bigint, page: number, limit: number) {
     const where = {
       status: ProductStatus.LIVE,
-      category: { externalId: collectionExternalId },
+      // A shelf holds what sits on it and what sits on its types. Matching the
+      // category alone returned nothing for Ghee the moment its jars were filed
+      // under "A2 Desi Ghee" — the storefront showed two products and this
+      // endpoint would have handed Shiprocket an empty collection.
+      category: {
+        OR: [{ externalId: collectionExternalId }, { parent: { externalId: collectionExternalId } }],
+      },
     };
 
     const [rows, total] = await Promise.all([
@@ -61,9 +67,22 @@ export class ShiprocketService {
   }
 
   async listCollections(page: number, limit: number) {
-    // Only categories that actually have something to sell. An empty
-    // collection in their checkout is a dead end for a customer.
-    const where = { isActive: true, products: { some: { status: ProductStatus.LIVE } } };
+    // A collection is a shelf — Ghee, Oils, Honey — never a type. The narrower
+    // kind travels on each product as Shopify's `product_type`, which is what
+    // that field is for, so nothing is lost by keeping this list to the things
+    // a customer would recognise as a section of the shop.
+    //
+    // Still only ones with something to sell, counting a shelf's types as well
+    // as the shelf: an empty collection in their checkout is a dead end, and a
+    // shelf whose stock all sits on its types is not empty.
+    const where = {
+      isActive: true,
+      parentId: null,
+      OR: [
+        { products: { some: { status: ProductStatus.LIVE } } },
+        { subCategories: { some: { products: { some: { status: ProductStatus.LIVE } } } } },
+      ],
+    };
 
     const [rows, total] = await Promise.all([
       this.prisma.category.findMany({

@@ -42,8 +42,18 @@ test.describe('Category nav tree', () => {
   test('an empty category is still listed', async () => {
     // Shown deliberately: a category with nothing in it tells a customer the
     // thing is coming. Hiding it tells them nothing.
+    // Empty the way the tree counts it: nothing on the shelf *and* nothing on
+    // its types. Asking only for no direct products picked Ghee, whose jars are
+    // all filed under "A2 Desi Ghee" — the tree rightly said 1 and this test
+    // said 0. It passed for weeks only because findFirst happened to return a
+    // different row.
     const empty = await db.category.findFirst({
-      where: { isActive: true, parentId: null, products: { none: {} } },
+      where: {
+        isActive: true,
+        parentId: null,
+        products: { none: { status: 'LIVE' } },
+        subCategories: { none: { products: { some: { status: 'LIVE' } } } },
+      },
     });
     test.skip(!empty, 'every category has products');
 
