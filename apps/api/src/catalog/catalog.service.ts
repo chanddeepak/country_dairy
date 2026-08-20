@@ -74,8 +74,7 @@ export class CatalogService {
   async createCategory(dto: CategoryDto) {
     this.logger.log(`Creating category: ${dto.name}`);
     const slug = dto.slug || dto.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    this.invalidateNav();
-    return await this.prisma.category.create({
+    const created = await this.prisma.category.create({
       data: {
         name: dto.name,
         slug,
@@ -89,15 +88,20 @@ export class CatalogService {
         showInNav: dto.parentId ? false : (dto.showInNav ?? false),
       },
     });
+
+    // After the write, never before. Clearing the cache first leaves a window
+    // in which any request repopulates it from the pre-write state, and that
+    // stale copy then stands for the full TTL.
+    this.invalidateNav();
+    return created;
   }
 
   async updateCategory(id: string, dto: CategoryDto) {
     this.logger.log(`Updating category: ${id}`);
-    this.invalidateNav();
     const existing = await this.prisma.category.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException(`Category ${id} not found`);
 
-    return await this.prisma.category.update({
+    const updated = await this.prisma.category.update({
       where: { id },
       data: {
         name: dto.name ?? existing.name,
@@ -114,11 +118,19 @@ export class CatalogService {
           dto.parentId ? false : (dto.showInNav ?? existing.showInNav),
       },
     });
+
+    this.invalidateNav();
+    return updated;
   }
 
   async deleteCategory(id: string) {
     this.logger.log(`Deleting category: ${id}`);
-    return await this.prisma.category.delete({ where: { id } });
+    const deleted = await this.prisma.category.delete({ where: { id } });
+
+    // Deleting a category changes the bar too — this was simply missing, so a
+    // removed shelf kept its link for the length of the TTL.
+    this.invalidateNav();
+    return deleted;
   }
 
   async getProducts(

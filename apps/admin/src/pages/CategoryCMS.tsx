@@ -21,6 +21,33 @@ interface CategoryCMSProps {
   onUpdateCategories: (categories: CategoryItem[]) => void;
 }
 
+/**
+ * The exact shape `CategoryDto` accepts — nothing more.
+ *
+ * The API runs a global ValidationPipe with `forbidNonWhitelisted`, so a single
+ * unexpected property fails the whole request: spreading a CategoryItem into
+ * the body sent `id` along with it and every save came back
+ * `400 property id should not exist`. Every field is sent every time because
+ * the route is a PUT and treats a missing one as "leave it alone", so a partial
+ * body is how a toggle used to arrive without the name the DTO requires.
+ */
+function toCategoryDto(cat: CategoryItem) {
+  return {
+    name: cat.name,
+    slug: cat.slug,
+    description: cat.description ?? '',
+    iconName: cat.iconName ?? 'Package',
+    displayOrder: cat.displayOrder ?? 1,
+    isActive: cat.isActive ?? true,
+    parentId: cat.parentId ?? null,
+    showInNav: cat.showInNav ?? false,
+  };
+}
+
+/** A slug derived from a name, for new categories only. */
+const slugify = (name: string) =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
 export default function CategoryCMS({ categories, onUpdateCategories }: CategoryCMSProps) {
   const setCategories = (action: CategoryItem[] | ((prev: CategoryItem[]) => CategoryItem[])) => {
     if (typeof action === 'function') {
@@ -39,6 +66,8 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
   const [navInput, setNavInput] = useState(false);
   const [descInput, setDescInput] = useState('');
   const [orderInput, setOrderInput] = useState('1');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Only a category can be a parent. Two levels is the whole model, so a type
   // must never be offered as somewhere to put another type.
@@ -48,6 +77,7 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
     cat.parentId ? categories.find((c) => c.id === cat.parentId)?.name : undefined;
 
   const handleOpenAdd = () => {
+    setSaveError(null);
     setEditingCategory(null);
     setNameInput('');
     setDescInput('');
@@ -58,6 +88,7 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
   };
 
   const handleOpenEdit = (cat: CategoryItem) => {
+    setSaveError(null);
     setEditingCategory(cat);
     setNameInput(cat.name);
     setDescInput(cat.description || '');
@@ -71,76 +102,119 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
     e.preventDefault();
     if (!nameInput.trim()) return;
 
-    const slug = nameInput.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    setSaveError(null);
+    setSaving(true);
+    const before = categories;
 
-    if (editingCategory) {
-      const updatedCat: CategoryItem = {
-        ...editingCategory,
-        name: nameInput.trim(),
-        slug,
-        description: descInput.trim(),
-        displayOrder: parseInt(orderInput) || 1,
-        parentId: parentInput || null,
-        // A type lives inside its category's page, never in the bar.
-        showInNav: parentInput ? false : navInput,
-      };
-      setCategories(prev => prev.map(c => c.id === editingCategory.id ? updatedCat : c));
-      try {
-        await adminApi.updateCategory(editingCategory.id, updatedCat);
-      } catch (err) {
-        console.warn('API updateCategory error:', err);
-      }
-    } else {
-      const newCat: CategoryItem = {
-        id: `cat-${Date.now()}`,
-        name: nameInput.trim(),
-        slug,
-        description: descInput.trim(),
-        iconName: 'Package',
-        displayOrder: parseInt(orderInput) || categories.length + 1,
-        isActive: true,
-        parentId: parentInput || null,
-        showInNav: parentInput ? false : navInput,
-      };
-      setCategories(prev => [...prev, newCat]);
-      try {
-        const created = await adminApi.createCategory(newCat);
+    try {
+      if (editingCategory) {
+        const updatedCat: CategoryItem = {
+          ...editingCategory,
+          name: nameInput.trim(),
+          // The slug is deliberately kept, not re-derived from the name. It is
+          // the category's public URL: regenerating it here meant editing a
+          // description silently moved /category/<slug> and broke every link
+          // already pointing at it.
+          description: descInput.trim(),
+          displayOrder: parseInt(orderInput) || 1,
+          parentId: parentInput || null,
+          // A type lives inside its category's page, never in the bar.
+          showInNav: parentInput ? false : navInput,
+        };
+        setCategories(prev => prev.map(c => c.id === editingCategory.id ? updatedCat : c));
+        await adminApi.updateCategory(editingCategory.id, toCategoryDto(updatedCat));
+      } else {
+        const newCat: CategoryItem = {
+          // Provisional, so React has a key until the server replies. It is
+          // never sent — the API rejects a body carrying an id outright.
+          id: `cat-${Date.now()}`,
+          name: nameInput.trim(),
+          slug: slugify(nameInput),
+          description: descInput.trim(),
+          iconName: 'Package',
+          displayOrder: parseInt(orderInput) || categories.length + 1,
+          isActive: true,
+          parentId: parentInput || null,
+          showInNav: parentInput ? false : navInput,
+        };
+        setCategories(prev => [...prev, newCat]);
+        const created = await adminApi.createCategory(toCategoryDto(newCat));
         if (created?.id) {
           setCategories(prev => prev.map(c => c.id === newCat.id ? created : c));
         }
-      } catch (err) {
-        console.warn('API createCategory error:', err);
       }
-    }
 
-    setIsModalOpen(false);
+      setIsModalOpen(false);
+    } catch (err) {
+      // The optimistic row goes back. Leaving it in place while the write
+      // failed is what made this look like it worked: the table showed the new
+      // description, nothing reached the database, and the only trace was a
+      // console warning nobody had open.
+      setCategories(before);
+      setSaveError(err instanceof Error ? err.message : 'Could not save that category.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleCategoryActive = async (id: string) => {
     const target = categories.find(c => c.id === id);
     if (!target) return;
+
     const nextActive = !target.isActive;
+    const before = categories;
+    setSaveError(null);
     setCategories(prev => prev.map(c => c.id === id ? { ...c, isActive: nextActive } : c));
+
     try {
-      await adminApi.updateCategory(id, { isActive: nextActive });
+      // The whole category, not just the flag. `{ isActive }` on its own was
+      // rejected because the DTO requires a name, so this toggle never once
+      // reached the database.
+      await adminApi.updateCategory(id, toCategoryDto({ ...target, isActive: nextActive }));
     } catch (err) {
-      console.warn('API toggle category error:', err);
+      setCategories(before);
+      setSaveError(
+        err instanceof Error ? err.message : `Could not ${nextActive ? 'show' : 'hide'} that category.`,
+      );
     }
   };
 
   const handleDeleteCategory = async (id: string) => {
     if (confirm('Delete this category taxonomy? Products assigned to this category may need re-assignment.')) {
+      const before = categories;
+      setSaveError(null);
       setCategories(prev => prev.filter(c => c.id !== id));
       try {
         await adminApi.deleteCategory(id);
       } catch (err) {
-        console.warn('API deleteCategory error:', err);
+        // A category with products cannot be deleted, and the row reappearing
+        // with the reason beats it vanishing from a table it is still in.
+        setCategories(before);
+        setSaveError(err instanceof Error ? err.message : 'Could not delete that category.');
       }
     }
   };
 
   return (
     <div className="space-y-6 text-stone-100">
+      {/* A failed toggle or delete happens with no dialog open, so the reason
+          needs somewhere to land on the page itself. */}
+      {saveError && !isModalOpen && (
+        <div
+          data-testid="category-page-error"
+          className="flex items-start justify-between gap-4 rounded-2xl border border-red-500/40 bg-red-500/10 px-5 py-3 text-xs text-red-300"
+        >
+          <span>{saveError}</span>
+          <button
+            onClick={() => setSaveError(null)}
+            className="font-bold text-red-200 hover:text-white"
+            aria-label="Dismiss error"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between bg-stone-900 p-6 rounded-2xl border border-stone-800">
         <div>
@@ -308,19 +382,33 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
                 />
               </div>
 
+              {/* The reason the save failed, in the dialog that failed to save.
+                  This used to be a console warning behind a dialog that closed
+                  itself as though it had worked. */}
+              {saveError && (
+                <p
+                  data-testid="category-save-error"
+                  className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-red-300"
+                >
+                  {saveError}
+                </p>
+              )}
+
               <div className="flex items-center justify-end gap-2 pt-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-stone-700 rounded-lg text-stone-200 font-semibold"
+                  disabled={saving}
+                  className="px-4 py-2 bg-stone-700 rounded-lg text-stone-200 font-semibold disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-amber-500 text-stone-950 rounded-lg font-bold"
+                  disabled={saving}
+                  className="px-4 py-2 bg-amber-500 text-stone-950 rounded-lg font-bold disabled:opacity-60"
                 >
-                  {editingCategory ? 'Save Changes' : 'Create Category'}
+                  {saving ? 'Saving…' : editingCategory ? 'Save Changes' : 'Create Category'}
                 </button>
               </div>
             </form>
