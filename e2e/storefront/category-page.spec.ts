@@ -95,11 +95,12 @@ test.describe('Category page', () => {
         const box = boxes.nth(i);
         if (await box.isDisabled()) continue;
 
-        // The label reads "<name> (<count>)"; take the number from the page
+        // The row ends with its count in a badge; take the number from the page
         // itself rather than recomputing it, so the test compares what a
-        // customer sees against what they get.
+        // customer sees against what they get. A type with nothing in it reads
+        // "Soon" instead of a number and is disabled, so it never gets here.
         const label = await box.locator('xpath=..').innerText();
-        const claimed = Number(label.match(/\((\d+)\)\s*$/)?.[1] ?? -1);
+        const claimed = Number(label.match(/(\d+)\s*$/)?.[1] ?? -1);
         expect(claimed, `no count rendered for filter ${i}`).toBeGreaterThanOrEqual(0);
 
         await box.check();
@@ -112,6 +113,37 @@ test.describe('Category page', () => {
         await box.uncheck();
       }
     }
+  });
+
+  test('the slug is never shown as the heading while loading', async ({ page }) => {
+    test.setTimeout(60_000);
+
+    const shelf = await db.category.findFirst({
+      where: { isActive: true, parentId: null },
+      select: { name: true, slug: true },
+    });
+    test.skip(!shelf, 'no category to open');
+    // Only meaningful where the two differ in the way a customer would notice.
+    test.skip(shelf!.slug === shelf!.name, 'this slug and name are identical');
+
+    await page.route('**/catalog/categories/nav', async (route) => {
+      await new Promise((r) => setTimeout(r, 3_000));
+      await route.continue();
+    });
+
+    await page.goto(`/category/${shelf!.slug}`);
+
+    // The heading used to fall back to the slug, so a bare lowercase "ghee" sat
+    // in the display serif above three grey boxes until the request landed. A
+    // URL is a machine-readable string, not a page title.
+    await expect(
+      page.getByRole('heading', { level: 1 }),
+      'the raw slug was shown as the page heading',
+    ).toHaveCount(0);
+
+    await expect(page.getByRole('heading', { name: shelf!.name, level: 1 })).toBeVisible({
+      timeout: 20_000,
+    });
   });
 
   test('an empty shelf says so instead of rendering a bare grid', async ({ page }) => {

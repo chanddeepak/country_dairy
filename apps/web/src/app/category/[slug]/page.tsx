@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { Check, ChevronRight } from 'lucide-react';
 import { API_URL } from '../../../lib/constants';
 import { mapApiProducts, expandAllVariants, isSoldOut } from '../../../lib/mapProduct';
 import Navbar from '../../../components/layout/Navbar';
@@ -11,20 +11,13 @@ import ProductCard from '../../../components/product/ProductCard';
 import AuthModal from '../../../components/modals/AuthModal';
 import CartDrawer from '../../../components/cart/CartDrawer';
 import { useApp } from '../../../context/AppContext';
+import { categoryIcon } from '../../../lib/categoryIcon';
+import type { NavCategory } from '../../../lib/useNavTree';
 import { notFound, useParams, useRouter } from 'next/navigation';
 
-interface NavType {
-  id: string;
-  name: string;
-  slug: string;
-  productCount: number;
-}
-
-interface NavShelf extends NavType {
-  showInNav: boolean;
-  description: string | null;
-  types: NavType[];
-}
+// Deliberately the same types the bar uses. A second copy had already drifted:
+// it omitted iconName, which the API has sent since the tree existed.
+type NavShelf = NavCategory;
 
 /**
  * A shelf, and the kinds of thing on it.
@@ -128,54 +121,117 @@ export default function CategoryPage() {
       <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        <nav className="flex items-center gap-1 text-xs text-[#6b6661] mb-4">
-          <Link href="/" className="hover:text-[#3A6038]">Home</Link>
-          <ChevronRight className="h-3 w-3" />
-          <span className="font-bold text-[#2A2A2A]">{shelf?.name ?? slug}</span>
-        </nav>
+        {shelf ? (
+          <>
+            <nav className="flex items-center gap-1 text-xs text-[#6b6661] mb-4">
+              <Link href="/" className="hover:text-[#3A6038]">Home</Link>
+              <ChevronRight className="h-3 w-3" />
+              <span className="font-bold text-[#2A2A2A]">{shelf.name}</span>
+            </nav>
 
-        <h1 className="font-serif font-black text-3xl text-[#2A2A2A] mb-1">
-          {shelf?.name ?? slug}
-        </h1>
-        {shelf && (
-          <p className="text-sm text-[#6b6661] max-w-2xl mb-6">
-            {shelf.description || `Everything we make in ${shelf.name.toLowerCase()}.`}
-          </p>
+            <h1 className="font-serif font-black text-3xl text-[#2A2A2A] mb-1">{shelf.name}</h1>
+            <p className="text-sm text-[#6b6661] max-w-2xl mb-6">
+              {shelf.description || `Everything we make in ${shelf.name.toLowerCase()}.`}
+            </p>
+          </>
+        ) : (
+          // Placeholders, not the slug. Falling back to it printed a bare
+          // lowercase "ghee" in the display serif for as long as the request
+          // took — the URL is a machine-readable string, not a page title.
+          <div className="animate-pulse mb-6">
+            <div className="h-3 w-40 rounded-full bg-stone-200 mb-5" />
+            <div className="h-8 w-56 rounded-lg bg-stone-200 mb-3" />
+            <div className="h-3 w-80 max-w-full rounded-full bg-stone-200" />
+          </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6">
           {/* Types, as filters between kinds of the same thing. */}
           {shelf && shelf.types.length > 0 && (
-            <aside className="bg-white border border-stone-200 rounded-xl p-4 h-fit">
-              <h2 className="text-sm font-bold text-[#3A6038]">Type</h2>
-              <p className="text-[11px] text-[#6b6661] mb-3">Tick more than one</p>
-
-              {shelf.types.map((type) => {
-                const count = countsByType.get(type.name) ?? 0;
-                const none = count === 0;
-                return (
-                  <label
-                    key={type.id}
-                    className={`flex items-center gap-2.5 py-2 border-b border-dashed border-stone-200 last:border-0 text-sm ${
-                      none ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'
-                    }`}
+            <aside className="bg-white border border-stone-200 rounded-2xl p-4 h-fit lg:sticky lg:top-40">
+              <div className="flex items-baseline justify-between mb-3">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#3A6038]">
+                  Type
+                </h2>
+                {/* Only once there is something to clear. A permanently visible
+                    Clear on an untouched filter invites a pointless click. */}
+                {checked.length > 0 && (
+                  <button
+                    onClick={() => setChecked([])}
+                    className="text-[11px] font-semibold text-[#6b6661] hover:text-[#3A6038] transition"
                   >
-                    <input
-                      type="checkbox"
-                      data-testid="type-filter"
-                      disabled={none}
-                      checked={checked.includes(type.name)}
-                      onChange={() => toggle(type.name)}
-                      className="accent-[#3A6038]"
-                    />
-                    <span className="flex-1">{type.name}</span>
-                    {/* A kind we do not stock yet is shown, greyed, rather than
-                        hidden: it says the thing is coming. It cannot be
-                        ticked, so it can never produce an empty grid. */}
-                    <span className="text-[11px] text-[#6b6661]">({count})</span>
-                  </label>
-                );
-              })}
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Wraps on a phone, stacks on a desktop. A single tall column of
+                  one row above the grid wastes the width a phone has. */}
+              <div className="flex flex-wrap gap-2 lg:flex-col">
+                {shelf.types.map((type) => {
+                  const count = countsByType.get(type.name) ?? 0;
+                  const none = count === 0;
+                  const on = checked.includes(type.name);
+                  const Icon = categoryIcon(type.iconName);
+
+                  return (
+                    <label
+                      key={type.id}
+                      className={`group relative flex items-center gap-2.5 rounded-xl border px-3 py-2.5 transition ${
+                        none
+                          ? 'cursor-not-allowed border-stone-200 bg-stone-50 opacity-60'
+                          : on
+                            ? 'cursor-pointer border-[#3A6038] bg-[#3A6038]/8'
+                            : 'cursor-pointer border-stone-200 hover:border-[#3A6038]/40 hover:bg-[#FAF8F3]'
+                      }`}
+                    >
+                      {/* A real checkbox, restyled rather than replaced: it keeps
+                          the keyboard and screen-reader behaviour that a div
+                          pretending to be one throws away. */}
+                      <input
+                        type="checkbox"
+                        data-testid="type-filter"
+                        disabled={none}
+                        checked={on}
+                        onChange={() => toggle(type.name)}
+                        className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+                      />
+                      <span
+                        aria-hidden="true"
+                        className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg transition peer-focus-visible:ring-2 peer-focus-visible:ring-[#3A6038]/40 ${
+                          on ? 'bg-[#3A6038] text-white' : 'bg-stone-100 text-[#6b6661]'
+                        }`}
+                      >
+                        {on ? <Check className="h-4 w-4" /> : <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />}
+                      </span>
+
+                      <span
+                        className={`flex-1 text-[13px] font-semibold ${
+                          on ? 'text-[#3A6038]' : 'text-[#2A2A2A]'
+                        }`}
+                      >
+                        {type.name}
+                      </span>
+
+                      {/* A kind we do not stock yet still shows, so a customer
+                          learns it is coming — but it says so in words. "(0)"
+                          beside a name reads as a fault. It cannot be ticked,
+                          so it can never empty the grid. */}
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          none
+                            ? 'bg-stone-100 text-[#6b6661]'
+                            : on
+                              ? 'bg-[#3A6038] text-white'
+                              : 'bg-stone-100 text-[#6b6661]'
+                        }`}
+                      >
+                        {none ? 'Soon' : count}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
             </aside>
           )}
 
