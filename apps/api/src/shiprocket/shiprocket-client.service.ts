@@ -24,15 +24,18 @@ export interface CheckoutTokenResult {
 
 export interface CartItem {
   /**
-   * A string, not a number.
+   * A number, because their tech team asked for one in writing.
    *
-   * Every example in their collections quotes it — "35", "1244539923890450" —
-   * in the checkout request and again in the order webhook they send back. We
-   * were sending a JSON number, which their sample never does. The ids are
-   * BIGINT and would eventually exceed what a double represents exactly, so a
-   * string is the safer shape on both counts.
+   * Their Postman samples quote it ("35", "1244539923890450") and this was
+   * briefly changed to a string on that basis. Then a screenshot surfaced of
+   * their team telling another merchant, plainly: "Product id, Variant id and
+   * Collection id should be of data-type long instead of string". An
+   * instruction beats a sample.
+   *
+   * Our feed already emits them unquoted, so this keeps one shape throughout.
+   * Their webhook sends them back quoted, which our parser handles either way.
    */
-  variant_id: string;
+  variant_id: number;
   quantity: number;
 }
 

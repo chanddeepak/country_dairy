@@ -93,27 +93,34 @@ guard answers 511, so a URL pasted into an address bar returns nothing. They
 are intended to be called server to server, which is how your sync will reach
 them.
 
-#### Please confirm this scheme
+#### Implemented exactly as your collections specify
 
-We implemented the above from your Fastrr / custom-platform Postman
-collections. Your support documentation for SR Checkout does not restate it, so
-we would like it confirmed in writing before we rely on it in production:
+Taken from the Full Checkout and custom-website collections, including your
+documented `200` / `511` statuses. One point we would like confirmed:
 
-1. Are `X-Api-Key` and `X-Api-HMAC-SHA256` the correct header names?
-2. Is the HMAC base64, SHA-256, over the raw request body, keyed with the
-   shared secret — and over the empty string for a `GET`?
-3. Is `511` the status you expect on a mismatch?
+- On a `GET` there is no body, so we compute and verify the HMAC over the
+  **empty string**. Please confirm your sync does the same, since all three
+  catalogue endpoints are `GET`.
 
-If any of these differ, it is a small change on our side and much cheaper to
-make now than after your first sync fails.
+#### Credentials
 
-#### Which credentials, in which direction
+Your documentation states: *"`X-Api-Key` — will be provided by shiprocket's
+team"*, and that webhook authentication works the same way. We have therefore
+assumed **one pair, issued by you, used in both directions**:
 
-There are two directions and we want to remove any ambiguity, because this is
-the sort of thing that stalls an integration for a week.
+| Direction | Uses |
+| --- | --- |
+| **You → us** (catalogue pulls, order webhook) | your sync presents the key and signs with the secret; we verify |
+| **Us → you** (checkout token, order lookup, refunds) | we present the same key and sign with the same secret |
 
-| Direction | Whose credentials | Our position |
-| --- | --- | --- |
+Our implementation reads one key and one secret from configuration, so this
+works as soon as you send them. **Please send the staging pair through a secure
+channel** — not email or chat.
+
+If the two directions are meant to use different pairs, tell us and we will
+configure them separately; that is a configuration change, not a code change.
+
+--- | --- | --- |
 | **You → us** (catalogue pulls) | the pair **our** endpoints verify | **we have generated a pair and will send it to you securely.** Configure your sync with it and our endpoints will accept your requests immediately. |
 | **Us → you** (checkout token, order lookup) | the pair **your** API verifies | we need these from you — this is what blocks us. |
 
@@ -133,10 +140,10 @@ Either arrangement works; we only need to know which.
 
 ### 2.1 To finish development — blocking
 
-1. **Staging API key and shared secret** — see §1.3. Nothing further can be
-   tested; this is the only thing holding us up. We understand these are
-   generated on your side and visible in the checkout dashboard.
-2. **Confirmation of the authentication scheme** — the three questions in §1.3.
+1. **The staging API key and API secret**, which your documentation says your
+   team provides. Nothing further can be tested without them; this is the only
+   thing holding us up.
+2. **Confirmation of the empty-body HMAC on GETs** — see §1.3.
 3. **Confirmation of the staging base URL** we should call.
    We are using `https://fastrr-api-dev.pickrr.com`.
 4. **Registration of our dev webhook URL**:
