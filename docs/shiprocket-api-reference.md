@@ -81,7 +81,7 @@ Three details that decide whether this works at all:
 ```jsonc
 // request
 {
-  "cart_data": { "items": [ { "variant_id": "1", "quantity": 2 } ] },
+  "cart_data": { "items": [ { "variant_id": 1, "quantity": 2 } ] },
   "redirect_url": "https://countrydairy.in/checkout/shiprocket-return",
   "timestamp": "2026-08-21T09:15:00.000Z"
 }
@@ -90,11 +90,18 @@ Three details that decide whether this works at all:
 { "result": { "token": "…", "data": { "order_id": "…" } } }
 ```
 
-`variant_id` is the id from our feed, **sent as a string** — every example they
-publish quotes it (`"35"`, `"1244539923890450"`), in the checkout request and
-in the webhook coming back. We were sending a JSON number. The ids are BIGINT
-and would eventually exceed what a double holds exactly, so the string is safer
-on both counts.
+`variant_id` is the id from our feed, **sent as a number (long)**.
+
+This was briefly changed to a string, because every example they publish quotes
+it — `"35"`, `"1244539923890450"` — in the checkout request and in the webhook
+coming back. Then their tech team's own words surfaced, to another merchant:
+*"Product id, Variant id and Collection id should be of data-type long instead
+of string."* An instruction beats a sample, and our feed already emits them
+unquoted, so one shape holds throughout.
+
+Their webhook sends them back quoted; our parser compares as strings and
+handles either. Worth confirming with them if a checkout call is ever rejected
+for a malformed cart — it is the first thing I would suspect.
 
 The browser never sees it: our endpoint takes our own variant id and
 translates.
