@@ -20,3 +20,12 @@ playwright-report/
 
 # Subagent worktrees — checkouts of this repo, not content of it.
 .claude/worktrees/
+
+# Local tooling venv for docs conversion. Created on demand by
+# scripts/md-to-docx.sh; not part of the app's dependencies.
+.tooling/
+
+# Word versions of the docs. Generated from the markdown beside them, which is
+# the source of truth — committing the binary guarantees the two disagree
+# within a day. Run scripts/md-to-docx.sh when you need one to send.
+docs/*.docx

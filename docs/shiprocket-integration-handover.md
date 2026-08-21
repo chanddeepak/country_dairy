@@ -99,8 +99,8 @@ Both directions use:
    `https://country-dairy-api-dev.onrender.com/api/shiprocket/webhook/order`
 4. **A staging test order** we can use to verify the webhook end to end.
 
-Please send credentials through a secure channel — not email or chat.
-
+Please provide the above details. Also, let us know if something more needs to be done from our end for this integration.
+ 
 ### 2.2 Before go-live
 
 5. Production API key and secret, and production webhook registration.
@@ -118,10 +118,7 @@ These are not in the documentation and we need answers before launch.
    and when do funds reach our bank?
 4. **Refunds.** What is the API or process, and who initiates?
 5. **Branding.** How far can the checkout carry Country Dairy's identity?
-6. **Coupons.** We plan to use coupons configured in your dashboard, and to
-   *not* send `cart_discount`, on our reading that specifying it applies only
-   that fixed discount and disables dashboard coupons for the order. Please
-   confirm.
+6. **Coupons.**  Please confirm how coupon integration works. Is it via sending `cart_discount` from our as part of order or we can configure coupons in your dashboard?
 
 ---
 
@@ -135,8 +132,7 @@ before requesting a checkout token, which closes most of that window.
 
 - How often do you pull the catalogue?
 - Do you support our pushing changes to `/wh/v1/custom/product` and
-  `/wh/v1/custom/collection` to keep it fresh? We are willing to implement
-  these.
+  `/wh/v1/custom/collection` to keep it fresh?
 
 ### 4.2 Login and the customer session
 
@@ -163,9 +159,3 @@ returns every product filed under Ghee **and** under its types. We deliberately
 do not expose types as collections, which would list the same items twice under
 two names.
 
----
-
-## 6. Contact
-
-Technical questions on this integration: Country Dairy engineering, via our
-existing thread with Abhishek.
