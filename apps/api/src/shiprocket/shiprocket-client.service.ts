@@ -23,7 +23,16 @@ export interface CheckoutTokenResult {
 }
 
 export interface CartItem {
-  variant_id: number;
+  /**
+   * A string, not a number.
+   *
+   * Every example in their collections quotes it — "35", "1244539923890450" —
+   * in the checkout request and again in the order webhook they send back. We
+   * were sending a JSON number, which their sample never does. The ids are
+   * BIGINT and would eventually exceed what a double represents exactly, so a
+   * string is the safer shape on both counts.
+   */
+  variant_id: string;
   quantity: number;
 }
 
@@ -126,6 +135,43 @@ export class ShiprocketClient {
    * the failsafe. Used by the reconciliation job rather than by checkout.
    */
   async fetchOrderDetails(orderId: string): Promise<unknown> {
-    return this.post('/api/v1/custom-platform-order/details', { order_id: orderId });
+    return this.post('/api/v1/custom-platform-order/details', {
+      order_id: orderId,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Every order they took for us in a window.
+   *
+   * This is the reconciliation endpoint, and its existence settles a question
+   * we had guessed at: we do not need to record an intent row to notice a
+   * missing order, because we can simply ask what they have and compare. Both
+   * are still worth doing — the intent row is what tells us an order *should*
+   * exist within seconds rather than within an hour.
+   */
+  async listOrders(from: Date, to: Date, status = 'SUCCESS', page = 0, limit = 250) {
+    return this.post<{ result?: { data?: unknown[] } }>(
+      '/api/v1/custom-platform-order/details/list',
+      {
+        startDate: from.toISOString(),
+        endDate: to.toISOString(),
+        status,
+        page,
+        limit,
+        timestamp: new Date().toISOString(),
+      },
+    );
+  }
+
+  /**
+   * Refund an order they collected payment for.
+   *
+   * Worth stating plainly because it answers one of the open commercial
+   * questions: refunds are theirs to make, not ours through Razorpay, since
+   * the money never arrived in our gateway account.
+   */
+  async initiateRefund(orderId: string, amount: number) {
+    return this.post('/api/v1/external/refund/initiate', { order_id: orderId, amount });
   }
 }

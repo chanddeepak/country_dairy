@@ -1,8 +1,24 @@
 # Shiprocket Checkout — every endpoint, both directions
 
-Compiled from Shiprocket's four public Postman collections for Fastrr /
-SR Checkout, read directly rather than summarised from marketing pages. Where
-something is quoted it is their wording.
+Compiled from Shiprocket's public Postman collections, fetched as raw JSON and
+read request by request. Where something is quoted it is their wording.
+
+**Sources** (supplied by Shiprocket, 21 August 2026):
+
+| Collection | Link |
+| --- | --- |
+| Full Checkout / custom website | `documenter.getpostman.com/view/25617008/2sB34bL3ig` |
+| Custom website (staging examples) | `documenter.getpostman.com/view/31751679/2sAYHxmPGf` |
+| Login iframe | `documenter.getpostman.com/view/16356653/2s9YeN397y` |
+| S2S login and address | `documenter.getpostman.com/view/16356653/2s9Ykod1qw` |
+
+The two Google Drive documents they also sent are Shopify-backend flows and do
+not apply to us.
+
+**Verified against those collections:** `X-Api-Key` and `X-Api-HMAC-SHA256`
+appear on every authenticated request in both checkout collections — 8 of 16
+and 5 of 13 respectively, the rest being seller-side endpoints and redirects.
+The scheme we implemented is theirs.
 
 Two things this document exists to make unambiguous:
 
@@ -49,6 +65,10 @@ Three details that decide whether this works at all:
 | --- | --- | --- |
 | `POST /api/v1/access-token/checkout` | Mint a token that opens their checkout window | **Yes** |
 | `POST /api/v1/custom-platform-order/details` | Fetch one order — the failsafe when a webhook is missed | **Yes**, unused until reconciliation lands |
+| `POST /api/v1/custom-platform-order/details/list` | **Every order in a date window** — `startDate`, `endDate`, `status`, `page`, `limit` | **Yes**, the reconciliation endpoint |
+| `POST /api/v1/custom-platform-order/details/transactions` | Transactions on an order | No |
+| `POST /api/v1/external/refund/initiate` | Refund an order — `{order_id, amount}` | **Yes**, unused |
+| `POST /api/v1/external/refund/reports` | Refund reporting | No |
 | `POST /api/v1/access-token/login` | Token for the login iframe (`{address: true, timestamp}`) | No |
 | `POST /api/v1/customer-data` | Phone + addresses for a logged-in customer | No |
 | `POST /api/v1/access-token/s2s-login/initiate` → `/verify` | Server-side OTP login, *without* their checkout | No — and see the note below |
@@ -61,7 +81,7 @@ Three details that decide whether this works at all:
 ```jsonc
 // request
 {
-  "cart_data": { "items": [ { "variant_id": 1, "quantity": 2 } ] },
+  "cart_data": { "items": [ { "variant_id": "1", "quantity": 2 } ] },
   "redirect_url": "https://countrydairy.in/checkout/shiprocket-return",
   "timestamp": "2026-08-21T09:15:00.000Z"
 }
@@ -70,8 +90,17 @@ Three details that decide whether this works at all:
 { "result": { "token": "…", "data": { "order_id": "…" } } }
 ```
 
-`variant_id` is the **numeric id from our feed**, not our UUID. The browser
-never sees it: our endpoint takes our own variant id and translates.
+`variant_id` is the id from our feed, **sent as a string** — every example they
+publish quotes it (`"35"`, `"1244539923890450"`), in the checkout request and
+in the webhook coming back. We were sending a JSON number. The ids are BIGINT
+and would eventually exceed what a double holds exactly, so the string is safer
+on both counts.
+
+The browser never sees it: our endpoint takes our own variant id and
+translates.
+
+`cart_data` also accepts `custom_attributes` (an arbitrary key/value bag) and
+`mobile_app` (boolean). Neither is used yet.
 
 **`cart_discount` is deliberately never sent.** Their documentation: *"If
 specified, only this fixed discount is applied"* — passing it switches off the
@@ -162,9 +191,12 @@ built.
 Not in any collection, and it needs a human answer:
 
 1. **Per-order pricing.** Their commercials appear nowhere in the documentation.
-2. **Merchant of record**, and how settlement and refunds reach our bank.
+2. **Merchant of record**, and how settlement reaches our bank.
    `payments[].gateway` shows "Razorpay" — but whose Razorpay account?
-3. **Refunds.** Presumably an API call to them rather than to Razorpay.
+3. ~~Refunds.~~ **Answered by the collections**: `external/refund/initiate`
+   takes `{order_id, amount}`, so refunds are theirs to make and not ours
+   through Razorpay — which follows, since the money never reached our gateway
+   account.
 4. **How far their checkout can carry our branding.**
 5. **Subscriptions.** Their checkout is one-shot; standing dairy orders will
    need our own flow regardless.

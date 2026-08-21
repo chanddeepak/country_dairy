@@ -87,7 +87,7 @@ export class ShiprocketCheckoutService {
         );
       }
 
-      items.push({ variant_id: Number(variant.externalId), quantity });
+      items.push({ variant_id: variant.externalId.toString(), quantity });
     }
 
     const result = await this.client.createCheckoutToken(
