@@ -141,9 +141,21 @@ The concept shows a review section with three quotes, and product cards showing
 `4.8 (126)`. **The database holds zero reviews.** Those numbers were invented for
 the mock and must not ship.
 
-**Decision needed.** Either seed genuine reviews with permission, or the review
-section and the rating on the card render only when reviews exist. The second is
-the honest default and is what will be built unless told otherwise.
+**Decided.** The section always renders, and says what is true at that moment:
+
+| State | What it shows |
+| --- | --- |
+| No reviews yet | An invitation to be the first, and the form if signed in |
+| Signed out | "Sign in to review", which opens the auth modal |
+| Signed in, has not bought it | The form, marked as an unverified review |
+| Signed in, has bought it | The form, and the review carries the verified mark |
+
+The **rating on a product card** is a different question and still hides when
+there are none: a card with no stars is quiet, a card showing "0.0 (0)" reads as
+a bad product.
+
+One review exists in the database, five stars from a staff account, body text
+`dsfkldsfr dflkwjrewgfwe`. Enough to wire against. It must not reach production.
 
 ### 3.3 Three of the four categories are empty
 
@@ -341,9 +353,11 @@ Things that end the branch badly if ignored.
 
 | # | Question | Blocks |
 | --- | --- | --- |
-| Q1 | Seed real reviews, or hide the section until there are some? | T11, T17 |
+| ~~Q1~~ | ~~Seed real reviews, or hide the section?~~ **Answered 21 Aug: neither.** The section always renders. With no reviews it invites one, signed out it says sign in to review. See 3.2 | closed |
 | Q2 | Who produces the logo variants and the clean hero artwork? | T3, T8 |
 | Q3 | Do the three trust badges become the six principles, or coexist? | A5, T14 |
 | Q4 | Does the redesign ship behind a flag for staged rollout, or as one merge? | T29 |
 
-Until Q1 is answered the build assumes: no reviews, no ratings, nothing rendered.
+**Q2 update, 21 Aug:** the logo variants are done and committed, so S1 and S2 are
+closed. Photography prompts are in `docs/redesign-photography-brief.md`; the
+images themselves still need generating, and S3 blocks T8.
