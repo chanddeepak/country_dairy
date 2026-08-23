@@ -6,6 +6,7 @@ import { useApp } from '../context/AppContext';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import HeroSection from '../components/home/HeroSection';
+import BrandStatement from '../components/home/BrandStatement';
 import AboutSection from '../components/home/AboutSection';
 import ProductShelf from '../components/home/ProductShelf';
 import CollectionRow from '../components/home/CollectionRow';
@@ -52,6 +53,7 @@ export default function Home() {
 
       <main className="flex-1">
         <HeroSection />
+        <BrandStatement />
         <CollectionRow />
         <ProductShelf onSubscribe={handleSubscribe} />
         <AboutSection />
