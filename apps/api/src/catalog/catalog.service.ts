@@ -35,6 +35,10 @@ export interface NavCategory extends Omit<NavCategoryType, 'productCount'> {
   // Carried so the category page has something to say under its heading. The
   // column has existed since the schema was written and has never been read.
   description: string | null;
+  // Same story: imageUrl has always existed and nothing rendered it. The
+  // storefront collection tiles use it, and fall back to a treatment when a
+  // category has no picture yet.
+  imageUrl: string | null;
   types: NavCategoryType[];
 }
 
@@ -79,6 +83,10 @@ export class CatalogService {
         name: dto.name,
         slug,
         description: dto.description || '',
+        // Accepted by the DTO since it was written and dropped here, so the
+        // console could send an image and the column stayed null. The
+        // storefront collection tiles read it.
+        imageUrl: dto.imageUrl || null,
         iconName: dto.iconName || 'Package',
         displayOrder: dto.displayOrder ? Number(dto.displayOrder) : 1,
         isActive: dto.isActive !== undefined ? dto.isActive : true,
@@ -107,6 +115,7 @@ export class CatalogService {
         name: dto.name ?? existing.name,
         slug: dto.slug ?? existing.slug,
         description: dto.description ?? existing.description,
+        imageUrl: dto.imageUrl ?? existing.imageUrl,
         iconName: dto.iconName ?? existing.iconName,
         displayOrder: dto.displayOrder !== undefined ? Number(dto.displayOrder) : existing.displayOrder,
         isActive: dto.isActive !== undefined ? dto.isActive : existing.isActive,
@@ -331,6 +340,7 @@ export class CatalogService {
         name: true,
         slug: true,
         description: true,
+        imageUrl: true,
         iconName: true,
         showInNav: true,
         parentId: true,
@@ -362,6 +372,7 @@ export class CatalogService {
           name: shelf.name,
           slug: shelf.slug,
           description: shelf.description,
+          imageUrl: shelf.imageUrl,
           iconName: shelf.iconName,
           showInNav: shelf.showInNav,
           // A product can sit on the shelf itself or on one of its types, so

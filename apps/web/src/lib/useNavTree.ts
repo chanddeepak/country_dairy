@@ -15,6 +15,8 @@ export interface NavCategoryType {
 export interface NavCategory extends NavCategoryType {
   showInNav: boolean;
   description: string | null;
+  /** Set in the console. Null on every row today, so tiles fall back. */
+  imageUrl: string | null;
   types: NavCategoryType[];
 }
 

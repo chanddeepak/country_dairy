@@ -8,6 +8,7 @@ import Footer from '../components/layout/Footer';
 import HeroSection from '../components/home/HeroSection';
 import AboutSection from '../components/home/AboutSection';
 import ProductShelf from '../components/home/ProductShelf';
+import CollectionRow from '../components/home/CollectionRow';
 import ValueBanner from '../components/home/ValueBanner';
 import AuthModal from '../components/modals/AuthModal';
 import SubscriptionModal from '../components/modals/SubscriptionModal';
@@ -51,6 +52,7 @@ export default function Home() {
 
       <main className="flex-1">
         <HeroSection />
+        <CollectionRow />
         <ProductShelf onSubscribe={handleSubscribe} />
         <AboutSection />
         <ValueBanner />

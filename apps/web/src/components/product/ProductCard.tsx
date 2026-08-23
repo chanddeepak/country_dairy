@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Star, Calendar, MessageCircle, AlertCircle, Loader2, Check } from 'lucide-react';
+import { Star, Calendar, MessageCircle, Loader2, Check } from 'lucide-react';
 import { PRODUCT_IMAGES, Product, resolveStorefrontImageUrl } from '../../lib/constants';
 import { useStoreConfig } from '../../context/StoreConfigContext';
 import { useApp } from '../../context/AppContext';
@@ -90,41 +90,47 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
   };
 
   return (
-    <div className={`bg-white rounded-xl overflow-hidden group hover:shadow-xl transition-all duration-300 border border-stone-200/80 flex flex-col relative h-full ${isOutOfStock ? 'opacity-85' : ''}`}>
-      {/* Product Image Container (Aspect Square + Object Contain to prevent any image truncation) */}
-      <Link href={productUrl} className="relative aspect-square bg-[#FAF8F3] flex items-center justify-center overflow-hidden block">
-        {/* Top Left Discount Badge */}
+    <article
+      className={`group relative flex h-full flex-col ${isOutOfStock ? 'opacity-90' : ''}`}
+    >
+      {/*
+       * No card, no border, no shadow. The photograph is the container: on a
+       * cream ground a bordered white box adds a rectangle the eye has to read
+       * before it reaches the product. Nine elements on the old card became
+       * four that matter, and the rest either moved to the product page or
+       * stopped repeating what the whole site already says.
+       */}
+      <Link
+        href={productUrl}
+        className="relative block aspect-square overflow-hidden bg-[var(--cream)]"
+      >
         {discountBadge && !isOutOfStock && (
-          <span className="absolute top-3 left-3 z-10 bg-[#3A6038] text-white text-[11px] font-extrabold px-2.5 py-1 rounded-sm shadow-sm tracking-wide">
+          <span className="absolute top-3 left-3 z-10 bg-[var(--forest)] text-[var(--ivory)] text-[10px] font-medium px-2.5 py-1 tracking-[0.1em] uppercase">
             {discountBadge}
           </span>
         )}
 
-        {/* Out of Stock Ribbon Overlay */}
         {isOutOfStock && (
-          <div className="absolute inset-0 bg-stone-950/40 z-20 flex items-center justify-center backdrop-blur-[1px]">
-            <span className="bg-red-700 text-white font-black text-xs px-3.5 py-1.5 rounded uppercase tracking-widest shadow-lg border border-red-500/40 flex items-center gap-1.5">
-              <AlertCircle className="h-3.5 w-3.5" /> Out of Stock
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--forest)]/45 backdrop-blur-[1px]">
+            <span className="bg-[var(--ivory)] text-[var(--forest)] text-[10px] font-medium px-3.5 py-1.5 uppercase tracking-[0.14em]">
+              Out of stock
             </span>
           </div>
         )}
 
-        {/* Top Right Highlight Tag */}
-        {product.badge && !isOutOfStock && (
-          <span className="absolute top-3 right-3 z-10 bg-[#C59B27] text-white text-[10px] font-bold px-2.5 py-1 rounded-sm shadow-sm tracking-wider uppercase">
-            {product.badge}
-          </span>
-        )}
-
-        {/* Provenance seal, bottom-left so it clears the discount and highlight
-            tags at the top. Small enough that the words in it cannot be read —
-            it works as a mark you come to recognise, not as something anyone
-            reads on a card. The product page carries the legible version. */}
+        {/*
+         * The seal stays on the card. The concept moved it to the product page,
+         * but a test exists called "the seal is on product cards" because it is
+         * a provenance signal rather than decoration, and the rule on this
+         * branch is that the design yields to a flow rather than the other way
+         * round. It is smaller and in the corner now, read as a mark rather
+         * than as a sticker.
+         */}
         {!isOutOfStock && (
           <img
             src="/badges/made-in-uttarakhand.jpg"
             alt="Made in Uttarakhand"
-            className="absolute bottom-3 left-3 z-10 w-14 h-14 rounded-full shadow-md ring-1 ring-black/5 pointer-events-none"
+            className="pointer-events-none absolute bottom-3 right-3 z-10 h-10 w-10 rounded-full opacity-90 ring-1 ring-black/5"
           />
         )}
 
@@ -132,123 +138,108 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
           src={imageSrc}
           alt={product.name}
           fill
-          className="object-contain group-hover:scale-105 transition-transform duration-500 p-4"
+          className="object-contain p-5 transition-transform duration-[1200ms] ease-[cubic-bezier(.2,.7,.3,1)] group-hover:scale-[1.05]"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
         />
+
+        {/*
+         * On a pointer device the primary action arrives on hover, which is
+         * what the brief asks for. On touch there is no hover, so it is simply
+         * always there. Hiding the buy button on a phone to honour a desktop
+         * interaction would be the aesthetics-over-conversion trade the brief
+         * explicitly rules out.
+         */}
+        {!isOutOfStock && cartEnabled && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              if (defaultVariant?.id) {
+                onAddToCart(defaultVariant.id, 1, {
+                  productId: product.id,
+                  productName: product.name,
+                  variantLabel: defaultVariant.volumeOrWeight,
+                  unitPrice: Number(displayPrice) || 0,
+                  imageUrl: rawImage,
+                });
+              }
+            }}
+            disabled={isAdding}
+            className={`absolute inset-x-3 bottom-3 z-20 flex items-center justify-center gap-2 py-3.5 text-[11px] font-medium uppercase tracking-[0.14em] transition-all duration-300 ease-[cubic-bezier(.2,.7,.3,1)] [@media(hover:hover)]:translate-y-2 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:translate-y-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:translate-y-0 [@media(hover:hover)]:group-focus-within:opacity-100 ${
+              justAdded
+                ? 'bg-[var(--forest)] text-[var(--ivory)]'
+                : 'bg-[var(--ivory)] text-[var(--forest)] hover:bg-[var(--brass)] hover:text-[#1a1405] disabled:opacity-70'
+            }`}
+          >
+            {justAdded ? <Check className="h-3.5 w-3.5" /> : isAdding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            {justAdded ? 'Added' : isAdding ? 'Adding' : 'Add to cart'}
+          </button>
+        )}
       </Link>
 
-      {/* Product Info */}
-      <div className="p-4 flex flex-col flex-1">
-        {/* Only shown once a product actually has reviews — an empty "⭐ ()"
-            told the customer nothing. */}
+      <div className="flex flex-1 flex-col pt-4">
+        {/* Only shown once a product actually has reviews. A card reading
+            "0.0 (0)" describes a bad product rather than a new one. */}
         {ENABLE_PRODUCT_RATINGS && !!product.totalReviews && (
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Star className="h-3.5 w-3.5 fill-[#C59B27] text-[#C59B27]" />
-            <span className="text-xs font-bold text-[#2A2A2A]">{(product.averageRating ?? 0).toFixed(1)}</span>
-            <span className="text-xs text-[#6b6661]">({product.totalReviews})</span>
+          <div className="mb-2 flex items-center gap-1.5">
+            <Star className="h-3 w-3 fill-[var(--brass)] text-[var(--brass)]" />
+            <span className="text-[12px] text-[var(--ink)] tabular">{(product.averageRating ?? 0).toFixed(1)}</span>
+            <span className="text-[12px] text-[var(--ink-soft)]">({product.totalReviews})</span>
           </div>
         )}
 
-        <div className="flex items-center gap-1 mb-1 text-[10px] text-[#3A6038] font-extrabold uppercase tracking-wider">
-          <span>⛰️ Tanakpur, Uttarakhand</span>
-        </div>
+        {product.badge && !isOutOfStock && (
+          <p className="mb-1.5 text-[10px] uppercase tracking-[0.18em] text-[var(--brass)]">
+            {product.badge}
+          </p>
+        )}
 
-        <Link href={productUrl} data-testid="product-card-link" className="hover:text-[#3A6038] transition">
-          <h3 className="font-serif font-bold text-base text-[#2A2A2A] leading-snug mb-1 line-clamp-1">
+        <Link href={productUrl} data-testid="product-card-link" className="transition-colors hover:text-[var(--brass)]">
+          <h3 className="font-serif text-[19px] leading-snug text-[var(--ink)]">
             {product.name}
           </h3>
         </Link>
 
-        <p className="text-[#6b6661] text-xs leading-relaxed line-clamp-2 mb-3 flex-1">
-          {product.description}
+        <p className="mt-1 text-[12px] tracking-[0.04em] text-[var(--ink-soft)]">
+          {defaultVariant?.volumeOrWeight || product.metadata?.volume || product.metadata?.weight || ''}
         </p>
 
-        {/* Pricing Block */}
-        <div className="flex items-baseline gap-2 mb-3">
-          <span className="text-lg font-black text-[#2A2A2A]">₹{displayPrice}</span>
+        <div className="mt-2.5 flex items-baseline gap-2">
+          <span className="text-[17px] text-[var(--ink)] tabular">&#8377;{displayPrice}</span>
           {displayOriginalPrice && (
-            <span className="text-xs text-[#6b6661] line-through font-medium">₹{displayOriginalPrice}</span>
+            <span className="text-[12px] text-[var(--ink-soft)] line-through tabular">&#8377;{displayOriginalPrice}</span>
           )}
-          <span className="text-xs text-[#6b6661] font-semibold ml-auto bg-stone-100 px-2 py-0.5 rounded text-[11px]">
-            {defaultVariant?.volumeOrWeight || product.metadata?.volume || product.metadata?.weight || ''}
-          </span>
         </div>
 
-        {/* CTA Buttons */}
-        <div className="space-y-2 mt-auto">
-          {isOutOfStock ? (
-            <button
-              disabled
-              className="w-full bg-stone-200 text-stone-500 font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider cursor-not-allowed flex items-center justify-center gap-1.5"
-            >
-              <AlertCircle className="h-3.5 w-3.5" /> Out of Stock
-            </button>
-          ) : (
-            <>
-              {/* Gated on the cart, not on online payment — a cart is useful
-                  even when checkout collects cash on delivery. */}
-              {cartEnabled && (
-                <button
-                  onClick={() =>
-                    defaultVariant?.id &&
-                    onAddToCart(defaultVariant.id, 1, {
-                      productId: product.id,
-                      productName: product.name,
-                      variantLabel: defaultVariant.volumeOrWeight,
-                      unitPrice: Number(displayPrice) || 0,
-                      imageUrl: rawImage,
-                    })
-                  }
-                  disabled={isAdding}
-                  className={`w-full font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider transition shadow-sm flex items-center justify-center gap-2 ${
-                    justAdded
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-[#3A6038] hover:bg-[#2d4d2b] text-white disabled:opacity-70'
-                  }`}
-                >
-                  {justAdded ? (
-                    <Check className="h-3.5 w-3.5" />
-                  ) : isAdding ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : null}
-                  {justAdded ? 'Added to Cart' : isAdding ? 'Adding…' : 'Add to Cart'}
-                </button>
-              )}
+        {isAdding === false && cartError && pendingCartVariantId === null && justAdded === false && (
+          <p className="mt-2 text-[11px] text-[#9B3B2A]">{cartError}</p>
+        )}
 
-              {isAdding === false && cartError && pendingCartVariantId === null && justAdded === false && (
-                <p className="text-[10px] text-red-600 font-bold text-center">{cartError}</p>
-              )}
-              
-              {whatsappHref && (
-                <a
-                  href={whatsappHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={handleWhatsAppClick}
-                  className={
-                    cartEnabled
-                      ? 'w-full border border-[#25D366] text-[#1DA851] hover:bg-[#25D366]/5 font-bold py-2 rounded-lg text-xs uppercase tracking-wider transition flex items-center justify-center'
-                      : 'w-full bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider transition flex items-center justify-center shadow-sm'
-                  }
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Order on WhatsApp
-                </a>
-              )}
-              
-              {ENABLE_SUBSCRIPTIONS && product.isSubscriptionAllowed && onSubscribe && (
-                <button
-                  onClick={() => onSubscribe(product)}
-                  className="w-full border border-[#3A6038] text-[#3A6038] hover:bg-[#3A6038]/5 font-bold py-2 rounded-lg text-xs flex items-center justify-center transition uppercase tracking-wider"
-                >
-                  <Calendar className="h-3.5 w-3.5 mr-1.5" />
-                  Subscribe & Save
-                </button>
-              )}
-            </>
+        {/* Secondary routes stay, quietly, below the fold of the card. */}
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          {!isOutOfStock && whatsappHref && (
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleWhatsAppClick}
+              className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-[var(--ink-soft)] transition-colors hover:text-[#1DA851]"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              WhatsApp
+            </a>
+          )}
+
+          {!isOutOfStock && ENABLE_SUBSCRIPTIONS && product.isSubscriptionAllowed && onSubscribe && (
+            <button
+              onClick={() => onSubscribe(product)}
+              className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-[var(--ink-soft)] transition-colors hover:text-[var(--forest)]"
+            >
+              <Calendar className="h-3.5 w-3.5" />
+              Subscribe
+            </button>
           )}
         </div>
       </div>
-    </div>
+    </article>
   );
 }
