@@ -52,6 +52,7 @@ export default function HeroManager() {
               desktopImageUrl: activeDeviceType === 'DESKTOP' ? validUrl : '',
               mobileImageUrl: activeDeviceType === 'MOBILE' ? validUrl : '',
               layout: b.layout ?? null,
+              imageHasText: Boolean(b.imageHasText),
               overlayOpacity: 30,
               sortOrder: b.displayOrder || 1,
               isActive: b.isActive ?? true,
@@ -114,6 +115,7 @@ export default function HeroManager() {
         badgeText: newSlide.badgeText,
         displayOrder: newSlide.sortOrder,
         isActive: newSlide.isActive,
+        imageHasText: newSlide.imageHasText ?? false,
       });
       if (created?.id) {
         setSlides(prev => prev.map(s => s.id === newSlide.id ? { ...s, id: created.id } : s));
@@ -183,6 +185,7 @@ export default function HeroManager() {
         badgeText: activeEditingSlide.badgeText,
         displayOrder: activeEditingSlide.sortOrder,
         isActive: activeEditingSlide.isActive,
+        imageHasText: activeEditingSlide.imageHasText ?? false,
         layout: activeEditingSlide.layout ?? undefined,
       });
 
@@ -391,6 +394,41 @@ export default function HeroManager() {
                       onChange={(e) => setActiveEditingSlide({ ...activeEditingSlide, title: e.target.value })}
                       className="w-full px-3 py-2 bg-stone-950 border border-stone-700 rounded-lg text-stone-100 focus:outline-none focus:border-amber-500"
                     />
+                  </div>
+
+                  <div className="col-span-2 rounded-lg border border-stone-700 bg-stone-950/60 p-3">
+                    <label className="flex cursor-pointer items-start gap-2.5">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 accent-amber-500"
+                        checked={activeEditingSlide.imageHasText ?? false}
+                        onChange={(e) =>
+                          setActiveEditingSlide({ ...activeEditingSlide, imageHasText: e.target.checked })
+                        }
+                      />
+                      <span className="text-sm">
+                        <span className="font-semibold text-stone-100">
+                          The artwork already has words on it
+                        </span>
+                        <span className="mt-0.5 block text-xs text-stone-400">
+                          Tick this for poster-style banners exported from a design tool. The
+                          storefront shows the picture whole and lays no headline over it. Leave it
+                          unticked for a clean photograph, and the title and subtitle below are set
+                          in the site's own type — which is what the new design wants.
+                        </span>
+                      </span>
+                    </label>
+
+                    {!activeEditingSlide.imageHasText && !activeEditingSlide.title.trim() && (
+                      <p className="mt-2.5 flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-200">
+                        <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span>
+                          This slide has no title, so the storefront has no headline to show and
+                          will fall back to the picture alone. Either write a title or tick the box
+                          above.
+                        </span>
+                      </p>
+                    )}
                   </div>
 
                   <div className="col-span-2">

@@ -129,6 +129,27 @@ input[type="number"] {
   animation: slide-in-right 0.3s ease-out;
 }
 
+/*
+ * The hero drifts. Twenty-four seconds for seven percent is slow enough that
+ * you notice the picture is alive without ever catching it moving — the brief's
+ * "rhythm of the mountains" rather than a Ken Burns slideshow.
+ *
+ * Reduced motion collapses this to a single 0.01ms run below, which lands on
+ * the start frame and simply holds.
+ */
+@keyframes hero-drift {
+  from {
+    transform: scale(1.05);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+
+.animate-hero-drift {
+  animation: hero-drift 24s ease-in-out infinite alternate;
+}
+
 /* Smooth scrolling for anchor links */
 html {
   scroll-behavior: smooth;

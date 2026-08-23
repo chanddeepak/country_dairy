@@ -86,7 +86,7 @@ export class CatalogService {
         // Accepted by the DTO since it was written and dropped here, so the
         // console could send an image and the column stayed null. The
         // storefront collection tiles read it.
-        imageUrl: dto.imageUrl || null,
+        imageUrl: dto.imageUrl?.trim() || null,
         iconName: dto.iconName || 'Package',
         displayOrder: dto.displayOrder ? Number(dto.displayOrder) : 1,
         isActive: dto.isActive !== undefined ? dto.isActive : true,
@@ -115,7 +115,10 @@ export class CatalogService {
         name: dto.name ?? existing.name,
         slug: dto.slug ?? existing.slug,
         description: dto.description ?? existing.description,
-        imageUrl: dto.imageUrl ?? existing.imageUrl,
+        // A form that always sends every field means an empty string is the
+        // user clearing the picture, not the field being absent. Store that as
+        // null rather than as "", so "has an image" stays a single check.
+        imageUrl: dto.imageUrl === undefined ? existing.imageUrl : dto.imageUrl.trim() || null,
         iconName: dto.iconName ?? existing.iconName,
         displayOrder: dto.displayOrder !== undefined ? Number(dto.displayOrder) : existing.displayOrder,
         isActive: dto.isActive !== undefined ? dto.isActive : existing.isActive,

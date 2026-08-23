@@ -315,6 +315,8 @@ export interface HeroSlide {
   ctaLink: string;
   desktopImageUrl: string;
   mobileImageUrl: string;
+  /** True when the artwork already carries its own headline. */
+  imageHasText?: boolean;
   overlayOpacity: number;
   sortOrder: number;
   /** Placement of the text on the artwork. Null keeps the original stack. */
@@ -354,6 +356,8 @@ export interface HeroBanner {
   title: string;
   subtitle: string;
   imageUrl: string;
+  /** True when the artwork already carries its own headline. */
+  imageHasText?: boolean;
   deviceType: 'DESKTOP' | 'MOBILE';
   ctaText: string;
   ctaLink: string;

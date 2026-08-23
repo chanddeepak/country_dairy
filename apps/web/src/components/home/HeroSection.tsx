@@ -96,6 +96,10 @@ export default function HeroSection() {
             objectPosition: 'center',
             headline: b.title,
             subtitle: b.subtitle,
+            // The column has existed since August and nothing read it. A
+            // poster-style banner carries its own headline, so the storefront
+            // must not lay a second one over the top.
+            imageHasText: Boolean(b.imageHasText),
             ctaText: b.ctaText || 'Shop All Products',
             ctaHref: b.ctaLink || '/products',
             // The desktop row owns the placement; the mobile row is only
@@ -182,6 +186,16 @@ export default function HeroSection() {
           // no layout stored falls back to the original left-aligned stack.
           const layout = heroLayoutClasses((slide as { layout?: unknown }).layout);
 
+          /*
+           * Two ways the artwork speaks for itself: the flag says it carries
+           * its own headline, or nobody has typed one. Today every banner in
+           * the database has a title of whitespace, so the page was rendering
+           * an empty badge, an empty h1 and a scrim over a finished poster.
+           * An empty overlay is worse than no overlay.
+           */
+          const headline = String(slide.headline ?? '').trim();
+          const showOverlay = !slide.imageHasText && headline.length > 0;
+
           return (
           <div
             key={slide.id}
@@ -196,7 +210,7 @@ export default function HeroSection() {
                 alt={slide.headline || 'Hero banner'}
                 fill
                 unoptimized={typeof slide.image === 'string' && (slide.image.startsWith('http') || slide.image.includes('/uploads/'))}
-                className="object-cover scale-105 transition-transform duration-1000"
+                className="object-cover animate-hero-drift"
                 style={{ objectPosition: slide.objectPosition || 'center' }}
                 priority={index === 0}
                 sizes="100vw"
@@ -209,16 +223,18 @@ export default function HeroSection() {
                 alt={slide.headline || 'Hero banner'}
                 fill
                 unoptimized={typeof (slide.mobileImage || slide.image) === 'string' && ((slide.mobileImage || slide.image).startsWith('http') || (slide.mobileImage || slide.image).includes('/uploads/'))}
-                className="object-cover scale-105 transition-transform duration-1000"
+                className="object-cover animate-hero-drift"
                 style={{ objectPosition: slide.objectPosition || 'center' }}
                 priority={index === 0}
                 sizes="100vw"
               />
             </div>
-            {/* Darkened only as much as the banner's own layout asks for. */}
-            <div className={`absolute inset-0 ${layout.scrim}`} />
+            {/* Darkened only as much as the banner's own layout asks for, and
+                not at all when there is no text to keep legible. */}
+            {showOverlay && <div className={`absolute inset-0 ${layout.scrim}`} />}
 
             {/* Hero content overlay */}
+            {showOverlay && (
             <div
               className={`relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full ${layout.container}`}
             >
@@ -227,7 +243,7 @@ export default function HeroSection() {
                   <span>Devbhoomi Uttarakhand Origin</span>
                 </div>
                 <h1 className={layout.headline}>
-                  {(slide.headline || '').split('. ').map((part: string, i: number, arr: string[]) => (
+                  {headline.split('. ').map((part: string, i: number, arr: string[]) => (
                     <React.Fragment key={i}>
                       {part}{i < arr.length - 1 ? '.' : ''}
                       {i < arr.length - 1 && <span className="block" />}
@@ -246,6 +262,7 @@ export default function HeroSection() {
                 </div>
               </div>
             </div>
+            )}
           </div>
           );
         })}

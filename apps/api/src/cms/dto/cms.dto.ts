@@ -44,6 +44,21 @@ export class HeroBannerDto {
   @IsString()
   imageUrl?: string;
 
+  /**
+   * True when the artwork already carries its own headline.
+   *
+   * The column and its migration have existed since August and nothing ever
+   * read or wrote them: not this DTO, not the service, not the console, not the
+   * storefront. So every poster-style banner was stored as though it were plain
+   * artwork, and the storefront laid an empty headline over the top of it.
+   *
+   * With whitelist validation on, the console could not have sent this even if
+   * it had a control for it — the request would have been rejected outright.
+   */
+  @IsOptional()
+  @IsBoolean()
+  imageHasText?: boolean;
+
   @IsOptional()
   @IsIn(['DESKTOP', 'MOBILE'])
   deviceType?: 'DESKTOP' | 'MOBILE';
