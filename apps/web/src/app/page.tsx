@@ -11,7 +11,7 @@ import AboutSection from '../components/home/AboutSection';
 import ProductShelf from '../components/home/ProductShelf';
 import GheeStory from '../components/home/GheeStory';
 import CollectionRow from '../components/home/CollectionRow';
-import ValueBanner from '../components/home/ValueBanner';
+import Principles from '../components/home/Principles';
 import AuthModal from '../components/modals/AuthModal';
 import SubscriptionModal from '../components/modals/SubscriptionModal';
 import CartDrawer from '../components/cart/CartDrawer';
@@ -58,8 +58,8 @@ export default function Home() {
         <CollectionRow />
         <ProductShelf onSubscribe={handleSubscribe} />
         <GheeStory />
+        <Principles />
         <AboutSection />
-        <ValueBanner />
       </main>
 
       <Footer />
