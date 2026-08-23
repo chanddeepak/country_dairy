@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { FALLBACK_PRODUCTS, API_URL, Product, getExpandedProducts } from '../../lib/constants';
 import { mapApiProducts, expandHomeVariants, isSoldOut } from '../../lib/mapProduct';
 import ProductCard from '../product/ProductCard';
+import ContourField from '../ui/ContourField';
 
 interface ProductShelfProps {
   onSubscribe: (product: Product) => void;
@@ -25,12 +25,26 @@ interface ProductShelfProps {
  */
 const ALL = 'All';
 
+/**
+ * As many columns as there is content for, to a maximum of four.
+ *
+ * The shelf used to be a horizontal carousel of fixed 330px cards. With two
+ * products on a desktop that is 660px of shop in a 1216px band, and the rest
+ * empty — which is most of why the products read as lost between the story
+ * sections. The last cell is always the way through to the full catalogue, so
+ * the row is never short of something to fill it.
+ */
+const COLUMNS: Record<number, string> = {
+  1: 'grid-cols-1',
+  2: 'grid-cols-2',
+  3: 'grid-cols-2 lg:grid-cols-3',
+  4: 'grid-cols-2 lg:grid-cols-4',
+};
+
 export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
   const { addToCart } = useApp();
   const [products, setProducts] = useState<Product[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('All');
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -76,76 +90,43 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
     ? products
     : products.filter((p) => p.category === activeCategory);
 
-  // Arrows appear only when the row actually runs off the edge. With two
-  // products on a desktop they were controls that scrolled nothing.
-  const [overflow, setOverflow] = useState({ canScrollLeft: false, canScrollRight: false });
-
-  const measureOverflow = () => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    // 1px of slack: sub-pixel layout can leave scrollWidth a hair over
-    // clientWidth on a row that visibly fits.
-    setOverflow({
-      canScrollLeft: el.scrollLeft > 1,
-      canScrollRight: el.scrollLeft + el.clientWidth < el.scrollWidth - 1,
-    });
-  };
-
-  useEffect(() => {
-    measureOverflow();
-
-    const el = scrollContainerRef.current;
-    if (!el) return;
-
-    el.addEventListener('scroll', measureOverflow, { passive: true });
-
-    // Re-measure when the row or the window changes size, so switching
-    // category or resizing does not leave a stale answer.
-    const observer = new ResizeObserver(measureOverflow);
-    observer.observe(el);
-    window.addEventListener('resize', measureOverflow);
-
-    return () => {
-      el.removeEventListener('scroll', measureOverflow);
-      observer.disconnect();
-      window.removeEventListener('resize', measureOverflow);
-    };
-  }, [filteredProducts.length]);
-
-  const canScroll = overflow.canScrollLeft || overflow.canScrollRight;
-
-  const handleScroll = (direction: 'left' | 'right') => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = direction === 'left' ? -360 : 360;
-      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
-  };
+  const cells = Math.min(filteredProducts.length + 1, 4);
 
   return (
-    <section id="shop" className="scroll-mt-24 pt-10 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full relative">
-      {/* Title Header */}
-      <div className="text-center max-w-2xl mx-auto mb-8">
-        <h2 className="font-serif font-normal text-2xl sm:text-3xl md:text-4xl text-[var(--ink)] mb-2 leading-tight">
-          Welcome To Country Dairy!
-        </h2>
-        <p className="font-serif italic text-lg sm:text-xl text-[var(--forest)] font-medium">
-          You're One Step Closer to Purity
-        </p>
-      </div>
+    <section id="shop" className="scroll-mt-24 bg-[var(--cream)] py-20 sm:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-9 flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--brass-text)]">
+              Shop
+            </p>
+            <h2 className="max-w-[18ch] font-serif text-[clamp(28px,4vw,46px)] font-light leading-[1.08] tracking-[-0.012em] text-[var(--ink)]">
+              Everything we bring down from the hills.
+            </h2>
+          </div>
+          <Link
+            href="/products"
+            data-testid="shelf-shop-all"
+            className="inline-flex items-center rounded-sm border border-[var(--forest)] px-6 py-3 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--forest)] transition-colors duration-300 hover:bg-[var(--forest)] hover:text-[var(--ivory)]"
+          >
+            Shop all
+          </Link>
+        </div>
 
-      {/* Category Filter Tabs & Navigation Controls */}
-      <div className="flex items-center justify-between gap-4 mb-8">
-        <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto pb-2 scrollbar-none mx-auto sm:mx-0">
+        {/* Derived from the shelf, never written down twice. Kept even when
+            there is a single category, because a chip per shelf is a contract
+            the taxonomy test relies on. */}
+        <div className="mb-9 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           {categories.map((cat) => {
             const isActive = activeCategory === cat;
             return (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap ${
+                className={`whitespace-nowrap rounded-full px-5 py-2 text-[11px] font-medium uppercase tracking-[0.12em] transition-colors duration-200 ${
                   isActive
-                    ? 'bg-[var(--forest)] text-white'
-                    : 'bg-white text-[var(--ink-soft)] hover:text-[var(--ink)] border border-[var(--line)] hover:border-[var(--forest)]'
+                    ? 'bg-[var(--forest)] text-[var(--ivory)]'
+                    : 'border border-[var(--line)] bg-[var(--ivory)] text-[var(--ink-soft)] hover:border-[var(--forest)] hover:text-[var(--forest)]'
                 }`}
               >
                 {cat === ALL ? 'All Products' : cat}
@@ -154,57 +135,36 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
           })}
         </div>
 
-        {/* Only rendered when there is something off-screen to reach. */}
-        {canScroll && (
-          <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={() => handleScroll('left')}
-              disabled={!overflow.canScrollLeft}
-              className="p-2.5 rounded-full bg-white border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--forest)] hover:text-white hover:border-[var(--forest)] transition disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[var(--ink)] disabled:hover:border-[var(--line)] disabled:cursor-default"
-              aria-label="Scroll left"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => handleScroll('right')}
-              disabled={!overflow.canScrollRight}
-              className="p-2.5 rounded-full bg-white border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--forest)] hover:text-white hover:border-[var(--forest)] transition disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[var(--ink)] disabled:hover:border-[var(--line)] disabled:cursor-default"
-              aria-label="Scroll right"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Product Cards Single Row Horizontal Carousel */}
-      <div
-        ref={scrollContainerRef}
-        className="flex items-stretch gap-6 overflow-x-auto pb-6 pt-1 scrollbar-none snap-x snap-mandatory touch-pan-x"
-      >
-        {filteredProducts.map((product) => (
-          <div
-            key={product.id}
-            className="w-[280px] sm:w-[310px] md:w-[320px] lg:w-[330px] flex-shrink-0 snap-start flex flex-col"
-          >
+        <div className={`grid gap-x-6 gap-y-10 ${COLUMNS[cells] ?? COLUMNS[4]}`}>
+          {filteredProducts.map((product) => (
             <ProductCard
+              key={product.id}
               product={product}
               onAddToCart={addToCart}
               onSubscribe={onSubscribe}
             />
-          </div>
-        ))}
-      </div>
+          ))}
 
-      {/* View All Button */}
-      <div className="mt-10 text-center">
-        <Link 
-          href="/products" 
-          className="inline-flex items-center text-[var(--forest)] font-bold hover:text-[var(--pine)] transition group text-sm uppercase tracking-wider bg-white border border-[var(--forest)]/30 px-6 py-3 rounded-full hover:shadow-sm"
-        >
-          Explore Complete Catalog 
-          <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
-        </Link>
+          {/* The last cell is a door, not a gap. */}
+          <Link
+            href="/products"
+            className="group relative flex flex-col justify-end overflow-hidden bg-[var(--forest)] p-7"
+          >
+            <ContourField tone="brass" spacing={40} opacity={0.18} className="absolute inset-0" />
+            <div className="relative">
+              <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-[var(--brass-on-dark)]">
+                The full catalogue
+              </p>
+              <p className="font-serif text-[24px] leading-snug text-[var(--ivory)]">
+                Every size, every shelf.
+              </p>
+              <span className="mt-4 inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ivory)]">
+                Shop all
+                <span className="transition-transform duration-300 group-hover:translate-x-1">&#8594;</span>
+              </span>
+            </div>
+          </Link>
+        </div>
       </div>
     </section>
   );
