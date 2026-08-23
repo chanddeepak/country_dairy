@@ -297,7 +297,7 @@ Done except T8. Every commit ran the storefront suite (56 passed, 4 skipped) and
 
 | # | Task | Verified by | Status |
 | --- | --- | --- | --- |
-| T8 | `HeroSection`: real text from `HeroBanner.title` and `subtitle`, slow drift, contour, mobile crop | F1; renders correctly when `title` is empty | **Blocked on S3** |
+| T8 | `HeroSection`: real text from `HeroBanner.title` and `subtitle`, slow drift, mobile crop | F1; renders correctly when `title` is empty | Done — see `imageHasText` below |
 | T9 | Brand statement section | Visual | Done |
 | T10 | Collection: four categories, photographs where stocked, contour tiles where not | Driven by the nav tree, not hardcoded | Done |
 | T11 | `ProductShelf` and `ProductCard` in the new system, four elements not nine | F1, F5; rating hidden when no reviews | Done |
@@ -339,20 +339,72 @@ correctly — the data behind it is wrong:
 
 ### Phase 4, the rest of the storefront
 
-| # | Task | Verified by |
-| --- | --- | --- |
-| T19 | `/products`, including the filter drawer and chips | F2 |
-| T20 | `/category/[slug]` | F3 |
-| T21 | `/products/[slug]`: gallery, variants, tabs, lab report, reviews | F5, F12 |
-| T22 | `CartDrawer` and `AuthModal` | F6, F7 |
-| T23 | `/checkout`, styling only | F8, F9, F10 |
-| T24 | `/account` and its tabs | F7, F8, F11 |
-| T25 | `/orders/[orderId]` and `/purity/[batch]` | F12 |
+Done. Ten pages and every shared component, as a migration rather than ten
+rewrites: the old design was almost entirely hardcoded values, so converting the
+values converted the pages.
+
+| # | Task | Verified by | Status |
+| --- | --- | --- | --- |
+| T19 | `/products`, including the filter drawer and chips | F2 | Done |
+| T20 | `/category/[slug]` | F3 | Done |
+| T21 | `/products/[slug]`: gallery, variants, tabs, lab report, reviews | F5, F12 | Done |
+| T22 | `CartDrawer` and `AuthModal` | F6, F7 | Done |
+| T23 | `/checkout`, styling only | F8, F9, F10 | Done |
+| T24 | `/account` and its tabs | F7, F8, F11 | Done |
+| T25 | `/orders/[orderId]` and `/purity/[batch]` | F12 | Done |
+
+**What the migration actually moved:** 693 brand hexes, 264 neutral classes, 207
+radii, every off-system hue, and thirteen emoji. The storefront now has no
+Tailwind palette classes outside the tokens.
+
+Two additions to the token set, both because the original was not enough:
+
+- **Status.** `--ok`, `--warn`, `--danger` in warm trios, plus `--ok-on-dark`.
+  Semantic colour stays semantic — brass is the accent and cannot also mean
+  "warning" — but Tailwind's defaults are cold and read as foreign on ivory.
+- **Brass as text.** `--brass-text` and `--brass-on-dark`. `--brass` is 2.9:1 on
+  ivory, so every 10px eyebrow on the site failed contrast. The accent is
+  unchanged for rules, icons and contour lines.
+
+`Badge` went from six hues to four tones. Status is a progression — waiting,
+moving, done, wrong — and the label already carries the detail.
 
 ### Phase 5, admin and close
 
-| # | Task | Verified by |
+Done, with one metric short.
+
+| # | Task | Verified by | Status |
+| --- | --- | --- | --- |
+| T26 | Admin changes A1 to A5 | `category-taxonomy.spec.ts` stays green | A1–A4 done, A5 is yours |
+| T27 | Every page at 390px, 768px, 1440px | No horizontal scroll anywhere | Pass |
+| T28 | Every flag on and off | Eight flags, both states, three pages | Pass |
+| T29 | Full suite plus `next build` | Green, and the build succeeds | 194 passed, 5 skipped, 0 failed |
+| T30 | Lighthouse on the homepage | LCP under 2.5s | LCP 2.2s. **CLS 0.279 misses 0.1** |
+
+**Lighthouse, homepage, desktop preset:**
+
+| | Before | After |
 | --- | --- | --- |
+| Performance | 56 | 75 |
+| Accessibility | 86 | **100** |
+| Best Practices | 100 | 100 |
+| SEO | 91 | **100** |
+| Largest Contentful Paint | 3.8s | **2.2s** |
+| Cumulative Layout Shift | 0.66 | 0.279 |
+| Speed Index | 1.3s | 0.6s |
+
+The single biggest cause was `unoptimized: true` in `next.config.ts` — image
+optimisation was off for the whole site, so a phone downloaded the 2.5MB PNG
+hero at full resolution.
+
+**CLS is the one miss.** 0.279, against a target of 0.1. What remains is a
+single shift on the hero box, reported by the layout-shift API as 428px growing
+to 600px. The element measures 600px in both states on every frame that can be
+sampled, and unifying the skeleton and the carousel behind one sizing box did
+not change the number. The 428 could not be reproduced outside that API. Left
+open rather than guessed at.
+
+--- | --- | --- |
 | T26 | Admin changes A1 to A5 | `category-taxonomy.spec.ts` stays green |
 | T27 | Every page at 390px, 768px, 1440px | No horizontal scroll anywhere |
 | T28 | Every flag on and off | Twelve flows, both states |
