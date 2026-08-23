@@ -1,18 +1,33 @@
 import type { Metadata } from "next";
-import { Outfit, Inter } from "next/font/google";
+import { Newsreader, Jost } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "../context/AppContext";
 import PageViewTracker from "../components/analytics/PageViewTracker";
 import { StoreConfigProvider } from "../context/StoreConfigContext";
 
-const outfit = Outfit({
-  variable: "--font-outfit",
+/**
+ * The two faces of the Himalayan redesign.
+ *
+ * Newsreader carries the editorial voice, Jost everything transactional. Both
+ * are variable, so no weight list is given and every weight the design uses
+ * arrives in one file. Loaded through next/font rather than a stylesheet link,
+ * which self-hosts them and removes the render-blocking request that a
+ * <link> to Google would add to every page.
+ *
+ * Italic is requested explicitly: the display face uses it for the accented
+ * word in a headline, and without it the browser would slant the roman.
+ */
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
   subsets: ["latin"],
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
-const inter = Inter({
-  variable: "--font-inter",
+const jost = Jost({
+  variable: "--font-jost",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -33,7 +48,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${outfit.variable} ${inter.variable} h-full antialiased`}
+      className={`${newsreader.variable} ${jost.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#FAF8F3] text-[#2A2A2A] font-sans">
         <StoreConfigProvider>

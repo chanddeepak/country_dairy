@@ -1,8 +1,39 @@
 @import "tailwindcss";
 
+/*
+ * Himalayan redesign tokens.
+ *
+ * One place, per docs/himalayan-redesign.md section 1. Components read these
+ * rather than repeating hex values: there are roughly 790 hardcoded brand hexes
+ * still in the tree from before this branch, and each phase of the migration
+ * converts its own pages over.
+ */
 :root {
-  --background: #FAF8F3;
-  --foreground: #2A2A2A;
+  /* grounds, darkest to lightest */
+  --forest: #1E3A2B;
+  --pine: #2F5741;
+  --earth: #6B5340;
+  --terra: #B4593C;
+  --sand: #E6DCC9;
+  --cream: #F3EDE1;
+  --ivory: #FBF8F1;
+
+  /* the single accent */
+  --brass: #B08D42;
+
+  /* text and rules */
+  --ink: #241E17;
+  --ink-soft: #6A6156;
+  --line: #E0D7C6;
+
+  /* what the page itself is painted with */
+  --background: var(--ivory);
+  --foreground: var(--ink);
+
+  /*
+   * Superseded by --forest and --brass. Kept until the last page stops
+   * referencing them so the two palettes never appear on screen at once.
+   */
   --primary-green: #3A6038;
   --accent-gold: #C59B27;
 }
@@ -10,16 +41,54 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  --color-forest: var(--forest);
+  --color-pine: var(--pine);
+  --color-earth: var(--earth);
+  --color-terra: var(--terra);
+  --color-sand: var(--sand);
+  --color-cream: var(--cream);
+  --color-ivory: var(--ivory);
+  --color-brass: var(--brass);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+
   --color-primary: var(--primary-green);
   --color-accent: var(--accent-gold);
-  --font-sans: var(--font-inter), sans-serif;
-  --font-serif: var(--font-outfit), serif;
+
+}
+
+
+/*
+ * Fonts live in a plain @theme, not @theme inline.
+ *
+ * `inline` substitutes a token's value into the utilities at build time and
+ * never emits the custom property, so `var(--font-sans)` is undefined at
+ * runtime and anything reading it silently falls back to the browser default.
+ * That was already true on this project before the redesign: the body asked for
+ * var(--font-sans), got nothing, and rendered in ui-sans-serif while appearing
+ * to work because the intended face looked similar.
+ *
+ * font-serif is the display face and font-sans the interface one, which is how
+ * the 52 existing font-serif usages move onto Newsreader without one of them
+ * being edited.
+ */
+@theme {
+  --font-sans: var(--font-jost), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+/* Figures that line up in a column should line up. */
+.tabular,
+input[type="number"] {
+  font-variant-numeric: tabular-nums;
 }
 
 [id] {
@@ -43,4 +112,22 @@ body {
 /* Smooth scrolling for anchor links */
 html {
   scroll-behavior: smooth;
+}
+
+/*
+ * Everything the design moves, it moves slowly. Anyone who has asked their
+ * system not to animate gets none of it, including the anchor scroll.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
