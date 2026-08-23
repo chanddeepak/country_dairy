@@ -80,7 +80,7 @@ export default function BatchPurityPage() {
 
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <div className="text-center mb-8">
-          <FlaskConical className="mx-auto mb-3 h-9 w-9 text-[var(--brass)]" strokeWidth={1.25} />
+          <FlaskConical className="mx-auto mb-3 h-9 w-9 text-[var(--brass-text)]" strokeWidth={1.25} />
           <h1 className="font-serif font-light text-2xl sm:text-3xl text-[var(--ink)] mb-2">
             Batch Purity Report
           </h1>

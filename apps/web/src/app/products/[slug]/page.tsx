@@ -468,18 +468,21 @@ export default function ProductDetailPage() {
       <main className="flex-1 bg-[var(--ivory)]">
         {/* Top Header / Breadcrumb Bar */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <nav className="flex items-center text-xs text-[var(--ink-soft)] gap-1">
+          {/* min-w-0 so the truncate below can actually take effect: a flex
+              child defaults to min-width:auto and refuses to shrink past its
+              content, which pushed the share button 5px off a 390px screen. */}
+          <nav className="flex min-w-0 flex-1 items-center gap-1 text-xs text-[var(--ink-soft)]">
             <Link href="/" className="hover:text-[var(--forest)] transition">Home</Link>
             <ChevronRight className="h-3 w-3" />
             <Link href="/products" className="hover:text-[var(--forest)] transition">Shop</Link>
             <ChevronRight className="h-3 w-3" />
-            <span className="text-[var(--ink)] font-bold truncate max-w-[200px] sm:max-w-none">{product.name}</span>
+            <span className="truncate font-bold text-[var(--ink)]">{product.name}</span>
           </nav>
 
           {/* Share Button */}
           <button
             onClick={handleShare}
-            className="flex items-center gap-1.5 text-xs font-bold text-[var(--ink-soft)] hover:text-[var(--forest)] bg-white border border-[var(--line)] px-3.5 py-1.5 rounded-full transition hover:shadow"
+            className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-[var(--ink-soft)] hover:text-[var(--forest)] bg-white border border-[var(--line)] px-3.5 py-1.5 rounded-full transition hover:shadow"
             title="Share Product"
           >
             {copiedLink ? <Check className="h-3.5 w-3.5 text-[var(--ok)]" /> : <Share2 className="h-3.5 w-3.5" />}
@@ -503,7 +506,7 @@ export default function ProductDetailPage() {
                   </span>
                 )}
                 {product.badge && (
-                  <span className="absolute top-4 right-4 z-10 bg-[var(--brass)] text-white text-xs font-bold px-3 py-1 rounded-sm tracking-wider uppercase">
+                  <span className="absolute top-4 right-4 z-10 bg-[var(--brass)] text-[#1a1405] text-xs font-bold px-3 py-1 rounded-sm tracking-wider uppercase">
                     {product.badge}
                   </span>
                 )}
@@ -889,7 +892,7 @@ export default function ProductDetailPage() {
                   {/* 5 Steps Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div className="bg-[var(--ivory)]/60 border border-[var(--line)]/80 rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
-                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass)] font-serif font-light text-lg flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
                         1
                       </div>
                       <h4 className="font-serif font-normal text-[var(--ink)] text-sm">Free-Range Grazing</h4>
@@ -899,7 +902,7 @@ export default function ProductDetailPage() {
                     </div>
 
                     <div className="bg-[var(--ivory)]/60 border border-[var(--line)]/80 rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
-                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass)] font-serif font-light text-lg flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
                         2
                       </div>
                       <h4 className="font-serif font-normal text-[var(--ink)] text-sm">Whole Curd Culturing</h4>
@@ -909,7 +912,7 @@ export default function ProductDetailPage() {
                     </div>
 
                     <div className="bg-[var(--ivory)]/60 border border-[var(--line)]/80 rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
-                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass)] font-serif font-light text-lg flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
                         3
                       </div>
                       <h4 className="font-serif font-normal text-[var(--ink)] text-sm">Wooden Bilona Churning</h4>
@@ -919,7 +922,7 @@ export default function ProductDetailPage() {
                     </div>
 
                     <div className="bg-[var(--ivory)]/60 border border-[var(--line)]/80 rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
-                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass)] font-serif font-light text-lg flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
                         4
                       </div>
                       <h4 className="font-serif font-normal text-[var(--ink)] text-sm">Slow Fire Simmering</h4>
@@ -929,7 +932,7 @@ export default function ProductDetailPage() {
                     </div>
 
                     <div className="bg-[var(--ivory)]/60 border border-[var(--line)]/80 rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
-                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass)] font-serif font-light text-lg flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
                         5
                       </div>
                       <h4 className="font-serif font-normal text-[var(--ink)] text-sm">Hand-Poured Purity</h4>
@@ -949,9 +952,9 @@ export default function ProductDetailPage() {
                       </div>
                     </div>
                     <div className="p-4 bg-[var(--warn-bg)]/50 border border-[var(--warn-line)]/60 rounded-sm flex items-start gap-3">
-                      <CookingPot className="h-[18px] w-[18px] shrink-0 text-[var(--brass)]" strokeWidth={1.5} />
+                      <CookingPot className="h-[18px] w-[18px] shrink-0 text-[var(--brass-text)]" strokeWidth={1.5} />
                       <div>
-                        <h5 className="font-bold text-xs text-[var(--brass)] uppercase tracking-wider mb-0.5">Rich Granular Aroma</h5>
+                        <h5 className="font-bold text-xs text-[var(--brass-text)] uppercase tracking-wider mb-0.5">Rich Granular Aroma</h5>
                         <p className="text-xs text-[var(--ink-soft)] leading-relaxed">Natural golden colour, nutty Pahadi aroma, and bio-available nutrients intact.</p>
                       </div>
                     </div>

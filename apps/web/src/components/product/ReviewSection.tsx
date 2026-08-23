@@ -147,7 +147,7 @@ export default function ReviewSection({
                   <Star
                     key={i}
                     className={`h-4 w-4 ${
-                      i < Math.round(average) ? 'fill-[var(--brass)] text-[var(--brass)]' : 'text-[var(--line)]'
+                      i < Math.round(average) ? 'fill-[var(--brass)] text-[var(--brass-text)]' : 'text-[var(--line)]'
                     }`}
                   />
                 ))}
@@ -161,7 +161,7 @@ export default function ReviewSection({
               {data?.distribution.map((row) => (
                 <div key={row.stars} className="flex items-center gap-2 text-xs">
                   <span className="w-3 text-[var(--ink-soft)]">{row.stars}</span>
-                  <Star className="h-3 w-3 fill-[var(--brass)] text-[var(--brass)]" />
+                  <Star className="h-3 w-3 fill-[var(--brass)] text-[var(--brass-text)]" />
                   <div className="flex-1 h-1.5 bg-[var(--sand)] rounded-full overflow-hidden">
                     <div
                       className="h-full bg-[var(--brass)] rounded-full"
@@ -186,7 +186,7 @@ export default function ReviewSection({
                           <Star
                             key={i}
                             className={`h-3.5 w-3.5 ${
-                              i < review.rating ? 'fill-[var(--brass)] text-[var(--brass)]' : 'text-[var(--line)]'
+                              i < review.rating ? 'fill-[var(--brass)] text-[var(--brass-text)]' : 'text-[var(--line)]'
                             }`}
                           />
                         ))}

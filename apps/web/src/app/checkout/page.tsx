@@ -650,7 +650,7 @@ export default function CheckoutPage() {
                     <input type="radio" name="payment" checked={paymentMethod === 'wallet'}
                       onChange={() => setPaymentMethod('wallet')} className="accent-[var(--forest)]" />
                     <div className="flex items-center gap-2">
-                      <Wallet className="h-4 w-4 text-[var(--brass)]" />
+                      <Wallet className="h-4 w-4 text-[var(--brass-text)]" />
                       <span className="text-sm font-bold text-[var(--ink)]">Pay from Wallet</span>
                       <span className="text-xs text-[var(--ink-soft)]">(Balance: ₹{walletBalance})</span>
                     </div>

@@ -63,7 +63,7 @@ function Panel({ step, index }: { step: (typeof STEPS)[number]; index: number })
 
       <div className="relative mx-auto flex h-full w-full max-w-7xl flex-col justify-center gap-9 px-6 py-14 sm:px-10 lg:flex-row lg:items-center lg:gap-16 lg:px-20">
         <div className="lg:flex-1">
-          <p className="tabular font-serif text-[13px] tracking-[0.2em] text-[var(--brass)]">
+          <p className="tabular font-serif text-[13px] tracking-[0.2em] text-[var(--brass-on-dark)]">
             {String(index + 1).padStart(2, '0')}
           </p>
           <h3 className="mt-4 font-serif text-[clamp(32px,5vw,64px)] font-light leading-[1.02] tracking-[-0.02em] text-[var(--ivory)]">
@@ -144,7 +144,7 @@ export default function Journey() {
 
   const intro = (
     <div className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
-      <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--brass)]">
+      <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--brass-on-dark)]">
         The journey
       </p>
       <h2 className="text-balance font-serif text-[clamp(28px,4vw,46px)] font-light leading-[1.08] tracking-[-0.012em] text-[var(--ivory)]">

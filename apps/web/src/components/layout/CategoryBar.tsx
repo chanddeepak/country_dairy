@@ -254,7 +254,7 @@ export default function CategoryBar() {
                         <Link
                           href="/products"
                           onClick={() => setOpen(false)}
-                          className="whitespace-nowrap rounded-full bg-[var(--forest)] px-6 py-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-white transition hover:bg-[var(--brass)]"
+                          className="whitespace-nowrap rounded-full bg-[var(--forest)] px-6 py-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-white transition hover:bg-[var(--pine)]"
                         >
                           Shop all products
                         </Link>

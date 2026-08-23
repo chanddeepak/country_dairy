@@ -110,7 +110,7 @@ export default function GheeStory() {
             className={`lg:col-span-7 transition-all delay-150 duration-[900ms] ease-out ${rise}`}
           >
             {product.categoryName ? (
-              <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--brass)]">
+              <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--brass-on-dark)]">
                 {product.categoryName}
               </p>
             ) : null}
@@ -126,7 +126,7 @@ export default function GheeStory() {
                 text.length < 70 ? (
                   <p
                     key={text}
-                    className="font-serif text-[19px] italic leading-snug text-[var(--brass)]"
+                    className="font-serif text-[19px] italic leading-snug text-[var(--brass-on-dark)]"
                   >
                     {text}
                   </p>
@@ -142,7 +142,7 @@ export default function GheeStory() {
               <dl className="mt-9 grid grid-cols-1 gap-x-10 gap-y-5 border-t border-[var(--ivory)]/15 pt-8 sm:grid-cols-2">
                 {specs.map(([label, value]) => (
                   <div key={label}>
-                    <dt className="text-[10px] uppercase tracking-[0.18em] text-[var(--brass)]">
+                    <dt className="text-[10px] uppercase tracking-[0.18em] text-[var(--brass-on-dark)]">
                       {label}
                     </dt>
                     <dd className="mt-1.5 text-[14px] leading-relaxed text-[var(--ivory)]">

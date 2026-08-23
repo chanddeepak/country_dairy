@@ -536,7 +536,7 @@ function AccountPageContent() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {walletEnabled && (
                       <div className="bg-white border border-[var(--line)] rounded-sm p-6 text-center">
-                        <Wallet className="h-6 w-6 text-[var(--brass)] mx-auto mb-2" />
+                        <Wallet className="h-6 w-6 text-[var(--brass-text)] mx-auto mb-2" />
                         <p className="text-2xl font-black text-[var(--forest)]">₹{walletBalance}</p>
                         <p className="text-xs text-[var(--ink-soft)] mt-1">Wallet Balance</p>
                         <button onClick={() => setActiveTab('wallet')} className="text-xs font-bold text-[var(--forest)] mt-3 hover:underline">
@@ -545,7 +545,7 @@ function AccountPageContent() {
                       </div>
                     )}
                     <div className="bg-white border border-[var(--line)] rounded-sm p-6 text-center">
-                      <Package className="h-6 w-6 text-[var(--brass)] mx-auto mb-2" />
+                      <Package className="h-6 w-6 text-[var(--brass-text)] mx-auto mb-2" />
                       <p className="text-2xl font-black text-[var(--ink)]">{orders.length}</p>
                       <p className="text-xs text-[var(--ink-soft)] mt-1">Total Orders</p>
                       <button onClick={() => setActiveTab('orders')} className="text-xs font-bold text-[var(--forest)] mt-3 hover:underline">
@@ -554,7 +554,7 @@ function AccountPageContent() {
                     </div>
                     {subscriptionsEnabled && (
                       <div className="bg-white border border-[var(--line)] rounded-sm p-6 text-center">
-                        <Calendar className="h-6 w-6 text-[var(--brass)] mx-auto mb-2" />
+                        <Calendar className="h-6 w-6 text-[var(--brass-text)] mx-auto mb-2" />
                         <p className="text-2xl font-black text-[var(--ink)]">{subscriptions.filter((s) => s.status === 'ACTIVE').length}</p>
                         <p className="text-xs text-[var(--ink-soft)] mt-1">Active Subscriptions</p>
                         <button onClick={() => setActiveTab('subscriptions')} className="text-xs font-bold text-[var(--forest)] mt-3 hover:underline">

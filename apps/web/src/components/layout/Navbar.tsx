@@ -159,10 +159,10 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
   // hover: on the container, pointing anywhere in the bar lit all five links at
   // once, and they stayed lit as long as the cursor was up there.
   const linkTone = overHero ? 'text-white/90' : 'text-[var(--ink)]';
-  const linkHover = overHero ? 'hover:text-white' : 'hover:text-[var(--brass)]';
+  const linkHover = overHero ? 'hover:text-white' : 'hover:text-[var(--brass-text)]';
   const iconTone = overHero
     ? 'text-white/90 hover:text-white'
-    : 'text-[var(--ink)] hover:text-[var(--brass)]';
+    : 'text-[var(--ink)] hover:text-[var(--brass-text)]';
 
   return (
     <>
@@ -178,7 +178,7 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
           <span className="hidden sm:inline">Handcrafted in the Himalayan Foothills of Tanakpur, Uttarakhand</span>
           <span className="sm:hidden">Tanakpur, Uttarakhand</span>
           <span className="text-[var(--sand)]/40">&middot;</span>
-          <span className="text-[var(--brass)]">Free shipping over &#8377;499</span>
+          <span className="text-[var(--brass-on-dark)]">Free shipping over &#8377;499</span>
         </div>
 
         <nav
@@ -246,7 +246,7 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
                       <div className={`hidden sm:flex items-center px-3 py-1.5 rounded-sm border text-xs ${
                         overHero ? 'border-white/25 text-white' : 'border-[var(--line)] text-[var(--forest)]'
                       }`}>
-                        <Wallet className="h-3.5 w-3.5 text-[var(--brass)] mr-1.5" />
+                        <Wallet className="h-3.5 w-3.5 text-[var(--brass-text)] mr-1.5" />
                         <span className="font-medium tabular">&#8377;{walletBalance}</span>
                       </div>
                     )}
@@ -296,7 +296,7 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
                             {/* Mobile wallet (small screens hide the inline badge) */}
                             {walletEnabled && (
                               <div className="sm:hidden flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--ink)]">
-                                <Wallet className="h-4 w-4 text-[var(--brass)]" />
+                                <Wallet className="h-4 w-4 text-[var(--brass-text)]" />
                                 Wallet: <span className="font-medium tabular">&#8377;{walletBalance}</span>
                               </div>
                             )}
@@ -388,16 +388,16 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
             </div>
 
             <nav className="flex flex-col gap-1 font-serif text-[30px] leading-tight">
-              {navLink('home', 'Home', 'py-2 transition-colors hover:text-[var(--brass)]')}
-              {navLink('shop', 'Shop', 'py-2 transition-colors hover:text-[var(--brass)]')}
-              {navLink('about', 'Our Story', 'py-2 transition-colors hover:text-[var(--brass)]')}
-              {navLink('values', 'From the Hills', 'py-2 transition-colors hover:text-[var(--brass)]')}
-              {navLink('contact', 'Contact', 'py-2 transition-colors hover:text-[var(--brass)]')}
+              {navLink('home', 'Home', 'py-2 transition-colors hover:text-[var(--brass-on-dark)]')}
+              {navLink('shop', 'Shop', 'py-2 transition-colors hover:text-[var(--brass-on-dark)]')}
+              {navLink('about', 'Our Story', 'py-2 transition-colors hover:text-[var(--brass-on-dark)]')}
+              {navLink('values', 'From the Hills', 'py-2 transition-colors hover:text-[var(--brass-on-dark)]')}
+              {navLink('contact', 'Contact', 'py-2 transition-colors hover:text-[var(--brass-on-dark)]')}
             </nav>
 
             {navTree.length > 0 && (
               <div className="mt-10 pt-8 border-t border-white/15">
-                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--brass)] mb-4">
+                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--brass-on-dark)] mb-4">
                   Shop by category
                 </p>
                 <div className="grid grid-cols-2 gap-2.5">
@@ -411,7 +411,7 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
                         onClick={() => setMobileMenuOpen(false)}
                         className="flex items-center gap-3 rounded-sm border border-white/15 px-4 py-3.5 transition hover:border-[var(--brass)]"
                       >
-                        <Icon className="h-4 w-4 text-[var(--brass)]" strokeWidth={1.5} />
+                        <Icon className="h-4 w-4 text-[var(--brass-on-dark)]" strokeWidth={1.5} />
                         <span className="text-[13px] tracking-[0.03em]">{cat.name}</span>
                       </Link>
                     );

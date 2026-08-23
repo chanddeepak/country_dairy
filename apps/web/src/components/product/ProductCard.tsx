@@ -188,19 +188,19 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
             "0.0 (0)" describes a bad product rather than a new one. */}
         {ENABLE_PRODUCT_RATINGS && !!product.totalReviews && (
           <div className="mb-2 flex items-center gap-1.5">
-            <Star className="h-3 w-3 fill-[var(--brass)] text-[var(--brass)]" />
+            <Star className="h-3 w-3 fill-[var(--brass)] text-[var(--brass-text)]" />
             <span className="text-[12px] text-[var(--ink)] tabular">{(product.averageRating ?? 0).toFixed(1)}</span>
             <span className="text-[12px] text-[var(--ink-soft)]">({product.totalReviews})</span>
           </div>
         )}
 
         {product.badge && !isOutOfStock && (
-          <p className="mb-1.5 text-[10px] uppercase tracking-[0.18em] text-[var(--brass)]">
+          <p className="mb-1.5 text-[10px] uppercase tracking-[0.18em] text-[var(--brass-text)]">
             {product.badge}
           </p>
         )}
 
-        <Link href={productUrl} data-testid="product-card-link" className="transition-colors hover:text-[var(--brass)]">
+        <Link href={productUrl} data-testid="product-card-link" className="transition-colors hover:text-[var(--brass-text)]">
           <h3 className="font-serif text-[19px] leading-snug text-[var(--ink)]">
             {product.name}
           </h3>

@@ -107,14 +107,14 @@ export default function ContactForm() {
       <button
         type="submit"
         disabled={sending}
-        className="inline-flex items-center gap-2 bg-[var(--brass)] hover:bg-[var(--forest)] text-white font-bold text-xs px-4 py-2.5 rounded-sm disabled:opacity-60 transition"
+        className="inline-flex items-center gap-2 bg-[var(--brass)] hover:bg-[var(--forest)] text-[#1a1405] hover:text-[var(--ivory)] font-bold text-xs px-4 py-2.5 rounded-sm disabled:opacity-60 transition"
       >
         <Send className="h-3.5 w-3.5" />
         {sending ? 'Sending…' : 'Send'}
       </button>
 
       {note && (
-        <p className={`text-[11px] ${sent ? 'text-[var(--ok-on-dark)]' : 'text-[var(--brass)]'}`}>{note}</p>
+        <p className={`text-[11px] ${sent ? 'text-[var(--ok-on-dark)]' : 'text-[var(--brass-on-dark)]'}`}>{note}</p>
       )}
     </form>
   );

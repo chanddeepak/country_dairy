@@ -30,7 +30,7 @@ export default function BrandStatement() {
           >
             <h2 className="text-balance font-serif text-[clamp(30px,4.6vw,54px)] font-light leading-[1.1] tracking-[-0.015em] text-[var(--ink)]">
               Some flavours are more than flavours.
-              <span className="mt-1 block text-balance italic text-[var(--brass)]">
+              <span className="mt-1 block text-balance italic text-[var(--brass-text)]">
                 They carry a place with them.
               </span>
             </h2>

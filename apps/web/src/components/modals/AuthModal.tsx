@@ -273,7 +273,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 type="button" 
                 onClick={() => setIsRegistering(!isRegistering)}
                 data-testid="toggle-register"
-                className="text-xs text-[var(--brass)] font-bold hover:underline"
+                className="text-xs text-[var(--brass-text)] font-bold hover:underline"
               >
                 {isRegistering ? 'Already have an account? Sign In' : "Don't have an account? Register"}
               </button>

@@ -104,7 +104,7 @@ export default function Reviews({ onAuthOpen }: { onAuthOpen: () => void }) {
           className={`flex flex-wrap items-end justify-between gap-6 transition-all duration-[900ms] ease-out ${rise}`}
         >
           <div>
-            <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--brass)]">
+            <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--brass-text)]">
               In their kitchens
             </p>
             <h2 className="text-balance font-serif text-[clamp(28px,4vw,46px)] font-light leading-[1.08] tracking-[-0.012em] text-[var(--ink)]">
@@ -163,7 +163,7 @@ export default function Reviews({ onAuthOpen }: { onAuthOpen: () => void }) {
                 <figcaption className="mt-5 text-[11px] uppercase tracking-[0.14em] text-[var(--ink-soft)]">
                   {review.user?.name || 'A customer'}
                   {review.isVerifiedPurchase ? (
-                    <span className="text-[var(--brass)]"> · Verified purchase</span>
+                    <span className="text-[var(--brass-text)]"> · Verified purchase</span>
                   ) : null}
                   {review.productTitle ? (
                     <Link

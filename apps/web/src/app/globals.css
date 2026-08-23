@@ -21,6 +21,17 @@
   /* the single accent */
   --brass: #B08D42;
 
+  /*
+   * The same accent, at two luminances that pass AA as text.
+   *
+   * #B08D42 is 2.9:1 on ivory and 4.0:1 on forest, so every brass eyebrow on
+   * the site failed contrast — they are 10px, which needs 4.5:1. The accent
+   * itself is unchanged for the things that are not text: rules, icons, the
+   * contour lines, the announcement badge.
+   */
+  --brass-text: #856428;    /* 5.1:1 on ivory, 4.7:1 on cream */
+  --brass-on-dark: #D2B473; /* 6.2:1 on forest, 4.1:1 on pine */
+
   /* text and rules */
   --ink: #241E17;
   --ink-soft: #6A6156;

@@ -64,7 +64,7 @@ export default function Principles() {
             shown ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
           }`}
         >
-          <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--brass)]">
+          <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--brass-text)]">
             Our principles
           </p>
           <h2 className="text-balance font-serif text-[clamp(28px,4vw,46px)] font-light leading-[1.08] tracking-[-0.012em] text-[var(--ink)]">
@@ -85,7 +85,7 @@ export default function Principles() {
                 }`}
                 style={{ transitionDelay: `${120 + i * 70}ms` }}
               >
-                <Icon className="h-[22px] w-[22px] text-[var(--brass)]" strokeWidth={1.25} />
+                <Icon className="h-[22px] w-[22px] text-[var(--brass-text)]" strokeWidth={1.25} />
                 <h3 className="mt-5 font-serif text-[21px] font-normal leading-tight text-[var(--ink)]">
                   {title}
                 </h3>

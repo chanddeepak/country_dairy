@@ -36,7 +36,7 @@ const VARIANTS: Record<Variant, string> = {
   // On photography or a forest band, where a solid dark button would vanish.
   onDark: 'bg-[var(--ivory)] text-[var(--forest)] hover:bg-[var(--brass)] hover:text-[#1a1405]',
   // Reads as a link, sized as a button, so it aligns in a row with real ones.
-  quiet: 'text-[var(--forest)] underline-offset-4 hover:text-[var(--brass)] hover:underline',
+  quiet: 'text-[var(--forest)] underline-offset-4 hover:text-[var(--brass-text)] hover:underline',
 };
 
 const SIZES: Record<Size, string> = {

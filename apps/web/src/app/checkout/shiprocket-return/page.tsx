@@ -81,7 +81,7 @@ function ReturnContent() {
           </>
         ) : (
           <>
-            <CircleAlert className="mx-auto h-14 w-14 text-[var(--brass)]" strokeWidth={1.5} />
+            <CircleAlert className="mx-auto h-14 w-14 text-[var(--brass-text)]" strokeWidth={1.5} />
             <h1 className="font-serif font-light text-3xl text-[var(--ink)] mt-5 mb-2">
               That checkout did not finish.
             </h1>

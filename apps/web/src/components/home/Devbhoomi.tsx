@@ -49,7 +49,7 @@ export default function Devbhoomi() {
           <div
             className={`lg:col-span-7 transition-all delay-150 duration-[900ms] ease-out ${rise}`}
           >
-            <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--brass)]">
+            <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--brass-text)]">
               Uttarakhand
             </p>
 
@@ -74,7 +74,7 @@ export default function Devbhoomi() {
             <ul className="mt-9 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--line)] pt-6 text-[11px] uppercase tracking-[0.16em] text-[var(--ink-soft)]">
               {ACCENTS.map((accent, i) => (
                 <li key={accent} className="flex items-center gap-3">
-                  {i > 0 ? <span className="text-[var(--brass)]">·</span> : null}
+                  {i > 0 ? <span className="text-[var(--brass-text)]">·</span> : null}
                   {accent}
                 </li>
               ))}

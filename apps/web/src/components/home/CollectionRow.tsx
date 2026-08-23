@@ -43,12 +43,39 @@ const COLUMNS: Record<number, string> = {
 export default function CollectionRow() {
   const { tree, loading } = useNavTree();
 
+  /*
+   * The header is static text, so it renders immediately rather than after the
+   * fetch. Hiding it and then revealing it moved everything below it down —
+   * 0.375 of the homepage's 0.66 cumulative layout shift came from this one
+   * element. The padding and grid match the loaded state exactly for the same
+   * reason.
+   */
+  const header = (
+    <div className="mb-10 flex flex-wrap items-end justify-between gap-5">
+      <div>
+        <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--brass-text)]">
+          The collection
+        </p>
+        <h2 className="max-w-[16ch] font-serif text-[clamp(28px,4vw,46px)] font-light leading-[1.08] tracking-[-0.012em] text-[var(--ink)]">
+          Everything we bring down from the hills.
+        </h2>
+      </div>
+      <Link
+        href="/products"
+        className="inline-flex items-center rounded-sm border border-[var(--forest)] px-6 py-3 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--forest)] transition-colors duration-300 hover:bg-[var(--forest)] hover:text-[var(--ivory)]"
+      >
+        Shop all
+      </Link>
+    </div>
+  );
+
   if (loading) {
     return (
-      <section className="bg-[var(--cream)] py-20">
+      <section className="bg-[var(--cream)] py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid animate-pulse grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-            {[0, 1, 2, 3].map((i) => (
+          {header}
+          <div className={`grid animate-pulse gap-3.5 ${COLUMNS[3]}`}>
+            {[0, 1, 2].map((i) => (
               <div key={i} className="aspect-[3/4] bg-[var(--sand)]" />
             ))}
           </div>
@@ -62,22 +89,7 @@ export default function CollectionRow() {
   return (
     <section className="bg-[var(--cream)] py-16 sm:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 flex flex-wrap items-end justify-between gap-5">
-          <div>
-            <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--brass)]">
-              The collection
-            </p>
-            <h2 className="max-w-[16ch] font-serif text-[clamp(28px,4vw,46px)] font-light leading-[1.08] tracking-[-0.012em] text-[var(--ink)]">
-              Everything we bring down from the hills.
-            </h2>
-          </div>
-          <Link
-            href="/products"
-            className="inline-flex items-center rounded-sm border border-[var(--forest)] px-6 py-3 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--forest)] transition-colors duration-300 hover:bg-[var(--forest)] hover:text-[var(--ivory)]"
-          >
-            Shop all
-          </Link>
-        </div>
+        {header}
 
         <div className={`grid gap-3.5 ${COLUMNS[Math.min(tree.length, 4)] ?? COLUMNS[4]}`}>
           {tree.map((cat, i) => {
@@ -119,7 +131,7 @@ export default function CollectionRow() {
 
                 <div className="absolute inset-x-6 bottom-6 z-10 text-[var(--ivory)]">
                   {!image && (
-                    <Icon className="mb-4 h-6 w-6 text-[var(--brass)]" strokeWidth={1.4} />
+                    <Icon className="mb-4 h-6 w-6 text-[var(--brass-text)]" strokeWidth={1.4} />
                   )}
                   <h3 className="font-serif text-[24px] leading-tight">{cat.name}</h3>
                   <p className="mt-2 text-[12px] font-light leading-relaxed text-[var(--sand)]/80">

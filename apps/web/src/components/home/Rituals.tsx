@@ -45,7 +45,7 @@ export default function Rituals() {
             shown ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
           }`}
         >
-          <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--brass)]">
+          <p className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--brass-text)]">
             Every day
           </p>
           <h2 className="text-balance font-serif text-[clamp(28px,4vw,46px)] font-light leading-[1.08] tracking-[-0.012em] text-[var(--ink)]">
