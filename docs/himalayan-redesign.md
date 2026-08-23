@@ -292,19 +292,50 @@ verification passes.
 
 ### Phase 3, the homepage
 
-| # | Task | Verified by |
+Done except T8. Every commit ran the storefront suite (56 passed, 4 skipped) and
+`next build`, and every section was read at 390, 820 and 1440 in a browser.
+
+| # | Task | Verified by | Status |
+| --- | --- | --- | --- |
+| T8 | `HeroSection`: real text from `HeroBanner.title` and `subtitle`, slow drift, contour, mobile crop | F1; renders correctly when `title` is empty | **Blocked on S3** |
+| T9 | Brand statement section | Visual | Done |
+| T10 | Collection: four categories, photographs where stocked, contour tiles where not | Driven by the nav tree, not hardcoded | Done |
+| T11 | `ProductShelf` and `ProductCard` in the new system, four elements not nine | F1, F5; rating hidden when no reviews | Done |
+| T12 | Ghee story section with the spec list | Visual | Done, driven by the product record |
+| T13 | The five-step journey band | Visual, and legible on a phone | Done; pinned at lg, vertical below it and under reduced motion |
+| T14 | Six principles | Visual | Done, replaces `ValueBanner` |
+| T15 | Rooted in Devbhoomi | Visual | Done, replaces `AboutSection` |
+| T16 | Everyday rituals | Visual | Done |
+| T17 | Reviews, **always rendering** | Renders one review today; invites one when there are none | Done |
+| T18 | Closing band and CTA | Visual | Done |
+
+**Homepage order now:** hero, brand statement, collection, product shelf, ghee
+story, principles, Devbhoomi, journey, rituals, reviews, closing band.
+
+**Retired:** `AboutSection` and `ValueBanner`. Both were hardcoded content, and
+everything true in them moved into the sections that replaced them —
+Tanakpur and free grazing into the principles and Devbhoomi, glass jars and
+"delivers across India only" into the sixth principle. The `#about` and
+`#values` anchors moved with them, so both header links still land.
+
+**Found and fixed on the way**, neither one a Phase 3 task:
+
+- `Category.imageUrl` was accepted by the DTO and silently dropped in both
+  `createCategory` and `updateCategory`, and the nav tree never returned it. So
+  the console could set a category image and nothing anywhere would show it.
+  This was also what admin task A3 was waiting on.
+- The header applied its hover colour to the row rather than to each link, so
+  pointing anywhere in the bar lit all five links brass at once. Mine, from T5.
+
+**Content problems that need the console, not code.** Every one of these renders
+correctly — the data behind it is wrong:
+
+| What | Where | Why it matters |
 | --- | --- | --- |
-| T8 | `HeroSection`: real text from `HeroBanner.title` and `subtitle`, slow drift, contour, mobile crop | F1; renders correctly when `title` is empty |
-| T9 | Brand statement section | Visual |
-| T10 | Collection: four categories, photographs where stocked, contour tiles where not | Driven by the nav tree, not hardcoded |
-| T11 | `ProductShelf` and `ProductCard` in the new system, four elements not nine | F1, F5; rating hidden when no reviews |
-| T12 | Ghee story section with the spec list | Visual |
-| T13 | The five-step journey band | Visual, and legible on a phone |
-| T14 | Six principles | Visual |
-| T15 | Rooted in Devbhoomi | Visual |
-| T16 | Everyday rituals | Visual |
-| T17 | Reviews, rendering only when reviews exist | Section absent today, appears when seeded |
-| T18 | Closing band and CTA | Visual |
+| The ghee's gallery is ten marketing posters with lettering baked into the pixels | Product → media | Nothing in it can be used in an editorial layout. Every photograph on the homepage had to be extracted from inside a poster or keyed off a white studio ground |
+| `Net Quantity: 1L Jar` sits at product level, but there are 1L and 500ml variants | Product → specifications | Renders as written on the 500ml page, where it is wrong |
+| The only review reads "dsfkldsfr dflkwjrewgfwe" under the title "Nice" | Reviews | It is on the homepage now |
+| No product carries a batch number | Product → batch | `/purity/[batch]` has nothing to resolve, and the principles section says batches are tested |
 
 ### Phase 4, the rest of the storefront
 
@@ -355,7 +386,7 @@ Things that end the branch badly if ignored.
 | --- | --- | --- |
 | ~~Q1~~ | ~~Seed real reviews, or hide the section?~~ **Answered 21 Aug: neither.** The section always renders. With no reviews it invites one, signed out it says sign in to review. See 3.2 | closed |
 | Q2 | Who produces the logo variants and the clean hero artwork? | T3, T8 |
-| Q3 | Do the three trust badges become the six principles, or coexist? | A5, T14 |
+| ~~Q3~~ | ~~Do the three trust badges become the six principles, or coexist?~~ **Answered by looking, 23 Aug:** there was no conflict. `ValueBanner` never read the trust badges — it was four cards hardcoded in the component. The principles replaced that list; the badges were never involved. A5 stands on its own | closed |
 | Q4 | Does the redesign ship behind a flag for staged rollout, or as one merge? | T29 |
 
 **Q2 update, 21 Aug:** the logo variants are done and committed, so S1 and S2 are
