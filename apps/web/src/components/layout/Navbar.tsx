@@ -155,9 +155,11 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
     logout();
   };
 
-  const linkTone = overHero
-    ? 'text-white/90 hover:text-white'
-    : 'text-[var(--ink)] hover:text-[var(--brass)]';
+  // The tone is inherited by the row; the hover has to sit on each link. With
+  // hover: on the container, pointing anywhere in the bar lit all five links at
+  // once, and they stayed lit as long as the cursor was up there.
+  const linkTone = overHero ? 'text-white/90' : 'text-[var(--ink)]';
+  const linkHover = overHero ? 'hover:text-white' : 'hover:text-[var(--brass)]';
   const iconTone = overHero
     ? 'text-white/90 hover:text-white'
     : 'text-[var(--ink)] hover:text-[var(--brass)]';
@@ -219,11 +221,11 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
 
             {/* Desktop Nav Links */}
             <div className={`hidden md:flex flex-none items-center justify-center gap-9 text-[13px] tracking-[0.06em] ${linkTone}`}>
-              {navLink('home', 'Home', 'transition-colors')}
-              {navLink('shop', 'Shop', 'transition-colors')}
-              {navLink('about', 'Our Story', 'transition-colors')}
-              {navLink('values', 'From the Hills', 'transition-colors')}
-              {navLink('contact', 'Contact', 'transition-colors')}
+              {navLink('home', 'Home', `transition-colors ${linkHover}`)}
+              {navLink('shop', 'Shop', `transition-colors ${linkHover}`)}
+              {navLink('about', 'Our Story', `transition-colors ${linkHover}`)}
+              {navLink('values', 'From the Hills', `transition-colors ${linkHover}`)}
+              {navLink('contact', 'Contact', `transition-colors ${linkHover}`)}
             </div>
 
             {/* Right Side Actions */}

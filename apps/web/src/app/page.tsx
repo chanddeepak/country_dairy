@@ -7,7 +7,7 @@ import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import HeroSection from '../components/home/HeroSection';
 import BrandStatement from '../components/home/BrandStatement';
-import AboutSection from '../components/home/AboutSection';
+import Devbhoomi from '../components/home/Devbhoomi';
 import ProductShelf from '../components/home/ProductShelf';
 import GheeStory from '../components/home/GheeStory';
 import CollectionRow from '../components/home/CollectionRow';
@@ -59,7 +59,7 @@ export default function Home() {
         <ProductShelf onSubscribe={handleSubscribe} />
         <GheeStory />
         <Principles />
-        <AboutSection />
+        <Devbhoomi />
       </main>
 
       <Footer />
