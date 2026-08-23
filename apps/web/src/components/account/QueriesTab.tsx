@@ -30,10 +30,10 @@ const STATUS_LABEL: Record<SupportTicket['status'], string> = {
 };
 
 const STATUS_STYLE: Record<SupportTicket['status'], string> = {
-  OPEN: 'bg-amber-50 text-amber-800 border-amber-200',
-  AWAITING_CUSTOMER: 'bg-[#3A6038]/10 text-[#3A6038] border-[#3A6038]/25',
-  RESOLVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  CLOSED: 'bg-stone-100 text-stone-500 border-stone-200',
+  OPEN: 'bg-[var(--warn-bg)] text-[var(--warn)] border-[var(--warn-line)]',
+  AWAITING_CUSTOMER: 'bg-[var(--forest)]/10 text-[var(--forest)] border-[var(--forest)]/25',
+  RESOLVED: 'bg-[var(--ok-bg)] text-[var(--ok)] border-[var(--ok-line)]',
+  CLOSED: 'bg-[var(--cream)] text-[var(--ink-soft)] border-[var(--line)]',
 };
 
 function when(value: string): string {
@@ -105,9 +105,9 @@ export default function QueriesTab({
     return (
       <div className="space-y-3 animate-pulse">
         {[0, 1].map((i) => (
-          <div key={i} className="bg-white border border-stone-200 rounded-xl p-5 space-y-3">
-            <div className="h-4 w-2/5 rounded bg-stone-200/80" />
-            <div className="h-3 w-1/4 rounded bg-stone-200/80" />
+          <div key={i} className="bg-white border border-[var(--line)] rounded-sm p-5 space-y-3">
+            <div className="h-4 w-2/5 rounded bg-[var(--sand)]/80" />
+            <div className="h-3 w-1/4 rounded bg-[var(--sand)]/80" />
           </div>
         ))}
       </div>
@@ -116,10 +116,10 @@ export default function QueriesTab({
 
   if (tickets.length === 0) {
     return (
-      <div className="bg-white border border-stone-200 rounded-xl p-10 text-center">
-        <MessageCircle className="h-8 w-8 text-stone-300 mx-auto mb-3" />
-        <p className="text-sm font-bold text-[#2A2A2A]">You have not asked us anything yet.</p>
-        <p className="text-xs text-[#6b6661] mt-1">
+      <div className="bg-white border border-[var(--line)] rounded-sm p-10 text-center">
+        <MessageCircle className="h-8 w-8 text-[var(--line)] mx-auto mb-3" />
+        <p className="text-sm font-bold text-[var(--ink)]">You have not asked us anything yet.</p>
+        <p className="text-xs text-[var(--ink-soft)] mt-1">
           Open any order and press Need Help, and the conversation will appear here.
         </p>
       </div>
@@ -129,7 +129,7 @@ export default function QueriesTab({
   return (
     <div className="space-y-3">
       {note && (
-        <p className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
+        <p className="text-xs font-bold text-[var(--warn)] bg-[var(--warn-bg)] border border-[var(--warn-line)] rounded-sm p-3">
           {note}
         </p>
       )}
@@ -139,7 +139,7 @@ export default function QueriesTab({
         const latest = ticket.messages[ticket.messages.length - 1];
 
         return (
-          <div key={ticket.id} className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+          <div key={ticket.id} className="bg-white border border-[var(--line)] rounded-sm overflow-hidden">
             <button
               type="button"
               data-testid="query-row"
@@ -147,12 +147,12 @@ export default function QueriesTab({
                 setOpenId(isOpen ? null : ticket.id);
                 setDraft('');
               }}
-              className="w-full text-left p-5 hover:bg-stone-50/60 transition"
+              className="w-full text-left p-5 hover:bg-[var(--cream)]/60 transition"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-bold text-sm text-[#2A2A2A] truncate">{ticket.subject}</p>
-                  <p className="text-[11px] text-[#6b6661] mt-0.5">
+                  <p className="font-bold text-sm text-[var(--ink)] truncate">{ticket.subject}</p>
+                  <p className="text-[11px] text-[var(--ink-soft)] mt-0.5">
                     {ticket.ticketRef}
                     {ticket.order ? ` · order ${ticket.order.orderNumber}` : ''} ·{' '}
                     {when(ticket.createdAt)}
@@ -166,7 +166,7 @@ export default function QueriesTab({
               </div>
 
               {!isOpen && latest && (
-                <p className="text-xs text-[#6b6661] mt-2 line-clamp-1">
+                <p className="text-xs text-[var(--ink-soft)] mt-2 line-clamp-1">
                   {latest.fromStaff ? 'Country Dairy: ' : 'You: '}
                   {latest.body}
                 </p>
@@ -174,26 +174,26 @@ export default function QueriesTab({
             </button>
 
             {isOpen && (
-              <div className="border-t border-stone-100 p-5 space-y-4">
+              <div className="border-t border-[var(--line)] p-5 space-y-4">
                 {ticket.messages.map((m) => (
                   <div key={m.id} className={m.fromStaff ? '' : 'text-right'}>
                     <div
-                      className={`inline-block text-left px-3.5 py-2.5 rounded-xl text-sm max-w-[85%] whitespace-pre-wrap ${
+                      className={`inline-block text-left px-3.5 py-2.5 rounded-sm text-sm max-w-[85%] whitespace-pre-wrap ${
                         m.fromStaff
-                          ? 'bg-[#3A6038] text-white'
-                          : 'bg-stone-100 text-[#2A2A2A]'
+                          ? 'bg-[var(--forest)] text-white'
+                          : 'bg-[var(--cream)] text-[var(--ink)]'
                       }`}
                     >
                       {m.body}
                     </div>
-                    <p className="text-[10px] text-stone-400 mt-1">
+                    <p className="text-[10px] text-[var(--ink-soft)] mt-1">
                       {m.fromStaff ? 'Country Dairy' : 'You'} · {when(m.createdAt)}
                     </p>
                   </div>
                 ))}
 
                 {ticket.status === 'CLOSED' ? (
-                  <p className="text-xs text-[#6b6661]">
+                  <p className="text-xs text-[var(--ink-soft)]">
                     This conversation is closed. Ask a new question and quote {ticket.ticketRef}.
                   </p>
                 ) : (
@@ -204,13 +204,13 @@ export default function QueriesTab({
                       rows={2}
                       data-testid="query-reply"
                       placeholder="Write back…"
-                      className="flex-1 bg-[#FAF8F3] border border-stone-200 px-3 py-2 rounded-lg text-sm resize-none focus:outline-none focus:border-[#3A6038]"
+                      className="flex-1 bg-[var(--ivory)] border border-[var(--line)] px-3 py-2 rounded-sm text-sm resize-none focus:outline-none focus:border-[var(--forest)]"
                     />
                     <button
                       type="button"
                       onClick={() => reply(ticket.id)}
                       disabled={sending || !draft.trim()}
-                      className="inline-flex items-center gap-1.5 bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold text-xs px-4 py-2.5 rounded-lg disabled:opacity-50 transition"
+                      className="inline-flex items-center gap-1.5 bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold text-xs px-4 py-2.5 rounded-sm disabled:opacity-50 transition"
                     >
                       <Send className="h-3.5 w-3.5" />
                       Send

@@ -16,7 +16,7 @@ export default function ProductGallerySlider({ images, title }: ProductGallerySl
 
   if (!images || images.length === 0) {
     return (
-      <div className="w-full aspect-square bg-stone-100 rounded-2xl flex items-center justify-center text-stone-400 text-sm">
+      <div className="w-full aspect-square bg-[var(--cream)] rounded-sm flex items-center justify-center text-[var(--ink-soft)] text-sm">
         No Image Available
       </div>
     );
@@ -42,7 +42,7 @@ export default function ProductGallerySlider({ images, title }: ProductGallerySl
         
         {/* Main Hero Photo Showcase */}
         <div 
-          className="relative flex-1 aspect-square bg-stone-50 rounded-2xl overflow-hidden border border-stone-200 cursor-crosshair group"
+          className="relative flex-1 aspect-square bg-[var(--cream)] rounded-sm overflow-hidden border border-[var(--line)] cursor-crosshair group"
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
           onClick={() => setIsZoomModalOpen(true)}
@@ -56,7 +56,7 @@ export default function ProductGallerySlider({ images, title }: ProductGallerySl
           {/* Amazon/Anveshan Style Hover Zoom Lens */}
           {zoomPos.show && (
             <div
-              className="absolute inset-0 pointer-events-none z-20 border border-stone-300 shadow-2xl bg-no-repeat transition-all"
+              className="absolute inset-0 pointer-events-none z-20 border border-[var(--line)] shadow-2xl bg-no-repeat transition-all"
               style={{
                 backgroundImage: `url(${currentImage.imageUrl})`,
                 backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
@@ -66,7 +66,7 @@ export default function ProductGallerySlider({ images, title }: ProductGallerySl
           )}
 
           {/* Inspect Badge */}
-          <div className="absolute bottom-3 right-3 bg-stone-900/80 backdrop-blur-sm text-stone-100 text-[11px] font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+          <div className="absolute bottom-3 right-3 bg-[var(--forest)]/80 backdrop-blur-sm text-[var(--ivory)] text-[11px] font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
             <ZoomIn className="h-3.5 w-3.5" />
             <span>Hover to Zoom</span>
           </div>
@@ -80,7 +80,7 @@ export default function ProductGallerySlider({ images, title }: ProductGallerySl
                   e.stopPropagation();
                   setSelectedIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
                 }}
-                className="md:hidden absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-stone-900/60 text-white rounded-full"
+                className="md:hidden absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-[var(--forest)]/60 text-white rounded-full"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
@@ -90,7 +90,7 @@ export default function ProductGallerySlider({ images, title }: ProductGallerySl
                   e.stopPropagation();
                   setSelectedIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
                 }}
-                className="md:hidden absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-stone-900/60 text-white rounded-full"
+                className="md:hidden absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[var(--forest)]/60 text-white rounded-full"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
@@ -107,10 +107,10 @@ export default function ProductGallerySlider({ images, title }: ProductGallerySl
                 type="button"
                 onClick={() => setSelectedIndex(idx)}
                 onMouseEnter={() => setSelectedIndex(idx)}
-                className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${
+                className={`relative w-16 h-16 rounded-sm overflow-hidden border-2 transition-all shrink-0 ${
                   selectedIndex === idx
-                    ? 'border-emerald-600 shadow-md ring-2 ring-emerald-600/20 scale-105'
-                    : 'border-stone-200 opacity-70 hover:opacity-100'
+                    ? 'border-[var(--ok)] ring-2 ring-[var(--ok)]/20 scale-105'
+                    : 'border-[var(--line)] opacity-70 hover:opacity-100'
                 }`}
               >
                 <img src={img.imageUrl} alt="Thumbnail" className="w-full h-full object-cover" />
@@ -129,7 +129,7 @@ export default function ProductGallerySlider({ images, title }: ProductGallerySl
               type="button"
               onClick={() => setSelectedIndex(idx)}
               className={`h-2 rounded-full transition-all ${
-                selectedIndex === idx ? 'w-6 bg-emerald-700' : 'w-2 bg-stone-300'
+                selectedIndex === idx ? 'w-6 bg-[var(--ok)]' : 'w-2 bg-[var(--line)]'
               }`}
             />
           ))}
@@ -139,10 +139,10 @@ export default function ProductGallerySlider({ images, title }: ProductGallerySl
       {/* Full-Screen Pinch & Zoom Modal */}
       {isZoomModalOpen && (
         <div 
-          className="fixed inset-0 z-50 bg-stone-950/90 backdrop-blur-md flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-[var(--ink)]/90 backdrop-blur-md flex items-center justify-center p-4"
           onClick={() => setIsZoomModalOpen(false)}
         >
-          <div className="relative max-w-4xl max-h-[90vh] overflow-auto rounded-2xl">
+          <div className="relative max-w-4xl max-h-[90vh] overflow-auto rounded-sm">
             <img src={currentImage.imageUrl} alt="Full resolution" className="w-full h-full object-contain" />
           </div>
         </div>

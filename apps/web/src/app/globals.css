@@ -1,8 +1,70 @@
 @import "tailwindcss";
 
+/*
+ * Himalayan redesign tokens.
+ *
+ * One place, per docs/himalayan-redesign.md section 1. Components read these
+ * rather than repeating hex values: there are roughly 790 hardcoded brand hexes
+ * still in the tree from before this branch, and each phase of the migration
+ * converts its own pages over.
+ */
 :root {
-  --background: #FAF8F3;
-  --foreground: #2A2A2A;
+  /* grounds, darkest to lightest */
+  --forest: #1E3A2B;
+  --pine: #2F5741;
+  --earth: #6B5340;
+  --terra: #B4593C;
+  --sand: #E6DCC9;
+  --cream: #F3EDE1;
+  --ivory: #FBF8F1;
+
+  /* the single accent */
+  --brass: #B08D42;
+
+  /*
+   * The same accent, at two luminances that pass AA as text.
+   *
+   * #B08D42 is 2.9:1 on ivory and 4.0:1 on forest, so every brass eyebrow on
+   * the site failed contrast — they are 10px, which needs 4.5:1. The accent
+   * itself is unchanged for the things that are not text: rules, icons, the
+   * contour lines, the announcement badge.
+   */
+  --brass-text: #856428;    /* 5.1:1 on ivory, 4.7:1 on cream */
+  --brass-on-dark: #D2B473; /* 6.2:1 on forest, 4.1:1 on pine */
+
+  /* text and rules */
+  --ink: #241E17;
+  --ink-soft: #6A6156;
+  --line: #E0D7C6;
+
+  /* what the page itself is painted with */
+  --background: var(--ivory);
+  --foreground: var(--ink);
+
+  /*
+   * Status. Semantic colour stays semantic — brass is the accent and cannot
+   * also mean "warning" — but Tailwind's defaults are cool and read as foreign
+   * on ivory, so these are the same three meanings mixed warm.
+   *
+   * The -on-dark pair exists because --ok and --warn are dark enough to
+   * disappear on forest, and the footer and the product page both put status
+   * text there.
+   */
+  --ok: #2F5741;
+  --ok-bg: #E9EFE7;
+  --ok-line: #C9D8C5;
+  --warn: #8A6A1F;
+  --warn-bg: #F6EEDA;
+  --warn-line: #E3D3A8;
+  --danger: #9C3F26;
+  --danger-bg: #F7E7E1;
+  --danger-line: #E8C7B9;
+  --ok-on-dark: #9CC49A;
+
+  /*
+   * Superseded by --forest and --brass. Kept until the last page stops
+   * referencing them so the two palettes never appear on screen at once.
+   */
   --primary-green: #3A6038;
   --accent-gold: #C59B27;
 }
@@ -10,16 +72,54 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  --color-forest: var(--forest);
+  --color-pine: var(--pine);
+  --color-earth: var(--earth);
+  --color-terra: var(--terra);
+  --color-sand: var(--sand);
+  --color-cream: var(--cream);
+  --color-ivory: var(--ivory);
+  --color-brass: var(--brass);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+
   --color-primary: var(--primary-green);
   --color-accent: var(--accent-gold);
-  --font-sans: var(--font-inter), sans-serif;
-  --font-serif: var(--font-outfit), serif;
+
+}
+
+
+/*
+ * Fonts live in a plain @theme, not @theme inline.
+ *
+ * `inline` substitutes a token's value into the utilities at build time and
+ * never emits the custom property, so `var(--font-sans)` is undefined at
+ * runtime and anything reading it silently falls back to the browser default.
+ * That was already true on this project before the redesign: the body asked for
+ * var(--font-sans), got nothing, and rendered in ui-sans-serif while appearing
+ * to work because the intended face looked similar.
+ *
+ * font-serif is the display face and font-sans the interface one, which is how
+ * the 52 existing font-serif usages move onto Newsreader without one of them
+ * being edited.
+ */
+@theme {
+  --font-sans: var(--font-jost), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+/* Figures that line up in a column should line up. */
+.tabular,
+input[type="number"] {
+  font-variant-numeric: tabular-nums;
 }
 
 [id] {
@@ -40,7 +140,46 @@ body {
   animation: slide-in-right 0.3s ease-out;
 }
 
+/*
+ * The hero drifts. Twenty-four seconds for seven percent is slow enough that
+ * you notice the picture is alive without ever catching it moving — the brief's
+ * "rhythm of the mountains" rather than a Ken Burns slideshow.
+ *
+ * Reduced motion collapses this to a single 0.01ms run below, which lands on
+ * the start frame and simply holds.
+ */
+@keyframes hero-drift {
+  from {
+    transform: scale(1.05);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+
+.animate-hero-drift {
+  animation: hero-drift 24s ease-in-out infinite alternate;
+}
+
 /* Smooth scrolling for anchor links */
 html {
   scroll-behavior: smooth;
+}
+
+/*
+ * Everything the design moves, it moves slowly. Anyone who has asked their
+ * system not to animate gets none of it, including the anchor scroll.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

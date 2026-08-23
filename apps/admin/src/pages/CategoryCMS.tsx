@@ -7,6 +7,8 @@ export interface CategoryItem {
   name: string;
   slug: string;
   description?: string;
+  /** Photograph for the storefront's collection tile. */
+  imageUrl?: string;
   iconName?: string;
   displayOrder?: number;
   isActive?: boolean;
@@ -36,6 +38,7 @@ function toCategoryDto(cat: CategoryItem) {
     name: cat.name,
     slug: cat.slug,
     description: cat.description ?? '',
+    imageUrl: cat.imageUrl ?? '',
     iconName: cat.iconName ?? 'Package',
     displayOrder: cat.displayOrder ?? 1,
     isActive: cat.isActive ?? true,
@@ -43,6 +46,25 @@ function toCategoryDto(cat: CategoryItem) {
     showInNav: cat.showInNav ?? false,
   };
 }
+
+/**
+ * The names the storefront's categoryIcon resolver knows.
+ *
+ * A free text field would let someone type an icon that silently renders as the
+ * fallback, which is how you end up with three categories all showing a box.
+ *
+ * This list is the storefront's ICONS map in apps/web/src/lib/categoryIcon.ts.
+ * If the two ever disagree, the console offers a choice that renders as a jar.
+ */
+const CATEGORY_ICONS = [
+  'Apple', 'Banana', 'Beef', 'Beer', 'Candy', 'Carrot', 'Cherry', 'Citrus',
+  'Coffee', 'Cookie', 'Croissant', 'CupSoda', 'Droplet', 'Droplets', 'Egg',
+  'Fish', 'Flame', 'Gift', 'Grape', 'Heart', 'IceCream', 'IceCreamCone',
+  'Leaf', 'Milk', 'Mountain', 'MountainSnow', 'Nut', 'Package', 'Popcorn',
+  'Salad', 'Sandwich', 'ShoppingBasket', 'Snowflake', 'Soup', 'Sparkles',
+  'Sprout', 'Star', 'Sun', 'TreePine', 'Utensils', 'Vegan', 'Wheat', 'Wind',
+  'Wine',
+];
 
 /** A slug derived from a name, for new categories only. */
 const slugify = (name: string) =>
@@ -65,6 +87,8 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
   const [parentInput, setParentInput] = useState<string>('');
   const [navInput, setNavInput] = useState(false);
   const [descInput, setDescInput] = useState('');
+  const [imageInput, setImageInput] = useState('');
+  const [iconInput, setIconInput] = useState('Package');
   const [orderInput, setOrderInput] = useState('1');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -81,6 +105,8 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
     setEditingCategory(null);
     setNameInput('');
     setDescInput('');
+    setImageInput('');
+    setIconInput('Package');
     setOrderInput((categories.length + 1).toString());
     setParentInput('');
     setNavInput(false);
@@ -92,6 +118,8 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
     setEditingCategory(cat);
     setNameInput(cat.name);
     setDescInput(cat.description || '');
+    setImageInput(cat.imageUrl || '');
+    setIconInput(cat.iconName || 'Package');
     setOrderInput((cat.displayOrder || 1).toString());
     setParentInput(cat.parentId || '');
     setNavInput(!!cat.showInNav);
@@ -116,6 +144,8 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
           // description silently moved /category/<slug> and broke every link
           // already pointing at it.
           description: descInput.trim(),
+          imageUrl: imageInput.trim(),
+          iconName: iconInput,
           displayOrder: parseInt(orderInput) || 1,
           parentId: parentInput || null,
           // A type lives inside its category's page, never in the bar.
@@ -131,7 +161,8 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
           name: nameInput.trim(),
           slug: slugify(nameInput),
           description: descInput.trim(),
-          iconName: 'Package',
+          imageUrl: imageInput.trim(),
+          iconName: iconInput,
           displayOrder: parseInt(orderInput) || categories.length + 1,
           isActive: true,
           parentId: parentInput || null,
@@ -250,7 +281,11 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
           </thead>
           <tbody className="divide-y divide-stone-800">
             {categories.slice().sort((a, b) => (a.displayOrder || 1) - (b.displayOrder || 1)).map((cat) => (
-              <tr key={cat.id} className="hover:bg-stone-800/50 transition-colors">
+              <tr
+                key={cat.id}
+                data-testid={`category-row-${cat.slug}`}
+                className="hover:bg-stone-800/50 transition-colors"
+              >
                 <td className="px-4 py-3.5 font-mono text-amber-400 font-bold">{cat.displayOrder}</td>
                 <td className="px-4 py-3.5 font-bold text-stone-100">
                   {/* "Ghee › Desi Ghee", so the shape is readable without
@@ -355,7 +390,7 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
                   <span>
                     <span className="block text-stone-300 font-semibold">Show in the nav bar</span>
                     <span className="block text-[11px] text-stone-400">
-                      Unticked, it still appears under \u201cShop by category\u201d.
+                      Unticked, it still appears under “Shop by category”.
                     </span>
                   </span>
                 </label>
@@ -380,6 +415,44 @@ export default function CategoryCMS({ categories, onUpdateCategories }: Category
                   className="w-full px-3 py-2 bg-stone-900 border border-stone-700 rounded-lg text-stone-100"
                   placeholder="Short description for storefront filter..."
                 />
+              </div>
+
+              {/* A3: the column has always existed and the form never offered
+                  it, so every category image was null and the storefront's
+                  collection tiles had nothing to show. */}
+              <div>
+                <label className="block text-stone-300 mb-1 font-semibold">Image URL</label>
+                <input
+                  type="text"
+                  value={imageInput}
+                  onChange={(e) => setImageInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-900 border border-stone-700 rounded-lg text-stone-100"
+                  placeholder="/products/hills.webp"
+                />
+                <p className="text-[11px] text-stone-400 mt-1">
+                  The photograph on the storefront's collection tile. Leave it empty and the tile
+                  falls back to a tinted contour panel with the icon below.
+                </p>
+              </div>
+
+              {/* A4: the nav bar and the category filters have been rendering
+                  this all along; it was only ever editable by hand. */}
+              <div>
+                <label className="block text-stone-300 mb-1 font-semibold">Icon</label>
+                <select
+                  value={iconInput}
+                  onChange={(e) => setIconInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-900 border border-stone-700 rounded-lg text-stone-100"
+                >
+                  {CATEGORY_ICONS.map((icon) => (
+                    <option key={icon} value={icon}>
+                      {icon}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-stone-400 mt-1">
+                  Shown in the nav bar, the category filters, and on any tile with no photograph.
+                </p>
               </div>
 
               {/* The reason the save failed, in the dialog that failed to save.

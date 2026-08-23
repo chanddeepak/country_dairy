@@ -6,9 +6,15 @@ import { useApp } from '../context/AppContext';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import HeroSection from '../components/home/HeroSection';
-import AboutSection from '../components/home/AboutSection';
+import BrandStatement from '../components/home/BrandStatement';
+import Devbhoomi from '../components/home/Devbhoomi';
+import Journey from '../components/home/Journey';
+import Rituals from '../components/home/Rituals';
+import Reviews from '../components/home/Reviews';
+import ClosingBand from '../components/home/ClosingBand';
 import ProductShelf from '../components/home/ProductShelf';
-import ValueBanner from '../components/home/ValueBanner';
+import GheeStory from '../components/home/GheeStory';
+import Principles from '../components/home/Principles';
 import AuthModal from '../components/modals/AuthModal';
 import SubscriptionModal from '../components/modals/SubscriptionModal';
 import CartDrawer from '../components/cart/CartDrawer';
@@ -51,9 +57,15 @@ export default function Home() {
 
       <main className="flex-1">
         <HeroSection />
+        <BrandStatement />
         <ProductShelf onSubscribe={handleSubscribe} />
-        <AboutSection />
-        <ValueBanner />
+        <GheeStory />
+        <Principles />
+        <Devbhoomi />
+        <Journey />
+        <Rituals />
+        <Reviews onAuthOpen={() => setIsAuthOpen(true)} />
+        <ClosingBand />
       </main>
 
       <Footer />

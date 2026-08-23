@@ -25,7 +25,7 @@ test.describe('Hero layout', () => {
     await cleanup(t);
   });
 
-  async function createBanner(layout?: unknown) {
+  async function createBanner(layout?: unknown, extra?: Record<string, unknown>) {
     const api = await apiClient(await adminToken());
     const res = await api.post(resolve('/cms/hero'), {
       data: {
@@ -34,6 +34,7 @@ test.describe('Hero layout', () => {
         imageUrl: '/hero-banners/e2e.webp',
         deviceType: 'DESKTOP',
         ...(layout ? { layout } : {}),
+        ...(extra ?? {}),
       },
     });
 
@@ -145,5 +146,54 @@ test.describe('Hero layout', () => {
     });
     expect(res.status()).toBe(403);
     await api.dispose();
+  });
+
+  /**
+   * imageHasText decides whether the storefront lays a headline over the
+   * artwork or shows the picture whole. The column and its migration existed
+   * for months while the DTO, the service, the console and the storefront all
+   * ignored it — so every poster-style banner was stored as though it were a
+   * clean photograph, and the homepage drew an empty headline on top of one.
+   *
+   * With forbidNonWhitelisted on, sending it used to fail the whole request.
+   */
+  test('a banner remembers that its artwork already has words on it', async () => {
+    const { status, banner } = await createBanner(undefined, { imageHasText: true });
+    expect(status).toBeLessThan(300);
+    expect(banner.imageHasText).toBe(true);
+
+    const stored = await db.heroBanner.findUnique({
+      where: { id: banner.id },
+      select: { imageHasText: true },
+    });
+    expect(stored?.imageHasText).toBe(true);
+  });
+
+  test('a banner defaults to artwork without words', async () => {
+    const { status, banner } = await createBanner();
+    expect(status).toBeLessThan(300);
+    expect(banner.imageHasText).toBe(false);
+  });
+
+  test('the flag can be turned off again', async () => {
+    const { banner } = await createBanner(undefined, { imageHasText: true });
+    const api = await apiClient(await adminToken());
+    const res = await api.put(resolve(`/cms/hero/${banner.id}`), {
+      data: {
+        title: banner.title,
+        subtitle: banner.subtitle,
+        imageUrl: banner.imageUrl,
+        deviceType: 'DESKTOP',
+        imageHasText: false,
+      },
+    });
+    expect(res.status()).toBeLessThan(300);
+    await api.dispose();
+
+    const stored = await db.heroBanner.findUnique({
+      where: { id: banner.id },
+      select: { imageHasText: true },
+    });
+    expect(stored?.imageHasText).toBe(false);
   });
 });

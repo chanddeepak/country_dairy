@@ -47,7 +47,17 @@ test.describe('Category taxonomy', () => {
 
     await openCategories(page);
 
-    const row = page.locator('tr', { hasText: before!.name }).first();
+    /*
+     * By slug, not by row text.
+     *
+     * A type's row reads "Ghee > A2 Desi Ghee", so hasText: 'Ghee' matched it
+     * as well as the Ghee row, and .first() picked whichever the table
+     * happened to render first. Both rows carry displayOrder 1, so that tie
+     * resolved either way between runs — which is why this failed
+     * intermittently, disabled the wrong category, and left the database dirty
+     * for the next run.
+     */
+    const row = page.getByTestId(`category-row-${before!.slug}`);
     await row.getByTitle('Edit Category').click();
 
     const box = page.locator('textarea').first();
@@ -91,13 +101,13 @@ test.describe('Category taxonomy', () => {
 
     const before = await db.category.findFirst({
       where: { parentId: null },
-      select: { id: true, name: true, isActive: true },
+      select: { id: true, name: true, slug: true, isActive: true },
     });
     test.skip(!before, 'no category to toggle');
 
     await openCategories(page);
 
-    const row = page.locator('tr', { hasText: before!.name }).first();
+    const row = page.getByTestId(`category-row-${before!.slug}`);
     // The control is labelled with the state it is in, so this reads whichever
     // way round the category currently is.
     await row.getByRole('button', { name: before!.isActive ? 'Active' : 'Disabled', exact: true }).click();
@@ -126,7 +136,7 @@ test.describe('Category taxonomy', () => {
 
     const target = await db.category.findFirst({
       where: { isActive: true, parentId: null },
-      select: { name: true },
+      select: { name: true, slug: true },
     });
     test.skip(!target, 'no category to edit');
 
@@ -142,7 +152,7 @@ test.describe('Category taxonomy', () => {
       }),
     );
 
-    const row = page.locator('tr', { hasText: target!.name }).first();
+    const row = page.getByTestId(`category-row-${target!.slug}`);
     await row.getByTitle('Edit Category').click();
     await page.locator('textarea').first().fill('this save is going to fail');
     await page.getByRole('button', { name: /save changes/i }).click();

@@ -60,8 +60,8 @@ export default function ContactForm() {
   };
 
   const field =
-    'w-full bg-stone-800 border border-stone-700 text-stone-100 placeholder:text-stone-500 ' +
-    'px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#C59B27]';
+    'w-full bg-white/8 border border-white/18 text-[var(--ivory)] placeholder:text-[var(--sand)]/60 ' +
+    'px-3 py-2.5 rounded-sm text-sm focus:outline-none focus:border-[var(--brass)]';
 
   return (
     <form onSubmit={submit} className="space-y-2.5" data-testid="contact-form">
@@ -107,14 +107,14 @@ export default function ContactForm() {
       <button
         type="submit"
         disabled={sending}
-        className="inline-flex items-center gap-2 bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold text-xs px-4 py-2.5 rounded-lg disabled:opacity-60 transition"
+        className="inline-flex items-center gap-2 bg-[var(--brass)] hover:bg-[var(--forest)] text-[#1a1405] hover:text-[var(--ivory)] font-bold text-xs px-4 py-2.5 rounded-sm disabled:opacity-60 transition"
       >
         <Send className="h-3.5 w-3.5" />
         {sending ? 'Sending…' : 'Send'}
       </button>
 
       {note && (
-        <p className={`text-[11px] ${sent ? 'text-emerald-400' : 'text-amber-400'}`}>{note}</p>
+        <p className={`text-[11px] ${sent ? 'text-[var(--ok-on-dark)]' : 'text-[var(--brass-on-dark)]'}`}>{note}</p>
       )}
     </form>
   );

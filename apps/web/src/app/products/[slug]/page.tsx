@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Minus, Plus, Calendar, ShoppingBag, MessageCircle, Share2, Check, Truck, Headphones, RotateCcw, ClipboardCheck, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Minus, Plus, Calendar, ShoppingBag, MessageCircle, Share2, Check, Truck, Headphones, RotateCcw, ClipboardCheck, Loader2, Droplet, CookingPot, ShieldCheck } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import Navbar from '../../../components/layout/Navbar';
 import Footer from '../../../components/layout/Footer';
@@ -281,13 +281,13 @@ export default function ProductDetailPage() {
      * jumps when the product arrives, and it reads as "this is loading"
      * without anyone having to word it.
      */
-    const bar = 'rounded bg-stone-200/80';
+    const bar = 'rounded bg-[var(--sand)]/80';
 
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
 
-        <main className="flex-1 bg-[#FAF8F3]">
+        <main className="flex-1 bg-[var(--ivory)]">
           <div
             className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse"
             role="status"
@@ -465,25 +465,28 @@ export default function ProductDetailPage() {
     <div className="flex flex-col min-h-screen">
       <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
 
-      <main className="flex-1 bg-[#FAF8F3]">
+      <main className="flex-1 bg-[var(--ivory)]">
         {/* Top Header / Breadcrumb Bar */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <nav className="flex items-center text-xs text-[#6b6661] gap-1">
-            <Link href="/" className="hover:text-[#3A6038] transition">Home</Link>
+          {/* min-w-0 so the truncate below can actually take effect: a flex
+              child defaults to min-width:auto and refuses to shrink past its
+              content, which pushed the share button 5px off a 390px screen. */}
+          <nav className="flex min-w-0 flex-1 items-center gap-1 text-xs text-[var(--ink-soft)]">
+            <Link href="/" className="hover:text-[var(--forest)] transition">Home</Link>
             <ChevronRight className="h-3 w-3" />
-            <Link href="/products" className="hover:text-[#3A6038] transition">Shop</Link>
+            <Link href="/products" className="hover:text-[var(--forest)] transition">Shop</Link>
             <ChevronRight className="h-3 w-3" />
-            <span className="text-[#2A2A2A] font-bold truncate max-w-[200px] sm:max-w-none">{product.name}</span>
+            <span className="truncate font-bold text-[var(--ink)]">{product.name}</span>
           </nav>
 
           {/* Share Button */}
           <button
             onClick={handleShare}
-            className="flex items-center gap-1.5 text-xs font-bold text-[#6b6661] hover:text-[#3A6038] bg-white border border-stone-200 px-3.5 py-1.5 rounded-full transition shadow-sm hover:shadow"
+            className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-[var(--ink-soft)] hover:text-[var(--forest)] bg-white border border-[var(--line)] px-3.5 py-1.5 rounded-full transition hover:shadow"
             title="Share Product"
           >
-            {copiedLink ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Share2 className="h-3.5 w-3.5" />}
-            <span className={copiedLink ? 'text-emerald-700 font-extrabold' : ''}>
+            {copiedLink ? <Check className="h-3.5 w-3.5 text-[var(--ok)]" /> : <Share2 className="h-3.5 w-3.5" />}
+            <span className={copiedLink ? 'text-[var(--ok)] font-extrabold' : ''}>
               {copiedLink ? 'Link Copied!' : 'Share'}
             </span>
           </button>
@@ -496,14 +499,14 @@ export default function ProductDetailPage() {
             {/* Left Column: Interactive Sticky Image Gallery */}
             <div className="space-y-4 lg:sticky lg:top-24">
               {/* Main Preview Image */}
-              <div className="relative aspect-square bg-white rounded-2xl overflow-hidden border border-stone-200 shadow-sm flex items-center justify-center">
+              <div className="relative aspect-square bg-white rounded-sm overflow-hidden border border-[var(--line)] flex items-center justify-center">
                 {currentDiscountBadge && (
-                  <span className="absolute top-4 left-4 z-10 bg-[#3A6038] text-white text-xs font-extrabold px-3 py-1 rounded-sm shadow-sm tracking-wide">
+                  <span className="absolute top-4 left-4 z-10 bg-[var(--forest)] text-white text-xs font-extrabold px-3 py-1 rounded-sm tracking-wide">
                     {currentDiscountBadge}
                   </span>
                 )}
                 {product.badge && (
-                  <span className="absolute top-4 right-4 z-10 bg-[#C59B27] text-white text-xs font-bold px-3 py-1 rounded-sm shadow-sm tracking-wider uppercase">
+                  <span className="absolute top-4 right-4 z-10 bg-[var(--brass)] text-[#1a1405] text-xs font-bold px-3 py-1 rounded-sm tracking-wider uppercase">
                     {product.badge}
                   </span>
                 )}
@@ -527,7 +530,7 @@ export default function ProductDetailPage() {
                       onClick={() => stepImage(-1)}
                       aria-label="Previous image"
                       data-testid="gallery-prev"
-                      className="absolute left-3 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/90 hover:bg-white border border-stone-200 shadow-sm flex items-center justify-center text-[#2A2A2A] transition"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/90 hover:bg-white border border-[var(--line)] flex items-center justify-center text-[var(--ink)] transition"
                     >
                       <ChevronLeft className="h-5 w-5" />
                     </button>
@@ -536,14 +539,14 @@ export default function ProductDetailPage() {
                       onClick={() => stepImage(1)}
                       aria-label="Next image"
                       data-testid="gallery-next"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/90 hover:bg-white border border-stone-200 shadow-sm flex items-center justify-center text-[#2A2A2A] transition"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/90 hover:bg-white border border-[var(--line)] flex items-center justify-center text-[var(--ink)] transition"
                     >
                       <ChevronRight className="h-5 w-5" />
                     </button>
 
                     {/* Which of how many — otherwise the arrows give no sense
                         of where you are in the set. */}
-                    <span className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 text-[10px] font-bold text-[#6b6661] bg-white/85 border border-stone-200 rounded-full px-2.5 py-1">
+                    <span className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 text-[10px] font-bold text-[var(--ink-soft)] bg-white/85 border border-[var(--line)] rounded-full px-2.5 py-1">
                       {Math.max(
                         1,
                         allImages.findIndex(
@@ -568,10 +571,10 @@ export default function ProductDetailPage() {
                     <button
                       key={thumb.id}
                       onClick={() => setActiveImage(thumb.url)}
-                      className={`relative w-20 h-20 bg-white rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 p-1.5 ${
+                      className={`relative w-20 h-20 bg-white rounded-sm overflow-hidden border-2 transition-all flex-shrink-0 p-1.5 ${
                         isSelected
-                          ? 'border-[#3A6038] shadow-md ring-2 ring-[#3A6038]/20 scale-95'
-                          : 'border-stone-200 hover:border-[#3A6038]/50 opacity-70 hover:opacity-100'
+                          ? 'border-[var(--forest)] ring-2 ring-[var(--forest)]/20 scale-95'
+                          : 'border-[var(--line)] hover:border-[var(--forest)]/50 opacity-70 hover:opacity-100'
                       }`}
                     >
                       <Image
@@ -591,20 +594,20 @@ export default function ProductDetailPage() {
             <div className="space-y-6">
               <div>
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#3A6038] bg-[#3A6038]/10 px-2.5 py-1 rounded-full">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[var(--forest)] bg-[var(--forest)]/10 px-2.5 py-1 rounded-full">
                     {(product as any).categoryLabel || (typeof product.category === 'string' ? product.category : (product.category as any)?.name) || (product as any).categoryName || 'A2 Dairy'}
                   </span>
-                  <span className="text-xs text-[#6b6661]">•</span>
-                  <span className="text-xs text-[#6b6661]">{currentPackaging}</span>
-                  <span className="text-xs text-[#6b6661]">•</span>
-                  <span className="text-xs font-semibold text-[#3A6038] bg-stone-100 px-2 py-0.5 rounded">
+                  <span className="text-xs text-[var(--ink-soft)]">•</span>
+                  <span className="text-xs text-[var(--ink-soft)]">{currentPackaging}</span>
+                  <span className="text-xs text-[var(--ink-soft)]">•</span>
+                  <span className="text-xs font-semibold text-[var(--forest)] bg-[var(--cream)] px-2 py-0.5 rounded">
                     {currentVolumeOrWeight}
                   </span>
                 </div>
-                <h1 className="font-serif font-black text-3xl md:text-4xl text-[#2A2A2A] leading-tight mb-2">
+                <h1 className="font-serif font-light text-3xl md:text-4xl text-[var(--ink)] leading-tight mb-2">
                   {product.name}
                 </h1>
-                <p className="text-xs font-semibold text-[#6b6661] tracking-wide uppercase">
+                <p className="text-xs font-semibold text-[var(--ink-soft)] tracking-wide uppercase">
                   BILONA CHURNED | A2-VERIFIED | 70+ QUALITY CHECKS
                 </p>
               </div>
@@ -616,8 +619,8 @@ export default function ProductDetailPage() {
               {ENABLE_PRODUCT_RATINGS && reviewSummary.totalReviews > 0 && (
                 <div className="flex items-center gap-2">
                   <StarRating rating={reviewSummary.averageRating} size="md" />
-                  <span className="text-sm font-bold text-[#2A2A2A]">{reviewSummary.averageRating.toFixed(1)}</span>
-                  <span className="text-xs text-[#6b6661]">
+                  <span className="text-sm font-bold text-[var(--ink)]">{reviewSummary.averageRating.toFixed(1)}</span>
+                  <span className="text-xs text-[var(--ink-soft)]">
                     ({reviewSummary.totalReviews} {reviewSummary.totalReviews === 1 ? 'review' : 'reviews'})
                   </span>
                 </div>
@@ -626,30 +629,30 @@ export default function ProductDetailPage() {
               {/* Price Display */}
               <div className="flex items-baseline gap-3 pt-1">
                 {priceIsUsable ? (
-                  <span className="text-4xl font-black text-[#2A2A2A]">
+                  <span className="text-4xl font-black text-[var(--ink)]">
                     ₹{priceValue.toLocaleString('en-IN')}
                   </span>
                 ) : (
-                  <span className="text-lg font-bold text-[#6b6661]">Price unavailable</span>
+                  <span className="text-lg font-bold text-[var(--ink-soft)]">Price unavailable</span>
                 )}
                 {isOutOfStock && (
-                  <span className="text-xs font-extrabold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded">
+                  <span className="text-xs font-extrabold text-[var(--danger)] bg-[var(--danger-bg)] border border-[var(--danger-line)] px-2 py-0.5 rounded">
                     OUT OF STOCK
                   </span>
                 )}
                 {priceIsUsable && currentOriginalPrice && (
-                  <span className="text-lg text-[#6b6661] line-through font-medium">₹{currentOriginalPrice}</span>
+                  <span className="text-lg text-[var(--ink-soft)] line-through font-medium">₹{currentOriginalPrice}</span>
                 )}
                 {currentDiscountBadge && (
-                  <span className="text-xs font-extrabold text-[#3A6038] bg-[#3A6038]/10 px-2 py-0.5 rounded">
+                  <span className="text-xs font-extrabold text-[var(--forest)] bg-[var(--forest)]/10 px-2 py-0.5 rounded">
                     {currentDiscountBadge}
                   </span>
                 )}
               </div>
 
               {/* Tagline / Short Subtitle */}
-              <p className="text-sm font-semibold italic text-[#3A6038] leading-relaxed flex items-center gap-2">
-                <span>✨</span> {product.tagline || product.description}
+              <p className="text-sm font-semibold italic text-[var(--forest)] leading-relaxed flex items-center gap-2">
+                {product.tagline || product.description}
               </p>
 
               {/* Provenance seal, beside the product rather than over it.
@@ -657,15 +660,15 @@ export default function ProductDetailPage() {
                   words it carries at print size to be written out — which is
                   what the 56px version on a card cannot do. Nothing covers the
                   photograph, which is what actually sells food. */}
-              <div className="flex items-center gap-3 bg-[#FAF8F3] border border-stone-200 rounded-xl p-3">
+              <div className="flex items-center gap-3 bg-[var(--ivory)] border border-[var(--line)] rounded-sm p-3">
                 <img
                   src="/badges/made-in-uttarakhand.jpg"
                   alt=""
                   className="w-16 h-16 rounded-full shrink-0 ring-1 ring-black/5"
                 />
                 <div>
-                  <p className="text-xs font-bold text-[#2A2A2A]">Made in Uttarakhand</p>
-                  <p className="text-[11px] text-[#6b6661] leading-snug">
+                  <p className="text-xs font-bold text-[var(--ink)]">Made in Uttarakhand</p>
+                  <p className="text-[11px] text-[var(--ink-soft)] leading-snug">
                     Pure hills, pure cows, pure milk, pure ghee — churned in Tanakpur,
                     in the foothills of Devbhoomi.
                   </p>
@@ -675,7 +678,7 @@ export default function ProductDetailPage() {
               {/* VARIANT SELECTOR */}
               {product.variants && product.variants.length > 0 && (
                 <div className="pt-2">
-                  <span className="text-xs font-bold text-[#2A2A2A] block mb-3 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-[var(--ink)] block mb-3 uppercase tracking-wider">
                     Select Variant:
                   </span>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -687,23 +690,23 @@ export default function ProductDetailPage() {
                           data-testid="variant-option"
                           data-variant-id={variant.id}
                           onClick={() => handleVariantSelect(variant)}
-                          className={`p-3 rounded-xl border-2 text-left transition-all relative ${
+                          className={`p-3 rounded-sm border-2 text-left transition-all relative ${
                             isSelected
-                              ? 'border-[#3A6038] bg-[#3A6038]/5 shadow-sm'
-                              : 'border-stone-200 bg-white hover:border-[#3A6038]/40'
+                              ? 'border-[var(--forest)] bg-[var(--forest)]/5'
+                              : 'border-[var(--line)] bg-white hover:border-[var(--forest)]/40'
                           }`}
                         >
-                          <span className="block font-bold text-xs text-[#2A2A2A] mb-1">
+                          <span className="block font-bold text-xs text-[var(--ink)] mb-1">
                             {variant.volumeOrWeight || variant.name}
                           </span>
                           <div className="flex items-baseline gap-1.5">
-                            <span className="font-extrabold text-sm text-[#2A2A2A]">₹{variant.price}</span>
+                            <span className="font-extrabold text-sm text-[var(--ink)]">₹{variant.price}</span>
                             {variant.originalPrice && (
-                              <span className="text-[10px] text-[#6b6661] line-through">₹{variant.originalPrice}</span>
+                              <span className="text-[10px] text-[var(--ink-soft)] line-through">₹{variant.originalPrice}</span>
                             )}
                           </div>
                           {variant.discountPercent && (
-                            <span className="text-[9px] font-bold text-[#3A6038] block mt-1">
+                            <span className="text-[9px] font-bold text-[var(--forest)] block mt-1">
                               {variant.discountPercent}
                             </span>
                           )}
@@ -716,16 +719,16 @@ export default function ProductDetailPage() {
 
               {/* Quantity Selector */}
               <div className="pt-2">
-                <span className="text-xs font-bold text-[#2A2A2A] block mb-2 uppercase tracking-wider">
+                <span className="text-xs font-bold text-[var(--ink)] block mb-2 uppercase tracking-wider">
                   Quantity:
                 </span>
-                <div className="flex items-center gap-3 bg-white border border-stone-200 rounded-lg w-fit px-3 py-1.5 shadow-sm">
-                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-1 hover:bg-stone-100 rounded transition">
-                    <Minus className="h-4 w-4 text-[#2A2A2A]" />
+                <div className="flex items-center gap-3 bg-white border border-[var(--line)] rounded-sm w-fit px-3 py-1.5">
+                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-1 hover:bg-[var(--cream)] rounded transition">
+                    <Minus className="h-4 w-4 text-[var(--ink)]" />
                   </button>
-                  <span className="font-black text-lg text-[#2A2A2A] w-6 text-center">{quantity}</span>
-                  <button onClick={() => setQuantity(quantity + 1)} className="p-1 hover:bg-stone-100 rounded transition">
-                    <Plus className="h-4 w-4 text-[#2A2A2A]" />
+                  <span className="font-black text-lg text-[var(--ink)] w-6 text-center">{quantity}</span>
+                  <button onClick={() => setQuantity(quantity + 1)} className="p-1 hover:bg-[var(--cream)] rounded transition">
+                    <Plus className="h-4 w-4 text-[var(--ink)]" />
                   </button>
                 </div>
               </div>
@@ -738,10 +741,10 @@ export default function ProductDetailPage() {
                       onClick={handleAddToCart}
                       disabled={isAdding || !canBuy}
                       data-testid="add-to-cart"
-                      className={`w-full flex items-center justify-center gap-2 font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed ${
+                      className={`w-full flex items-center justify-center gap-2 font-bold py-3.5 rounded-sm text-sm uppercase tracking-wider transition disabled:opacity-60 disabled:cursor-not-allowed ${
                         justAdded
-                          ? 'bg-[#2d4d2b] text-white'
-                          : 'bg-[#3A6038] hover:bg-[#2d4d2b] text-white'
+                          ? 'bg-[var(--pine)] text-white'
+                          : 'bg-[var(--forest)] hover:bg-[var(--pine)] text-white'
                       }`}
                     >
                       {justAdded ? (
@@ -763,7 +766,7 @@ export default function ProductDetailPage() {
                     </button>
 
                     {cartError && !isAdding && !justAdded && (
-                      <p className="text-xs font-medium text-red-600 text-center">{cartError}</p>
+                      <p className="text-xs font-medium text-[var(--danger)] text-center">{cartError}</p>
                     )}
                   </>
                 )}
@@ -784,8 +787,8 @@ export default function ProductDetailPage() {
                     }
                     className={
                       cartEnabled
-                        ? 'w-full flex items-center justify-center border-2 border-[#25D366] text-[#1DA851] hover:bg-[#25D366]/5 font-bold py-3 rounded-xl text-sm uppercase tracking-wider transition'
-                        : 'w-full flex items-center justify-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider transition shadow-md hover:shadow-lg'
+                        ? 'w-full flex items-center justify-center border-2 border-[#25D366] text-[#1DA851] hover:bg-[#25D366]/5 font-bold py-3 rounded-sm text-sm uppercase tracking-wider transition'
+                        : 'w-full flex items-center justify-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-3.5 rounded-sm text-sm uppercase tracking-wider transition'
                     }
                   >
                     <MessageCircle className="h-5 w-5 mr-2" />
@@ -799,7 +802,7 @@ export default function ProductDetailPage() {
                       if (!user) { setIsAuthOpen(true); return; }
                       setIsSubscrOpen(true);
                     }}
-                    className="w-full flex items-center justify-center border-2 border-[#3A6038] text-[#3A6038] hover:bg-[#3A6038]/5 font-bold py-3 rounded-xl text-sm uppercase tracking-wider transition"
+                    className="w-full flex items-center justify-center border-2 border-[var(--forest)] text-[var(--forest)] hover:bg-[var(--forest)]/5 font-bold py-3 rounded-sm text-sm uppercase tracking-wider transition"
                   >
                     <Calendar className="h-4 w-4 mr-2" />
                     Subscribe Daily — ₹{Math.round(Number(currentPrice) * 0.9)}
@@ -808,11 +811,11 @@ export default function ProductDetailPage() {
               </div>
 
               {/* DETAILED PRODUCT DESCRIPTION SECTION */}
-              <div className="pt-6 border-t border-stone-200/80 space-y-3">
-                <h3 className="font-serif font-black text-sm text-[#2A2A2A] uppercase tracking-wider">
+              <div className="pt-6 border-t border-[var(--line)]/80 space-y-3">
+                <h3 className="font-serif font-light text-sm text-[var(--ink)] uppercase tracking-wider">
                   Product Description
                 </h3>
-                <div className="text-sm text-[#6b6661] leading-relaxed space-y-3">
+                <div className="text-sm text-[var(--ink-soft)] leading-relaxed space-y-3">
                   <p>
                     {product.storyDescription || product.description}
                   </p>
@@ -822,26 +825,26 @@ export default function ProductDetailPage() {
                 </div>
 
                 {/* Trust Badges Grid (Matching Reference Screenshot) */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-stone-200/60">
-                  <div className="flex flex-col items-center text-center p-3.5 rounded-xl bg-white border border-stone-200/60 shadow-2xs">
-                    <Truck className="h-6 w-6 text-[#3A6038] mb-2" />
-                    <span className="text-xs font-bold text-[#2A2A2A] mb-0.5">Free Shipping</span>
-                    <span className="text-[10px] text-[#6b6661]">Orders Above ₹499</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-[var(--line)]/60">
+                  <div className="flex flex-col items-center text-center p-3.5 rounded-sm bg-white border border-[var(--line)]/60">
+                    <Truck className="h-6 w-6 text-[var(--forest)] mb-2" />
+                    <span className="text-xs font-bold text-[var(--ink)] mb-0.5">Free Shipping</span>
+                    <span className="text-[10px] text-[var(--ink-soft)]">Orders Above ₹499</span>
                   </div>
-                  <div className="flex flex-col items-center text-center p-3.5 rounded-xl bg-white border border-stone-200/60 shadow-2xs">
-                    <Headphones className="h-6 w-6 text-[#3A6038] mb-2" />
-                    <span className="text-xs font-bold text-[#2A2A2A] mb-0.5">360° Support</span>
-                    <span className="text-[10px] text-[#6b6661]">Always Here to Help</span>
+                  <div className="flex flex-col items-center text-center p-3.5 rounded-sm bg-white border border-[var(--line)]/60">
+                    <Headphones className="h-6 w-6 text-[var(--forest)] mb-2" />
+                    <span className="text-xs font-bold text-[var(--ink)] mb-0.5">360° Support</span>
+                    <span className="text-[10px] text-[var(--ink-soft)]">Always Here to Help</span>
                   </div>
-                  <div className="flex flex-col items-center text-center p-3.5 rounded-xl bg-white border border-stone-200/60 shadow-2xs">
-                    <RotateCcw className="h-6 w-6 text-[#3A6038] mb-2" />
-                    <span className="text-xs font-bold text-[#2A2A2A] mb-0.5">100% Purity</span>
-                    <span className="text-[10px] text-[#6b6661]">Guaranteed Fresh</span>
+                  <div className="flex flex-col items-center text-center p-3.5 rounded-sm bg-white border border-[var(--line)]/60">
+                    <RotateCcw className="h-6 w-6 text-[var(--forest)] mb-2" />
+                    <span className="text-xs font-bold text-[var(--ink)] mb-0.5">100% Purity</span>
+                    <span className="text-[10px] text-[var(--ink-soft)]">Guaranteed Fresh</span>
                   </div>
-                  <div className="flex flex-col items-center text-center p-3.5 rounded-xl bg-white border border-stone-200/60 shadow-2xs">
-                    <ClipboardCheck className="h-6 w-6 text-[#3A6038] mb-2" />
-                    <span className="text-xs font-bold text-[#2A2A2A] mb-0.5">70+ Checks</span>
-                    <span className="text-[10px] text-[#6b6661]">Lab Tested Quality</span>
+                  <div className="flex flex-col items-center text-center p-3.5 rounded-sm bg-white border border-[var(--line)]/60">
+                    <ClipboardCheck className="h-6 w-6 text-[var(--forest)] mb-2" />
+                    <span className="text-xs font-bold text-[var(--ink)] mb-0.5">70+ Checks</span>
+                    <span className="text-[10px] text-[var(--ink-soft)]">Lab Tested Quality</span>
                   </div>
                 </div>
               </div>
@@ -855,85 +858,85 @@ export default function ProductDetailPage() {
 
             return (
               <div className="mt-16">
-                <div className="flex border-b border-stone-200">
+                <div className="flex border-b border-[var(--line)]">
                   {tabsToRender.map((tab) => (
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
                       className={`px-6 py-3 text-sm font-bold transition border-b-2 -mb-px ${
                         activeTab === tab
-                          ? 'border-[#3A6038] text-[#3A6038]'
-                          : 'border-transparent text-[#6b6661] hover:text-[#2A2A2A]'
+                          ? 'border-[var(--forest)] text-[var(--forest)]'
+                          : 'border-transparent text-[var(--ink-soft)] hover:text-[var(--ink)]'
                       }`}
                     >
                       {tab === 'bilonaProcess' ? 'Traditional Vedic Process' : 'Product Details'}
                     </button>
                   ))}
                 </div>
-                <div className="bg-white border border-t-0 border-stone-200 rounded-b-xl p-6">
+                <div className="bg-white border border-t-0 border-[var(--line)] rounded-b-xl p-6">
                   {isGheeProduct && activeTab === 'bilonaProcess' ? (
                 <div className="max-w-4xl mx-auto space-y-8 py-2">
                   {/* Header Banner */}
-                  <div className="bg-[#FAF8F3] border border-stone-200/80 rounded-2xl p-6 text-center space-y-2 shadow-2xs">
-                    <span className="text-xs font-extrabold uppercase tracking-widest text-[#3A6038] bg-[#3A6038]/10 px-3 py-1 rounded-full">
-                      ⛰️ Himalayan Heritage & Craftsmanship
+                  <div className="bg-[var(--ivory)] border border-[var(--line)]/80 rounded-sm p-6 text-center space-y-2">
+                    <span className="text-xs font-extrabold uppercase tracking-widest text-[var(--forest)] bg-[var(--forest)]/10 px-3 py-1 rounded-full">
+                      Himalayan Heritage & Craftsmanship
                     </span>
-                    <h3 className="font-serif font-black text-2xl md:text-3xl text-[#2A2A2A]">
+                    <h3 className="font-serif font-light text-2xl md:text-3xl text-[var(--ink)]">
                       The 5-Step Traditional Vedic Bilona Process
                     </h3>
-                    <p className="text-xs sm:text-sm text-[#6b6661] max-w-2xl mx-auto leading-relaxed">
+                    <p className="text-xs sm:text-sm text-[var(--ink-soft)] max-w-2xl mx-auto leading-relaxed">
                       Handcrafted in Tanakpur, Uttarakhand using authentic curd-churning techniques. Unlike commercial cream-churned ghee, Vedic Bilona Ghee retains maximum natural aroma, A2 beta-casein purity, and granular Pahadi texture.
                     </p>
                   </div>
 
                   {/* 5 Steps Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div className="bg-[#FAF8F3]/60 border border-stone-200/80 rounded-xl p-4 flex flex-col items-center text-center space-y-2.5 shadow-2xs hover:border-[#3A6038] transition">
-                      <div className="w-10 h-10 rounded-full bg-[#3A6038] text-amber-200 font-serif font-black text-lg flex items-center justify-center shadow-sm">
+                    <div className="bg-[var(--ivory)]/60 border border-[var(--line)]/80 rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
+                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
                         1
                       </div>
-                      <h4 className="font-serif font-bold text-[#2A2A2A] text-sm">Free-Range Grazing</h4>
-                      <p className="text-xs text-[#6b6661] leading-relaxed">
+                      <h4 className="font-serif font-normal text-[var(--ink)] text-sm">Free-Range Grazing</h4>
+                      <p className="text-xs text-[var(--ink-soft)] leading-relaxed">
                         Native Desi cows graze freely in pesticide-free mountain pastures, drinking fresh Himalayan spring water.
                       </p>
                     </div>
 
-                    <div className="bg-[#FAF8F3]/60 border border-stone-200/80 rounded-xl p-4 flex flex-col items-center text-center space-y-2.5 shadow-2xs hover:border-[#3A6038] transition">
-                      <div className="w-10 h-10 rounded-full bg-[#3A6038] text-amber-200 font-serif font-black text-lg flex items-center justify-center shadow-sm">
+                    <div className="bg-[var(--ivory)]/60 border border-[var(--line)]/80 rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
+                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
                         2
                       </div>
-                      <h4 className="font-serif font-bold text-[#2A2A2A] text-sm">Whole Curd Culturing</h4>
-                      <p className="text-xs text-[#6b6661] leading-relaxed">
+                      <h4 className="font-serif font-normal text-[var(--ink)] text-sm">Whole Curd Culturing</h4>
+                      <p className="text-xs text-[var(--ink-soft)] leading-relaxed">
                         Fresh A2 milk is boiled slowly in traditional vessels and naturally cultured into thick whole curd overnight.
                       </p>
                     </div>
 
-                    <div className="bg-[#FAF8F3]/60 border border-stone-200/80 rounded-xl p-4 flex flex-col items-center text-center space-y-2.5 shadow-2xs hover:border-[#3A6038] transition">
-                      <div className="w-10 h-10 rounded-full bg-[#3A6038] text-amber-200 font-serif font-black text-lg flex items-center justify-center shadow-sm">
+                    <div className="bg-[var(--ivory)]/60 border border-[var(--line)]/80 rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
+                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
                         3
                       </div>
-                      <h4 className="font-serif font-bold text-[#2A2A2A] text-sm">Wooden Bilona Churning</h4>
-                      <p className="text-xs text-[#6b6661] leading-relaxed">
+                      <h4 className="font-serif font-normal text-[var(--ink)] text-sm">Wooden Bilona Churning</h4>
+                      <p className="text-xs text-[var(--ink-soft)] leading-relaxed">
                         Curd is churned bi-directionally with a wooden bilona to gently separate pure Makhan (butter) from buttermilk.
                       </p>
                     </div>
 
-                    <div className="bg-[#FAF8F3]/60 border border-stone-200/80 rounded-xl p-4 flex flex-col items-center text-center space-y-2.5 shadow-2xs hover:border-[#3A6038] transition">
-                      <div className="w-10 h-10 rounded-full bg-[#3A6038] text-amber-200 font-serif font-black text-lg flex items-center justify-center shadow-sm">
+                    <div className="bg-[var(--ivory)]/60 border border-[var(--line)]/80 rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
+                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
                         4
                       </div>
-                      <h4 className="font-serif font-bold text-[#2A2A2A] text-sm">Slow Fire Simmering</h4>
-                      <p className="text-xs text-[#6b6661] leading-relaxed">
+                      <h4 className="font-serif font-normal text-[var(--ink)] text-sm">Slow Fire Simmering</h4>
+                      <p className="text-xs text-[var(--ink-soft)] leading-relaxed">
                         Makhan is slowly simmered on low heat to yield golden liquid ghee with its signature granular (danedar) texture.
                       </p>
                     </div>
 
-                    <div className="bg-[#FAF8F3]/60 border border-stone-200/80 rounded-xl p-4 flex flex-col items-center text-center space-y-2.5 shadow-2xs hover:border-[#3A6038] transition">
-                      <div className="w-10 h-10 rounded-full bg-[#3A6038] text-amber-200 font-serif font-black text-lg flex items-center justify-center shadow-sm">
+                    <div className="bg-[var(--ivory)]/60 border border-[var(--line)]/80 rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
+                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
                         5
                       </div>
-                      <h4 className="font-serif font-bold text-[#2A2A2A] text-sm">Hand-Poured Purity</h4>
-                      <p className="text-xs text-[#6b6661] leading-relaxed">
+                      <h4 className="font-serif font-normal text-[var(--ink)] text-sm">Hand-Poured Purity</h4>
+                      <p className="text-xs text-[var(--ink-soft)] leading-relaxed">
                         Strained through fine cloth and hand-poured into glass jars & traditional stainless-steel dolchis for dispatch.
                       </p>
                     </div>
@@ -941,42 +944,42 @@ export default function ProductDetailPage() {
 
                   {/* Purity Comparison Highlights */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                    <div className="p-4 bg-emerald-50/50 border border-emerald-200/60 rounded-xl flex items-start gap-3">
-                      <span className="text-xl">✨</span>
+                    <div className="p-4 bg-[var(--ok-bg)]/50 border border-[var(--ok-line)]/60 rounded-sm flex items-start gap-3">
+                      <Droplet className="h-[18px] w-[18px] shrink-0 text-[var(--ok)]" strokeWidth={1.5} />
                       <div>
-                        <h5 className="font-bold text-xs text-[#3A6038] uppercase tracking-wider mb-0.5">100% Curd Churned</h5>
-                        <p className="text-xs text-[#6b6661] leading-relaxed">Never made from raw industrial cream. 25-30 litres of A2 milk yields just 1 litre of Bilona ghee.</p>
+                        <h5 className="font-bold text-xs text-[var(--forest)] uppercase tracking-wider mb-0.5">100% Curd Churned</h5>
+                        <p className="text-xs text-[var(--ink-soft)] leading-relaxed">Never made from raw industrial cream. 25-30 litres of A2 milk yields just 1 litre of Bilona ghee.</p>
                       </div>
                     </div>
-                    <div className="p-4 bg-amber-50/50 border border-amber-200/60 rounded-xl flex items-start gap-3">
-                      <span className="text-xl">🏺</span>
+                    <div className="p-4 bg-[var(--warn-bg)]/50 border border-[var(--warn-line)]/60 rounded-sm flex items-start gap-3">
+                      <CookingPot className="h-[18px] w-[18px] shrink-0 text-[var(--brass-text)]" strokeWidth={1.5} />
                       <div>
-                        <h5 className="font-bold text-xs text-[#C59B27] uppercase tracking-wider mb-0.5">Rich Granular Aroma</h5>
-                        <p className="text-xs text-[#6b6661] leading-relaxed">Natural golden colour, nutty Pahadi aroma, and bio-available nutrients intact.</p>
+                        <h5 className="font-bold text-xs text-[var(--brass-text)] uppercase tracking-wider mb-0.5">Rich Granular Aroma</h5>
+                        <p className="text-xs text-[var(--ink-soft)] leading-relaxed">Natural golden colour, nutty Pahadi aroma, and bio-available nutrients intact.</p>
                       </div>
                     </div>
-                    <div className="p-4 bg-stone-50 border border-stone-200/80 rounded-xl flex items-start gap-3">
-                      <span className="text-xl">🛡️</span>
+                    <div className="p-4 bg-[var(--cream)] border border-[var(--line)]/80 rounded-sm flex items-start gap-3">
+                      <ShieldCheck className="h-[18px] w-[18px] shrink-0 text-[var(--ink-soft)]" strokeWidth={1.5} />
                       <div>
-                        <h5 className="font-bold text-xs text-[#2A2A2A] uppercase tracking-wider mb-0.5">Zero Additives</h5>
-                        <p className="text-xs text-[#6b6661] leading-relaxed">No preservatives, synthetic colours, or chemical solvents. Certified 100% pure.</p>
+                        <h5 className="font-bold text-xs text-[var(--ink)] uppercase tracking-wider mb-0.5">Zero Additives</h5>
+                        <p className="text-xs text-[var(--ink-soft)] leading-relaxed">No preservatives, synthetic colours, or chemical solvents. Certified 100% pure.</p>
                       </div>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-8 text-sm text-[#6b6661]">
+                <div className="space-y-8 text-sm text-[var(--ink-soft)]">
                   {/* Nutritional Facts Table from DB */}
                   {(product as any).nutritionFacts && Object.keys((product as any).nutritionFacts).length > 0 && (
                     <div className="space-y-3">
-                      <h4 className="font-serif font-black text-sm text-[#2A2A2A] uppercase tracking-wider flex items-center gap-2 border-b border-stone-200 pb-2">
-                        <span>🥗</span> Nutritional Facts & Metrics
+                      <h4 className="font-serif font-light text-sm text-[var(--ink)] uppercase tracking-wider flex items-center gap-2 border-b border-[var(--line)] pb-2">
+                        Nutritional Facts & Metrics
                       </h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {Object.entries((product as any).nutritionFacts).map(([key, val]) => (
-                          <div key={key} className="flex justify-between items-center p-3 rounded-xl bg-[#FAF8F3]/80 border border-stone-200/80 shadow-2xs">
-                            <span className="font-bold text-[#2A2A2A] text-xs">{key}</span>
-                            <span className="font-extrabold text-[#3A6038] text-xs font-mono">{String(val)}</span>
+                          <div key={key} className="flex justify-between items-center p-3 rounded-sm bg-[var(--ivory)]/80 border border-[var(--line)]/80">
+                            <span className="font-bold text-[var(--ink)] text-xs">{key}</span>
+                            <span className="font-extrabold text-[var(--forest)] text-xs font-mono">{String(val)}</span>
                           </div>
                         ))}
                       </div>
@@ -988,22 +991,22 @@ export default function ProductDetailPage() {
 
                   {/* Product Specifications & Packaging Details */}
                   <div className="space-y-3">
-                    <h4 className="font-serif font-black text-sm text-[#2A2A2A] uppercase tracking-wider flex items-center gap-2 border-b border-stone-200 pb-2">
-                      <span>📋</span> Product Specifications & Packaging
+                    <h4 className="font-serif font-light text-sm text-[var(--ink)] uppercase tracking-wider flex items-center gap-2 border-b border-[var(--line)] pb-2">
+                      Product Specifications & Packaging
                     </h4>
                     <div className="space-y-2.5">
                       {Object.entries(dynamicDetails).map(([key, value]) => (
-                        <div key={key} className="flex justify-between border-b border-stone-100 pb-2 items-center text-xs">
-                          <span className="font-bold text-[#2A2A2A]">{key}</span>
-                          <span className="font-medium text-[#2A2A2A]">{value as string}</span>
+                        <div key={key} className="flex justify-between border-b border-[var(--line)] pb-2 items-center text-xs">
+                          <span className="font-bold text-[var(--ink)]">{key}</span>
+                          <span className="font-medium text-[var(--ink)]">{value as string}</span>
                         </div>
                       ))}
                       {(product as any).specifications && Object.entries((product as any).specifications).map(([key, val]) => {
                         if (dynamicDetails[key as keyof typeof dynamicDetails]) return null;
                         return (
-                          <div key={key} className="flex justify-between border-b border-stone-100 pb-2 items-center text-xs">
-                            <span className="font-bold text-[#2A2A2A]">{key}</span>
-                            <span className="font-medium text-[#2A2A2A]">{String(val)}</span>
+                          <div key={key} className="flex justify-between border-b border-[var(--line)] pb-2 items-center text-xs">
+                            <span className="font-bold text-[var(--ink)]">{key}</span>
+                            <span className="font-medium text-[var(--ink)]">{String(val)}</span>
                           </div>
                         );
                       })}
@@ -1032,7 +1035,7 @@ export default function ProductDetailPage() {
           {/* Related Products */}
           {relatedProducts.length > 0 && (
             <div className="mt-16">
-              <h2 className="font-serif font-black text-2xl text-[#2A2A2A] mb-8">You May Also Like</h2>
+              <h2 className="font-serif font-light text-2xl text-[var(--ink)] mb-8">You May Also Like</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {relatedProducts.map((p) => (
                   <ProductCard key={p.id} product={p} onAddToCart={addToCart} />

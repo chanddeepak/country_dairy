@@ -34,7 +34,20 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
-    unoptimized: true, // Prevents Next.js image unconfigured host runtime exceptions
+    /*
+     * Optimisation is on.
+     *
+     * It was globally disabled to stop next/image throwing on an unconfigured
+     * host, which it did by never resizing or re-encoding anything — so a
+     * 2.5MB PNG hero was downloaded whole, on a phone, at full resolution.
+     * That was the largest contentful paint.
+     *
+     * The hosts that actually serve us are listed above, and the two places
+     * that take a URL from outside that list — the hero and the product
+     * gallery — already pass `unoptimized` per image. Adding a host here is the
+     * correct fix for a new source; turning the feature off for the whole site
+     * is not.
+     */
   },
 };
 

@@ -72,41 +72,41 @@ export default function OrderDetailPage() {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar onCartOpen={() => {}} onAuthOpen={() => setIsAuthOpen(true)} />
-        <main className="flex-1 bg-[#FAF8F3]">
+        <main className="flex-1 bg-[var(--ivory)]">
           {/* Shaped like the real page so nothing jumps when it arrives. */}
           <div
             className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-pulse"
             role="status"
             aria-label="Loading order"
           >
-            <div className="h-3 w-40 rounded bg-stone-200/80" />
+            <div className="h-3 w-40 rounded bg-[var(--sand)]/80" />
 
-            <div className="bg-white border border-stone-200 rounded-xl p-6 space-y-4">
+            <div className="bg-white border border-[var(--line)] rounded-sm p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="h-5 w-48 rounded bg-stone-200/80" />
-                <div className="h-6 w-24 rounded-full bg-stone-200/80" />
+                <div className="h-5 w-48 rounded bg-[var(--sand)]/80" />
+                <div className="h-6 w-24 rounded-full bg-[var(--sand)]/80" />
               </div>
-              <div className="h-3 w-32 rounded bg-stone-200/80" />
+              <div className="h-3 w-32 rounded bg-[var(--sand)]/80" />
             </div>
 
-            <div className="bg-white border border-stone-200 rounded-xl p-6 space-y-4">
+            <div className="bg-white border border-[var(--line)] rounded-sm p-6 space-y-4">
               {[0, 1].map((i) => (
                 <div key={i} className="flex items-center gap-4">
-                  <div className="h-16 w-16 rounded bg-stone-200/80" />
+                  <div className="h-16 w-16 rounded bg-[var(--sand)]/80" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-3.5 w-2/5 rounded bg-stone-200/80" />
-                    <div className="h-3 w-1/4 rounded bg-stone-200/80" />
+                    <div className="h-3.5 w-2/5 rounded bg-[var(--sand)]/80" />
+                    <div className="h-3 w-1/4 rounded bg-[var(--sand)]/80" />
                   </div>
-                  <div className="h-4 w-16 rounded bg-stone-200/80" />
+                  <div className="h-4 w-16 rounded bg-[var(--sand)]/80" />
                 </div>
               ))}
             </div>
 
-            <div className="bg-white border border-stone-200 rounded-xl p-6 space-y-3">
+            <div className="bg-white border border-[var(--line)] rounded-sm p-6 space-y-3">
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <div className="h-5 w-5 rounded-full bg-stone-200/80" />
-                  <div className="h-3 w-44 rounded bg-stone-200/80" />
+                  <div className="h-5 w-5 rounded-full bg-[var(--sand)]/80" />
+                  <div className="h-3 w-44 rounded bg-[var(--sand)]/80" />
                 </div>
               ))}
             </div>
@@ -123,16 +123,16 @@ export default function OrderDetailPage() {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar onCartOpen={() => {}} onAuthOpen={() => setIsAuthOpen(true)} />
-        <div className="flex-1 flex items-center justify-center bg-[#FAF8F3] px-4">
-          <div className="bg-white border border-stone-200 rounded-2xl p-8 max-w-md text-center">
-            <h1 className="font-serif font-black text-xl text-[#2A2A2A] mb-2">
+        <div className="flex-1 flex items-center justify-center bg-[var(--ivory)] px-4">
+          <div className="bg-white border border-[var(--line)] rounded-sm p-8 max-w-md text-center">
+            <h1 className="font-serif font-light text-xl text-[var(--ink)] mb-2">
               {!user
                 ? sessionExpired
                   ? 'Your session has ended'
                   : 'Sign in to see this order'
                 : 'Order not found'}
             </h1>
-            <p className="text-sm text-[#6b6661] leading-relaxed mb-5">
+            <p className="text-sm text-[var(--ink-soft)] leading-relaxed mb-5">
               {!user
                 ? 'For your security you have been signed out. Sign in again to track your order.'
                 : 'We could not find that order on your account.'}
@@ -140,14 +140,14 @@ export default function OrderDetailPage() {
             {!user ? (
               <button
                 onClick={() => setIsAuthOpen(true)}
-                className="px-6 py-3 bg-[#3A6038] hover:bg-[#2f4d2e] text-white text-xs font-bold rounded-xl transition"
+                className="px-6 py-3 bg-[var(--forest)] hover:bg-[var(--pine)] text-white text-xs font-bold rounded-sm transition"
               >
                 Sign In
               </button>
             ) : (
               <Link
                 href="/account?tab=orders"
-                className="inline-block px-6 py-3 bg-[#3A6038] hover:bg-[#2f4d2e] text-white text-xs font-bold rounded-xl transition"
+                className="inline-block px-6 py-3 bg-[var(--forest)] hover:bg-[var(--pine)] text-white text-xs font-bold rounded-sm transition"
               >
                 See my orders
               </Link>
@@ -284,28 +284,28 @@ export default function OrderDetailPage() {
     <div className="flex flex-col min-h-screen">
       <Navbar onCartOpen={() => {}} onAuthOpen={() => setIsAuthOpen(true)} />
 
-      <main className="flex-1 bg-[#FAF8F3]">
+      <main className="flex-1 bg-[var(--ivory)]">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           {/* Success Banner */}
           {isSuccess && (
-            <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl text-sm font-bold mb-6 flex items-center gap-2">
+            <div className="bg-[var(--ok-bg)] border border-[var(--ok-line)] text-[var(--ok)] p-4 rounded-sm text-sm font-bold mb-6 flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5" />
               Order placed successfully! Thank you for your purchase.
             </div>
           )}
 
           {/* Back Link */}
-          <Link href="/account" className="inline-flex items-center text-xs font-bold text-[#3A6038] hover:underline mb-6">
+          <Link href="/account" className="inline-flex items-center text-xs font-bold text-[var(--forest)] hover:underline mb-6">
             <ArrowLeft className="h-3 w-3 mr-1" />
             Back to Orders
           </Link>
 
           {/* Order Header */}
           <div className="mb-8">
-            <h1 className="font-serif font-black text-2xl text-[#2A2A2A] mb-2">
+            <h1 className="font-serif font-light text-2xl text-[var(--ink)] mb-2">
               Order {order.orderNumber}
             </h1>
-            <p className="text-xs text-[#6b6661]">Placed: {new Date(order.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="text-xs text-[var(--ink-soft)]">Placed: {new Date(order.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
             <div className="flex gap-3 mt-3">
               <Badge status={order.status} />
               <Badge status={order.paymentStatus} />
@@ -313,8 +313,8 @@ export default function OrderDetailPage() {
           </div>
 
           {/* Items */}
-          <div className="bg-white border border-stone-200 rounded-xl p-6 mb-6">
-            <h3 className="font-bold text-sm text-[#2A2A2A] mb-4">ITEMS</h3>
+          <div className="bg-white border border-[var(--line)] rounded-sm p-6 mb-6">
+            <h3 className="font-bold text-sm text-[var(--ink)] mb-4">ITEMS</h3>
             {/* OrderItem is a snapshot taken at purchase: productTitle,
                 variantSizeLabel, unitPrice and lineTotal. Reading item.product.name
                 and item.price — neither of which the API sends — is what put
@@ -330,30 +330,30 @@ export default function OrderDetailPage() {
                 return (
                   <div
                     key={item.id}
-                    className="flex justify-between items-start gap-4 py-3 border-b border-stone-100 last:border-0"
+                    className="flex justify-between items-start gap-4 py-3 border-b border-[var(--line)] last:border-0"
                   >
                     <div className="min-w-0">
                       {href ? (
                         <Link
                           href={href}
-                          className="text-base font-bold text-[#2A2A2A] hover:text-[#3A6038] hover:underline transition"
+                          className="text-base font-bold text-[var(--ink)] hover:text-[var(--forest)] hover:underline transition"
                         >
                           {item.productTitle}
                         </Link>
                       ) : (
-                        <span className="text-base font-bold text-[#2A2A2A]">
+                        <span className="text-base font-bold text-[var(--ink)]">
                           {item.productTitle}
                         </span>
                       )}
                       {item.variantSizeLabel && (
-                        <span className="block text-xs text-[#6b6661] mt-0.5">
+                        <span className="block text-xs text-[var(--ink-soft)] mt-0.5">
                           {item.variantSizeLabel}
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-[#6b6661] whitespace-nowrap pt-1">
+                    <span className="text-xs text-[var(--ink-soft)] whitespace-nowrap pt-1">
                       {item.quantity} × {money(item.unitPrice)} ={' '}
-                      <span className="text-sm font-bold text-[#2A2A2A]">
+                      <span className="text-sm font-bold text-[var(--ink)]">
                         {money(item.lineTotal)}
                       </span>
                     </span>
@@ -361,37 +361,37 @@ export default function OrderDetailPage() {
                 );
               })
             ) : (
-              <p className="text-xs text-[#6b6661]">No item details available.</p>
+              <p className="text-xs text-[var(--ink-soft)]">No item details available.</p>
             )}
 
-            <div className="border-t border-stone-200 mt-4 pt-4 space-y-1 text-xs">
+            <div className="border-t border-[var(--line)] mt-4 pt-4 space-y-1 text-xs">
               <div className="flex justify-between">
-                <span className="text-[#6b6661]">Subtotal:</span>
+                <span className="text-[var(--ink-soft)]">Subtotal:</span>
                 {/* The order carries its own subtotal. Deriving it as
                     total − delivery silently ignored any discount. */}
                 <span>{money(order.subtotal)}</span>
               </div>
               {Number(order.discountAmount || 0) > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-[#6b6661]">
+                  <span className="text-[var(--ink-soft)]">
                     Discount{order.couponCode ? ` (${order.couponCode})` : ''}:
                   </span>
-                  <span className="text-[#3A6038]">−{money(order.discountAmount)}</span>
+                  <span className="text-[var(--forest)]">−{money(order.discountAmount)}</span>
                 </div>
               )}
               {Number(order.taxAmount || 0) > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-[#6b6661]">GST (included):</span>
-                  <span className="text-[#6b6661]">{money(order.taxAmount)}</span>
+                  <span className="text-[var(--ink-soft)]">GST (included):</span>
+                  <span className="text-[var(--ink-soft)]">{money(order.taxAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-[#6b6661]">Delivery:</span>
-                <span className="text-[#3A6038] font-bold">
+                <span className="text-[var(--ink-soft)]">Delivery:</span>
+                <span className="text-[var(--forest)] font-bold">
                   {Number(order.deliveryCharges || 0) > 0 ? money(order.deliveryCharges) : 'FREE'}
                 </span>
               </div>
-              <div className="flex justify-between text-base font-black border-t border-stone-100 pt-2 mt-1">
+              <div className="flex justify-between text-base font-black border-t border-[var(--line)] pt-2 mt-1">
                 <span>Total:</span>
                 <span>{money(order.totalAmount)}</span>
               </div>
@@ -399,29 +399,29 @@ export default function OrderDetailPage() {
           </div>
 
           {/* Delivery Info */}
-          <div className="bg-white border border-stone-200 rounded-xl p-6 mb-6">
-            <h3 className="font-bold text-sm text-[#2A2A2A] mb-4">DELIVERY</h3>
-            <div className="text-sm text-[#6b6661] space-y-1">
-              <p><span className="font-bold text-[#2A2A2A]">Type:</span> {order.deliveryType || 'LOCAL DELIVERY'}</p>
+          <div className="bg-white border border-[var(--line)] rounded-sm p-6 mb-6">
+            <h3 className="font-bold text-sm text-[var(--ink)] mb-4">DELIVERY</h3>
+            <div className="text-sm text-[var(--ink-soft)] space-y-1">
+              <p><span className="font-bold text-[var(--ink)]">Type:</span> {order.deliveryType || 'LOCAL DELIVERY'}</p>
               {order.address && (
                 <p>
-                  <span className="font-bold text-[#2A2A2A]">Address:</span> {order.shippingAddress?.line1}, {order.shippingAddress?.city} {order.shippingAddress?.postalCode}
-                  {order.address.phone && <span className="block text-xs font-semibold text-[#3A6038] mt-1">📞 Contact: {order.address.phone}</span>}
+                  <span className="font-bold text-[var(--ink)]">Address:</span> {order.shippingAddress?.line1}, {order.shippingAddress?.city} {order.shippingAddress?.postalCode}
+                  {order.address.phone && <span className="block text-xs font-semibold text-[var(--forest)] mt-1">Contact {order.address.phone}</span>}
                 </p>
               )}
               {order.trackingNumber && (
                 <>
                   <p>
-                    <span className="font-bold text-[#2A2A2A]">Carrier:</span>{' '}
+                    <span className="font-bold text-[var(--ink)]">Carrier:</span>{' '}
                     {order.shippingCarrier ?? 'Courier'}
                   </p>
-                  <p><span className="font-bold text-[#2A2A2A]">AWB:</span> {order.trackingNumber}</p>
+                  <p><span className="font-bold text-[var(--ink)]">AWB:</span> {order.trackingNumber}</p>
                   {trackingUrl ? (
                     <a
                       href={trackingUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-xs font-bold text-[#3A6038] mt-2 hover:underline"
+                      className="inline-flex items-center text-xs font-bold text-[var(--forest)] mt-2 hover:underline"
                     >
                       {trackingLabelFor(order.shippingCarrier)}
                       <ExternalLink className="h-3 w-3 ml-1" />
@@ -429,7 +429,7 @@ export default function OrderDetailPage() {
                   ) : (
                     // No link rather than a wrong one: sending someone to the
                     // wrong carrier's site makes them think the parcel is lost.
-                    <p className="text-xs text-[#6b6661] mt-2">
+                    <p className="text-xs text-[var(--ink-soft)] mt-2">
                       Track this number on {order.shippingCarrier ?? 'the carrier'}&apos;s website.
                     </p>
                   )}
@@ -439,19 +439,19 @@ export default function OrderDetailPage() {
           </div>
 
           {/* Timeline */}
-          <div className="bg-white border border-stone-200 rounded-xl p-6 mb-6">
-            <h3 className="font-bold text-sm text-[#2A2A2A] mb-4">TIMELINE</h3>
+          <div className="bg-white border border-[var(--line)] rounded-sm p-6 mb-6">
+            <h3 className="font-bold text-sm text-[var(--ink)] mb-4">TIMELINE</h3>
             <div className="space-y-4">
               {timeline.map((step, idx) => (
                 <div key={idx} className="flex items-start gap-3">
                   {step.done ? (
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-[var(--ok)] mt-0.5 shrink-0" />
                   ) : (
-                    <Circle className="h-5 w-5 text-stone-300 mt-0.5 shrink-0" />
+                    <Circle className="h-5 w-5 text-[var(--line)] mt-0.5 shrink-0" />
                   )}
                   <div>
-                    <p className={`text-sm ${step.done ? 'font-bold text-[#2A2A2A]' : 'text-[#6b6661]'}`}>{step.label}</p>
-                    {step.date && <p className="text-[11px] text-[#6b6661]">{new Date(step.date).toLocaleString()}</p>}
+                    <p className={`text-sm ${step.done ? 'font-bold text-[var(--ink)]' : 'text-[var(--ink-soft)]'}`}>{step.label}</p>
+                    {step.date && <p className="text-[11px] text-[var(--ink-soft)]">{new Date(step.date).toLocaleString()}</p>}
                   </div>
                 </div>
               ))}
@@ -460,7 +460,7 @@ export default function OrderDetailPage() {
 
           {/* Actions */}
           {actionNote && (
-            <p className="text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
+            <p className="text-xs font-bold text-[var(--danger)] bg-[var(--danger-bg)] border border-[var(--danger-line)] rounded-sm p-3">
               {actionNote}
             </p>
           )}
@@ -469,7 +469,7 @@ export default function OrderDetailPage() {
               type="button"
               onClick={handleReorder}
               disabled={reordering}
-              className="flex items-center gap-2 bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold py-2.5 px-6 rounded-lg text-sm transition disabled:opacity-60"
+              className="flex items-center gap-2 bg-[var(--brass)] hover:bg-[var(--forest)] text-[#1a1405] hover:text-[var(--ivory)] font-bold py-2.5 px-6 rounded-sm text-sm transition disabled:opacity-60"
             >
               <RefreshCw className={`h-4 w-4 ${reordering ? 'animate-spin' : ''}`} />
               {reordering ? 'Adding…' : 'Reorder Items'}
@@ -481,7 +481,7 @@ export default function OrderDetailPage() {
               type="button"
               data-testid="ask-a-question"
               onClick={() => setQueryOpen((open) => !open)}
-              className="flex items-center gap-2 border border-stone-200 text-[#6b6661] hover:text-[#2A2A2A] font-bold py-2.5 px-6 rounded-lg text-sm transition"
+              className="flex items-center gap-2 border border-[var(--line)] text-[var(--ink-soft)] hover:text-[var(--ink)] font-bold py-2.5 px-6 rounded-sm text-sm transition"
             >
               <HelpCircle className="h-4 w-4" />
               Need Help?
@@ -491,8 +491,8 @@ export default function OrderDetailPage() {
           </div>
 
           {queryOpen && (
-            <div className="mt-4 bg-white border border-stone-200 rounded-xl p-5 space-y-3">
-              <label className="block text-xs font-bold text-[#2A2A2A]">
+            <div className="mt-4 bg-white border border-[var(--line)] rounded-sm p-5 space-y-3">
+              <label className="block text-xs font-bold text-[var(--ink)]">
                 What can we help with?
               </label>
               <textarea
@@ -501,14 +501,14 @@ export default function OrderDetailPage() {
                 rows={4}
                 data-testid="query-body"
                 placeholder="Tell us what happened — the more detail, the faster we can sort it."
-                className="w-full bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm resize-none focus:outline-none focus:border-[#3A6038]"
+                className="w-full bg-white border border-[var(--line)] px-3 py-2.5 rounded-sm text-sm resize-none focus:outline-none focus:border-[var(--forest)]"
               />
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
                   onClick={submitQuery}
                   disabled={sendingQuery}
-                  className="bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold text-xs px-4 py-2.5 rounded-lg disabled:opacity-50 transition"
+                  className="bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold text-xs px-4 py-2.5 rounded-sm disabled:opacity-50 transition"
                 >
                   {sendingQuery ? 'Sending…' : 'Send question'}
                 </button>
@@ -517,14 +517,14 @@ export default function OrderDetailPage() {
                     same decision: write it down, or talk to someone now. */}
                 {helpUrl && (
                   <>
-                    <span className="text-[11px] text-[#6b6661]">or</span>
+                    <span className="text-[11px] text-[var(--ink-soft)]">or</span>
                     <a
                       href={helpUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 border border-stone-200 text-[#2A2A2A] font-bold text-xs px-4 py-2.5 rounded-lg hover:border-[#3A6038] transition"
+                      className="inline-flex items-center gap-1.5 border border-[var(--line)] text-[var(--ink)] font-bold text-xs px-4 py-2.5 rounded-sm hover:border-[var(--forest)] transition"
                     >
-                      <MessageCircle className="h-3.5 w-3.5 text-[#3A6038]" />
+                      <MessageCircle className="h-3.5 w-3.5 text-[var(--forest)]" />
                       Chat on WhatsApp
                     </a>
                   </>
@@ -536,11 +536,11 @@ export default function OrderDetailPage() {
           )}
 
           {querySentRef && (
-            <div className="mt-4 text-xs rounded-lg p-3 border text-[#3A6038] bg-[#3A6038]/5 border-[#3A6038]/20">
+            <div className="mt-4 text-xs rounded-sm p-3 border text-[var(--forest)] bg-[var(--forest)]/5 border-[var(--forest)]/20">
               <p className="font-bold">
                 Sent. Your reference is {querySentRef}.
               </p>
-              <p className="mt-1 text-[#3A6038]/85">
+              <p className="mt-1 text-[var(--forest)]/85">
                 We usually reply within a working day. You will find our answer under{' '}
                 <Link href="/account?tab=queries" className="font-bold underline underline-offset-2">
                   My Questions
@@ -552,10 +552,10 @@ export default function OrderDetailPage() {
 
           {queryNote && (
             <p
-              className={`mt-4 text-xs font-bold rounded-lg p-3 border ${
+              className={`mt-4 text-xs font-bold rounded-sm p-3 border ${
                 queryFailed
-                  ? 'text-red-700 bg-red-50 border-red-200'
-                  : 'text-[#3A6038] bg-[#3A6038]/5 border-[#3A6038]/20'
+                  ? 'text-[var(--danger)] bg-[var(--danger-bg)] border-[var(--danger-line)]'
+                  : 'text-[var(--forest)] bg-[var(--forest)]/5 border-[var(--forest)]/20'
               }`}
             >
               {queryNote}

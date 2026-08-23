@@ -152,45 +152,45 @@ export default function ReviewForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[#FAF8F3] border border-stone-200 rounded-xl p-6 space-y-4">
-      <h4 className="font-serif font-black text-lg text-[#2A2A2A]">
+    <form onSubmit={handleSubmit} className="bg-[var(--ivory)] border border-[var(--line)] rounded-sm p-6 space-y-4">
+      <h4 className="font-serif font-light text-lg text-[var(--ink)]">
         {isEditing ? 'Edit your review' : 'Write a Review'}
       </h4>
 
-      {error && <p className="text-xs text-red-600 font-bold">{error}</p>}
+      {error && <p className="text-xs text-[var(--danger)] font-bold">{error}</p>}
 
       <div>
-        <label className="text-xs font-bold text-[#2A2A2A] block mb-1">Your Rating:</label>
+        <label className="text-xs font-bold text-[var(--ink)] block mb-1">Your Rating:</label>
         <StarRating rating={rating} size="lg" interactive onChange={setRating} />
       </div>
 
       <div>
-        <label className="text-xs font-bold text-[#2A2A2A] block mb-1">Title:</label>
+        <label className="text-xs font-bold text-[var(--ink)] block mb-1">Title:</label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g. Extremely Fresh!"
-          className="w-full bg-white border border-stone-200 px-4 py-2.5 rounded-lg text-sm text-[#2A2A2A] placeholder-stone-400 focus:outline-none focus:border-[#3A6038]"
+          className="w-full bg-white border border-[var(--line)] px-4 py-2.5 rounded-sm text-sm text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--forest)]"
         />
       </div>
 
       <div>
-        <label className="text-xs font-bold text-[#2A2A2A] block mb-1">Comment:</label>
+        <label className="text-xs font-bold text-[var(--ink)] block mb-1">Comment:</label>
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           rows={3}
           placeholder="Share your experience..."
-          className="w-full bg-white border border-stone-200 px-4 py-2.5 rounded-lg text-sm text-[#2A2A2A] placeholder-stone-400 focus:outline-none focus:border-[#3A6038] resize-none"
+          className="w-full bg-white border border-[var(--line)] px-4 py-2.5 rounded-sm text-sm text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--forest)] resize-none"
         />
       </div>
 
       {/* Photos and video */}
       <div>
-        <label className="text-xs font-bold text-[#2A2A2A] block mb-1">
+        <label className="text-xs font-bold text-[var(--ink)] block mb-1">
           Add photos or a video{' '}
-          <span className="font-medium text-[#6b6661]">
+          <span className="font-medium text-[var(--ink-soft)]">
             (optional, up to {MAX_REVIEW_MEDIA})
           </span>
         </label>
@@ -199,7 +199,7 @@ export default function ReviewForm({
           {media.map((m, idx) => (
             <div
               key={m.url}
-              className="relative w-20 h-20 rounded-lg overflow-hidden border border-stone-200 bg-white group"
+              className="relative w-20 h-20 rounded-sm overflow-hidden border border-[var(--line)] bg-white group"
             >
               {m.mediaType === 'VIDEO' ? (
                 <>
@@ -216,7 +216,7 @@ export default function ReviewForm({
               <button
                 type="button"
                 onClick={() => removeMedia(idx)}
-                className="absolute top-0.5 right-0.5 bg-stone-900/70 hover:bg-red-600 text-white rounded-full p-0.5 transition"
+                className="absolute top-0.5 right-0.5 bg-[var(--forest)]/70 hover:bg-[var(--danger)] text-white rounded-full p-0.5 transition"
                 aria-label="Remove attachment"
               >
                 <X className="h-3 w-3" />
@@ -229,7 +229,7 @@ export default function ReviewForm({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="w-20 h-20 rounded-lg border-2 border-dashed border-stone-300 hover:border-[#3A6038] hover:bg-[#3A6038]/5 flex flex-col items-center justify-center gap-1 text-[#6b6661] hover:text-[#3A6038] transition disabled:opacity-50"
+              className="w-20 h-20 rounded-sm border-2 border-dashed border-[var(--line)] hover:border-[var(--forest)] hover:bg-[var(--forest)]/5 flex flex-col items-center justify-center gap-1 text-[var(--ink-soft)] hover:text-[var(--forest)] transition disabled:opacity-50"
             >
               {uploading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -252,7 +252,7 @@ export default function ReviewForm({
           className="hidden"
         />
 
-        <p className="text-[10px] text-[#6b6661] mt-1.5">
+        <p className="text-[10px] text-[var(--ink-soft)] mt-1.5">
           JPG, PNG or WebP up to 15MB · MP4 or MOV up to 100MB
         </p>
       </div>
@@ -260,13 +260,13 @@ export default function ReviewForm({
       <button
         type="submit"
         disabled={submitting || uploading}
-        className="bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-2.5 px-6 rounded-lg text-sm transition disabled:opacity-50 flex items-center gap-2"
+        className="bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-2.5 px-6 rounded-sm text-sm transition disabled:opacity-50 flex items-center gap-2"
       >
         {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
         {submitting ? 'Saving…' : isEditing ? 'Save Changes' : 'Submit Review'}
       </button>
 
-      <p className="text-[10px] text-[#6b6661]">
+      <p className="text-[10px] text-[var(--ink-soft)]">
         Your review appears straight away. We may remove it later if it breaks
         our review guidelines.
       </p>

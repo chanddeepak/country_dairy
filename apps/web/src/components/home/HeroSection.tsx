@@ -72,6 +72,25 @@ export default function HeroSection() {
     fetchHeroBanners();
   }, []);
 
+  /*
+   * Which artwork to fetch, rather than both.
+   *
+   * The two <Image> elements were both in the DOM with one hidden by CSS, and
+   * a hidden image still downloads. So every desktop visitor also pulled the
+   * mobile banner — which points at a 2.5MB PNG — and every phone pulled the
+   * desktop one. This is a client component that shows a skeleton first, so
+   * choosing here costs nothing.
+   */
+  const [isNarrow, setIsNarrow] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const sync = () => setIsNarrow(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
   const fetchHeroBanners = async () => {
     try {
       const [desktopRes, mobileRes] = await Promise.all([
@@ -96,6 +115,10 @@ export default function HeroSection() {
             objectPosition: 'center',
             headline: b.title,
             subtitle: b.subtitle,
+            // The column has existed since August and nothing read it. A
+            // poster-style banner carries its own headline, so the storefront
+            // must not lay a second one over the top.
+            imageHasText: Boolean(b.imageHasText),
             ctaText: b.ctaText || 'Shop All Products',
             ctaHref: b.ctaLink || '/products',
             // The desktop row owns the placement; the mobile row is only
@@ -128,41 +151,50 @@ export default function HeroSection() {
     };
   }, [isPaused, slides.length]);
 
+  /*
+   * One element owns the hero's height, and it renders in both states.
+   *
+   * The skeleton and the loaded carousel used to be two separate subtrees that
+   * each declared the same height. Swapping one for the other still measured as
+   * a layout shift, and it was the last thing moving on the homepage.
+   */
+  const BOX = 'relative w-full h-[520px] md:h-[600px]';
+
   if (isLoading) {
     return (
-      <section className="relative w-full overflow-hidden bg-stone-900">
-        <div className="relative w-full h-[520px] md:h-[600px] bg-gradient-to-r from-stone-900 via-stone-850 to-stone-900 animate-pulse flex items-center">
+      <section className="relative w-full overflow-hidden bg-[var(--forest)] min-h-[520px] md:min-h-[600px]">
+        <div className={`${BOX} bg-gradient-to-r from-[var(--forest)] via-[var(--pine)] to-[var(--forest)] animate-pulse flex items-center`}>
           {/* Shimmer background gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-stone-950/80 via-stone-900/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--ink)]/80 via-[var(--forest)]/60 to-transparent" />
           
           <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
             <div className="max-w-xl space-y-6">
               {/* Badge skeleton */}
-              <div className="w-32 h-6 bg-stone-800/80 rounded-full border border-stone-700/50 animate-pulse" />
+              <div className="w-32 h-6 bg-[var(--pine)]/80 rounded-full border border-[var(--pine)]/50 animate-pulse" />
               
               {/* Headline skeleton lines */}
               <div className="space-y-3">
-                <div className="w-3/4 h-10 md:h-14 bg-stone-800/90 rounded-lg animate-pulse" />
-                <div className="w-1/2 h-10 md:h-14 bg-stone-800/90 rounded-lg animate-pulse" />
+                <div className="w-3/4 h-10 md:h-14 bg-[var(--pine)]/90 rounded-sm animate-pulse" />
+                <div className="w-1/2 h-10 md:h-14 bg-[var(--pine)]/90 rounded-sm animate-pulse" />
               </div>
               
               {/* Subtitle skeleton */}
               <div className="space-y-2 max-w-md pt-2">
-                <div className="w-full h-4 bg-stone-800/70 rounded animate-pulse" />
-                <div className="w-4/5 h-4 bg-stone-800/70 rounded animate-pulse" />
+                <div className="w-full h-4 bg-[var(--pine)]/70 rounded animate-pulse" />
+                <div className="w-4/5 h-4 bg-[var(--pine)]/70 rounded animate-pulse" />
               </div>
               
               {/* CTA button skeleton */}
               <div className="pt-4">
-                <div className="w-48 h-12 bg-amber-600/30 rounded-sm border border-amber-500/30 animate-pulse" />
+                <div className="w-48 h-12 bg-[var(--warn)]/30 rounded-sm border border-[var(--warn)]/30 animate-pulse" />
               </div>
             </div>
           </div>
 
           {/* Bottom indicator dots skeleton */}
           <div className="absolute bottom-6 left-0 right-0 z-30 flex justify-center space-x-3">
-            <div className="w-2.5 h-2.5 rounded-full bg-stone-700/60 animate-pulse" />
-            <div className="w-2.5 h-2.5 rounded-full bg-stone-700/60 animate-pulse" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[var(--pine)]/60 animate-pulse" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[var(--pine)]/60 animate-pulse" />
           </div>
         </div>
       </section>
@@ -171,16 +203,26 @@ export default function HeroSection() {
 
   return (
     <section 
-      className="relative w-full overflow-hidden"
+      className="relative w-full overflow-hidden bg-[var(--forest)] min-h-[520px] md:min-h-[600px]"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="relative w-full h-[520px] md:h-[600px]">
+      <div className={BOX}>
         {/* Slides */}
         {slides.map((slide, index) => {
           // Per slide: each banner carries its own placement, and a slide with
           // no layout stored falls back to the original left-aligned stack.
           const layout = heroLayoutClasses((slide as { layout?: unknown }).layout);
+
+          /*
+           * Two ways the artwork speaks for itself: the flag says it carries
+           * its own headline, or nobody has typed one. Today every banner in
+           * the database has a title of whitespace, so the page was rendering
+           * an empty badge, an empty h1 and a scrim over a finished poster.
+           * An empty overlay is worse than no overlay.
+           */
+          const headline = String(slide.headline ?? '').trim();
+          const showOverlay = !slide.imageHasText && headline.length > 0;
 
           return (
           <div
@@ -189,45 +231,39 @@ export default function HeroSection() {
               index === activeIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
             }`}
           >
-            {/* Desktop Background Image (16:9) */}
-            <div className="hidden md:block absolute inset-0">
-              <Image
-                src={slide.image}
-                alt={slide.headline || 'Hero banner'}
-                fill
-                unoptimized={typeof slide.image === 'string' && (slide.image.startsWith('http') || slide.image.includes('/uploads/'))}
-                className="object-cover scale-105 transition-transform duration-1000"
-                style={{ objectPosition: slide.objectPosition || 'center' }}
-                priority={index === 0}
-                sizes="100vw"
-              />
-            </div>
-            {/* Mobile Background Image (4:3) */}
-            <div className="block md:hidden absolute inset-0">
-              <Image
-                src={slide.mobileImage || slide.image}
-                alt={slide.headline || 'Hero banner'}
-                fill
-                unoptimized={typeof (slide.mobileImage || slide.image) === 'string' && ((slide.mobileImage || slide.image).startsWith('http') || (slide.mobileImage || slide.image).includes('/uploads/'))}
-                className="object-cover scale-105 transition-transform duration-1000"
-                style={{ objectPosition: slide.objectPosition || 'center' }}
-                priority={index === 0}
-                sizes="100vw"
-              />
-            </div>
-            {/* Darkened only as much as the banner's own layout asks for. */}
-            <div className={`absolute inset-0 ${layout.scrim}`} />
+            {(() => {
+              const src = isNarrow ? slide.mobileImage || slide.image : slide.image;
+              return (
+                <div className="absolute inset-0">
+                  <Image
+                    src={src}
+                    alt={headline || 'Hero banner'}
+                    fill
+                    unoptimized={typeof src === 'string' && src.includes('/uploads/')}
+                    className="object-cover animate-hero-drift"
+                    style={{ objectPosition: slide.objectPosition || 'center' }}
+                    priority={index === 0}
+                    sizes="100vw"
+                  />
+                </div>
+              );
+            })()}
+
+            {/* Darkened only as much as the banner's own layout asks for, and
+                not at all when there is no text to keep legible. */}
+            {showOverlay && <div className={`absolute inset-0 ${layout.scrim}`} />}
 
             {/* Hero content overlay */}
+            {showOverlay && (
             <div
               className={`relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full ${layout.container}`}
             >
               <div className={layout.block} style={layout.blockStyle}>
-                <div className="inline-flex items-center gap-1 bg-[#3A6038]/85 backdrop-blur-xs text-amber-200 border border-amber-300/30 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider shadow-sm">
-                  <span>⛰️ Devbhoomi Uttarakhand Origin</span>
+                <div className="inline-flex items-center gap-1 bg-[var(--forest)]/85 backdrop-blur-xs text-[var(--brass-on-dark)] border border-[var(--brass)]/30 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider">
+                  <span>Devbhoomi Uttarakhand Origin</span>
                 </div>
                 <h1 className={layout.headline}>
-                  {(slide.headline || '').split('. ').map((part: string, i: number, arr: string[]) => (
+                  {headline.split('. ').map((part: string, i: number, arr: string[]) => (
                     <React.Fragment key={i}>
                       {part}{i < arr.length - 1 ? '.' : ''}
                       {i < arr.length - 1 && <span className="block" />}
@@ -238,7 +274,7 @@ export default function HeroSection() {
                 <div className={slide.ctaMarginTop || ''}>
                   <Link
                     href={slide.ctaHref || '/products'}
-                    className="inline-flex items-center bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold px-6 py-3 rounded-sm uppercase tracking-wider text-xs sm:text-sm shadow-lg transition-all hover:shadow-xl"
+                    className="inline-flex items-center bg-[var(--brass)] hover:bg-[var(--forest)] text-[#1a1405] hover:text-[var(--ivory)] font-bold px-6 py-3 rounded-sm uppercase tracking-wider text-xs sm:text-sm shadow-lg transition-all"
                   >
                     {slide.ctaText || 'Shop All Products'}
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -246,6 +282,7 @@ export default function HeroSection() {
                 </div>
               </div>
             </div>
+            )}
           </div>
           );
         })}
@@ -256,13 +293,15 @@ export default function HeroSection() {
             <button
               key={index}
               onClick={() => setActiveIndex(index)}
-              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                index === activeIndex
-                  ? 'bg-white scale-110'
-                  : 'bg-white/50 hover:bg-white/75'
-              }`}
+              className="grid h-6 w-6 place-items-center rounded-full"
               aria-label={`Go to slide ${index + 1}`}
-            />
+            >
+              <span
+                className={`block h-2.5 w-2.5 rounded-full transition-all duration-300 ${
+                  index === activeIndex ? 'bg-white scale-110' : 'bg-white/50 hover:bg-white/75'
+                }`}
+              />
+            </button>
           ))}
         </div>
       </div>

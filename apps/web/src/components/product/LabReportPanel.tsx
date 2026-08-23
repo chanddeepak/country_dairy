@@ -63,17 +63,17 @@ export default function LabReportPanel({ productId }: { productId?: string }) {
 
   return (
     <div className="space-y-3">
-      <h4 className="font-serif font-black text-sm text-[#2A2A2A] uppercase tracking-wider flex items-center gap-2 border-b border-stone-200 pb-2">
-        <span>🔬</span> Independent Lab Report
+      <h4 className="font-serif font-light text-sm text-[var(--ink)] uppercase tracking-wider flex items-center gap-2 border-b border-[var(--line)] pb-2">
+        Independent Lab Report
       </h4>
 
-      <div className="rounded-2xl border border-stone-200/80 bg-[#FAF8F3]/80 overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-stone-200/80">
+      <div className="rounded-sm border border-[var(--line)]/80 bg-[var(--ivory)]/80 overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-[var(--line)]/80">
           <div>
-            <div className="text-xs font-bold text-[#2A2A2A]">
+            <div className="text-xs font-bold text-[var(--ink)]">
               Batch <span className="font-mono">{latest.batchNumber}</span>
             </div>
-            <div className="text-[11px] text-[#6b6661] mt-0.5">
+            <div className="text-[11px] text-[var(--ink-soft)] mt-0.5">
               Tested {formatDate(latest.testDate)}
               {latest.labName ? ` at ${latest.labName}` : ''}
             </div>
@@ -84,7 +84,7 @@ export default function LabReportPanel({ productId }: { productId?: string }) {
               href={resolveStorefrontImageUrl(latest.fileUrl)}
               target="_blank"
               rel="noreferrer"
-              className="px-3 py-1.5 rounded-lg bg-[#3A6038] hover:bg-[#2f4d2e] text-white text-[11px] font-bold transition-colors"
+              className="px-3 py-1.5 rounded-sm bg-[var(--forest)] hover:bg-[var(--pine)] text-white text-[11px] font-bold transition-colors"
             >
               View signed report
             </a>
@@ -95,23 +95,23 @@ export default function LabReportPanel({ productId }: { productId?: string }) {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="text-[10px] font-bold text-[#6b6661] uppercase tracking-wider">
+                <tr className="text-[10px] font-bold text-[var(--ink-soft)] uppercase tracking-wider">
                   <th className="px-4 py-2">Parameter</th>
                   <th className="px-4 py-2">Result</th>
                   <th className="px-4 py-2">Permissible</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-200/70">
+              <tbody className="divide-y divide-[var(--line)]/70">
                 {latest.parameters.map((p, i) => (
                   <tr key={i}>
-                    <td className="px-4 py-2.5 font-bold text-[#2A2A2A]">{p.name}</td>
+                    <td className="px-4 py-2.5 font-bold text-[var(--ink)]">{p.name}</td>
                     <td className="px-4 py-2.5">
-                      <span className="font-mono font-extrabold text-[#3A6038]">{p.value}</span>
+                      <span className="font-mono font-extrabold text-[var(--forest)]">{p.value}</span>
                       {p.passed === false && (
-                        <span className="ml-2 text-[10px] font-bold text-red-600">out of spec</span>
+                        <span className="ml-2 text-[10px] font-bold text-[var(--danger)]">out of spec</span>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-[#6b6661]">{p.standard || '—'}</td>
+                    <td className="px-4 py-2.5 text-[var(--ink-soft)]">{p.standard || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -120,14 +120,14 @@ export default function LabReportPanel({ productId }: { productId?: string }) {
         )}
 
         {latest.notes && (
-          <p className="px-4 py-3 text-xs leading-relaxed text-[#6b6661] border-t border-stone-200/80">
+          <p className="px-4 py-3 text-xs leading-relaxed text-[var(--ink-soft)] border-t border-[var(--line)]/80">
             {latest.notes}
           </p>
         )}
       </div>
 
       {reports.length > 1 && (
-        <p className="text-[11px] text-[#6b6661]">
+        <p className="text-[11px] text-[var(--ink-soft)]">
           {reports.length - 1} earlier {reports.length === 2 ? 'batch has' : 'batches have'} also
           been tested. Scan the QR code on your jar to see the report for the batch you received.
         </p>

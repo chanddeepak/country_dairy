@@ -119,20 +119,20 @@ export default function CategoryPage() {
   const soldOut = shown.filter((p) => isSoldOut(p));
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FAF8F3]">
+    <div className="flex flex-col min-h-screen bg-[var(--ivory)]">
       <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         {shelf ? (
           <>
-            <nav className="flex items-center gap-1 text-xs text-[#6b6661] mb-4">
-              <Link href="/" className="hover:text-[#3A6038]">Home</Link>
+            <nav className="flex items-center gap-1 text-xs text-[var(--ink-soft)] mb-4">
+              <Link href="/" className="hover:text-[var(--forest)]">Home</Link>
               <ChevronRight className="h-3 w-3" />
-              <span className="font-bold text-[#2A2A2A]">{shelf.name}</span>
+              <span className="font-bold text-[var(--ink)]">{shelf.name}</span>
             </nav>
 
-            <h1 className="font-serif font-black text-3xl text-[#2A2A2A] mb-1">{shelf.name}</h1>
-            <p className="text-sm text-[#6b6661] max-w-2xl mb-6">
+            <h1 className="font-serif font-light text-3xl text-[var(--ink)] mb-1">{shelf.name}</h1>
+            <p className="text-sm text-[var(--ink-soft)] max-w-2xl mb-6">
               {shelf.description || `Everything we make in ${shelf.name.toLowerCase()}.`}
             </p>
           </>
@@ -141,9 +141,9 @@ export default function CategoryPage() {
           // lowercase "ghee" in the display serif for as long as the request
           // took — the URL is a machine-readable string, not a page title.
           <div className="animate-pulse mb-6">
-            <div className="h-3 w-40 rounded-full bg-stone-200 mb-5" />
-            <div className="h-8 w-56 rounded-lg bg-stone-200 mb-3" />
-            <div className="h-3 w-80 max-w-full rounded-full bg-stone-200" />
+            <div className="h-3 w-40 rounded-full bg-[var(--sand)] mb-5" />
+            <div className="h-8 w-56 rounded-sm bg-[var(--sand)] mb-3" />
+            <div className="h-3 w-80 max-w-full rounded-full bg-[var(--sand)]" />
           </div>
         )}
 
@@ -152,7 +152,7 @@ export default function CategoryPage() {
             stays on the page as removable chips, and only the picking costs a
             click. */}
         {groups.length > 0 && (
-          <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-stone-200 pb-4">
+          <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-[var(--line)] pb-4">
             <FilterButton onClick={() => setFiltersOpen(true)} count={activeCount} />
 
             {Object.entries(selection).flatMap(([groupId, values]) =>
@@ -161,7 +161,7 @@ export default function CategoryPage() {
                   key={`${groupId}:${value}`}
                   onClick={() => toggle(groupId, value)}
                   data-testid="applied-filter"
-                  className="flex items-center gap-1.5 rounded-full bg-[#3A6038]/10 px-3 py-1.5 text-[12px] font-semibold text-[#3A6038] transition hover:bg-[#3A6038]/20"
+                  className="flex items-center gap-1.5 rounded-full bg-[var(--forest)]/10 px-3 py-1.5 text-[12px] font-semibold text-[var(--forest)] transition hover:bg-[var(--forest)]/20"
                 >
                   {filterChipLabel(groupId, value)}
                   <X className="h-3 w-3" />
@@ -169,7 +169,7 @@ export default function CategoryPage() {
               )),
             )}
 
-            <span className="ml-auto text-[12px] text-[#6b6661]">
+            <span className="ml-auto text-[12px] text-[var(--ink-soft)]">
               {shown.length} {shown.length === 1 ? 'product' : 'products'}
             </span>
           </div>
@@ -179,20 +179,20 @@ export default function CategoryPage() {
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="bg-white border border-stone-200 rounded-xl h-72" />
+                  <div key={i} className="bg-white border border-[var(--line)] rounded-sm h-72" />
                 ))}
               </div>
             ) : shown.length === 0 ? (
-              <div className="bg-white border border-stone-200 rounded-xl py-16 text-center">
-                <p className="text-sm font-bold text-[#2A2A2A]">
+              <div className="bg-white border border-[var(--line)] rounded-sm py-16 text-center">
+                <p className="text-sm font-bold text-[var(--ink)]">
                   We&apos;re churning it. Coming soon.
                 </p>
-                <p className="text-xs text-[#6b6661] mt-1 mb-5">
+                <p className="text-xs text-[var(--ink-soft)] mt-1 mb-5">
                   Nothing here just yet — but there is plenty elsewhere.
                 </p>
                 <Link
                   href="/products"
-                  className="inline-block bg-[#3A6038] hover:bg-[#2f4d2e] text-white text-xs font-bold px-5 py-2.5 rounded-xl transition"
+                  className="inline-block bg-[var(--forest)] hover:bg-[var(--pine)] text-white text-xs font-bold px-5 py-2.5 rounded-sm transition"
                 >
                   See everything
                 </Link>
@@ -207,10 +207,10 @@ export default function CategoryPage() {
 
                 {soldOut.length > 0 && (
                   <section className="mt-12">
-                    <h2 className="font-serif font-bold text-lg text-[#2A2A2A] mb-1">
+                    <h2 className="font-serif font-normal text-lg text-[var(--ink)] mb-1">
                       Currently out of stock
                     </h2>
-                    <p className="text-xs text-[#6b6661] mb-4">
+                    <p className="text-xs text-[var(--ink-soft)] mb-4">
                       Back as soon as the next batch is churned.
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

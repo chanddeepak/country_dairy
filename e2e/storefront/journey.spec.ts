@@ -64,7 +64,10 @@ test.describe('Full customer journey', () => {
     await expect(page.locator('#shop')).toBeInViewport({ timeout: 20_000 });
     await expect(page.locator(SEL.productCardLink).first()).toBeVisible({ timeout: 30_000 });
 
-    await page.getByRole('link', { name: /explore complete catalog/i }).click();
+    // By testid, not by its wording. This used to match "Explore Complete
+    // Catalog" and broke the moment the shelf's copy changed — the flow it
+    // cares about is leaving the shelf for the full catalogue, not the label.
+    await page.locator(SEL.shelfShopAll).click();
     await page.waitForURL(/\/products/);
 
     const cards = page.locator(SEL.productCardLink);

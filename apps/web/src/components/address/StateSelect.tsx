@@ -45,11 +45,11 @@ export default function StateSelect({
       }}
       // Unselected reads as a placeholder, like the inputs beside it; once
       // chosen it is real content and takes the body colour.
-      className={`pr-9 ${value ? 'text-[#2A2A2A]' : 'text-stone-400'} ${className}`}
+      className={`pr-9 ${value ? 'text-[var(--ink)]' : 'text-[var(--ink-soft)]'} ${className}`}
     >
       <option value="">{placeholder}</option>
       {INDIAN_STATES.map((s) => (
-        <option key={s} value={s} className="text-[#2A2A2A]">
+        <option key={s} value={s} className="text-[var(--ink)]">
           {s}
         </option>
       ))}

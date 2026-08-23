@@ -61,6 +61,7 @@ export const SEL = {
   // Browsing and the cart drawer, for the journey spec — the one that reaches
   // every screen by clicking rather than by URL.
   productCardLink: '[data-testid="product-card-link"]',
+  shelfShopAll: '[data-testid="shelf-shop-all"]',
   variantOption: '[data-testid="variant-option"]',
   checkoutNow: '[data-testid="checkout-now"]',
   qtyIncrease: '[data-testid="qty-increase"]',

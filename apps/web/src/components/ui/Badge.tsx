@@ -2,18 +2,37 @@
 
 import React from 'react';
 
+/**
+ * Order status as four tones rather than six hues.
+ *
+ * The previous map gave CONFIRMED blue, PROCESSING amber, SHIPPED indigo,
+ * DELIVERED emerald, REFUNDED purple — six unrelated colours on a warm ivory
+ * page, none of which told you anything the word beside them did not. Status is
+ * a progression, so it reads as one: waiting, moving, done, wrong.
+ *
+ * The label still carries the detail. Colour only has to answer whether this
+ * needs attention.
+ */
+const WAITING = 'bg-[var(--cream)] text-[var(--ink-soft)] border-[var(--line)]';
+const MOVING = 'bg-[var(--warn-bg)] text-[var(--warn)] border-[var(--warn-line)]';
+const DONE = 'bg-[var(--ok-bg)] text-[var(--ok)] border-[var(--ok-line)]';
+const WRONG = 'bg-[var(--danger-bg)] text-[var(--danger)] border-[var(--danger-line)]';
+
 const STATUS_STYLES: Record<string, string> = {
-  CONFIRMED: 'bg-blue-50 text-blue-700 border-blue-200',
-  PROCESSING: 'bg-amber-50 text-amber-700 border-amber-200',
-  SHIPPED: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  DELIVERED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  CANCELLED: 'bg-red-50 text-red-700 border-red-200',
-  PENDING: 'bg-stone-50 text-stone-600 border-stone-200',
-  PAID: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  FAILED: 'bg-red-50 text-red-700 border-red-200',
-  REFUNDED: 'bg-purple-50 text-purple-700 border-purple-200',
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  PAUSED: 'bg-amber-50 text-amber-700 border-amber-200',
+  PENDING: WAITING,
+  REFUNDED: WAITING,
+  PAUSED: WAITING,
+
+  CONFIRMED: MOVING,
+  PROCESSING: MOVING,
+  SHIPPED: MOVING,
+
+  DELIVERED: DONE,
+  PAID: DONE,
+  ACTIVE: DONE,
+
+  CANCELLED: WRONG,
+  FAILED: WRONG,
 };
 
 interface BadgeProps {
@@ -22,10 +41,13 @@ interface BadgeProps {
 }
 
 export default function Badge({ status, className = '' }: BadgeProps) {
-  const style = STATUS_STYLES[status] || 'bg-stone-50 text-stone-600 border-stone-200';
+  // An unknown status sits on the page rather than on top of it.
+  const style = STATUS_STYLES[status] || WAITING;
 
   return (
-    <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${style} ${className}`}>
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] ${style} ${className}`}
+    >
       {status}
     </span>
   );

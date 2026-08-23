@@ -57,15 +57,15 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-[var(--ink)]/55 backdrop-blur-sm flex justify-end" onClick={onClose}>
       <div
         className="bg-white w-full max-w-md shadow-2xl relative flex flex-col h-full animate-slide-in-right"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-5 border-b border-stone-100">
-          <h3 className="font-serif font-black text-xl text-[#2A2A2A]">Shopping Cart</h3>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-700 transition">
+        <div className="flex justify-between items-center px-6 py-5 border-b border-[var(--line)]">
+          <h3 className="font-serif font-light text-xl text-[var(--ink)]">Shopping Cart</h3>
+          <button onClick={onClose} className="text-[var(--ink-soft)] hover:text-[var(--ink)] transition">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -74,18 +74,18 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {cart.length === 0 ? (
             <div className="text-center py-20 space-y-4">
-              <ShoppingBag className="h-12 w-12 text-stone-200 mx-auto" />
-              <p className="text-sm font-bold text-stone-400">Your cart is empty</p>
-              <button onClick={onClose} className="text-xs text-[#3A6038] font-bold hover:underline">
+              <ShoppingBag className="h-12 w-12 text-[var(--line)] mx-auto" />
+              <p className="text-sm font-bold text-[var(--ink-soft)]">Your cart is empty</p>
+              <button onClick={onClose} className="text-xs text-[var(--forest)] font-bold hover:underline">
                 Start Shopping
               </button>
             </div>
           ) : (
             <div className="space-y-5">
               {cart.map((item) => (
-                <div key={item.id} className="flex justify-between items-start gap-4 pb-5 border-b border-stone-100 last:border-0">
+                <div key={item.id} className="flex justify-between items-start gap-4 pb-5 border-b border-[var(--line)] last:border-0">
                   {item.imageUrl && (
-                    <div className="w-16 h-16 rounded-lg bg-[#FAF8F3] border border-stone-200 overflow-hidden shrink-0">
+                    <div className="w-16 h-16 rounded-sm bg-[var(--ivory)] border border-[var(--line)] overflow-hidden shrink-0">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={resolveStorefrontImageUrl(item.imageUrl)}
@@ -102,22 +102,22 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
                       <Link
                         href={`/products/${item.productSlug}${item.variantId ? `?variant=${item.variantId}` : ''}`}
                         onClick={onClose}
-                        className="font-bold text-[#2A2A2A] hover:text-[#3A6038] hover:underline text-sm leading-snug block transition"
+                        className="font-bold text-[var(--ink)] hover:text-[var(--forest)] hover:underline text-sm leading-snug block transition"
                       >
                         {item.productName}
                       </Link>
                     ) : (
-                      <h4 className="font-bold text-[#2A2A2A] text-sm leading-snug">
+                      <h4 className="font-bold text-[var(--ink)] text-sm leading-snug">
                         {item.productName}
                       </h4>
                     )}
                     {item.variantLabel && (
-                      <div className="text-[11px] text-[#6b6661]">{item.variantLabel}</div>
+                      <div className="text-[11px] text-[var(--ink-soft)]">{item.variantLabel}</div>
                     )}
-                    <span className="text-xs text-[#6b6661]">₹{item.unitPrice} each</span>
+                    <span className="text-xs text-[var(--ink-soft)]">₹{item.unitPrice} each</span>
 
                     {item.isAvailable === false && (
-                      <div className="text-[11px] font-bold text-red-600 mt-1">
+                      <div className="text-[11px] font-bold text-[var(--danger)] mt-1">
                         {item.availableStock === 0
                           ? 'Out of stock'
                           : `Only ${item.availableStock} left`}
@@ -128,15 +128,15 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
                       <button
                         onClick={() => updateCartQty(item.id, item.quantity - 1)}
                         data-testid="qty-decrease"
-                        className="p-0.5 border border-stone-300 rounded hover:bg-stone-50 transition"
+                        className="p-0.5 border border-[var(--line)] rounded hover:bg-[var(--cream)] transition"
                       >
                         <Minus className="h-3 w-3" />
                       </button>
-                      <span className="text-xs font-black text-[#2A2A2A] w-4 text-center">{item.quantity}</span>
+                      <span className="text-xs font-black text-[var(--ink)] w-4 text-center">{item.quantity}</span>
                       <button
                         onClick={() => updateCartQty(item.id, item.quantity + 1)}
                         data-testid="qty-increase"
-                        className="p-0.5 border border-stone-300 rounded hover:bg-stone-50 transition"
+                        className="p-0.5 border border-[var(--line)] rounded hover:bg-[var(--cream)] transition"
                       >
                         <Plus className="h-3 w-3" />
                       </button>
@@ -144,10 +144,10 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
                   </div>
 
                   <div className="text-right">
-                    <span className="font-black text-[#3A6038] text-sm">₹{item.lineTotal}</span>
+                    <span className="font-black text-[var(--forest)] text-sm">₹{item.lineTotal}</span>
                     <button
                       onClick={() => removeFromCart(item.id)}
-                      className="block text-red-500 hover:text-red-700 mt-1 text-[11px] font-bold transition"
+                      className="block text-[var(--danger)] hover:text-[var(--danger)] mt-1 text-[11px] font-bold transition"
                     >
                       Remove
                     </button>
@@ -160,25 +160,25 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
 
         {/* Footer / Checkout */}
         {cart.length > 0 && (
-          <div className="px-6 py-5 border-t border-stone-100 bg-white">
-            <div className="flex justify-between mb-1 text-sm text-[#6b6661]">
+          <div className="px-6 py-5 border-t border-[var(--line)] bg-white">
+            <div className="flex justify-between mb-1 text-sm text-[var(--ink-soft)]">
               <span>Subtotal:</span>
               <span className="font-bold">₹{subtotal}</span>
             </div>
-            <div className="flex justify-between mb-1 text-sm text-[#6b6661]">
+            <div className="flex justify-between mb-1 text-sm text-[var(--ink-soft)]">
               <span>Shipping:</span>
               {delivery === 0 ? (
-                <span className="text-[#3A6038] font-bold">FREE</span>
+                <span className="text-[var(--forest)] font-bold">FREE</span>
               ) : (
                 <span className="font-bold">₹{delivery}</span>
               )}
             </div>
             {delivery > 0 && (
-              <div className="text-[11px] text-[#6b6661] mb-2">
+              <div className="text-[11px] text-[var(--ink-soft)] mb-2">
                 Add ₹{FREE_DELIVERY_THRESHOLD - subtotal} more for free delivery
               </div>
             )}
-            <div className="flex justify-between mb-6 text-lg font-black text-[#2A2A2A]">
+            <div className="flex justify-between mb-6 text-lg font-black text-[var(--ink)]">
               <span>Total:</span>
               <span>₹{subtotal + delivery}</span>
             </div>
@@ -186,7 +186,7 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
               <button
                 onClick={onCheckout}
                 data-testid="checkout-now"
-                className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl transition"
+                className="w-full bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-3.5 rounded-sm transition"
               >
                 Checkout Now
               </button>
@@ -200,8 +200,8 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
                 onClick={handleWhatsAppOrder}
                 className={
                   checkoutEnabled
-                    ? 'w-full flex items-center justify-center border-2 border-[#25D366] text-[#1DA851] hover:bg-[#25D366]/5 font-bold py-3 rounded-xl transition mt-2.5'
-                    : 'w-full flex items-center justify-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-3.5 rounded-xl transition'
+                    ? 'w-full flex items-center justify-center border-2 border-[#25D366] text-[#1DA851] hover:bg-[#25D366]/5 font-bold py-3 rounded-sm transition mt-2.5'
+                    : 'w-full flex items-center justify-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-3.5 rounded-sm transition'
                 }
               >
                 <MessageCircle className="h-5 w-5 mr-2" />
@@ -210,7 +210,7 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
             )}
             <button
               onClick={onClose}
-              className="w-full text-center text-xs text-[#6b6661] hover:text-[#2A2A2A] font-bold mt-3 transition"
+              className="w-full text-center text-xs text-[var(--ink-soft)] hover:text-[var(--ink)] font-bold mt-3 transition"
             >
               Continue Shopping
             </button>
