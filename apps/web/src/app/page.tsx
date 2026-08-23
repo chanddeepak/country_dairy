@@ -10,6 +10,8 @@ import BrandStatement from '../components/home/BrandStatement';
 import Devbhoomi from '../components/home/Devbhoomi';
 import Journey from '../components/home/Journey';
 import Rituals from '../components/home/Rituals';
+import Reviews from '../components/home/Reviews';
+import ClosingBand from '../components/home/ClosingBand';
 import ProductShelf from '../components/home/ProductShelf';
 import GheeStory from '../components/home/GheeStory';
 import CollectionRow from '../components/home/CollectionRow';
@@ -64,6 +66,8 @@ export default function Home() {
         <Devbhoomi />
         <Journey />
         <Rituals />
+        <Reviews onAuthOpen={() => setIsAuthOpen(true)} />
+        <ClosingBand />
       </main>
 
       <Footer />

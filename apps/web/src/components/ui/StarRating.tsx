@@ -36,10 +36,10 @@ export default function StarRating({
             <Star
               className={`${sizeClass} ${
                 filled
-                  ? 'fill-[#C59B27] text-[#C59B27]'
+                  ? 'fill-[var(--brass)] text-[var(--brass)]'
                   : half
-                    ? 'fill-[#C59B27]/50 text-[#C59B27]'
-                    : 'fill-stone-200 text-stone-200'
+                    ? 'fill-[var(--brass)]/50 text-[var(--brass)]'
+                    : 'fill-[var(--line)] text-[var(--line)]'
               }`}
             />
           </button>
