@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { ShoppingBag, Search, User, Menu, X, Wallet, LogOut, Package, ChevronDown } from 'lucide-react';
 import CategoryBar from './CategoryBar';
+import ContourField from '../ui/ContourField';
 import { useNavTree } from '../../lib/useNavTree';
 import { categoryIcon } from '../../lib/categoryIcon';
 import { useApp } from '../../context/AppContext';
@@ -25,10 +26,47 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { tree: navTree } = useNavTree();
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  /**
+   * The bar goes transparent only while it is genuinely sitting on top of a
+   * dark, full bleed hero, and is solid the rest of the time.
+   *
+   * Two conditions, and both matter. The page has to declare that it puts
+   * artwork behind the header, by rendering an element carrying
+   * data-hero-behind-nav; and the reader has to still be at the top of it.
+   *
+   * Assuming the homepage always qualifies is what the first version did, and
+   * it painted white links onto the ivory ground because the current hero
+   * starts below the header rather than behind it. A page says whether the
+   * treatment applies; the bar does not guess.
+   *
+   * Position is tracked with a sentinel that scrolls out of view rather than a
+   * scroll listener: the header is sticky so it never moves, and a listener
+   * would run on every frame to answer a question that changes twice.
+   */
+  const [atTop, setAtTop] = useState(true);
+  const [heroBehind, setHeroBehind] = useState(false);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setAtTop(entry.isIntersecting), {
+      threshold: 0,
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    setHeroBehind(Boolean(document.querySelector('[data-hero-behind-nav]')));
+  }, [pathname]);
+
+  const overHero = heroBehind && atTop;
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -46,6 +84,19 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
     setUserDropdownOpen(false);
     setMobileMenuOpen(false);
   }, [pathname]);
+
+  // A full screen menu must not leave the page scrolling behind it.
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMobileMenuOpen(false);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [mobileMenuOpen]);
 
   // Navigation link generator with clean route/hash handling
   const navLink = (target: string, label: string, className: string) => {
@@ -104,252 +155,276 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
     logout();
   };
 
+  const linkTone = overHero
+    ? 'text-white/90 hover:text-white'
+    : 'text-[var(--ink)] hover:text-[var(--brass)]';
+  const iconTone = overHero
+    ? 'text-white/90 hover:text-white'
+    : 'text-[var(--ink)] hover:text-[var(--brass)]';
+
   return (
-    <header className="sticky top-0 z-40">
-      {/* Devbhoomi Uttarakhand Origin Top Bar */}
-      <div className="bg-[#2d4d2b] text-stone-100 text-[11px] font-medium py-1.5 px-4 text-center tracking-wide flex items-center justify-center gap-2 border-b border-white/10">
-        <span className="bg-[#C59B27] text-stone-950 font-extrabold px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider shadow-2xs">
-          ⛰️ Devbhoomi Origin
-        </span>
-        <span className="hidden sm:inline">Handcrafted in the Himalayan Foothills of Tanakpur, Uttarakhand</span>
-        <span className="sm:hidden">Tanakpur, Uttarakhand</span>
-        <span className="text-white/40">•</span>
-        <span className="font-semibold text-amber-200">Free Shipping Orders ₹499+</span>
-      </div>
-      <nav className="bg-white/95 backdrop-blur-sm border-b border-stone-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex justify-between items-center">
-        {/* Logo */}
-        <div className="flex-1 flex justify-start">
-          <Link
-            href="/"
-            onClick={(e) => {
-              if (pathname === '/') {
-                e.preventDefault();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }
-            }}
-            className="flex items-center space-x-2.5 group cursor-pointer"
-          >
-            <div className="relative h-14 w-auto flex items-center justify-center overflow-hidden">
-              <Image
-                src="/images/logo-icon.png"
-                alt="Country Dairy Logo"
-                width={200}
-                height={70}
-                className="h-14 w-auto object-contain"
-                priority
-              />
+    <>
+      {/* Scrolls out of view, which is how the bar knows it is no longer at the top. */}
+      <div ref={sentinelRef} aria-hidden="true" className="absolute top-0 h-px w-full" />
+
+      <header className="sticky top-0 z-40">
+        {/* Devbhoomi Uttarakhand Origin Top Bar */}
+        <div className="bg-[var(--forest)] text-[var(--sand)] text-[11px] font-medium py-2 px-4 text-center tracking-[0.04em] flex items-center justify-center gap-2.5">
+          <span className="bg-[var(--brass)] text-[#1a1405] font-semibold px-2.5 py-0.5 rounded-sm text-[9px] uppercase tracking-[0.14em]">
+            Devbhoomi Origin
+          </span>
+          <span className="hidden sm:inline">Handcrafted in the Himalayan Foothills of Tanakpur, Uttarakhand</span>
+          <span className="sm:hidden">Tanakpur, Uttarakhand</span>
+          <span className="text-[var(--sand)]/40">&middot;</span>
+          <span className="text-[var(--brass)]">Free shipping over &#8377;499</span>
+        </div>
+
+        <nav
+          className={`transition-colors duration-500 ${
+            overHero
+              ? 'bg-transparent border-b border-white/15'
+              : 'bg-[var(--ivory)]/95 backdrop-blur-sm border-b border-[var(--line)]'
+          }`}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex justify-between items-center">
+            {/* Logo */}
+            <div className="flex-1 flex justify-start">
+              <Link
+                href="/"
+                onClick={(e) => {
+                  if (pathname === '/') {
+                    e.preventDefault();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+                className="flex items-center group cursor-pointer"
+                aria-label="Country Dairy, home"
+              >
+                {/*
+                 * Two files, not one with a filter. The supplied artwork is a
+                 * green wordmark on solid white with no alpha, so on the
+                 * transparent bar it would render as a white rectangle. Both
+                 * variants are keyed from that same original.
+                 */}
+                <Image
+                  src={overHero ? '/images/logo-ivory.png' : '/images/logo-forest.png'}
+                  alt="Country Dairy"
+                  width={400}
+                  height={260}
+                  className="h-12 w-auto object-contain transition-opacity duration-500"
+                  priority
+                />
+              </Link>
             </div>
-          </Link>
-        </div>
 
-        {/* Desktop Nav Links */}
-        <div className="hidden md:flex flex-none items-center justify-center space-x-8 text-sm font-semibold text-[#2A2A2A]">
-          {navLink('home', 'Home', 'hover:text-[#3A6038] transition')}
-          {navLink('shop', 'Shop', 'hover:text-[#3A6038] transition')}
-          {navLink('about', 'About', 'hover:text-[#3A6038] transition')}
-          {navLink('values', 'Farm', 'hover:text-[#3A6038] transition')}
-          {navLink('contact', 'Contact', 'hover:text-[#3A6038] transition')}
-        </div>
+            {/* Desktop Nav Links */}
+            <div className={`hidden md:flex flex-none items-center justify-center gap-9 text-[13px] tracking-[0.06em] ${linkTone}`}>
+              {navLink('home', 'Home', 'transition-colors')}
+              {navLink('shop', 'Shop', 'transition-colors')}
+              {navLink('about', 'Our Story', 'transition-colors')}
+              {navLink('values', 'From the Hills', 'transition-colors')}
+              {navLink('contact', 'Contact', 'transition-colors')}
+            </div>
 
-        {/* Right Side Actions */}
-        <div className="flex-1 flex justify-end items-center space-x-3 md:space-x-4">
-          {/* Search */}
-          {ENABLE_CART && (
-            <Link href="/products" className="hidden md:flex p-2 text-[#2A2A2A] hover:text-[#3A6038] transition" title="Search Products">
-              <Search className="h-5 w-5" />
-            </Link>
-          )}
+            {/* Right Side Actions */}
+            <div className="flex-1 flex justify-end items-center gap-2 md:gap-3">
+              {/* Search */}
+              {ENABLE_CART && (
+                <Link href="/products" className={`hidden md:flex p-2 transition-colors ${iconTone}`} title="Search Products">
+                  <Search className="h-[18px] w-[18px]" />
+                </Link>
+              )}
 
-          {/* Auth / User */}
-          {ENABLE_USER_ACCOUNTS && (
-            user ? (
-              <div className="flex items-center space-x-3">
-                {/* Wallet badge — only when the wallet feature is enabled. */}
-                {walletEnabled && (
-                  <div className="hidden sm:flex items-center bg-[#FAF8F3] px-3 py-1.5 rounded-full border border-stone-200">
-                    <Wallet className="h-4 w-4 text-[#C59B27] mr-1.5" />
-                    <span className="text-xs font-bold text-[#3A6038]">₹{walletBalance}</span>
-                  </div>
-                )}
-
-                {/* User dropdown trigger */}
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className="flex items-center gap-1 p-2 text-[#2A2A2A] hover:text-[#3A6038] transition rounded-lg hover:bg-stone-50"
-                    title={user.name || 'My Account'}
-                  >
-                    <div className="w-7 h-7 rounded-full bg-[#3A6038] text-white flex items-center justify-center text-xs font-black">
-                      {(user.name || 'U').charAt(0).toUpperCase()}
-                    </div>
-                    <ChevronDown className={`h-3.5 w-3.5 text-stone-400 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {/* Dropdown menu */}
-                  {userDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-stone-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                      {/* User info header */}
-                      <div className="px-4 py-3 border-b border-stone-100">
-                        <p className="text-sm font-bold text-[#2A2A2A] truncate">{user.name || 'Welcome!'}</p>
-                        <p className="text-xs text-[#6b6661] truncate">{user.phone || user.email || ''}</p>
+              {/* Auth / User */}
+              {ENABLE_USER_ACCOUNTS && (
+                user ? (
+                  <div className="flex items-center gap-2">
+                    {/* Wallet badge — only when the wallet feature is enabled. */}
+                    {walletEnabled && (
+                      <div className={`hidden sm:flex items-center px-3 py-1.5 rounded-sm border text-xs ${
+                        overHero ? 'border-white/25 text-white' : 'border-[var(--line)] text-[var(--forest)]'
+                      }`}>
+                        <Wallet className="h-3.5 w-3.5 text-[var(--brass)] mr-1.5" />
+                        <span className="font-medium tabular">&#8377;{walletBalance}</span>
                       </div>
+                    )}
 
-                      {/* Menu items */}
-                      <div className="py-1">
-                        <Link
-                          href="/account"
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#2A2A2A] hover:bg-[#FAF8F3] transition"
-                          onClick={() => setUserDropdownOpen(false)}
-                        >
-                          <User className="h-4 w-4 text-[#3A6038]" />
-                          My Account
-                        </Link>
+                    {/* User dropdown trigger */}
+                    <div className="relative" ref={dropdownRef}>
+                      <button
+                        onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                        className={`flex items-center gap-1 p-1.5 transition-colors ${iconTone}`}
+                        title={user.name || 'My Account'}
+                      >
+                        <span className="w-8 h-8 rounded-full bg-[var(--forest)] text-[var(--ivory)] flex items-center justify-center text-xs font-medium">
+                          {(user.name || 'U').charAt(0).toUpperCase()}
+                        </span>
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
 
-                        <Link
-                          href="/account?tab=orders"
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#2A2A2A] hover:bg-[#FAF8F3] transition"
-                          onClick={() => setUserDropdownOpen(false)}
-                        >
-                          <Package className="h-4 w-4 text-[#3A6038]" />
-                          My Orders
-                        </Link>
-
-                        {/* Mobile wallet (small screens hide the inline badge) */}
-                        {walletEnabled && (
-                          <div className="sm:hidden flex items-center gap-3 px-4 py-2.5 text-sm text-[#2A2A2A]">
-                            <Wallet className="h-4 w-4 text-[#C59B27]" />
-                            Wallet: <span className="font-bold text-[#3A6038]">₹{walletBalance}</span>
+                      {/* Dropdown menu */}
+                      {userDropdownOpen && (
+                        <div className="absolute right-0 top-full mt-2 w-64 bg-[var(--ivory)] rounded-sm shadow-xl border border-[var(--line)] py-2 z-50">
+                          {/* User info header */}
+                          <div className="px-4 py-3 border-b border-[var(--line)]">
+                            <p className="text-sm font-medium text-[var(--ink)] truncate">{user.name || 'Welcome'}</p>
+                            <p className="text-xs text-[var(--ink-soft)] truncate">{user.phone || user.email || ''}</p>
                           </div>
-                        )}
-                      </div>
 
-                      {/* Logout */}
-                      <div className="border-t border-stone-100 pt-1">
-                        <button
-                          onClick={handleLogout}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition w-full text-left"
-                        >
-                          <LogOut className="h-4 w-4" />
-                          Sign Out
-                        </button>
-                      </div>
+                          {/* Menu items */}
+                          <div className="py-1">
+                            <Link
+                              href="/account"
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--ink)] hover:bg-[var(--cream)] transition"
+                              onClick={() => setUserDropdownOpen(false)}
+                            >
+                              <User className="h-4 w-4 text-[var(--forest)]" />
+                              My Account
+                            </Link>
+
+                            <Link
+                              href="/account?tab=orders"
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--ink)] hover:bg-[var(--cream)] transition"
+                              onClick={() => setUserDropdownOpen(false)}
+                            >
+                              <Package className="h-4 w-4 text-[var(--forest)]" />
+                              My Orders
+                            </Link>
+
+                            {/* Mobile wallet (small screens hide the inline badge) */}
+                            {walletEnabled && (
+                              <div className="sm:hidden flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--ink)]">
+                                <Wallet className="h-4 w-4 text-[var(--brass)]" />
+                                Wallet: <span className="font-medium tabular">&#8377;{walletBalance}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Logout */}
+                          <div className="border-t border-[var(--line)] pt-1">
+                            <button
+                              onClick={handleLogout}
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#9B3B2A] hover:bg-[var(--cream)] transition w-full text-left"
+                            >
+                              <LogOut className="h-4 w-4" />
+                              Sign Out
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={onAuthOpen}
+                    data-testid="open-auth"
+                    aria-label="Sign in"
+                    className={`p-2 transition-colors ${iconTone}`}
+                  >
+                    <User className="h-[18px] w-[18px]" />
+                  </button>
+                )
+              )}
+
+              {/* Cart */}
+              {ENABLE_CART && (
+                <button
+                  onClick={onCartOpen}
+                  data-testid="open-cart"
+                  aria-label="Open cart"
+                  className={`relative p-2 transition-colors ${iconTone}`}
+                >
+                  <ShoppingBag className="h-[18px] w-[18px]" />
+                  {cartCount > 0 && (
+                    <span
+                      data-testid="cart-count"
+                      className="absolute -top-0.5 -right-0.5 bg-[var(--brass)] text-[#1a1405] text-[10px] font-semibold h-4 min-w-4 px-1 rounded-full flex items-center justify-center"
+                    >
+                      {cartCount}
+                    </span>
                   )}
+                </button>
+              )}
+
+              {/* Mobile menu toggle */}
+              <button
+                className={`md:hidden p-2 transition-colors ${iconTone}`}
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                data-testid="mobile-menu-toggle"
+                aria-expanded={mobileMenuOpen}
+                aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              >
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        {/* The category bar, below the main nav and inside the sticky header. */}
+        <CategoryBar />
+      </header>
+
+      {/*
+       * Full screen on a phone rather than a dropdown panel. The brief asks for
+       * it, and it is the only way the categories get room to be tapped rather
+       * than aimed at.
+       */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-50 bg-[var(--forest)] text-[var(--ivory)] overflow-y-auto">
+          <ContourField tone="brass" opacity={0.5} />
+
+          <div className="relative z-10 flex flex-col min-h-full px-6 py-5">
+            <div className="flex items-center justify-between mb-10">
+              <Image src="/images/logo-ivory.png" alt="Country Dairy" width={400} height={260} className="h-11 w-auto object-contain" />
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
+                className="p-2 text-[var(--sand)] hover:text-white transition"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <nav className="flex flex-col gap-1 font-serif text-[30px] leading-tight">
+              {navLink('home', 'Home', 'py-2 transition-colors hover:text-[var(--brass)]')}
+              {navLink('shop', 'Shop', 'py-2 transition-colors hover:text-[var(--brass)]')}
+              {navLink('about', 'Our Story', 'py-2 transition-colors hover:text-[var(--brass)]')}
+              {navLink('values', 'From the Hills', 'py-2 transition-colors hover:text-[var(--brass)]')}
+              {navLink('contact', 'Contact', 'py-2 transition-colors hover:text-[var(--brass)]')}
+            </nav>
+
+            {navTree.length > 0 && (
+              <div className="mt-10 pt-8 border-t border-white/15">
+                <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--brass)] mb-4">
+                  Shop by category
+                </p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {navTree.map((cat) => {
+                    const Icon = categoryIcon(cat.iconName);
+                    return (
+                      <Link
+                        key={cat.id}
+                        href={`/category/${cat.slug}`}
+                        data-testid="mobile-category-link"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-3 rounded-sm border border-white/15 px-4 py-3.5 transition hover:border-[var(--brass)]"
+                      >
+                        <Icon className="h-4 w-4 text-[var(--brass)]" strokeWidth={1.5} />
+                        <span className="text-[13px] tracking-[0.03em]">{cat.name}</span>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
-            ) : (
-              <button
-                onClick={onAuthOpen}
-                data-testid="open-auth"
-                aria-label="Sign in"
-                className="p-2 text-[#2A2A2A] hover:text-[#3A6038] transition"
-              >
-                <User className="h-5 w-5" />
-              </button>
-            )
-          )}
+            )}
 
-          {/* Cart */}
-          {ENABLE_CART && (
-            <button
-              onClick={onCartOpen}
-              data-testid="open-cart"
-              aria-label="Open cart"
-              className="relative p-2 text-[#2A2A2A] hover:text-[#3A6038] transition"
-            >
-              <ShoppingBag className="h-5 w-5" />
-              {cartCount > 0 && (
-                <span
-                  data-testid="cart-count"
-                  className="absolute -top-0.5 -right-0.5 bg-[#C59B27] text-white text-[9px] font-black rounded-full h-4.5 w-4.5 flex items-center justify-center min-w-[18px] min-h-[18px] border-2 border-white"
-                >
-                  {cartCount}
-                </span>
-              )}
-            </button>
-          )}
-
-          {/* Mobile menu toggle */}
-          <button
-            className="md:hidden p-2 text-[#2A2A2A]"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            data-testid="mobile-menu-toggle"
-            aria-expanded={mobileMenuOpen}
-            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
-      </div>
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-stone-100 px-4 py-4 space-y-3">
-          {navLink('home', 'Home', 'block text-sm font-semibold text-[#2A2A2A]')}
-          {navLink('shop', 'Shop', 'block text-sm font-semibold text-[#2A2A2A]')}
-          {navLink('about', 'About', 'block text-sm font-semibold text-[#2A2A2A]')}
-          {navLink('values', 'Farm', 'block text-sm font-semibold text-[#2A2A2A]')}
-          {navLink('contact', 'Contact', 'block text-sm font-semibold text-[#2A2A2A]')}
-
-          {/* The categories, which on desktop are their own bar. There is no
-              room for a second strip of chrome on a phone, so they come here
-              rather than nowhere. */}
-          {navTree.length > 0 && (
-            <div className="pt-2 border-t border-stone-100 space-y-2">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-[#6b6661]">
-                Shop by category
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {navTree.map((cat) => {
-                  const Icon = categoryIcon(cat.iconName);
-                  return (
-                    <Link
-                      key={cat.id}
-                      href={`/category/${cat.slug}`}
-                      data-testid="mobile-category-link"
-                      className="flex flex-col items-center gap-1.5 rounded-xl border border-stone-200 px-2 py-3"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <span className="grid h-10 w-10 place-items-center rounded-full bg-[#3A6038]/10 text-[#3A6038]">
-                        <Icon className="h-5 w-5" strokeWidth={1.5} />
-                      </span>
-                      <span className="text-center text-[11px] font-bold leading-tight text-[#2A2A2A]">
-                        {cat.name}
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
+            <div className="mt-auto pt-10 text-[12px] text-[var(--sand)]/70 leading-relaxed">
+              <p className="m-0">Tanakpur, Champawat, Uttarakhand</p>
+              <p className="m-0">From the heart of Devbhoomi, to your home.</p>
             </div>
-          )}
-
-          {ENABLE_USER_ACCOUNTS && (
-            user ? (
-              <div className="pt-2 border-t border-stone-100 space-y-2">
-                <Link href="/account" className="block text-sm font-bold text-[#3A6038]" onClick={() => setMobileMenuOpen(false)}>
-                  My Account
-                </Link>
-                <Link href="/account?tab=orders" className="block text-sm font-bold text-[#3A6038]" onClick={() => setMobileMenuOpen(false)}>
-                  My Orders
-                </Link>
-                <button onClick={handleLogout} className="block text-sm font-bold text-red-600">
-                  Sign Out
-                </button>
-              </div>
-            ) : (
-              <button onClick={() => { onAuthOpen(); setMobileMenuOpen(false); }} className="block w-full text-left text-sm font-bold text-[#3A6038]">
-                Sign In
-              </button>
-            )
-          )}
+          </div>
         </div>
       )}
-      </nav>
-
-      {/* The category bar, below the main nav and inside the sticky header so
-          it travels with it. Desktop only — on a phone the categories live in
-          the burger menu rather than in a second strip of chrome. */}
-      <CategoryBar />
-    </header>
+    </>
   );
 }
