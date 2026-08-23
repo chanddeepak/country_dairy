@@ -9,6 +9,7 @@ import HeroSection from '../components/home/HeroSection';
 import BrandStatement from '../components/home/BrandStatement';
 import AboutSection from '../components/home/AboutSection';
 import ProductShelf from '../components/home/ProductShelf';
+import GheeStory from '../components/home/GheeStory';
 import CollectionRow from '../components/home/CollectionRow';
 import ValueBanner from '../components/home/ValueBanner';
 import AuthModal from '../components/modals/AuthModal';
@@ -56,6 +57,7 @@ export default function Home() {
         <BrandStatement />
         <CollectionRow />
         <ProductShelf onSubscribe={handleSubscribe} />
+        <GheeStory />
         <AboutSection />
         <ValueBanner />
       </main>

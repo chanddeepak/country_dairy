@@ -17,7 +17,7 @@ import { useReveal } from '../../lib/useReveal';
  * frame and upscaling a crop of it would look worse than the honest shape.
  */
 export default function BrandStatement() {
-  const { ref, shown } = useReveal<HTMLElement>();
+  const { ref, shown } = useReveal();
 
   const rise = shown ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0';
 
