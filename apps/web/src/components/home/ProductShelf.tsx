@@ -125,10 +125,10 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
     <section id="shop" className="scroll-mt-24 pt-10 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full relative">
       {/* Title Header */}
       <div className="text-center max-w-2xl mx-auto mb-8">
-        <h2 className="font-serif font-bold text-2xl sm:text-3xl md:text-4xl text-[#2A2A2A] mb-2 leading-tight">
+        <h2 className="font-serif font-normal text-2xl sm:text-3xl md:text-4xl text-[var(--ink)] mb-2 leading-tight">
           Welcome To Country Dairy!
         </h2>
-        <p className="font-serif italic text-lg sm:text-xl text-[#3A6038] font-medium">
+        <p className="font-serif italic text-lg sm:text-xl text-[var(--forest)] font-medium">
           You're One Step Closer to Purity
         </p>
       </div>
@@ -144,8 +144,8 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
                 onClick={() => setActiveCategory(cat)}
                 className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap ${
                   isActive
-                    ? 'bg-[#3A6038] text-white shadow-sm'
-                    : 'bg-white text-[#6b6661] hover:text-[#2A2A2A] border border-stone-200 hover:border-[#3A6038]'
+                    ? 'bg-[var(--forest)] text-white'
+                    : 'bg-white text-[var(--ink-soft)] hover:text-[var(--ink)] border border-[var(--line)] hover:border-[var(--forest)]'
                 }`}
               >
                 {cat === ALL ? 'All Products' : cat}
@@ -160,7 +160,7 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
             <button
               onClick={() => handleScroll('left')}
               disabled={!overflow.canScrollLeft}
-              className="p-2.5 rounded-full bg-white border border-stone-200 text-[#2A2A2A] hover:bg-[#3A6038] hover:text-white hover:border-[#3A6038] transition shadow-sm disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#2A2A2A] disabled:hover:border-stone-200 disabled:cursor-default"
+              className="p-2.5 rounded-full bg-white border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--forest)] hover:text-white hover:border-[var(--forest)] transition disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[var(--ink)] disabled:hover:border-[var(--line)] disabled:cursor-default"
               aria-label="Scroll left"
             >
               <ChevronLeft className="h-5 w-5" />
@@ -168,7 +168,7 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
             <button
               onClick={() => handleScroll('right')}
               disabled={!overflow.canScrollRight}
-              className="p-2.5 rounded-full bg-white border border-stone-200 text-[#2A2A2A] hover:bg-[#3A6038] hover:text-white hover:border-[#3A6038] transition shadow-sm disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#2A2A2A] disabled:hover:border-stone-200 disabled:cursor-default"
+              className="p-2.5 rounded-full bg-white border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--forest)] hover:text-white hover:border-[var(--forest)] transition disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[var(--ink)] disabled:hover:border-[var(--line)] disabled:cursor-default"
               aria-label="Scroll right"
             >
               <ChevronRight className="h-5 w-5" />
@@ -200,7 +200,7 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
       <div className="mt-10 text-center">
         <Link 
           href="/products" 
-          className="inline-flex items-center text-[#3A6038] font-bold hover:text-[#2d4d2b] transition group text-sm uppercase tracking-wider bg-white border border-[#3A6038]/30 px-6 py-3 rounded-full hover:shadow-sm"
+          className="inline-flex items-center text-[var(--forest)] font-bold hover:text-[var(--pine)] transition group text-sm uppercase tracking-wider bg-white border border-[var(--forest)]/30 px-6 py-3 rounded-full hover:shadow-sm"
         >
           Explore Complete Catalog 
           <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>

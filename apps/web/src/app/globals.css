@@ -31,6 +31,26 @@
   --foreground: var(--ink);
 
   /*
+   * Status. Semantic colour stays semantic — brass is the accent and cannot
+   * also mean "warning" — but Tailwind's defaults are cool and read as foreign
+   * on ivory, so these are the same three meanings mixed warm.
+   *
+   * The -on-dark pair exists because --ok and --warn are dark enough to
+   * disappear on forest, and the footer and the product page both put status
+   * text there.
+   */
+  --ok: #2F5741;
+  --ok-bg: #E9EFE7;
+  --ok-line: #C9D8C5;
+  --warn: #8A6A1F;
+  --warn-bg: #F6EEDA;
+  --warn-line: #E3D3A8;
+  --danger: #9C3F26;
+  --danger-bg: #F7E7E1;
+  --danger-line: #E8C7B9;
+  --ok-on-dark: #9CC49A;
+
+  /*
    * Superseded by --forest and --brass. Kept until the last page stops
    * referencing them so the two palettes never appear on screen at once.
    */

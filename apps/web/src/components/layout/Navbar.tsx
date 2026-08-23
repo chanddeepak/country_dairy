@@ -306,7 +306,7 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
                           <div className="border-t border-[var(--line)] pt-1">
                             <button
                               onClick={handleLogout}
-                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#9B3B2A] hover:bg-[var(--cream)] transition w-full text-left"
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--terra)] hover:bg-[var(--cream)] transition w-full text-left"
                             >
                               <LogOut className="h-4 w-4" />
                               Sign Out

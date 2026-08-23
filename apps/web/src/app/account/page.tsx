@@ -19,8 +19,8 @@ import CartDrawer from '../../components/cart/CartDrawer';
 type Tab = 'overview' | 'orders' | 'queries' | 'profile' | 'subscriptions' | 'wallet' | 'addresses';
 
 const addrField =
-  'w-full px-3 py-2.5 bg-[#FAF8F3] border border-stone-200 rounded-lg text-sm text-[#2A2A2A] focus:outline-none focus:border-[#3A6038] transition';
-const addrLabel = 'block text-[11px] font-bold text-[#6b6661] uppercase tracking-wider mb-1.5';
+  'w-full px-3 py-2.5 bg-[var(--ivory)] border border-[var(--line)] rounded-sm text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--forest)] transition';
+const addrLabel = 'block text-[11px] font-bold text-[var(--ink-soft)] uppercase tracking-wider mb-1.5';
 
 const TAB_KEYS: Tab[] = ['overview', 'orders', 'queries', 'profile', 'subscriptions', 'wallet', 'addresses'];
 
@@ -455,8 +455,8 @@ function AccountPageContent() {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
-        <main className="flex-1 bg-[#FAF8F3] flex items-center justify-center">
-          <div className="animate-pulse text-sm text-[#6b6661]">Loading your account…</div>
+        <main className="flex-1 bg-[var(--ivory)] flex items-center justify-center">
+          <div className="animate-pulse text-sm text-[var(--ink-soft)]">Loading your account…</div>
         </main>
         <Footer />
       </div>
@@ -468,21 +468,21 @@ function AccountPageContent() {
       <div className="flex flex-col min-h-screen">
         <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
 
-        <main className="flex-1 bg-[#FAF8F3]">
+        <main className="flex-1 bg-[var(--ivory)]">
           <div className="max-w-md mx-auto px-4 py-20 text-center">
-            <div className="bg-white border border-stone-200 rounded-2xl p-8">
-              <UserCog className="h-8 w-8 text-stone-300 mx-auto mb-3" />
-              <h1 className="font-serif font-black text-xl text-[#2A2A2A] mb-2">
+            <div className="bg-white border border-[var(--line)] rounded-sm p-8">
+              <UserCog className="h-8 w-8 text-[var(--line)] mx-auto mb-3" />
+              <h1 className="font-serif font-light text-xl text-[var(--ink)] mb-2">
                 {sessionExpired ? 'Your session has ended' : 'Sign in to see your account'}
               </h1>
-              <p className="text-sm text-[#6b6661] leading-relaxed mb-5">
+              <p className="text-sm text-[var(--ink-soft)] leading-relaxed mb-5">
                 {sessionExpired
                   ? 'For your security you have been signed out. Sign in again to see your orders and addresses.'
                   : 'Your orders, addresses and profile live here once you sign in.'}
               </p>
               <button
                 onClick={() => setIsAuthOpen(true)}
-                className="px-6 py-3 bg-[#3A6038] hover:bg-[#2f4d2e] text-white text-xs font-bold rounded-xl transition"
+                className="px-6 py-3 bg-[var(--forest)] hover:bg-[var(--pine)] text-white text-xs font-bold rounded-sm transition"
               >
                 Sign In
               </button>
@@ -505,9 +505,9 @@ function AccountPageContent() {
     <div className="flex flex-col min-h-screen">
       <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
 
-      <main className="flex-1 bg-[#FAF8F3]">
+      <main className="flex-1 bg-[var(--ivory)]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <h1 className="font-serif font-black text-3xl text-[#2A2A2A] mb-8">My Account</h1>
+          <h1 className="font-serif font-light text-3xl text-[var(--ink)] mb-8">My Account</h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-8">
             {/* Tab Sidebar */}
@@ -516,10 +516,10 @@ function AccountPageContent() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition ${
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-sm text-sm font-bold whitespace-nowrap transition ${
                     visibleTab === tab.key
-                      ? 'bg-[#3A6038] text-white shadow-md'
-                      : 'text-[#6b6661] hover:bg-white hover:text-[#2A2A2A]'
+                      ? 'bg-[var(--forest)] text-white'
+                      : 'text-[var(--ink-soft)] hover:bg-white hover:text-[var(--ink)]'
                   }`}
                 >
                   {tab.icon}
@@ -535,29 +535,29 @@ function AccountPageContent() {
                 <div className="space-y-8">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {walletEnabled && (
-                      <div className="bg-white border border-stone-200 rounded-xl p-6 text-center">
-                        <Wallet className="h-6 w-6 text-[#C59B27] mx-auto mb-2" />
-                        <p className="text-2xl font-black text-[#3A6038]">₹{walletBalance}</p>
-                        <p className="text-xs text-[#6b6661] mt-1">Wallet Balance</p>
-                        <button onClick={() => setActiveTab('wallet')} className="text-xs font-bold text-[#3A6038] mt-3 hover:underline">
+                      <div className="bg-white border border-[var(--line)] rounded-sm p-6 text-center">
+                        <Wallet className="h-6 w-6 text-[var(--brass)] mx-auto mb-2" />
+                        <p className="text-2xl font-black text-[var(--forest)]">₹{walletBalance}</p>
+                        <p className="text-xs text-[var(--ink-soft)] mt-1">Wallet Balance</p>
+                        <button onClick={() => setActiveTab('wallet')} className="text-xs font-bold text-[var(--forest)] mt-3 hover:underline">
                           Top Up
                         </button>
                       </div>
                     )}
-                    <div className="bg-white border border-stone-200 rounded-xl p-6 text-center">
-                      <Package className="h-6 w-6 text-[#C59B27] mx-auto mb-2" />
-                      <p className="text-2xl font-black text-[#2A2A2A]">{orders.length}</p>
-                      <p className="text-xs text-[#6b6661] mt-1">Total Orders</p>
-                      <button onClick={() => setActiveTab('orders')} className="text-xs font-bold text-[#3A6038] mt-3 hover:underline">
+                    <div className="bg-white border border-[var(--line)] rounded-sm p-6 text-center">
+                      <Package className="h-6 w-6 text-[var(--brass)] mx-auto mb-2" />
+                      <p className="text-2xl font-black text-[var(--ink)]">{orders.length}</p>
+                      <p className="text-xs text-[var(--ink-soft)] mt-1">Total Orders</p>
+                      <button onClick={() => setActiveTab('orders')} className="text-xs font-bold text-[var(--forest)] mt-3 hover:underline">
                         View All
                       </button>
                     </div>
                     {subscriptionsEnabled && (
-                      <div className="bg-white border border-stone-200 rounded-xl p-6 text-center">
-                        <Calendar className="h-6 w-6 text-[#C59B27] mx-auto mb-2" />
-                        <p className="text-2xl font-black text-[#2A2A2A]">{subscriptions.filter((s) => s.status === 'ACTIVE').length}</p>
-                        <p className="text-xs text-[#6b6661] mt-1">Active Subscriptions</p>
-                        <button onClick={() => setActiveTab('subscriptions')} className="text-xs font-bold text-[#3A6038] mt-3 hover:underline">
+                      <div className="bg-white border border-[var(--line)] rounded-sm p-6 text-center">
+                        <Calendar className="h-6 w-6 text-[var(--brass)] mx-auto mb-2" />
+                        <p className="text-2xl font-black text-[var(--ink)]">{subscriptions.filter((s) => s.status === 'ACTIVE').length}</p>
+                        <p className="text-xs text-[var(--ink-soft)] mt-1">Active Subscriptions</p>
+                        <button onClick={() => setActiveTab('subscriptions')} className="text-xs font-bold text-[var(--forest)] mt-3 hover:underline">
                           Manage
                         </button>
                       </div>
@@ -566,23 +566,23 @@ function AccountPageContent() {
 
                   {/* Recent Orders */}
                   <div>
-                    <h3 className="font-bold text-sm text-[#2A2A2A] mb-4">Recent Orders</h3>
+                    <h3 className="font-bold text-sm text-[var(--ink)] mb-4">Recent Orders</h3>
                     {orders.length === 0 ? (
-                      <p className="text-xs text-[#6b6661]">No orders yet. Start shopping!</p>
+                      <p className="text-xs text-[var(--ink-soft)]">No orders yet. Start shopping!</p>
                     ) : (
                       <div className="space-y-3">
                         {orders.slice(0, 3).map((order) => (
-                          <div key={order.id} className="bg-white border border-stone-200 rounded-lg p-4 flex items-center justify-between">
+                          <div key={order.id} className="bg-white border border-[var(--line)] rounded-sm p-4 flex items-center justify-between">
                             <div>
-                              <span className="text-sm font-bold text-[#2A2A2A]">{order.orderNumber}</span>
-                              <span className="mx-2 text-[#6b6661]">•</span>
-                              <span className="text-xs text-[#6b6661]">{new Date(order.createdAt).toLocaleDateString()}</span>
-                              <span className="mx-2 text-[#6b6661]">•</span>
-                              <span className="text-sm font-bold text-[#2A2A2A]">₹{Number(order.totalAmount).toLocaleString('en-IN')}</span>
+                              <span className="text-sm font-bold text-[var(--ink)]">{order.orderNumber}</span>
+                              <span className="mx-2 text-[var(--ink-soft)]">•</span>
+                              <span className="text-xs text-[var(--ink-soft)]">{new Date(order.createdAt).toLocaleDateString()}</span>
+                              <span className="mx-2 text-[var(--ink-soft)]">•</span>
+                              <span className="text-sm font-bold text-[var(--ink)]">₹{Number(order.totalAmount).toLocaleString('en-IN')}</span>
                             </div>
                             <div className="flex items-center gap-3">
                               <Badge status={order.status} />
-                              <Link href={`/orders/${order.id}`} className="text-xs font-bold text-[#3A6038] hover:underline flex items-center gap-1">
+                              <Link href={`/orders/${order.id}`} className="text-xs font-bold text-[var(--forest)] hover:underline flex items-center gap-1">
                                 Details <ArrowUpRight className="h-3 w-3" />
                               </Link>
                             </div>
@@ -597,22 +597,22 @@ function AccountPageContent() {
               {/* ORDERS */}
               {visibleTab === 'orders' && (
                 <div>
-                  <h3 className="font-bold text-sm text-[#2A2A2A] mb-4">All Orders</h3>
+                  <h3 className="font-bold text-sm text-[var(--ink)] mb-4">All Orders</h3>
                   {orders.length === 0 ? (
-                    <div className="bg-white border border-stone-200 rounded-xl p-12 text-center">
-                      <Package className="h-10 w-10 text-stone-200 mx-auto mb-3" />
-                      <p className="text-sm font-bold text-stone-400">No orders yet</p>
+                    <div className="bg-white border border-[var(--line)] rounded-sm p-12 text-center">
+                      <Package className="h-10 w-10 text-[var(--line)] mx-auto mb-3" />
+                      <p className="text-sm font-bold text-[var(--ink-soft)]">No orders yet</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       {orders.map((order) => (
-                        <div key={order.id} className="bg-white border border-stone-200 rounded-lg p-4 flex items-center justify-between">
+                        <div key={order.id} className="bg-white border border-[var(--line)] rounded-sm p-4 flex items-center justify-between">
                           <div>
-                            <span className="text-sm font-bold text-[#2A2A2A]">{order.orderNumber}</span>
-                            <span className="mx-2 text-[#6b6661]">•</span>
-                            <span className="text-xs text-[#6b6661]">{new Date(order.createdAt).toLocaleDateString()}</span>
-                            <span className="mx-2 text-[#6b6661]">•</span>
-                            <span className="text-sm font-bold text-[#2A2A2A]">₹{Number(order.totalAmount).toLocaleString('en-IN')}</span>
+                            <span className="text-sm font-bold text-[var(--ink)]">{order.orderNumber}</span>
+                            <span className="mx-2 text-[var(--ink-soft)]">•</span>
+                            <span className="text-xs text-[var(--ink-soft)]">{new Date(order.createdAt).toLocaleDateString()}</span>
+                            <span className="mx-2 text-[var(--ink-soft)]">•</span>
+                            <span className="text-sm font-bold text-[var(--ink)]">₹{Number(order.totalAmount).toLocaleString('en-IN')}</span>
                           </div>
                           <div className="flex flex-wrap items-center gap-3">
                             <Badge status={order.status} />
@@ -621,7 +621,7 @@ function AccountPageContent() {
                             <button
                               onClick={() => handleReorder(order.id)}
                               disabled={reorderingId === order.id}
-                              className="text-xs font-bold text-[#3A6038] hover:underline flex items-center gap-1 disabled:opacity-50"
+                              className="text-xs font-bold text-[var(--forest)] hover:underline flex items-center gap-1 disabled:opacity-50"
                             >
                               <RotateCcw className="h-3 w-3" />
                               {reorderingId === order.id ? 'Adding…' : 'Buy again'}
@@ -630,13 +630,13 @@ function AccountPageContent() {
                             {order.paymentStatus === 'PAID' && (
                               <Link
                                 href={`/orders/${order.id}/invoice`}
-                                className="text-xs font-bold text-[#6b6661] hover:underline flex items-center gap-1"
+                                className="text-xs font-bold text-[var(--ink-soft)] hover:underline flex items-center gap-1"
                               >
                                 <FileText className="h-3 w-3" /> Invoice
                               </Link>
                             )}
 
-                            <Link href={`/orders/${order.id}`} className="text-xs font-bold text-[#3A6038] hover:underline flex items-center gap-1">
+                            <Link href={`/orders/${order.id}`} className="text-xs font-bold text-[var(--forest)] hover:underline flex items-center gap-1">
                               Details <ArrowUpRight className="h-3 w-3" />
                             </Link>
                           </div>
@@ -649,8 +649,8 @@ function AccountPageContent() {
 
               {visibleTab === 'queries' && (
                 <div>
-                  <h3 className="font-bold text-sm text-[#2A2A2A] mb-1">My Questions</h3>
-                  <p className="text-xs text-[#6b6661] mb-4">
+                  <h3 className="font-bold text-sm text-[var(--ink)] mb-1">My Questions</h3>
+                  <p className="text-xs text-[var(--ink-soft)] mb-4">
                     Anything you have asked us, and what we said back.
                   </p>
                   <QueriesTab authFetch={authFetch} />
@@ -661,34 +661,34 @@ function AccountPageContent() {
               {/* SUBSCRIPTIONS */}
               {visibleTab === 'subscriptions' && (
                 <div>
-                  <h3 className="font-bold text-sm text-[#2A2A2A] mb-4">My Subscriptions</h3>
+                  <h3 className="font-bold text-sm text-[var(--ink)] mb-4">My Subscriptions</h3>
                   {subscriptions.length === 0 ? (
-                    <div className="bg-white border border-stone-200 rounded-xl p-12 text-center">
-                      <Calendar className="h-10 w-10 text-stone-200 mx-auto mb-3" />
-                      <p className="text-sm font-bold text-stone-400">No active subscriptions</p>
-                      <button onClick={() => router.push('/products')} className="text-xs font-bold text-[#3A6038] mt-3 hover:underline">
+                    <div className="bg-white border border-[var(--line)] rounded-sm p-12 text-center">
+                      <Calendar className="h-10 w-10 text-[var(--line)] mx-auto mb-3" />
+                      <p className="text-sm font-bold text-[var(--ink-soft)]">No active subscriptions</p>
+                      <button onClick={() => router.push('/products')} className="text-xs font-bold text-[var(--forest)] mt-3 hover:underline">
                         Browse subscribable products
                       </button>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {subscriptions.map((sub) => (
-                        <div key={sub.id} className="bg-white border border-stone-200 rounded-xl p-5">
+                        <div key={sub.id} className="bg-white border border-[var(--line)] rounded-sm p-5">
                           <div className="flex items-center justify-between mb-3">
-                            <h4 className="font-bold text-sm text-[#2A2A2A]">{sub.product?.name || 'Product'}</h4>
+                            <h4 className="font-bold text-sm text-[var(--ink)]">{sub.product?.name || 'Product'}</h4>
                             <Badge status={sub.status} />
                           </div>
-                          <div className="text-xs text-[#6b6661] space-y-1">
+                          <div className="text-xs text-[var(--ink-soft)] space-y-1">
                             <p>Quantity: {sub.quantity} per delivery</p>
                             <p>Frequency: {sub.frequency}</p>
                             <p>Next delivery: {sub.nextDelivery ? new Date(sub.nextDelivery).toLocaleDateString() : '—'}</p>
                           </div>
                           <div className="flex gap-2 mt-4">
-                            <button className="text-xs font-bold text-amber-600 hover:underline">Pause</button>
-                            <span className="text-stone-300">•</span>
-                            <button className="text-xs font-bold text-[#6b6661] hover:underline">Edit Qty</button>
-                            <span className="text-stone-300">•</span>
-                            <button className="text-xs font-bold text-red-500 hover:underline">Cancel</button>
+                            <button className="text-xs font-bold text-[var(--warn)] hover:underline">Pause</button>
+                            <span className="text-[var(--line)]">•</span>
+                            <button className="text-xs font-bold text-[var(--ink-soft)] hover:underline">Edit Qty</button>
+                            <span className="text-[var(--line)]">•</span>
+                            <button className="text-xs font-bold text-[var(--danger)] hover:underline">Cancel</button>
                           </div>
                         </div>
                       ))}
@@ -700,37 +700,37 @@ function AccountPageContent() {
               {/* WALLET */}
               {visibleTab === 'wallet' && (
                 <div>
-                  <div className="bg-white border border-stone-200 rounded-xl p-8 text-center mb-8">
-                    <p className="text-xs font-bold text-[#6b6661] uppercase tracking-wider mb-1">Current Balance</p>
-                    <p className="text-4xl font-black text-[#3A6038] mb-4">₹{walletBalance}</p>
-                    <button className="bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold py-3 px-8 rounded-lg transition">
+                  <div className="bg-white border border-[var(--line)] rounded-sm p-8 text-center mb-8">
+                    <p className="text-xs font-bold text-[var(--ink-soft)] uppercase tracking-wider mb-1">Current Balance</p>
+                    <p className="text-4xl font-black text-[var(--forest)] mb-4">₹{walletBalance}</p>
+                    <button className="bg-[var(--brass)] hover:bg-[var(--forest)] text-[#1a1405] hover:text-[var(--ivory)] font-bold py-3 px-8 rounded-sm transition">
                       Top Up Wallet
                     </button>
                   </div>
 
-                  <h3 className="font-bold text-sm text-[#2A2A2A] mb-4">Transaction History</h3>
-                  <div className="bg-white border border-stone-200 rounded-xl p-6">
+                  <h3 className="font-bold text-sm text-[var(--ink)] mb-4">Transaction History</h3>
+                  <div className="bg-white border border-[var(--line)] rounded-sm p-6">
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center text-sm border-b border-stone-100 pb-3">
+                      <div className="flex justify-between items-center text-sm border-b border-[var(--line)] pb-3">
                         <div>
-                          <span className="font-bold text-emerald-600">+₹2,000</span>
-                          <span className="ml-2 text-xs text-[#6b6661]">CREDIT</span>
+                          <span className="font-bold text-[var(--ok)]">+₹2,000</span>
+                          <span className="ml-2 text-xs text-[var(--ink-soft)]">CREDIT</span>
                         </div>
-                        <span className="text-xs text-[#6b6661]">Wallet Recharge</span>
+                        <span className="text-xs text-[var(--ink-soft)]">Wallet Recharge</span>
                       </div>
-                      <div className="flex justify-between items-center text-sm border-b border-stone-100 pb-3">
+                      <div className="flex justify-between items-center text-sm border-b border-[var(--line)] pb-3">
                         <div>
-                          <span className="font-bold text-red-500">-₹190</span>
-                          <span className="ml-2 text-xs text-[#6b6661]">DEBIT</span>
+                          <span className="font-bold text-[var(--danger)]">-₹190</span>
+                          <span className="ml-2 text-xs text-[var(--ink-soft)]">DEBIT</span>
                         </div>
-                        <span className="text-xs text-[#6b6661]">Milk delivery Jul 5</span>
+                        <span className="text-xs text-[var(--ink-soft)]">Milk delivery Jul 5</span>
                       </div>
                       <div className="flex justify-between items-center text-sm">
                         <div>
-                          <span className="font-bold text-red-500">-₹190</span>
-                          <span className="ml-2 text-xs text-[#6b6661]">DEBIT</span>
+                          <span className="font-bold text-[var(--danger)]">-₹190</span>
+                          <span className="ml-2 text-xs text-[var(--ink-soft)]">DEBIT</span>
                         </div>
-                        <span className="text-xs text-[#6b6661]">Milk delivery Jul 4</span>
+                        <span className="text-xs text-[var(--ink-soft)]">Milk delivery Jul 4</span>
                       </div>
                     </div>
                   </div>
@@ -741,16 +741,16 @@ function AccountPageContent() {
               {visibleTab === 'profile' && (
                 <div className="space-y-6 max-w-xl">
                   {/* Details */}
-                  <form onSubmit={saveProfile} className="bg-white border border-stone-200 rounded-xl p-5 space-y-3">
-                    <h3 className="font-bold text-sm text-[#2A2A2A]">Your details</h3>
+                  <form onSubmit={saveProfile} className="bg-white border border-[var(--line)] rounded-sm p-5 space-y-3">
+                    <h3 className="font-bold text-sm text-[var(--ink)]">Your details</h3>
 
                     {profileError && (
-                      <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-medium">
+                      <div className="p-3 bg-[var(--danger-bg)] border border-[var(--danger-line)] text-[var(--danger)] rounded-sm text-xs font-medium">
                         {profileError}
                       </div>
                     )}
                     {profileSaved && (
-                      <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs font-medium">
+                      <div className="flex items-center gap-2 p-3 bg-[var(--ok-bg)] border border-[var(--ok-line)] text-[var(--ok)] rounded-sm text-xs font-medium">
                         <Check className="h-4 w-4 shrink-0" /> Saved.
                       </div>
                     )}
@@ -778,7 +778,7 @@ function AccountPageContent() {
                         placeholder="10-digit mobile"
                         className={addrField}
                       />
-                      <p className="text-[11px] text-[#6b6661] mt-1.5">
+                      <p className="text-[11px] text-[var(--ink-soft)] mt-1.5">
                         Used for delivery updates and to reach you about an order.
                       </p>
                     </div>
@@ -795,7 +795,7 @@ function AccountPageContent() {
                       {/* Email is the sign-in identity. Changing it needs a
                           verification step of its own, so it is read-only
                           rather than a field that silently fails. */}
-                      <p className="text-[11px] text-[#6b6661] mt-1.5">
+                      <p className="text-[11px] text-[var(--ink-soft)] mt-1.5">
                         You sign in with this address. Write to us if you need it changed.
                       </p>
                     </div>
@@ -803,17 +803,17 @@ function AccountPageContent() {
                     <button
                       type="submit"
                       disabled={isSavingProfile}
-                      className="px-5 py-2.5 bg-[#3A6038] hover:bg-[#2f4d2e] text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
+                      className="px-5 py-2.5 bg-[var(--forest)] hover:bg-[var(--pine)] text-white text-xs font-bold rounded-sm transition disabled:opacity-50"
                     >
                       {isSavingProfile ? 'Saving…' : 'Save details'}
                     </button>
                   </form>
 
                   {/* How we contact you */}
-                  <div className="bg-white border border-stone-200 rounded-xl p-5 space-y-3">
+                  <div className="bg-white border border-[var(--line)] rounded-sm p-5 space-y-3">
                     <div>
-                      <h3 className="font-bold text-sm text-[#2A2A2A]">How we reach you</h3>
-                      <p className="text-xs text-[#6b6661] mt-0.5">
+                      <h3 className="font-bold text-sm text-[var(--ink)]">How we reach you</h3>
+                      <p className="text-xs text-[var(--ink-soft)] mt-0.5">
                         Saved as you change them. Messages about an order you have placed are
                         always sent — these control everything else.
                       </p>
@@ -838,39 +838,39 @@ function AccountPageContent() {
                     ].map(({ key, label, note }) => (
                       <label
                         key={key}
-                        className="flex items-start gap-3 py-2.5 border-t border-stone-100 first:border-t-0 cursor-pointer"
+                        className="flex items-start gap-3 py-2.5 border-t border-[var(--line)] first:border-t-0 cursor-pointer"
                       >
                         <input
                           type="checkbox"
                           checked={consent[key]}
                           disabled={consentSaving === key}
                           onChange={(e) => setChannel(key, e.target.checked)}
-                          className="h-4 w-4 mt-0.5 accent-[#3A6038]"
+                          className="h-4 w-4 mt-0.5 accent-[var(--forest)]"
                         />
                         <span className="text-xs">
-                          <span className="block font-bold text-[#2A2A2A]">
+                          <span className="block font-bold text-[var(--ink)]">
                             {label}
                             {consentSaving === key && (
-                              <span className="ml-2 font-normal text-[#6b6661]">saving…</span>
+                              <span className="ml-2 font-normal text-[var(--ink-soft)]">saving…</span>
                             )}
                           </span>
-                          <span className="text-[#6b6661]">{note}</span>
+                          <span className="text-[var(--ink-soft)]">{note}</span>
                         </span>
                       </label>
                     ))}
                   </div>
 
                   {/* Password */}
-                  <form onSubmit={savePassword} className="bg-white border border-stone-200 rounded-xl p-5 space-y-3">
-                    <h3 className="font-bold text-sm text-[#2A2A2A]">Change password</h3>
+                  <form onSubmit={savePassword} className="bg-white border border-[var(--line)] rounded-sm p-5 space-y-3">
+                    <h3 className="font-bold text-sm text-[var(--ink)]">Change password</h3>
 
                     {pwError && (
-                      <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-medium">
+                      <div className="p-3 bg-[var(--danger-bg)] border border-[var(--danger-line)] text-[var(--danger)] rounded-sm text-xs font-medium">
                         {pwError}
                       </div>
                     )}
                     {pwSaved && (
-                      <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs font-medium">
+                      <div className="flex items-center gap-2 p-3 bg-[var(--ok-bg)] border border-[var(--ok-line)] text-[var(--ok)] rounded-sm text-xs font-medium">
                         <Check className="h-4 w-4 shrink-0" /> Password changed.
                       </div>
                     )}
@@ -912,19 +912,19 @@ function AccountPageContent() {
                     <button
                       type="submit"
                       disabled={isSavingPw}
-                      className="px-5 py-2.5 bg-[#3A6038] hover:bg-[#2f4d2e] text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
+                      className="px-5 py-2.5 bg-[var(--forest)] hover:bg-[var(--pine)] text-white text-xs font-bold rounded-sm transition disabled:opacity-50"
                     >
                       {isSavingPw ? 'Changing…' : 'Change password'}
                     </button>
                   </form>
 
                   {/* Closing the account */}
-                  <div className="border border-red-200 bg-red-50/40 rounded-xl p-5 space-y-3">
+                  <div className="border border-[var(--danger-line)] bg-[var(--danger-bg)]/40 rounded-sm p-5 space-y-3">
                     <div className="flex items-start gap-2">
-                      <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                      <AlertTriangle className="h-4 w-4 text-[var(--danger)] shrink-0 mt-0.5" />
                       <div>
-                        <h3 className="font-bold text-sm text-[#2A2A2A]">Close my account</h3>
-                        <p className="text-xs text-[#6b6661] mt-1 leading-relaxed">
+                        <h3 className="font-bold text-sm text-[var(--ink)]">Close my account</h3>
+                        <p className="text-xs text-[var(--ink-soft)] mt-1 leading-relaxed">
                           Your name, email, phone, saved addresses and reviews are erased for
                           good. Invoices for orders you have already placed are kept, because
                           tax law requires us to — but your street address and phone number are
@@ -934,7 +934,7 @@ function AccountPageContent() {
                     </div>
 
                     {closeError && (
-                      <div className="p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg text-xs font-medium">
+                      <div className="p-3 bg-[var(--danger-bg)] border border-[var(--danger-line)] text-[var(--danger)] rounded-sm text-xs font-medium">
                         {closeError}
                       </div>
                     )}
@@ -945,7 +945,7 @@ function AccountPageContent() {
                           setIsClosing(true);
                           setCloseError('');
                         }}
-                        className="px-4 py-2.5 border border-red-300 text-red-700 hover:bg-red-100 text-xs font-bold rounded-lg transition"
+                        className="px-4 py-2.5 border border-[var(--danger-line)] text-[var(--danger)] hover:bg-[var(--danger-bg)] text-xs font-bold rounded-sm transition"
                       >
                         Close my account
                       </button>
@@ -975,7 +975,7 @@ function AccountPageContent() {
                           <button
                             onClick={confirmClose}
                             disabled={isClosingBusy}
-                            className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
+                            className="px-5 py-2.5 bg-[var(--danger)] hover:bg-[var(--danger)] text-white text-xs font-bold rounded-sm transition disabled:opacity-50"
                           >
                             {isClosingBusy ? 'Closing…' : 'Close my account for good'}
                           </button>
@@ -986,7 +986,7 @@ function AccountPageContent() {
                               setCloseConfirm('');
                               setCloseError('');
                             }}
-                            className="px-4 py-2.5 border border-stone-200 text-[#6b6661] text-xs font-bold rounded-lg hover:bg-white transition"
+                            className="px-4 py-2.5 border border-[var(--line)] text-[var(--ink-soft)] text-xs font-bold rounded-sm hover:bg-white transition"
                           >
                             Keep my account
                           </button>
@@ -1000,32 +1000,32 @@ function AccountPageContent() {
               {/* ADDRESSES */}
               {visibleTab === 'addresses' && (
                 <div>
-                  <h3 className="font-bold text-sm text-[#2A2A2A] mb-4">Saved Addresses</h3>
+                  <h3 className="font-bold text-sm text-[var(--ink)] mb-4">Saved Addresses</h3>
 
                   {addrError && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-medium">
+                    <div className="mb-4 p-3 bg-[var(--danger-bg)] border border-[var(--danger-line)] text-[var(--danger)] rounded-sm text-xs font-medium">
                       {addrError}
                     </div>
                   )}
 
                   {addresses.length === 0 && !isAddrFormOpen ? (
-                    <p className="text-xs text-[#6b6661] mb-6">No saved addresses.</p>
+                    <p className="text-xs text-[var(--ink-soft)] mb-6">No saved addresses.</p>
                   ) : (
                     <div className="space-y-3 mb-6">
                       {addresses.map((addr: any) => (
-                        <div key={addr.id} className="bg-white border border-stone-200 rounded-lg p-4 flex justify-between items-start gap-3">
+                        <div key={addr.id} className="bg-white border border-[var(--line)] rounded-sm p-4 flex justify-between items-start gap-3">
                           <div className="min-w-0">
-                            <span className="text-sm font-bold text-[#2A2A2A]">
-                              📍 {[addr.line1, addr.line2].filter(Boolean).join(', ')}
+                            <span className="text-sm font-bold text-[var(--ink)]">
+                              {[addr.line1, addr.line2].filter(Boolean).join(', ')}
                             </span>
-                            <p className="text-xs text-[#6b6661] mt-0.5">
+                            <p className="text-xs text-[var(--ink-soft)] mt-0.5">
                               {[addr.city, addr.state, addr.postalCode].filter(Boolean).join(', ')}
                               {addr.phone ? ` · ${addr.phone}` : ''}
                             </p>
                             {/* isDefault comes from the API — position in the
                                 list is not the same thing once one is deleted. */}
                             {addr.isDefault && (
-                              <span className="inline-block mt-1.5 text-[10px] font-bold text-[#3A6038] bg-[#3A6038]/10 px-2 py-0.5 rounded-full">
+                              <span className="inline-block mt-1.5 text-[10px] font-bold text-[var(--forest)] bg-[var(--forest)]/10 px-2 py-0.5 rounded-full">
                                 DEFAULT
                               </span>
                             )}
@@ -1035,14 +1035,14 @@ function AccountPageContent() {
                             <div className="flex gap-2">
                               <button
                                 onClick={() => openAddrForm(addr)}
-                                className="text-xs font-bold text-[#6b6661] hover:underline"
+                                className="text-xs font-bold text-[var(--ink-soft)] hover:underline"
                               >
                                 Edit
                               </button>
                               <button
                                 onClick={() => setPendingDeleteAddr(addr)}
                                 disabled={addrBusyId === addr.id}
-                                className="text-xs font-bold text-red-500 hover:underline disabled:opacity-50"
+                                className="text-xs font-bold text-[var(--danger)] hover:underline disabled:opacity-50"
                               >
                                 Delete
                               </button>
@@ -1051,7 +1051,7 @@ function AccountPageContent() {
                               <button
                                 onClick={() => makeDefault(addr.id)}
                                 disabled={addrBusyId === addr.id}
-                                className="text-[11px] font-bold text-[#3A6038] hover:underline disabled:opacity-50"
+                                className="text-[11px] font-bold text-[var(--forest)] hover:underline disabled:opacity-50"
                               >
                                 Set as default
                               </button>
@@ -1065,9 +1065,9 @@ function AccountPageContent() {
                   {isAddrFormOpen ? (
                     <form
                       onSubmit={saveAddress}
-                      className="bg-white border border-stone-200 rounded-xl p-5 space-y-3"
+                      className="bg-white border border-[var(--line)] rounded-sm p-5 space-y-3"
                     >
-                      <h4 className="font-bold text-sm text-[#2A2A2A]">
+                      <h4 className="font-bold text-sm text-[var(--ink)]">
                         {editingAddrId ? 'Edit address' : 'New address'}
                       </h4>
 
@@ -1141,7 +1141,7 @@ function AccountPageContent() {
                         <p
                           data-testid="account-pincode-note"
                           className={`text-[11px] ${
-                            pincodeNote.ok ? 'text-[#3A6038]' : 'text-amber-700'
+                            pincodeNote.ok ? 'text-[var(--forest)]' : 'text-[var(--warn)]'
                           }`}
                         >
                           {pincodeNote.text}
@@ -1152,14 +1152,14 @@ function AccountPageContent() {
                         <button
                           type="submit"
                           disabled={isSavingAddr}
-                          className="px-5 py-2.5 bg-[#3A6038] hover:bg-[#2f4d2e] text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
+                          className="px-5 py-2.5 bg-[var(--forest)] hover:bg-[var(--pine)] text-white text-xs font-bold rounded-sm transition disabled:opacity-50"
                         >
                           {isSavingAddr ? 'Saving…' : editingAddrId ? 'Save changes' : 'Save address'}
                         </button>
                         <button
                           type="button"
                           onClick={closeAddrForm}
-                          className="px-4 py-2.5 border border-stone-200 text-[#6b6661] text-xs font-bold rounded-lg hover:bg-[#FAF8F3] transition"
+                          className="px-4 py-2.5 border border-[var(--line)] text-[var(--ink-soft)] text-xs font-bold rounded-sm hover:bg-[var(--ivory)] transition"
                         >
                           Cancel
                         </button>
@@ -1168,7 +1168,7 @@ function AccountPageContent() {
                   ) : (
                     <button
                       onClick={() => openAddrForm()}
-                      className="flex items-center gap-2 text-xs font-bold text-[#3A6038] hover:underline"
+                      className="flex items-center gap-2 text-xs font-bold text-[var(--forest)] hover:underline"
                     >
                       <Plus className="h-3 w-3" />
                       Add New Address
@@ -1177,12 +1177,12 @@ function AccountPageContent() {
 
                   {/* Delete confirmation */}
                   {pendingDeleteAddr && (
-                    <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                      <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-stone-200 p-6 space-y-4">
-                        <h4 className="font-serif font-bold text-base text-[#2A2A2A]">
+                    <div className="fixed inset-0 bg-[var(--ink)]/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                      <div className="bg-white w-full max-w-sm rounded-sm shadow-2xl border border-[var(--line)] p-6 space-y-4">
+                        <h4 className="font-serif font-normal text-base text-[var(--ink)]">
                           Delete this address?
                         </h4>
-                        <p className="text-xs text-[#6b6661] leading-relaxed">
+                        <p className="text-xs text-[var(--ink-soft)] leading-relaxed">
                           {[pendingDeleteAddr.line1, pendingDeleteAddr.city, pendingDeleteAddr.postalCode]
                             .filter(Boolean)
                             .join(', ')}
@@ -1193,14 +1193,14 @@ function AccountPageContent() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => setPendingDeleteAddr(null)}
-                            className="px-4 py-2.5 border border-stone-200 text-[#6b6661] text-xs font-bold rounded-lg hover:bg-[#FAF8F3] transition"
+                            className="px-4 py-2.5 border border-[var(--line)] text-[var(--ink-soft)] text-xs font-bold rounded-sm hover:bg-[var(--ivory)] transition"
                           >
                             Keep it
                           </button>
                           <button
                             onClick={confirmDeleteAddress}
                             disabled={addrBusyId === pendingDeleteAddr.id}
-                            className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
+                            className="px-4 py-2.5 bg-[var(--danger)] hover:bg-[var(--danger)] text-white text-xs font-bold rounded-sm transition disabled:opacity-50"
                           >
                             Delete
                           </button>
@@ -1231,8 +1231,8 @@ export default function AccountPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#FAF8F3] flex items-center justify-center">
-          <div className="animate-pulse text-sm text-[#6b6661]">Loading your account…</div>
+        <div className="min-h-screen bg-[var(--ivory)] flex items-center justify-center">
+          <div className="animate-pulse text-sm text-[var(--ink-soft)]">Loading your account…</div>
         </div>
       }
     >

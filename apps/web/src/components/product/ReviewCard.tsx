@@ -21,24 +21,24 @@ export default function ReviewCard({ review }: ReviewCardProps) {
   });
 
   return (
-    <div className="border-b border-stone-100 pb-5 mb-5 last:border-0 last:mb-0 last:pb-0">
+    <div className="border-b border-[var(--line)] pb-5 mb-5 last:border-0 last:mb-0 last:pb-0">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <StarRating rating={review.rating} size="sm" />
-          <span className="text-xs font-bold text-[#2A2A2A]">{review.user?.name || 'Customer'}</span>
+          <span className="text-xs font-bold text-[var(--ink)]">{review.user?.name || 'Customer'}</span>
         </div>
-        <span className="text-[11px] text-[#6b6661]">{date}</span>
+        <span className="text-[11px] text-[var(--ink-soft)]">{date}</span>
       </div>
       {review.title && (
-        <h4 className="font-bold text-sm text-[#2A2A2A] mb-1">&ldquo;{review.title}&rdquo;</h4>
+        <h4 className="font-bold text-sm text-[var(--ink)] mb-1">&ldquo;{review.title}&rdquo;</h4>
       )}
       {review.comment && (
-        <p className="text-xs text-[#6b6661] leading-relaxed">{review.comment}</p>
+        <p className="text-xs text-[var(--ink-soft)] leading-relaxed">{review.comment}</p>
       )}
       {review.mediaUrls && review.mediaUrls.length > 0 && (
         <div className="flex gap-2 mt-3">
           {review.mediaUrls.map((url, i) => (
-            <div key={i} className="w-16 h-16 bg-stone-100 rounded-lg overflow-hidden border border-stone-200">
+            <div key={i} className="w-16 h-16 bg-[var(--cream)] rounded-sm overflow-hidden border border-[var(--line)]">
               <img src={url} alt={`Review media ${i + 1}`} className="w-full h-full object-cover" />
             </div>
           ))}

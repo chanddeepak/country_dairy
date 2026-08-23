@@ -50,15 +50,15 @@ const SUBTITLE_SIZE = {
 } as const;
 
 const FONT = {
-  display: 'font-serif font-black',
+  display: 'font-serif font-light',
   body: 'font-sans font-bold',
 } as const;
 
 /** `auto` is resolved from the scrim, which is what keeps text legible. */
 const TEXT_COLOR = {
   light: 'text-white',
-  dark: 'text-stone-900',
-  gold: 'text-[#C59B27]',
+  dark: 'text-[var(--ink)]',
+  gold: 'text-[var(--brass)]',
 } as const;
 
 const SCRIM = {
@@ -98,7 +98,7 @@ export function heroLayoutClasses(raw: unknown): HeroLayoutClasses {
     block: `space-y-3.5 ${TEXT_ALIGN[layout.align]}`,
     headline: `${FONT[layout.font]} leading-tight drop-shadow-lg ${HEADLINE_SIZE[layout.size]} ${TEXT_COLOR[resolvedColor]}`,
     subtitle: `${SUBTITLE_SIZE[layout.size]} leading-relaxed drop-shadow ${
-      resolvedColor === 'dark' ? 'text-stone-800' : 'text-white/90'
+      resolvedColor === 'dark' ? 'text-[var(--ink)]' : 'text-white/90'
     }`,
     blockStyle: {
       maxWidth: `${layout.maxWidth}%`,

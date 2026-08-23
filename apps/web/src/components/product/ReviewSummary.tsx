@@ -23,9 +23,9 @@ export default function ReviewSummary({ averageRating, totalReviews, distributio
     <div className="flex flex-col sm:flex-row gap-8 items-start">
       {/* Average Score */}
       <div className="text-center sm:text-left">
-        <div className="text-5xl font-black text-[#2A2A2A] mb-1">{averageRating.toFixed(1)}</div>
+        <div className="text-5xl font-black text-[var(--ink)] mb-1">{averageRating.toFixed(1)}</div>
         <StarRating rating={averageRating} size="md" />
-        <p className="text-xs text-[#6b6661] mt-1">{totalReviews} reviews</p>
+        <p className="text-xs text-[var(--ink-soft)] mt-1">{totalReviews} reviews</p>
       </div>
 
       {/* Distribution Bars */}
@@ -35,15 +35,15 @@ export default function ReviewSummary({ averageRating, totalReviews, distributio
           const pct = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
           return (
             <div key={star} className="flex items-center gap-2">
-              <span className="text-xs font-bold text-[#2A2A2A] w-3">{star}</span>
+              <span className="text-xs font-bold text-[var(--ink)] w-3">{star}</span>
               <StarRating rating={star} maxStars={1} size="sm" />
-              <div className="flex-1 bg-stone-100 rounded-full h-2 overflow-hidden">
+              <div className="flex-1 bg-[var(--cream)] rounded-full h-2 overflow-hidden">
                 <div
-                  className="bg-[#C59B27] h-full rounded-full transition-all"
+                  className="bg-[var(--brass)] h-full rounded-full transition-all"
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <span className="text-[11px] text-[#6b6661] w-6 text-right">{count}</span>
+              <span className="text-[11px] text-[var(--ink-soft)] w-6 text-right">{count}</span>
             </div>
           );
         })}

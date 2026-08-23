@@ -132,41 +132,41 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   return (
-    <div data-testid="auth-modal" className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={handleClose}>
-      <div className="bg-white max-w-sm w-full p-8 rounded-2xl shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+    <div data-testid="auth-modal" className="fixed inset-0 z-50 bg-[var(--ink)]/55 backdrop-blur-sm flex items-center justify-center p-4" onClick={handleClose}>
+      <div className="bg-white max-w-sm w-full p-8 rounded-sm shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 text-stone-400 hover:text-stone-700 transition"
+          className="absolute top-4 right-4 text-[var(--ink-soft)] hover:text-[var(--ink)] transition"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <h3 className="font-serif font-black text-2xl text-[#2A2A2A] mb-2">Welcome</h3>
-        <p className="text-xs text-[#6b6661] mb-6">
+        <h3 className="font-serif font-light text-2xl text-[var(--ink)] mb-2">Welcome</h3>
+        <p className="text-xs text-[var(--ink-soft)] mb-6">
           Sign in to track your orders and check out faster.
         </p>
 
         {/* Tabs — hidden when only one sign-in method is enabled. */}
         {enabledMethods.length > 1 && (
-        <div className="flex bg-stone-100 p-1 rounded-xl mb-6">
+        <div className="flex bg-[var(--cream)] p-1 rounded-sm mb-6">
           {methods.mobile && (
           <button 
             onClick={() => setActiveTab('mobile')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center transition ${activeTab === 'mobile' ? 'bg-white shadow text-[#2A2A2A]' : 'text-[#6b6661]'}`}
+            className={`flex-1 py-2 text-xs font-bold rounded-sm flex items-center justify-center transition ${activeTab === 'mobile' ? 'bg-white shadow text-[var(--ink)]' : 'text-[var(--ink-soft)]'}`}
           >
             <Smartphone className="w-4 h-4 mr-1" /> Mobile
           </button>
           )}
           <button 
             onClick={() => setActiveTab('email')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center transition ${activeTab === 'email' ? 'bg-white shadow text-[#2A2A2A]' : 'text-[#6b6661]'}`}
+            className={`flex-1 py-2 text-xs font-bold rounded-sm flex items-center justify-center transition ${activeTab === 'email' ? 'bg-white shadow text-[var(--ink)]' : 'text-[var(--ink-soft)]'}`}
           >
             <Mail className="w-4 h-4 mr-1" /> Email
           </button>
           {methods.google && (
           <button 
             onClick={() => setActiveTab('google')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center transition ${activeTab === 'google' ? 'bg-white shadow text-[#2A2A2A]' : 'text-[#6b6661]'}`}
+            className={`flex-1 py-2 text-xs font-bold rounded-sm flex items-center justify-center transition ${activeTab === 'google' ? 'bg-white shadow text-[var(--ink)]' : 'text-[var(--ink-soft)]'}`}
           >
             <Globe className="w-4 h-4 mr-1" /> Google
           </button>
@@ -175,7 +175,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         )}
 
         {error && (
-          <div className="bg-red-50 text-red-700 p-3 rounded-lg text-xs font-bold mb-4">
+          <div className="bg-[var(--danger-bg)] text-[var(--danger)] p-3 rounded-sm text-xs font-bold mb-4">
             {error}
           </div>
         )}
@@ -185,36 +185,36 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           !otpSent ? (
             <form onSubmit={handleSendOtp} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-[#2A2A2A] block mb-1">Mobile Number:</label>
+                <label className="text-xs font-bold text-[var(--ink)] block mb-1">Mobile Number:</label>
                 <input
                   type="tel"
                   value={loginPhone}
                   onChange={(e) => setLoginPhone(e.target.value)}
                   placeholder="+919876543210"
-                  className="w-full bg-[#FAF8F3] border border-stone-300 px-4 py-3 rounded-xl text-[#2A2A2A] placeholder-stone-400 focus:outline-none focus:border-[#3A6038] transition"
+                  className="w-full bg-[var(--ivory)] border border-[var(--line)] px-4 py-3 rounded-sm text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--forest)] transition"
                 />
               </div>
-              <button type="submit" className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3 rounded-xl transition">
+              <button type="submit" className="w-full bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-3 rounded-sm transition">
                 Request OTP
               </button>
             </form>
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-[#2A2A2A] block mb-1">6-digit Code:</label>
+                <label className="text-xs font-bold text-[var(--ink)] block mb-1">6-digit Code:</label>
                 <input
                   type="text"
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value)}
                   placeholder="e.g. 123456"
                   maxLength={6}
-                  className="w-full bg-[#FAF8F3] border border-stone-300 px-4 py-3 rounded-xl text-[#2A2A2A] focus:outline-none focus:border-[#3A6038] text-center tracking-[0.5em] font-black transition"
+                  className="w-full bg-[var(--ivory)] border border-[var(--line)] px-4 py-3 rounded-sm text-[var(--ink)] focus:outline-none focus:border-[var(--forest)] text-center tracking-[0.5em] font-black transition"
                 />
               </div>
-              <button type="submit" className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3 rounded-xl transition">
+              <button type="submit" className="w-full bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-3 rounded-sm transition">
                 Verify Code
               </button>
-              <div className="bg-emerald-50 text-emerald-700 p-3 rounded-lg text-[10px] text-center font-bold">
+              <div className="bg-[var(--ok-bg)] text-[var(--ok)] p-3 rounded-sm text-[10px] text-center font-bold">
                 Development Code: <strong>123456</strong>
               </div>
             </form>
@@ -226,7 +226,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <form onSubmit={handleEmailAuth} className="space-y-4">
             {isRegistering && (
               <div>
-                <label className="text-xs font-bold text-[#2A2A2A] block mb-1">Full Name:</label>
+                <label className="text-xs font-bold text-[var(--ink)] block mb-1">Full Name:</label>
                 <input
                   type="text"
                   required
@@ -234,36 +234,36 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   onChange={(e) => setName(e.target.value)}
                   data-testid="signup-name"
                   placeholder="Amit Sharma"
-                  className="w-full bg-[#FAF8F3] border border-stone-300 px-4 py-3 rounded-xl text-[#2A2A2A] placeholder-stone-400 focus:outline-none focus:border-[#3A6038] transition"
+                  className="w-full bg-[var(--ivory)] border border-[var(--line)] px-4 py-3 rounded-sm text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--forest)] transition"
                 />
               </div>
             )}
             <div>
-              <label className="text-xs font-bold text-[#2A2A2A] block mb-1">Email Address:</label>
+              <label className="text-xs font-bold text-[var(--ink)] block mb-1">Email Address:</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="user@example.com"
-                className="w-full bg-[#FAF8F3] border border-stone-300 px-4 py-3 rounded-xl text-[#2A2A2A] placeholder-stone-400 focus:outline-none focus:border-[#3A6038] transition"
+                className="w-full bg-[var(--ivory)] border border-[var(--line)] px-4 py-3 rounded-sm text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--forest)] transition"
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-[#2A2A2A] block mb-1">Password:</label>
+              <label className="text-xs font-bold text-[var(--ink)] block mb-1">Password:</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-[#FAF8F3] border border-stone-300 px-4 py-3 rounded-xl text-[#2A2A2A] placeholder-stone-400 focus:outline-none focus:border-[#3A6038] transition"
+                className="w-full bg-[var(--ivory)] border border-[var(--line)] px-4 py-3 rounded-sm text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--forest)] transition"
               />
             </div>
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3 rounded-xl transition disabled:opacity-60 flex items-center justify-center gap-2"
+              className="w-full bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-3 rounded-sm transition disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
               {isLoading ? 'Please wait…' : isRegistering ? 'Create Account' : 'Sign In'}
@@ -273,7 +273,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 type="button" 
                 onClick={() => setIsRegistering(!isRegistering)}
                 data-testid="toggle-register"
-                className="text-xs text-[#C59B27] font-bold hover:underline"
+                className="text-xs text-[var(--brass)] font-bold hover:underline"
               >
                 {isRegistering ? 'Already have an account? Sign In' : "Don't have an account? Register"}
               </button>
@@ -288,9 +288,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <div id="googleSignInBtn"></div>
             ) : (
               <div className="text-center space-y-3">
-                <Globe className="w-10 h-10 text-stone-300 mx-auto" />
-                <p className="text-sm font-bold text-stone-500">Google Sign-In Coming Soon</p>
-                <p className="text-xs text-stone-400">Client ID needs to be configured in .env</p>
+                <Globe className="w-10 h-10 text-[var(--line)] mx-auto" />
+                <p className="text-sm font-bold text-[var(--ink-soft)]">Google Sign-In Coming Soon</p>
+                <p className="text-xs text-[var(--ink-soft)]">Client ID needs to be configured in .env</p>
               </div>
             )}
           </div>

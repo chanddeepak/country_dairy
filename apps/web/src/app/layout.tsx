@@ -50,7 +50,7 @@ export default function RootLayout({
       lang="en"
       className={`${newsreader.variable} ${jost.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#FAF8F3] text-[#2A2A2A] font-sans">
+      <body className="min-h-full flex flex-col bg-[var(--ivory)] text-[var(--ink)] font-sans">
         <StoreConfigProvider>
           <AppProvider>
             <PageViewTracker />

@@ -154,12 +154,12 @@ export default function ProductsPage() {
     <div className="flex flex-col min-h-screen">
       <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
 
-      <main className="flex-1 bg-[#FAF8F3]">
+      <main className="flex-1 bg-[var(--ivory)]">
         {/* Page Header */}
-        <div className="bg-white border-b border-stone-200">
+        <div className="bg-white border-b border-[var(--line)]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            <h1 className="font-serif font-black text-3xl md:text-4xl text-[#2A2A2A] mb-2">Our Products</h1>
-            <p className="text-sm text-[#6b6661]">
+            <h1 className="font-serif font-light text-3xl md:text-4xl text-[var(--ink)] mb-2">Our Products</h1>
+            <p className="text-sm text-[var(--ink-soft)]">
               Ethically sourced, lab-verified organic products delivered fresh to your doorstep.
             </p>
           </div>
@@ -170,13 +170,13 @@ export default function ProductsPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             {/* Search */}
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--ink-soft)]" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search products..."
-                className="w-full bg-white border border-stone-200 pl-10 pr-4 py-2.5 rounded-lg text-sm text-[#2A2A2A] placeholder-stone-400 focus:outline-none focus:border-[#3A6038] transition"
+                className="w-full bg-white border border-[var(--line)] pl-10 pr-4 py-2.5 rounded-sm text-sm text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--forest)] transition"
               />
             </div>
 
@@ -193,8 +193,8 @@ export default function ProductsPage() {
                     onClick={() => setActiveCategory(cat)}
                     className={`px-4 py-1.5 rounded-full text-xs font-bold border transition ${
                       activeCategory === cat
-                        ? 'bg-[#3A6038] text-white border-[#3A6038]'
-                        : 'bg-white text-[#6b6661] border-stone-200 hover:border-[#3A6038] hover:text-[#3A6038]'
+                        ? 'bg-[var(--forest)] text-white border-[var(--forest)]'
+                        : 'bg-white text-[var(--ink-soft)] border-[var(--line)] hover:border-[var(--forest)] hover:text-[var(--forest)]'
                     }`}
                   >
                     {cat}
@@ -206,7 +206,7 @@ export default function ProductsPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-white border border-stone-200 px-3 py-2 rounded-lg text-xs font-bold text-[#2A2A2A] focus:outline-none focus:border-[#3A6038]"
+                className="bg-white border border-[var(--line)] px-3 py-2 rounded-sm text-xs font-bold text-[var(--ink)] focus:outline-none focus:border-[var(--forest)]"
               >
                 {SORT_OPTIONS.filter(opt => ENABLE_PRODUCT_RATINGS || opt.value !== 'rating').map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -225,14 +225,14 @@ export default function ProductsPage() {
                     key={`${groupId}:${value}`}
                     onClick={() => toggle(groupId, value)}
                     data-testid="applied-filter"
-                    className="flex items-center gap-1.5 rounded-full bg-[#3A6038]/10 px-3 py-1.5 text-[12px] font-semibold text-[#3A6038] transition hover:bg-[#3A6038]/20"
+                    className="flex items-center gap-1.5 rounded-full bg-[var(--forest)]/10 px-3 py-1.5 text-[12px] font-semibold text-[var(--forest)] transition hover:bg-[var(--forest)]/20"
                   >
                     {filterChipLabel(groupId, value)}
                     <X className="h-3 w-3" />
                   </button>
                 )),
               )}
-              <span className="ml-auto text-[12px] text-[#6b6661]">
+              <span className="ml-auto text-[12px] text-[var(--ink-soft)]">
                 {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
               </span>
             </div>
@@ -243,7 +243,7 @@ export default function ProductsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
           {filteredProducts.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-sm font-bold text-stone-400">No products found matching your criteria.</p>
+              <p className="text-sm font-bold text-[var(--ink-soft)]">No products found matching your criteria.</p>
             </div>
           ) : (
             <>
@@ -264,10 +264,10 @@ export default function ProductsPage() {
 
               {soldOut.length > 0 && (
                 <section className="mt-14">
-                  <h2 className="font-serif font-bold text-lg text-[#2A2A2A] mb-1">
+                  <h2 className="font-serif font-normal text-lg text-[var(--ink)] mb-1">
                     Currently out of stock
                   </h2>
-                  <p className="text-xs text-[#6b6661] mb-5">
+                  <p className="text-xs text-[var(--ink-soft)] mb-5">
                     Back as soon as the next batch is churned.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">

@@ -37,6 +37,8 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
   const displayPrice = defaultVariant ? defaultVariant.price : product.price;
   const displayOriginalPrice = defaultVariant ? defaultVariant.originalPrice : product.originalPrice;
   const discountBadge = defaultVariant?.discountPercent || product.discountBadge;
+  const sizeLabel =
+    defaultVariant?.volumeOrWeight || product.metadata?.volume || product.metadata?.weight || '';
   const productUrl = defaultVariant ? `/products/${product.slug}?variant=${defaultVariant.id}` : `/products/${product.slug}`;
 
   // Availability is derived from stock, with forceOutOfStock as the manual
@@ -99,10 +101,15 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
        * before it reaches the product. Nine elements on the old card became
        * four that matter, and the rest either moved to the product page or
        * stopped repeating what the whole site already says.
+       *
+       * The panel is white rather than cream because every packshot in the
+       * catalogue is a white studio shot. On cream the photograph's own
+       * background showed as a white rectangle inside a warm one, which looks
+       * like a bug. White makes the same pixels read as a deliberate plinth.
        */}
       <Link
         href={productUrl}
-        className="relative block aspect-square overflow-hidden bg-[var(--cream)]"
+        className="relative block aspect-square overflow-hidden bg-white"
       >
         {discountBadge && !isOutOfStock && (
           <span className="absolute top-3 left-3 z-10 bg-[var(--forest)] text-[var(--ivory)] text-[10px] font-medium px-2.5 py-1 tracking-[0.1em] uppercase">
@@ -199,9 +206,11 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
           </h3>
         </Link>
 
-        <p className="mt-1 text-[12px] tracking-[0.04em] text-[var(--ink-soft)]">
-          {defaultVariant?.volumeOrWeight || product.metadata?.volume || product.metadata?.weight || ''}
-        </p>
+        {/* Expanded variants already carry the size in the name — "… — 1 Litre
+            Glass Jar" — and printing it again underneath reads as a mistake. */}
+        {sizeLabel && !product.name.includes(sizeLabel) && (
+          <p className="mt-1 text-[12px] tracking-[0.04em] text-[var(--ink-soft)]">{sizeLabel}</p>
+        )}
 
         <div className="mt-2.5 flex items-baseline gap-2">
           <span className="text-[17px] text-[var(--ink)] tabular">&#8377;{displayPrice}</span>
@@ -211,7 +220,7 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
         </div>
 
         {isAdding === false && cartError && pendingCartVariantId === null && justAdded === false && (
-          <p className="mt-2 text-[11px] text-[#9B3B2A]">{cartError}</p>
+          <p className="mt-2 text-[11px] text-[var(--terra)]">{cartError}</p>
         )}
 
         {/* Secondary routes stay, quietly, below the fold of the card. */}

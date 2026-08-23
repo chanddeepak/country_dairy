@@ -99,14 +99,14 @@ export default function ReviewSection({
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <h2 className="font-serif font-black text-2xl text-[#2A2A2A]">Customer Reviews</h2>
+        <h2 className="font-serif font-light text-2xl text-[var(--ink)]">Customer Reviews</h2>
 
         {/* Compact trigger. The form used to sit inline and pushed the actual
             reviews below the fold. */}
         {token ? (
           <button
             onClick={() => setShowForm(true)}
-            className="bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-2.5 px-5 rounded-lg text-sm transition shrink-0"
+            className="bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-2.5 px-5 rounded-sm text-sm transition shrink-0"
           >
             {data?.reviews.some((r) => r.userId === currentUserId)
               ? 'Write another review'
@@ -115,7 +115,7 @@ export default function ReviewSection({
         ) : (
           <button
             onClick={onRequestSignIn}
-            className="border-2 border-[#3A6038] text-[#3A6038] hover:bg-[#3A6038]/5 font-bold py-2.5 px-5 rounded-lg text-sm transition shrink-0"
+            className="border-2 border-[var(--forest)] text-[var(--forest)] hover:bg-[var(--forest)]/5 font-bold py-2.5 px-5 rounded-sm text-sm transition shrink-0"
           >
             Sign in to review
           </button>
@@ -123,36 +123,36 @@ export default function ReviewSection({
       </div>
 
       {isLoading && !data ? (
-        <div className="flex items-center gap-2 py-10 text-sm text-[#6b6661] justify-center">
+        <div className="flex items-center gap-2 py-10 text-sm text-[var(--ink-soft)] justify-center">
           <Loader2 className="h-4 w-4 animate-spin" /> Loading reviews…
         </div>
       ) : error ? (
-        <p className="text-sm text-red-600 font-bold">{error}</p>
+        <p className="text-sm text-[var(--danger)] font-bold">{error}</p>
       ) : total === 0 ? (
-        <div className="bg-[#FAF8F3] border border-stone-200 rounded-xl p-8 text-center">
-          <Star className="h-8 w-8 text-stone-300 mx-auto mb-3" />
-          <p className="text-sm font-bold text-[#2A2A2A] mb-1">No reviews yet</p>
-          <p className="text-xs text-[#6b6661]">
+        <div className="bg-[var(--ivory)] border border-[var(--line)] rounded-sm p-8 text-center">
+          <Star className="h-8 w-8 text-[var(--line)] mx-auto mb-3" />
+          <p className="text-sm font-bold text-[var(--ink)] mb-1">No reviews yet</p>
+          <p className="text-xs text-[var(--ink-soft)]">
             Be the first to share how you found this product.
           </p>
         </div>
       ) : (
         <>
           {/* Summary + histogram */}
-          <div className="flex flex-col sm:flex-row gap-6 bg-[#FAF8F3] border border-stone-200 rounded-xl p-6">
+          <div className="flex flex-col sm:flex-row gap-6 bg-[var(--ivory)] border border-[var(--line)] rounded-sm p-6">
             <div className="text-center shrink-0">
-              <div className="text-4xl font-black text-[#2A2A2A]">{average.toFixed(1)}</div>
+              <div className="text-4xl font-black text-[var(--ink)]">{average.toFixed(1)}</div>
               <div className="flex justify-center gap-0.5 my-1.5">
                 {Array.from({ length: 5 }, (_, i) => (
                   <Star
                     key={i}
                     className={`h-4 w-4 ${
-                      i < Math.round(average) ? 'fill-[#C59B27] text-[#C59B27]' : 'text-stone-300'
+                      i < Math.round(average) ? 'fill-[var(--brass)] text-[var(--brass)]' : 'text-[var(--line)]'
                     }`}
                   />
                 ))}
               </div>
-              <div className="text-xs text-[#6b6661]">
+              <div className="text-xs text-[var(--ink-soft)]">
                 {total} {total === 1 ? 'review' : 'reviews'}
               </div>
             </div>
@@ -160,15 +160,15 @@ export default function ReviewSection({
             <div className="flex-1 space-y-1.5 self-center">
               {data?.distribution.map((row) => (
                 <div key={row.stars} className="flex items-center gap-2 text-xs">
-                  <span className="w-3 text-[#6b6661]">{row.stars}</span>
-                  <Star className="h-3 w-3 fill-[#C59B27] text-[#C59B27]" />
-                  <div className="flex-1 h-1.5 bg-stone-200 rounded-full overflow-hidden">
+                  <span className="w-3 text-[var(--ink-soft)]">{row.stars}</span>
+                  <Star className="h-3 w-3 fill-[var(--brass)] text-[var(--brass)]" />
+                  <div className="flex-1 h-1.5 bg-[var(--sand)] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#C59B27] rounded-full"
+                      className="h-full bg-[var(--brass)] rounded-full"
                       style={{ width: total ? `${(row.count / total) * 100}%` : '0%' }}
                     />
                   </div>
-                  <span className="w-6 text-right text-[#6b6661]">{row.count}</span>
+                  <span className="w-6 text-right text-[var(--ink-soft)]">{row.count}</span>
                 </div>
               ))}
             </div>
@@ -177,7 +177,7 @@ export default function ReviewSection({
           {/* Review list */}
           <div className="space-y-5">
             {data?.reviews.map((review) => (
-              <div key={review.id} className="border-b border-stone-100 pb-5 last:border-0">
+              <div key={review.id} className="border-b border-[var(--line)] pb-5 last:border-0">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -186,28 +186,28 @@ export default function ReviewSection({
                           <Star
                             key={i}
                             className={`h-3.5 w-3.5 ${
-                              i < review.rating ? 'fill-[#C59B27] text-[#C59B27]' : 'text-stone-200'
+                              i < review.rating ? 'fill-[var(--brass)] text-[var(--brass)]' : 'text-[var(--line)]'
                             }`}
                           />
                         ))}
                       </div>
-                      <span className="font-bold text-sm text-[#2A2A2A]">
+                      <span className="font-bold text-sm text-[var(--ink)]">
                         {review.user?.name || 'Verified Customer'}
                       </span>
                       {review.isVerifiedPurchase && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--ok)] bg-[var(--ok-bg)] border border-[var(--ok-line)] px-1.5 py-0.5 rounded">
                           <BadgeCheck className="h-3 w-3" /> Verified purchase
                         </span>
                       )}
                     </div>
 
                     {review.title && (
-                      <h4 className="font-bold text-[#2A2A2A] mt-1.5">{review.title}</h4>
+                      <h4 className="font-bold text-[var(--ink)] mt-1.5">{review.title}</h4>
                     )}
                     {review.comment && (
-                      <p className="text-sm text-[#6b6661] mt-1 leading-relaxed">{review.comment}</p>
+                      <p className="text-sm text-[var(--ink-soft)] mt-1 leading-relaxed">{review.comment}</p>
                     )}
-                    <div className="text-[11px] text-stone-400 mt-1.5">
+                    <div className="text-[11px] text-[var(--ink-soft)] mt-1.5">
                       {formatDate(review.createdAt)}
                       {review.editedAt && ' · edited'}
                     </div>
@@ -221,7 +221,7 @@ export default function ReviewSection({
                           setEditing(review);
                           setShowForm(true);
                         }}
-                        className="text-stone-400 hover:text-[#3A6038] transition p-1"
+                        className="text-[var(--ink-soft)] hover:text-[var(--forest)] transition p-1"
                         title="Edit your review"
                       >
                         <Pencil className="h-4 w-4" />
@@ -229,7 +229,7 @@ export default function ReviewSection({
                       <button
                         onClick={() => handleDelete(review.id)}
                         disabled={deletingId === review.id}
-                        className="text-stone-400 hover:text-red-600 transition p-1 disabled:opacity-50"
+                        className="text-[var(--ink-soft)] hover:text-[var(--danger)] transition p-1 disabled:opacity-50"
                         title="Delete your review"
                       >
                         {deletingId === review.id ? (
@@ -255,7 +255,7 @@ export default function ReviewSection({
                           key={url}
                           type="button"
                           onClick={() => setLightbox({ url: resolved, type })}
-                          className="relative w-20 h-20 rounded-lg overflow-hidden border border-stone-200 bg-stone-50 hover:border-[#3A6038] transition"
+                          className="relative w-20 h-20 rounded-sm overflow-hidden border border-[var(--line)] bg-[var(--cream)] hover:border-[var(--forest)] transition"
                         >
                           {type === 'VIDEO' ? (
                             <>
@@ -287,13 +287,13 @@ export default function ReviewSection({
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1 || isLoading}
-                className="p-2 rounded-lg border border-stone-200 text-[#2A2A2A] hover:bg-stone-50 disabled:opacity-40 transition"
+                className="p-2 rounded-sm border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--cream)] disabled:opacity-40 transition"
                 aria-label="Previous page"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
 
-              <span className="text-xs font-bold text-[#6b6661]">
+              <span className="text-xs font-bold text-[var(--ink-soft)]">
                 {isLoading ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin inline" />
                 ) : (
@@ -304,7 +304,7 @@ export default function ReviewSection({
               <button
                 onClick={() => setPage((p) => Math.min(data?.totalPages ?? 1, p + 1))}
                 disabled={page === (data?.totalPages ?? 1) || isLoading}
-                className="p-2 rounded-lg border border-stone-200 text-[#2A2A2A] hover:bg-stone-50 disabled:opacity-40 transition"
+                className="p-2 rounded-sm border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--cream)] disabled:opacity-40 transition"
                 aria-label="Next page"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -317,7 +317,7 @@ export default function ReviewSection({
       {/* Write-a-review modal */}
       {showForm && token && (
         <div
-          className="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-[var(--ink)]/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
           onClick={() => {
             setShowForm(false);
             setEditing(null);
@@ -330,7 +330,7 @@ export default function ReviewSection({
                   setShowForm(false);
                   setEditing(null);
                 }}
-                className="absolute -top-3 -right-3 z-10 bg-white border border-stone-200 rounded-full p-1.5 text-stone-500 hover:text-stone-900 shadow-lg transition"
+                className="absolute -top-3 -right-3 z-10 bg-white border border-[var(--line)] rounded-full p-1.5 text-[var(--ink-soft)] hover:text-[var(--ink)] shadow-lg transition"
                 aria-label="Close"
               >
                 <X className="h-4 w-4" />
@@ -355,7 +355,7 @@ export default function ReviewSection({
       {/* Attachment lightbox */}
       {lightbox && (
         <div
-          className="fixed inset-0 z-50 bg-stone-950/85 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-[var(--ink)]/85 flex items-center justify-center p-4"
           onClick={() => setLightbox(null)}
         >
           <button
@@ -369,7 +369,7 @@ export default function ReviewSection({
           {lightbox.type === 'VIDEO' ? (
             <video
               src={lightbox.url}
-              className="max-h-[85vh] max-w-full rounded-lg"
+              className="max-h-[85vh] max-w-full rounded-sm"
               controls
               autoPlay
               onClick={(e) => e.stopPropagation()}
@@ -379,7 +379,7 @@ export default function ReviewSection({
             <img
               src={lightbox.url}
               alt="Review attachment"
-              className="max-h-[85vh] max-w-full rounded-lg object-contain"
+              className="max-h-[85vh] max-w-full rounded-sm object-contain"
               onClick={(e) => e.stopPropagation()}
             />
           )}

@@ -90,7 +90,7 @@ export default function FilterDrawer({
       <div
         onClick={onClose}
         aria-hidden="true"
-        className={`fixed inset-0 z-50 bg-[#1e1a14]/40 transition-opacity duration-200 ${
+        className={`fixed inset-0 z-50 bg-[var(--ink)]/55 transition-opacity duration-200 ${
           open ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
       />
@@ -106,15 +106,15 @@ export default function FilterDrawer({
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <header className="flex items-center justify-between border-b border-stone-200 px-5 py-4">
-          <h2 className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#3A6038]">
+        <header className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--forest)]">
             Filters
           </h2>
           <button
             onClick={onClose}
             data-testid="filter-close"
             aria-label="Close filters"
-            className="rounded-lg p-1.5 text-[#6b6661] transition hover:bg-[#FAF8F3] hover:text-[#2A2A2A]"
+            className="rounded-sm p-1.5 text-[var(--ink-soft)] transition hover:bg-[var(--ivory)] hover:text-[var(--ink)]"
           >
             <X className="h-4 w-4" />
           </button>
@@ -124,9 +124,9 @@ export default function FilterDrawer({
           {groups.map((group) => (
             <section
               key={group.id}
-              className="border-b border-stone-200 py-4 last:border-0"
+              className="border-b border-[var(--line)] py-4 last:border-0"
             >
-              <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#6b6661]">
+              <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--ink-soft)]">
                 {group.label}
               </h3>
 
@@ -158,18 +158,18 @@ export default function FilterDrawer({
                     />
                     <span
                       aria-hidden="true"
-                      className={`grid h-[18px] w-[18px] shrink-0 place-items-center rounded-md border transition peer-focus-visible:ring-2 peer-focus-visible:ring-[#3A6038]/40 ${
-                        on ? 'border-[#3A6038] bg-[#3A6038] text-white' : 'border-stone-300'
+                      className={`grid h-[18px] w-[18px] shrink-0 place-items-center rounded-sm border transition peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--forest)]/40 ${
+                        on ? 'border-[var(--forest)] bg-[var(--forest)] text-white' : 'border-[var(--line)]'
                       }`}
                     >
                       {on && <Check className="h-3 w-3" strokeWidth={3} />}
                     </span>
 
-                    {Icon && <Icon className="h-4 w-4 shrink-0 text-[#6b6661]" strokeWidth={1.75} />}
+                    {Icon && <Icon className="h-4 w-4 shrink-0 text-[var(--ink-soft)]" strokeWidth={1.75} />}
 
                     <span
                       className={`flex-1 text-[13px] ${
-                        on ? 'font-bold text-[#3A6038]' : 'font-medium text-[#2A2A2A]'
+                        on ? 'font-bold text-[var(--forest)]' : 'font-medium text-[var(--ink)]'
                       }`}
                     >
                       {option.label}
@@ -177,7 +177,7 @@ export default function FilterDrawer({
 
                     {/* A kind we do not stock yet says so in words. "0" beside a
                         name reads as a fault; the word reads as news. */}
-                    <span className="text-[11px] tabular-nums text-[#6b6661]">
+                    <span className="text-[11px] tabular-nums text-[var(--ink-soft)]">
                       {empty ? 'Soon' : option.count}
                     </span>
                   </label>
@@ -187,18 +187,18 @@ export default function FilterDrawer({
           ))}
         </div>
 
-        <footer className="flex items-center gap-3 border-t border-stone-200 px-5 py-4">
+        <footer className="flex items-center gap-3 border-t border-[var(--line)] px-5 py-4">
           <button
             onClick={onClearAll}
             disabled={total === 0}
-            className="text-[12px] font-semibold text-[#6b6661] transition hover:text-[#3A6038] disabled:opacity-40 disabled:hover:text-[#6b6661]"
+            className="text-[12px] font-semibold text-[var(--ink-soft)] transition hover:text-[var(--forest)] disabled:opacity-40 disabled:hover:text-[var(--ink-soft)]"
           >
             Clear all
           </button>
           <button
             onClick={onClose}
             data-testid="filter-apply"
-            className="flex-1 rounded-full bg-[#3A6038] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-white transition hover:bg-[#2f4d2e]"
+            className="flex-1 rounded-full bg-[var(--forest)] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-white transition hover:bg-[var(--pine)]"
           >
             {/* The number it will show, not "Apply". Filtering is already live
                 behind the panel, so this button closes it — and saying what is
@@ -224,12 +224,12 @@ export function FilterButton({
       onClick={onClick}
       data-testid="filter-open"
       aria-haspopup="dialog"
-      className="flex items-center gap-2 rounded-full border border-stone-300 bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#2A2A2A] transition hover:border-[#3A6038] hover:text-[#3A6038]"
+      className="flex items-center gap-2 rounded-full border border-[var(--line)] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ink)] transition hover:border-[var(--forest)] hover:text-[var(--forest)]"
     >
       <SlidersHorizontal className="h-3.5 w-3.5" />
       Filter
       {count > 0 && (
-        <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[#3A6038] px-1 text-[10px] text-white">
+        <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[var(--forest)] px-1 text-[10px] text-white">
           {count}
         </span>
       )}

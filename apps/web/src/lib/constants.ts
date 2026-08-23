@@ -1,12 +1,12 @@
 // Brand color tokens
 export const COLORS = {
-  forest: '#3A6038',
-  forestDark: '#2d4d2b',
-  gold: '#C59B27',
-  goldDark: '#b08b22',
-  cream: '#FAF8F3',
-  charcoal: '#2A2A2A',
-  muted: '#6b6661',
+  forest: 'var(--forest)',
+  forestDark: 'var(--pine)',
+  gold: 'var(--brass)',
+  goldDark: 'var(--pine)',
+  cream: 'var(--ivory)',
+  charcoal: 'var(--ink)',
+  muted: 'var(--ink-soft)',
 } as const;
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';

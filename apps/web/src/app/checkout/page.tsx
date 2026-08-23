@@ -257,23 +257,23 @@ export default function CheckoutPage() {
     <div className="flex flex-col min-h-screen">
       <Navbar onCartOpen={() => {}} onAuthOpen={() => {}} />
 
-      <main className="flex-1 bg-[#FAF8F3]">
+      <main className="flex-1 bg-[var(--ivory)]">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <h1 className="font-serif font-black text-3xl text-[#2A2A2A] mb-8">Checkout</h1>
+          <h1 className="font-serif font-light text-3xl text-[var(--ink)] mb-8">Checkout</h1>
 
           {/* Guest Checkout - Ask for login first */}
           {!user ? (
-            <div className="bg-white border border-stone-200 rounded-xl p-8 shadow-sm max-w-md mx-auto text-center">
-              <div className="w-16 h-16 bg-[#3A6038]/10 text-[#3A6038] rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="bg-white border border-[var(--line)] rounded-sm p-8 max-w-md mx-auto text-center">
+              <div className="w-16 h-16 bg-[var(--forest)]/10 text-[var(--forest)] rounded-full flex items-center justify-center mx-auto mb-6">
                 <UserCheck className="h-8 w-8" />
               </div>
-              <h2 className="font-serif font-black text-2xl text-[#2A2A2A] mb-2">Secure Checkout</h2>
-              <p className="text-xs text-[#6b6661] mb-6">
+              <h2 className="font-serif font-light text-2xl text-[var(--ink)] mb-2">Secure Checkout</h2>
+              <p className="text-xs text-[var(--ink-soft)] mb-6">
                 Sign in to use your saved addresses and to track this order.
               </p>
 
               {authError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-xs font-bold mb-4 flex items-center gap-2">
+                <div className="bg-[var(--danger-bg)] border border-[var(--danger-line)] text-[var(--danger)] p-3 rounded-sm text-xs font-bold mb-4 flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   {authError}
                 </div>
@@ -284,40 +284,40 @@ export default function CheckoutPage() {
               <form onSubmit={handleGuestEmailAuth} className="space-y-4 text-left">
                 {isRegistering && (
                   <div>
-                    <label className="text-xs font-bold text-[#2A2A2A] block mb-1">Your Name</label>
+                    <label className="text-xs font-bold text-[var(--ink)] block mb-1">Your Name</label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--ink-soft)]" />
                       <input
                         type="text"
                         required
                         value={authName}
                         onChange={(e) => setAuthName(e.target.value)}
                         placeholder="Your full name"
-                        className="w-full bg-[#FAF8F3] border border-stone-300 pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:border-[#3A6038]"
+                        className="w-full bg-[var(--ivory)] border border-[var(--line)] pl-10 pr-4 py-3 rounded-sm text-sm focus:outline-none focus:border-[var(--forest)]"
                       />
                     </div>
                   </div>
                 )}
 
                 <div>
-                  <label className="text-xs font-bold text-[#2A2A2A] block mb-1">Email Address</label>
+                  <label className="text-xs font-bold text-[var(--ink)] block mb-1">Email Address</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--ink-soft)]" />
                     <input
                       type="email"
                       required
                       value={authEmail}
                       onChange={(e) => setAuthEmail(e.target.value)}
                       placeholder="you@example.com"
-                      className="w-full bg-[#FAF8F3] border border-stone-300 pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:border-[#3A6038]"
+                      className="w-full bg-[var(--ivory)] border border-[var(--line)] pl-10 pr-4 py-3 rounded-sm text-sm focus:outline-none focus:border-[var(--forest)]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[#2A2A2A] block mb-1">Password</label>
+                  <label className="text-xs font-bold text-[var(--ink)] block mb-1">Password</label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--ink-soft)]" />
                     <input
                       type="password"
                       required
@@ -325,7 +325,7 @@ export default function CheckoutPage() {
                       value={authPassword}
                       onChange={(e) => setAuthPassword(e.target.value)}
                       placeholder={isRegistering ? 'At least 8 characters' : '••••••••'}
-                      className="w-full bg-[#FAF8F3] border border-stone-300 pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:border-[#3A6038]"
+                      className="w-full bg-[var(--ivory)] border border-[var(--line)] pl-10 pr-4 py-3 rounded-sm text-sm focus:outline-none focus:border-[var(--forest)]"
                     />
                   </div>
                 </div>
@@ -333,7 +333,7 @@ export default function CheckoutPage() {
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl text-sm transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-3.5 rounded-sm text-sm transition disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {authLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                   {authLoading
@@ -349,7 +349,7 @@ export default function CheckoutPage() {
                     setIsRegistering(!isRegistering);
                     setAuthError('');
                   }}
-                  className="w-full text-xs text-[#6b6661] hover:text-[#3A6038] font-bold transition"
+                  className="w-full text-xs text-[var(--ink-soft)] hover:text-[var(--forest)] font-bold transition"
                 >
                   {isRegistering
                     ? 'Already have an account? Sign in'
@@ -358,45 +358,45 @@ export default function CheckoutPage() {
               </form>
 
               {otpLoginEnabled && (
-                <div className="mt-6 pt-5 border-t border-stone-100 text-left">
+                <div className="mt-6 pt-5 border-t border-[var(--line)] text-left">
                   {!otpSent ? (
                     <form onSubmit={handleGuestRequestOtp} className="space-y-3">
-                      <label className="text-xs font-bold text-[#2A2A2A] block">Or sign in with your mobile</label>
+                      <label className="text-xs font-bold text-[var(--ink)] block">Or sign in with your mobile</label>
                       <div className="relative">
-                        <PhoneCall className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                        <PhoneCall className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--ink-soft)]" />
                         <input
                           type="tel"
                           value={authPhone}
                           onChange={(e) => setAuthPhone(e.target.value)}
                           placeholder="+919876543210"
-                          className="w-full bg-[#FAF8F3] border border-stone-300 pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:border-[#3A6038]"
+                          className="w-full bg-[var(--ivory)] border border-[var(--line)] pl-10 pr-4 py-3 rounded-sm text-sm focus:outline-none focus:border-[var(--forest)]"
                         />
                       </div>
                       <button
                         type="submit"
                         disabled={authLoading}
-                        className="w-full border-2 border-[#3A6038] text-[#3A6038] font-bold py-3 rounded-xl text-sm transition disabled:opacity-50"
+                        className="w-full border-2 border-[var(--forest)] text-[var(--forest)] font-bold py-3 rounded-sm text-sm transition disabled:opacity-50"
                       >
                         {authLoading ? 'Sending…' : 'Request OTP'}
                       </button>
                     </form>
                   ) : (
                     <form onSubmit={handleGuestVerifyOtp} className="space-y-3">
-                      <label className="text-xs font-bold text-[#2A2A2A] block">Verification Code</label>
+                      <label className="text-xs font-bold text-[var(--ink)] block">Verification Code</label>
                       <div className="relative">
-                        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--ink-soft)]" />
                         <input
                           type="text"
                           value={authOtp}
                           onChange={(e) => setAuthOtp(e.target.value)}
                           maxLength={6}
-                          className="w-full bg-[#FAF8F3] border border-stone-300 pl-10 pr-4 py-3 rounded-xl text-sm tracking-[0.3em] font-black focus:outline-none focus:border-[#3A6038]"
+                          className="w-full bg-[var(--ivory)] border border-[var(--line)] pl-10 pr-4 py-3 rounded-sm text-sm tracking-[0.3em] font-black focus:outline-none focus:border-[var(--forest)]"
                         />
                       </div>
                       <button
                         type="submit"
                         disabled={authLoading}
-                        className="w-full bg-[#3A6038] text-white font-bold py-3 rounded-xl text-sm transition disabled:opacity-50"
+                        className="w-full bg-[var(--forest)] text-white font-bold py-3 rounded-sm text-sm transition disabled:opacity-50"
                       >
                         {authLoading ? 'Verifying…' : 'Verify & Continue'}
                       </button>
@@ -406,11 +406,11 @@ export default function CheckoutPage() {
               )}
             </div>
           ) : cart.length === 0 && !processing ? (
-            <div className="text-center py-20 bg-white border border-stone-200 rounded-xl">
-              <p className="text-lg font-bold text-stone-400 mb-4">Your cart is empty</p>
+            <div className="text-center py-20 bg-white border border-[var(--line)] rounded-sm">
+              <p className="text-lg font-bold text-[var(--ink-soft)] mb-4">Your cart is empty</p>
               <button
                 onClick={() => router.push('/')}
-                className="bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3 px-8 rounded-lg transition"
+                className="bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-3 px-8 rounded-sm transition"
               >
                 Start Shopping
               </button>
@@ -418,13 +418,13 @@ export default function CheckoutPage() {
           ) : (
             <>
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm font-bold mb-6">
+                <div className="bg-[var(--danger-bg)] border border-[var(--danger-line)] text-[var(--danger)] p-4 rounded-sm text-sm font-bold mb-6">
                   {error}
                 </div>
               )}
 
               {unsyncedCount > 0 && !error && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl text-xs font-medium mb-6">
+                <div className="bg-[var(--warn-bg)] border border-[var(--warn-line)] text-[var(--warn)] p-4 rounded-sm text-xs font-medium mb-6">
                   {unsyncedCount} item{unsyncedCount === 1 ? '' : 's'} in your cart could not be
                   saved earlier. We will confirm {unsyncedCount === 1 ? 'it' : 'them'} when you
                   place the order.
@@ -432,9 +432,9 @@ export default function CheckoutPage() {
               )}
 
               {/* Step 1: Delivery Address */}
-              <div className="bg-white border border-stone-200 rounded-xl p-6 mb-6">
-                <h2 className="font-bold text-sm text-[#2A2A2A] flex items-center gap-2 mb-4">
-                  <MapPin className="h-4 w-4 text-[#3A6038]" />
+              <div className="bg-white border border-[var(--line)] rounded-sm p-6 mb-6">
+                <h2 className="font-bold text-sm text-[var(--ink)] flex items-center gap-2 mb-4">
+                  <MapPin className="h-4 w-4 text-[var(--forest)]" />
                   STEP 1: DELIVERY ADDRESS
                 </h2>
                 
@@ -445,10 +445,10 @@ export default function CheckoutPage() {
                       {addresses.map((addr: any) => (
                         <label
                           key={addr.id}
-                          className={`flex items-start gap-3.5 p-4 rounded-xl border cursor-pointer transition ${
+                          className={`flex items-start gap-3.5 p-4 rounded-sm border cursor-pointer transition ${
                             selectedAddress === addr.id
-                              ? 'border-[#3A6038] bg-[#3A6038]/5 shadow-sm'
-                              : 'border-stone-200 hover:border-stone-300'
+                              ? 'border-[var(--forest)] bg-[var(--forest)]/5'
+                              : 'border-[var(--line)] hover:border-[var(--line)]'
                           }`}
                         >
                           <input
@@ -456,18 +456,18 @@ export default function CheckoutPage() {
                             name="address"
                             checked={selectedAddress === addr.id}
                             onChange={() => { setSelectedAddress(addr.id); setShowNewAddr(false); }}
-                            className="accent-[#3A6038] mt-1 shrink-0"
+                            className="accent-[var(--forest)] mt-1 shrink-0"
                           />
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-[#2A2A2A]">{addr.line1}, {addr.city}</span>
+                              <span className="text-sm font-bold text-[var(--ink)]">{addr.line1}, {addr.city}</span>
                               {addr.isDefault && (
-                                <span className="text-[9px] font-bold text-[#3A6038] bg-[#3A6038]/10 px-2 py-0.5 rounded-full">DEFAULT</span>
+                                <span className="text-[9px] font-bold text-[var(--forest)] bg-[var(--forest)]/10 px-2 py-0.5 rounded-full">DEFAULT</span>
                               )}
                             </div>
-                            <p className="text-xs text-[#6b6661]">{addr.state} - {addr.postalCode}</p>
+                            <p className="text-xs text-[var(--ink-soft)]">{addr.state} - {addr.postalCode}</p>
                             {addr.phone && (
-                              <p className="text-xs text-[#3A6038] font-bold">📞 Contact: {addr.phone}</p>
+                              <p className="text-xs text-[var(--forest)] font-bold">Contact {addr.phone}</p>
                             )}
                           </div>
                         </label>
@@ -480,16 +480,16 @@ export default function CheckoutPage() {
                     <button
                       onClick={() => setShowNewAddr(true)}
                       data-testid="add-address"
-                      className="flex items-center gap-2 text-xs font-bold text-[#3A6038] hover:underline px-2"
+                      className="flex items-center gap-2 text-xs font-bold text-[var(--forest)] hover:underline px-2"
                     >
                       <Plus className="h-3.5 w-3.5" />
                       Add New Address
                     </button>
                   ) : (
-                    <form onSubmit={handleSaveAddress} data-testid="address-form" className="border border-stone-200 p-5 rounded-xl bg-stone-50/50 space-y-3.5">
-                      <h3 className="text-xs font-bold text-stone-600 uppercase tracking-wider">Add Delivery Address</h3>
+                    <form onSubmit={handleSaveAddress} data-testid="address-form" className="border border-[var(--line)] p-5 rounded-sm bg-[var(--cream)]/50 space-y-3.5">
+                      <h3 className="text-xs font-bold text-[var(--ink-soft)] uppercase tracking-wider">Add Delivery Address</h3>
                       {addrError && (
-                        <div className="bg-red-50 border border-red-200 text-red-700 p-2.5 rounded-lg text-xs font-bold">
+                        <div className="bg-[var(--danger-bg)] border border-[var(--danger-line)] text-[var(--danger)] p-2.5 rounded-sm text-xs font-bold">
                           {addrError}
                         </div>
                       )}
@@ -500,7 +500,7 @@ export default function CheckoutPage() {
                           placeholder="Street / Apartment Address"
                           value={newAddr.line1}
                           onChange={(e) => setNewAddr({ ...newAddr, line1: e.target.value })}
-                          className="w-full bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#3A6038]"
+                          className="w-full bg-white border border-[var(--line)] px-3 py-2.5 rounded-sm text-sm focus:outline-none focus:border-[var(--forest)]"
                         />
                         {/* PIN code first, because it fills in the other two.
                             Typing the town and then the code that contradicts
@@ -514,7 +514,7 @@ export default function CheckoutPage() {
                             data-testid="address-pincode"
                             value={newAddr.pincode}
                             onChange={(e) => onPincodeChange(e.target.value)}
-                            className="bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#3A6038]"
+                            className="bg-white border border-[var(--line)] px-3 py-2.5 rounded-sm text-sm focus:outline-none focus:border-[var(--forest)]"
                           />
                           <input
                             type="text"
@@ -525,7 +525,7 @@ export default function CheckoutPage() {
                               markTyped('city');
                               setNewAddr({ ...newAddr, city: e.target.value });
                             }}
-                            className="bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#3A6038]"
+                            className="bg-white border border-[var(--line)] px-3 py-2.5 rounded-sm text-sm focus:outline-none focus:border-[var(--forest)]"
                           />
                           {/* A list rather than free text: the courier
                               matches on this, and GST turns on whether the
@@ -539,7 +539,7 @@ export default function CheckoutPage() {
                               markTyped('state');
                               setNewAddr({ ...newAddr, state });
                             }}
-                            className="bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#3A6038]"
+                            className="bg-white border border-[var(--line)] px-3 py-2.5 rounded-sm text-sm focus:outline-none focus:border-[var(--forest)]"
                           />
                         </div>
 
@@ -547,7 +547,7 @@ export default function CheckoutPage() {
                           <p
                             data-testid="pincode-note"
                             className={`text-[11px] ${
-                              pincodeNote.ok ? 'text-[#3A6038]' : 'text-amber-700'
+                              pincodeNote.ok ? 'text-[var(--forest)]' : 'text-[var(--warn)]'
                             }`}
                           >
                             {pincodeNote.text}
@@ -558,7 +558,7 @@ export default function CheckoutPage() {
                           placeholder="Delivery contact mobile (e.g. 9876543210)"
                           value={newAddr.phone}
                           onChange={(e) => setNewAddr({ ...newAddr, phone: e.target.value })}
-                          className="w-full bg-white border border-stone-200 px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:border-[#3A6038]"
+                          className="w-full bg-white border border-[var(--line)] px-3 py-2.5 rounded-sm text-sm focus:outline-none focus:border-[var(--forest)]"
                         />
                       </div>
 
@@ -566,14 +566,14 @@ export default function CheckoutPage() {
                         <button
                           type="button"
                           onClick={() => { setShowNewAddr(false); setAddrError(''); }}
-                          className="text-xs font-bold text-stone-500 hover:bg-stone-100 px-3.5 py-2 rounded-lg transition"
+                          className="text-xs font-bold text-[var(--ink-soft)] hover:bg-[var(--cream)] px-3.5 py-2 rounded-sm transition"
                         >
                           Cancel
                         </button>
                         <button
                           type="submit"
                           disabled={addrSaving}
-                          className="bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold text-xs px-4 py-2 rounded-lg transition disabled:opacity-50"
+                          className="bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold text-xs px-4 py-2 rounded-sm transition disabled:opacity-50"
                         >
                           {addrSaving ? 'Saving...' : 'Save & Continue'}
                         </button>
@@ -584,41 +584,41 @@ export default function CheckoutPage() {
               </div>
 
               {/* Step 2: Order Summary */}
-              <div className="bg-white border border-stone-200 rounded-xl p-6 mb-6">
-                <h2 className="font-bold text-sm text-[#2A2A2A] mb-4">STEP 2: ORDER SUMMARY</h2>
+              <div className="bg-white border border-[var(--line)] rounded-sm p-6 mb-6">
+                <h2 className="font-bold text-sm text-[var(--ink)] mb-4">STEP 2: ORDER SUMMARY</h2>
                 <div className="space-y-3">
                   {cart.map((item) => (
                     <div key={item.id} className="flex justify-between gap-3 text-sm">
-                      <span className="text-[#6b6661] min-w-0">
+                      <span className="text-[var(--ink-soft)] min-w-0">
                         {item.productSlug ? (
                           <Link
                             href={`/products/${item.productSlug}${item.variantId ? `?variant=${item.variantId}` : ''}`}
-                            className="font-bold text-[#2A2A2A] hover:text-[#3A6038] hover:underline transition"
+                            className="font-bold text-[var(--ink)] hover:text-[var(--forest)] hover:underline transition"
                           >
                             {item.productName}
                           </Link>
                         ) : (
-                          <span className="font-bold text-[#2A2A2A]">{item.productName}</span>
+                          <span className="font-bold text-[var(--ink)]">{item.productName}</span>
                         )}
                         {item.variantLabel ? ` (${item.variantLabel})` : ''} × {item.quantity}
                       </span>
-                      <span className="font-bold text-[#2A2A2A] whitespace-nowrap">
+                      <span className="font-bold text-[var(--ink)] whitespace-nowrap">
                         ₹{item.lineTotal}
                       </span>
                     </div>
                   ))}
-                  <div className="border-t border-stone-100 pt-3 space-y-1">
+                  <div className="border-t border-[var(--line)] pt-3 space-y-1">
                     <div className="flex justify-between text-sm">
-                      <span className="text-[#6b6661]">Subtotal</span>
+                      <span className="text-[var(--ink-soft)]">Subtotal</span>
                       <span className="font-bold">₹{subtotal}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-[#6b6661]">Delivery</span>
-                      <span className={estimatedDelivery === 0 ? 'font-bold text-[#3A6038]' : 'font-bold'}>
+                      <span className="text-[var(--ink-soft)]">Delivery</span>
+                      <span className={estimatedDelivery === 0 ? 'font-bold text-[var(--forest)]' : 'font-bold'}>
                         {estimatedDelivery === 0 ? 'FREE' : `₹${estimatedDelivery}`}
                       </span>
                     </div>
-                    <div className="flex justify-between text-lg font-black pt-2 border-t border-stone-100">
+                    <div className="flex justify-between text-lg font-black pt-2 border-t border-[var(--line)]">
                       <span>TOTAL</span>
                       <span>₹{total}</span>
                     </div>
@@ -627,32 +627,32 @@ export default function CheckoutPage() {
               </div>
 
               {/* Step 3: Payment Method */}
-              <div className="bg-white border border-stone-200 rounded-xl p-6 mb-6">
-                <h2 className="font-bold text-sm text-[#2A2A2A] flex items-center gap-2 mb-4">
-                  <CreditCard className="h-4 w-4 text-[#3A6038]" />
+              <div className="bg-white border border-[var(--line)] rounded-sm p-6 mb-6">
+                <h2 className="font-bold text-sm text-[var(--ink)] flex items-center gap-2 mb-4">
+                  <CreditCard className="h-4 w-4 text-[var(--forest)]" />
                   STEP 3: PAYMENT METHOD
                 </h2>
                 <div className="space-y-3">
-                  <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition ${
-                    paymentMethod === 'razorpay' ? 'border-[#3A6038] bg-[#3A6038]/5' : 'border-stone-200 hover:border-stone-300'
+                  <label className={`flex items-center gap-3 p-4 rounded-sm border cursor-pointer transition ${
+                    paymentMethod === 'razorpay' ? 'border-[var(--forest)] bg-[var(--forest)]/5' : 'border-[var(--line)] hover:border-[var(--line)]'
                   }`}>
                     <input type="radio" name="payment" checked={paymentMethod === 'razorpay'}
-                      onChange={() => setPaymentMethod('razorpay')} className="accent-[#3A6038]" />
+                      onChange={() => setPaymentMethod('razorpay')} className="accent-[var(--forest)]" />
                     <div>
-                      <span className="text-sm font-bold text-[#2A2A2A]">Pay via Razorpay</span>
-                      <span className="text-xs text-[#6b6661] block">UPI / Card / Netbanking</span>
+                      <span className="text-sm font-bold text-[var(--ink)]">Pay via Razorpay</span>
+                      <span className="text-xs text-[var(--ink-soft)] block">UPI / Card / Netbanking</span>
                     </div>
                   </label>
                   {walletEnabled && (
-                  <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition ${
-                    paymentMethod === 'wallet' ? 'border-[#3A6038] bg-[#3A6038]/5' : 'border-stone-200 hover:border-stone-300'
+                  <label className={`flex items-center gap-3 p-4 rounded-sm border cursor-pointer transition ${
+                    paymentMethod === 'wallet' ? 'border-[var(--forest)] bg-[var(--forest)]/5' : 'border-[var(--line)] hover:border-[var(--line)]'
                   }`}>
                     <input type="radio" name="payment" checked={paymentMethod === 'wallet'}
-                      onChange={() => setPaymentMethod('wallet')} className="accent-[#3A6038]" />
+                      onChange={() => setPaymentMethod('wallet')} className="accent-[var(--forest)]" />
                     <div className="flex items-center gap-2">
-                      <Wallet className="h-4 w-4 text-[#C59B27]" />
-                      <span className="text-sm font-bold text-[#2A2A2A]">Pay from Wallet</span>
-                      <span className="text-xs text-[#6b6661]">(Balance: ₹{walletBalance})</span>
+                      <Wallet className="h-4 w-4 text-[var(--brass)]" />
+                      <span className="text-sm font-bold text-[var(--ink)]">Pay from Wallet</span>
+                      <span className="text-xs text-[var(--ink-soft)]">(Balance: ₹{walletBalance})</span>
                     </div>
                   </label>
                   )}
@@ -664,7 +664,7 @@ export default function CheckoutPage() {
                 onClick={handlePlaceOrder}
                 disabled={processing}
                 data-testid="place-order"
-                className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-4 rounded-xl text-lg transition disabled:opacity-50 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                className="w-full bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-4 rounded-sm text-lg transition disabled:opacity-50 shadow-lg flex items-center justify-center gap-2"
               >
                 <CheckCircle2 className="h-5 w-5" />
                 {processing ? 'Processing Order...' : `Place Order — ₹${total}`}
@@ -677,11 +677,11 @@ export default function CheckoutPage() {
               {shiprocketOn && (
                 <>
                   <div className="flex items-center gap-3 my-4">
-                    <span className="h-px flex-1 bg-stone-200" />
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6b6661]">
+                    <span className="h-px flex-1 bg-[var(--sand)]" />
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-soft)]">
                       or
                     </span>
-                    <span className="h-px flex-1 bg-stone-200" />
+                    <span className="h-px flex-1 bg-[var(--sand)]" />
                   </div>
 
                   <button
@@ -696,7 +696,7 @@ export default function CheckoutPage() {
                     }
                     disabled={shiprocketStarting || processing}
                     data-testid="shiprocket-checkout"
-                    className="w-full border-2 border-[#3A6038] text-[#3A6038] hover:bg-[#3A6038] hover:text-white font-bold py-3.5 rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full border-2 border-[var(--forest)] text-[var(--forest)] hover:bg-[var(--forest)] hover:text-white font-bold py-3.5 rounded-sm transition disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {shiprocketStarting ? 'Opening…' : 'Express checkout'}
                   </button>
@@ -704,7 +704,7 @@ export default function CheckoutPage() {
                   {shiprocketError && (
                     <p
                       data-testid="shiprocket-error"
-                      className="mt-2 text-center text-xs text-red-600"
+                      className="mt-2 text-center text-xs text-[var(--danger)]"
                     >
                       {shiprocketError} — you can still pay above.
                     </p>
@@ -712,7 +712,7 @@ export default function CheckoutPage() {
                 </>
               )}
 
-              <p className="flex items-center justify-center gap-1 text-xs text-[#6b6661] mt-4">
+              <p className="flex items-center justify-center gap-1 text-xs text-[var(--ink-soft)] mt-4">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Payments secured by Razorpay
               </p>
@@ -724,9 +724,9 @@ export default function CheckoutPage() {
       {/* Payment confirmation. Razorpay is in mock mode, so this stands in for
           the gateway's own modal until live keys are configured. */}
       {showMockRazorpay && pendingOrderData && (
-        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
-            <div className="bg-[#3A6038] text-white p-5">
+        <div className="fixed inset-0 z-50 bg-[var(--ink)]/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-sm shadow-2xl max-w-sm w-full overflow-hidden">
+            <div className="bg-[var(--forest)] text-white p-5">
               <div className="flex items-center gap-2 mb-1">
                 <ShieldCheck className="h-5 w-5" />
                 <span className="font-bold text-sm">Confirm your payment</span>
@@ -738,13 +738,13 @@ export default function CheckoutPage() {
 
             <div className="p-5 space-y-3 text-sm">
               {pendingOrderData.breakdown && (
-                <div className="space-y-1.5 text-xs text-[#6b6661] pb-3 border-b border-stone-100">
+                <div className="space-y-1.5 text-xs text-[var(--ink-soft)] pb-3 border-b border-[var(--line)]">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
                     <span>₹{pendingOrderData.breakdown.subtotal}</span>
                   </div>
                   {pendingOrderData.breakdown.discountAmount > 0 && (
-                    <div className="flex justify-between text-[#3A6038]">
+                    <div className="flex justify-between text-[var(--forest)]">
                       <span>Discount</span>
                       <span>−₹{pendingOrderData.breakdown.discountAmount}</span>
                     </div>
@@ -765,12 +765,12 @@ export default function CheckoutPage() {
               )}
 
               <div className="flex justify-between items-baseline">
-                <span className="font-bold text-[#2A2A2A]">Amount payable</span>
-                <span className="font-black text-2xl text-[#2A2A2A]">₹{pendingOrderData.amount}</span>
+                <span className="font-bold text-[var(--ink)]">Amount payable</span>
+                <span className="font-black text-2xl text-[var(--ink)]">₹{pendingOrderData.amount}</span>
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 p-2.5 rounded-lg text-xs font-bold">
+                <div className="bg-[var(--danger-bg)] border border-[var(--danger-line)] text-[var(--danger)] p-2.5 rounded-sm text-xs font-bold">
                   {error}
                 </div>
               )}
@@ -779,7 +779,7 @@ export default function CheckoutPage() {
                 onClick={handleConfirmMockPayment}
                 disabled={verifyingPayment}
                 data-testid="confirm-payment"
-                className="w-full bg-[#3A6038] hover:bg-[#2d4d2b] text-white font-bold py-3.5 rounded-xl text-sm transition disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-3.5 rounded-sm text-sm transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {verifyingPayment && <Loader2 className="h-4 w-4 animate-spin" />}
                 {verifyingPayment ? 'Verifying…' : `Pay ₹${pendingOrderData.amount}`}
@@ -788,7 +788,7 @@ export default function CheckoutPage() {
               <button
                 onClick={() => setShowMockRazorpay(false)}
                 disabled={verifyingPayment}
-                className="w-full text-xs text-[#6b6661] hover:text-[#2A2A2A] font-bold py-1 transition disabled:opacity-50"
+                className="w-full text-xs text-[var(--ink-soft)] hover:text-[var(--ink)] font-bold py-1 transition disabled:opacity-50"
               >
                 Cancel — the order stays unpaid in your account
               </button>

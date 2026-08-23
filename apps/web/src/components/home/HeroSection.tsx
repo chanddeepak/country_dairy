@@ -130,39 +130,39 @@ export default function HeroSection() {
 
   if (isLoading) {
     return (
-      <section className="relative w-full overflow-hidden bg-stone-900">
-        <div className="relative w-full h-[520px] md:h-[600px] bg-gradient-to-r from-stone-900 via-stone-850 to-stone-900 animate-pulse flex items-center">
+      <section className="relative w-full overflow-hidden bg-[var(--forest)]">
+        <div className="relative w-full h-[520px] md:h-[600px] bg-gradient-to-r from-[var(--forest)] via-[var(--pine)] to-[var(--forest)] animate-pulse flex items-center">
           {/* Shimmer background gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-stone-950/80 via-stone-900/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--ink)]/80 via-[var(--forest)]/60 to-transparent" />
           
           <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
             <div className="max-w-xl space-y-6">
               {/* Badge skeleton */}
-              <div className="w-32 h-6 bg-stone-800/80 rounded-full border border-stone-700/50 animate-pulse" />
+              <div className="w-32 h-6 bg-[var(--pine)]/80 rounded-full border border-[var(--pine)]/50 animate-pulse" />
               
               {/* Headline skeleton lines */}
               <div className="space-y-3">
-                <div className="w-3/4 h-10 md:h-14 bg-stone-800/90 rounded-lg animate-pulse" />
-                <div className="w-1/2 h-10 md:h-14 bg-stone-800/90 rounded-lg animate-pulse" />
+                <div className="w-3/4 h-10 md:h-14 bg-[var(--pine)]/90 rounded-sm animate-pulse" />
+                <div className="w-1/2 h-10 md:h-14 bg-[var(--pine)]/90 rounded-sm animate-pulse" />
               </div>
               
               {/* Subtitle skeleton */}
               <div className="space-y-2 max-w-md pt-2">
-                <div className="w-full h-4 bg-stone-800/70 rounded animate-pulse" />
-                <div className="w-4/5 h-4 bg-stone-800/70 rounded animate-pulse" />
+                <div className="w-full h-4 bg-[var(--pine)]/70 rounded animate-pulse" />
+                <div className="w-4/5 h-4 bg-[var(--pine)]/70 rounded animate-pulse" />
               </div>
               
               {/* CTA button skeleton */}
               <div className="pt-4">
-                <div className="w-48 h-12 bg-amber-600/30 rounded-sm border border-amber-500/30 animate-pulse" />
+                <div className="w-48 h-12 bg-[var(--warn)]/30 rounded-sm border border-[var(--warn)]/30 animate-pulse" />
               </div>
             </div>
           </div>
 
           {/* Bottom indicator dots skeleton */}
           <div className="absolute bottom-6 left-0 right-0 z-30 flex justify-center space-x-3">
-            <div className="w-2.5 h-2.5 rounded-full bg-stone-700/60 animate-pulse" />
-            <div className="w-2.5 h-2.5 rounded-full bg-stone-700/60 animate-pulse" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[var(--pine)]/60 animate-pulse" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[var(--pine)]/60 animate-pulse" />
           </div>
         </div>
       </section>
@@ -223,8 +223,8 @@ export default function HeroSection() {
               className={`relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full ${layout.container}`}
             >
               <div className={layout.block} style={layout.blockStyle}>
-                <div className="inline-flex items-center gap-1 bg-[#3A6038]/85 backdrop-blur-xs text-amber-200 border border-amber-300/30 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider shadow-sm">
-                  <span>⛰️ Devbhoomi Uttarakhand Origin</span>
+                <div className="inline-flex items-center gap-1 bg-[var(--forest)]/85 backdrop-blur-xs text-[var(--brass)] border border-[var(--warn-line)]/30 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider">
+                  <span>Devbhoomi Uttarakhand Origin</span>
                 </div>
                 <h1 className={layout.headline}>
                   {(slide.headline || '').split('. ').map((part: string, i: number, arr: string[]) => (
@@ -238,7 +238,7 @@ export default function HeroSection() {
                 <div className={slide.ctaMarginTop || ''}>
                   <Link
                     href={slide.ctaHref || '/products'}
-                    className="inline-flex items-center bg-[#C59B27] hover:bg-[#b08b22] text-white font-bold px-6 py-3 rounded-sm uppercase tracking-wider text-xs sm:text-sm shadow-lg transition-all hover:shadow-xl"
+                    className="inline-flex items-center bg-[var(--brass)] hover:bg-[var(--forest)] text-[#1a1405] hover:text-[var(--ivory)] font-bold px-6 py-3 rounded-sm uppercase tracking-wider text-xs sm:text-sm shadow-lg transition-all"
                   >
                     {slide.ctaText || 'Shop All Products'}
                     <ArrowRight className="ml-2 h-4 w-4" />
