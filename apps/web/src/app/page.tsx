@@ -8,6 +8,7 @@ import Footer from '../components/layout/Footer';
 import HeroSection from '../components/home/HeroSection';
 import BrandStatement from '../components/home/BrandStatement';
 import Devbhoomi from '../components/home/Devbhoomi';
+import Journey from '../components/home/Journey';
 import ProductShelf from '../components/home/ProductShelf';
 import GheeStory from '../components/home/GheeStory';
 import CollectionRow from '../components/home/CollectionRow';
@@ -60,6 +61,7 @@ export default function Home() {
         <GheeStory />
         <Principles />
         <Devbhoomi />
+        <Journey />
       </main>
 
       <Footer />
