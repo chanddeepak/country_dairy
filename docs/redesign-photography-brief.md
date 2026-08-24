@@ -185,6 +185,35 @@ So the gallery splits in two:
 - **Frames where the pack is absent or incidental** — generate freely. Ghee in a
   bowl, on a roti, milk, pasture. No label, no problem.
 
+### If you want the jar in a generated scene
+
+A reference image is not the answer. Given one, a model reproduces the jar's
+shape and colour and then **invents the label** — approximate logo, wobbled
+English, mangled Devanagari. On a product page that is a false statement about
+what arrives, and it is the one context where nobody forgives it.
+
+Two ways to get the real label into a new scene:
+
+**1. Inpaint the background, keep the jar.** Open image 01 in any tool with
+masking or "edit image", mask the jar so it is untouched, and describe only the
+new background. The label survives because those pixels are never regenerated.
+
+> **Square, 1:1, 1600 x 1600 pixels. Keep the masked jar exactly as it is.**
+>
+> Replace the plain white background with a worn wooden kitchen surface and a
+> soft out-of-focus stone wall behind. Warm daylight from the left, a gentle
+> natural shadow falling to the right of the jar, matching the existing lighting
+> on the subject. Muted warm palette. No text, no props with writing, nothing
+> competing with the jar.
+
+**2. Composite.** `apps/web/public/images/products/a2-desi-ghee-cutout.png` is
+already the jar on transparency, keyed off the studio packshot for the ghee
+story section. Generate a background with G4 below, drop the cutout on, add a
+shadow. The label is photographic because it is the photograph.
+
+What neither can do: **lid off with the ghee surface showing**, and **both sizes
+together**. Nothing exists to edit — those two have to be taken.
+
 ### Shoot, do not generate
 
 Same jar, same daylight, no text anywhere in frame.
