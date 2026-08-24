@@ -432,6 +432,33 @@ Things that end the branch badly if ignored.
 
 ---
 
+## 8b. Parked
+
+Known, not urgent, not lost.
+
+**The mobile hero is one image shown three times.** There are three DESKTOP
+banners and a single MOBILE one, so `mobMatch` falls back to `mobileBanners[0]`
+for slides two and three and a phone swipes through the same picture three
+times. Two of those slides have no headline, so it reads as a still.
+
+That single mobile file is `/images/hero-banner.png` — a clean valley landscape
+with no lettering, byte-identical to `hero-banner-v2.png`, and at 2.5MB the
+heaviest asset in the repo.
+
+Two ways out: add two more MOBILE banners, re-uploaded as JPEG or WebP; or
+delete the one that exists, at which point phones fall back to the desktop
+artwork per slide, which is already three different pictures. The second is one
+click and strictly better than today.
+
+**Slides one and two are still posters.** Their titles are whitespace so nothing
+is drawn over them and nothing is broken — but they are the old visual language
+sitting in front of the new one. Slide three is already correct: clean
+photograph, real headline set by the site. `imageHasText` is only needed if a
+poster has to keep a title; do not set it on slide three or the headline
+disappears.
+
+---
+
 ## 9. Open questions
 
 | # | Question | Blocks |

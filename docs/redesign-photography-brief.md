@@ -133,22 +133,104 @@ All three: no text, no logos, no packaging, no modern branded equipment.
 
 ---
 
+## S7. The ghee gallery
+
+**Audited against production storage, 24 August.** Five of the ten never
+resolve on a dev machine, which is why an earlier pass called all ten posters.
+They are not. Three are clean photographs and should be kept.
+
+| # | File ends | What it is | Verdict |
+| --- | --- | --- | --- |
+| 01 | `ju22ehd6` | Jar, front, straight on, white ground | **Keep.** The packshot. Product cards and the shop grid use this |
+| 02 | `3gktlbe3` | Jar, front, taller crop | **Keep.** Second angle |
+| 03 | `ctr1il17` | Dark green poster, baked headline | Replace |
+| 04 | `1ji76vz2` | "100% Pure Desi Cow Milk. Nothing Else." | Replace |
+| 05 | `0dm6kgl2` | "Any Time of Day", four captioned sub-photos | Replace. Three of its four frames are already cut out and in use as `ritual-*.jpg` |
+| 06 | `jvqa5587` | Jar with laddoos, brass thali, lamps | **Keep.** The only warm low-light frame on the brand |
+| 07 | `4yivf3do` | "DESI COW GHEE" plus feature bullets | Replace |
+| 08 | `pbcou03h` | Nutrition facts panel | Replace. This belongs in `Product.nutritionFacts`, which renders as a table, not as a picture of a table |
+| 09 | `cdxs03df` | "Daanedar, Dense & Deeply Nourishing", vitamin claims | Replace. Also the strongest health claims on the site |
+| 10 | `0w4utavx` | "Built by Farmers, Backed by Soil" | Replace |
+
+### What AI can and cannot do here
+
+**It cannot generate your jar.** Any model asked for "a jar of Country Dairy
+ghee" invents a label — wrong logo, wrong wording, mangled Devanagari. Published
+as product photography that is misleading, and it is the one place on an
+ecommerce site where the picture is a claim about what arrives.
+
+So the gallery splits in two:
+
+- **Frames where the pack is the subject** — photograph them. A phone on a
+  windowsill with a white sheet behind is enough; you already have 01, 02 and 06
+  proving the lighting works.
+- **Frames where the pack is absent or incidental** — generate freely. Ghee in a
+  bowl, on a roti, milk, pasture. No label, no problem.
+
+### Shoot, do not generate
+
+Same jar, same daylight, no text anywhere in frame.
+
+| Shot | Why it exists |
+| --- | --- |
+| Jar three-quarter, soft shadow | Product page hero. 01 and 02 are both dead-on |
+| Lid off, ghee surface visible | The texture proof. Nothing in the gallery shows the ghee itself in the pack |
+| 1L and 500ml together | The size choice is a real decision on the page and nothing illustrates it |
+
+Leave space around the subject so one frame crops square, portrait and
+landscape.
+
+### Generate
+
+**Reference for all four:** image 06, the laddoo frame — it is the brand's own
+light, warm and low and unstyled. Attach it, then paste the prompt.
+
+#### G1. Texture macro
+
+**Where:** gallery, and the ghee story section.
+**Size:** 1600 x 1600, square.
+
+> Extreme close-up of golden clarified butter with a fine granular crystalline
+> texture, lifted on a plain steel spoon over a wooden surface. Warm daylight
+> from one side, shallow depth of field. No jar, no packaging, no text. The
+> grain is the subject.
+
+#### G2. On the roti
+
+**Where:** gallery, usage.
+**Size:** 1600 x 1200, landscape 4:3.
+
+> A hot phulka roti on a plain steel plate, a spoonful of golden ghee melting
+> and running across it. Overhead, close, home kitchen, morning daylight. No
+> packaging, no branded objects, no text. Real food, slightly imperfect.
+
+#### G3. The source
+
+**Where:** gallery, and the ingredient slot the brief asks for.
+**Size:** 1600 x 1200, landscape 4:3.
+
+> Fresh milk being poured into a steel pail in a hill village at first light,
+> steam rising, a native Indian cow out of focus behind. Documentary, unposed,
+> muted natural colour. No packaging, no text, no branded equipment.
+
+#### G4. The kitchen it lives in
+
+**Where:** gallery, lifestyle.
+**Size:** 1600 x 1200, landscape 4:3.
+
+> A plain Pahadi kitchen shelf in daylight: brass and steel vessels, a wooden
+> spoon, a stone wall behind. Warm and worn, genuinely used, nothing styled or
+> arranged for camera. Leave the right third of the frame quiet. No packaging,
+> no text.
+
+Composite the real jar into G4 afterwards if you want it in shot, or shoot G4
+with the jar in place. Do not ask a model to draw it.
+
+---
+
 ## Product photography, the longer job
 
-Every one of the ten gallery images has copy, a nutrition panel or the pack's
-back label burned into it. They cannot be cropped, resized or reused, and finding
-usable frames for the concept meant cropping around lettering.
-
-What a proper product shoot needs, on a plain warm ground with no text:
-
-| Shot | Use |
-| --- | --- |
-| Jar, front, straight on | Product cards, the shop grid |
-| Jar, three quarter, soft shadow | Product page hero |
-| Lid off, ghee visible | Gallery, texture |
-| Macro of the granular texture | Gallery, the story section |
-| Jar in a real kitchen | Lifestyle |
-| Both sizes together | Collection and bundles |
-
-Shoot on the packaging you actually ship, in daylight, with room around the
-subject so a single frame can be cropped square, portrait and landscape.
+The three shots under "Shoot, do not generate" above are the minimum. A full
+shoot would also want the jar in a real kitchen, both sizes together, and the
+granular texture — all on the packaging you actually ship, in daylight, with
+room around the subject.
