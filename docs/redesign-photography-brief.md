@@ -3,9 +3,13 @@
 Companion to `docs/himalayan-redesign.md`. Every image the redesign needs, why it
 exists, and a prompt to generate it.
 
-**How to use these.** Attach the existing image named as the reference, then paste
-the prompt. The reference is there to hold the light and the place; the prompt
-changes the framing and removes the lettering.
+**How to use these.** Paste the prompt. Nothing else is needed — each one is
+self-contained and states its own dimensions on the first line, because a model
+given no size returns a square by default and a hero cropped out of a square is
+a different photograph.
+
+A reference image is optional. If a generator accepts one it will hold the light
+more tightly, but no prompt below depends on it.
 
 **Two rules that apply to every image below.**
 
@@ -22,10 +26,10 @@ changes the framing and removes the lettering.
 
 **Where it goes:** the homepage hero, full bleed, behind the headline "A Taste of
 the Himalayas."
-**Size:** 2560 x 1440, landscape 16:9.
-**Reference:** the current desktop hero banner.
 **Blocks:** T8, the largest task in Phase 3.
 
+> **Landscape, 16:9, 2560 x 1440 pixels.**
+>
 > A wide cinematic photograph of the Kumaon foothills in Uttarakhand at first
 > light. Layered ridgelines receding into morning haze, a snow peak catching the
 > first sun on the right third of the frame, mist sitting in the valley below.
@@ -43,13 +47,17 @@ the Himalayas."
 
 ## S3b. Hero, mobile
 
-**Size:** 1290 x 2200, portrait.
 **Why separate:** the desktop crop loses its subject on a phone. This is the
 single biggest failure of the current site.
 
-> The same scene and the same light as the desktop hero, recomposed vertically.
-> Snow peak and sky occupying the upper half, mist and ridgelines through the
-> middle, terraced slope and two or three grazing cows across the lower third.
+> **Portrait, roughly 9:16, 1290 x 2200 pixels.**
+>
+> A photograph of the Kumaon foothills in Uttarakhand at first light, composed
+> vertically. Snow peak and pale morning sky occupying the upper half, mist and
+> layered ridgelines through the middle, a terraced green slope with two or
+> three brown desi cows grazing across the lower third. Warm low golden light.
+> Shot on a full frame camera, deep focus, natural colour, documentary rather
+> than postcard.
 >
 > Keep the middle band quiet: the headline and buttons sit there.
 >
@@ -60,17 +68,19 @@ single biggest failure of the current site.
 ## S4. Category tiles
 
 **Where they go:** the collection row on the homepage, four tiles.
-**Size:** 1200 x 1600, portrait 3:4.
 **Note:** only Dairy and Oils are needed now. Honey and More From the Hills
 render as tinted contour tiles until those products exist, which is deliberate.
 
 ### Dairy
 
+> **Portrait, 3:4, 1200 x 1600 pixels.**
+>
 > A close overhead photograph of golden granular desi ghee in a small carved
 > wooden bowl, resting on a worn wooden surface beside a brass spoon. Soft warm
 > window light from the left, gentle shadows, shallow depth of field. The texture
 > of the ghee is the subject: slightly grainy, semi solid, not glossy or liquid.
-> Muted warm palette, cream and brass and dark wood.
+> Muted warm palette, cream and brass and dark wood. Photographic, not
+> illustration or 3D render.
 >
 > Leave the lower third simple and unbusy, a category name is set over it.
 >
@@ -78,6 +88,8 @@ render as tinted contour tiles until those products exist, which is deliberate.
 
 ### Oils
 
+> **Portrait, 3:4, 1200 x 1600 pixels.**
+>
 > A close photograph of cold pressed mustard oil being poured in a thin stream
 > into a small ceramic dish, on a dark wooden kitchen surface. A few mustard
 > seeds scattered nearby. Warm side light, the oil catching the light as it
@@ -93,23 +105,28 @@ render as tinted contour tiles until those products exist, which is deliberate.
 
 **Where it goes:** the product story section, "Slowly crafted, rooted in
 tradition".
-**Size:** 1600 x 1200, landscape 4:3, one image per step.
 **Can ship without:** yes, the section degrades to typography.
 
 ### Curd
 
+> **Landscape, 4:3, 1600 x 1200 pixels.**
+>
 > A large steel or earthen pot of set curd in a mountain kitchen at dawn, cloth
 > covered, natural light from a small window. Hands lifting the cloth. Warm
 > muted tones, real kitchen, not styled.
 
 ### Churn
 
+> **Landscape, 4:3, 1600 x 1200 pixels.**
+>
 > A traditional wooden bilona churn in a Pahadi kitchen, the rope wound around
 > it, hands working it. Butter beginning to separate in the pot. Motion is
 > welcome, a little blur in the hands. Warm low light, documentary, unposed.
 
 ### Simmer
 
+> **Landscape, 4:3, 1600 x 1200 pixels.**
+>
 > Butter simmering slowly in a heavy brass pot over a low flame, turning golden,
 > fine bubbles at the edge. Steam. A wooden ladle resting against the rim. Close,
 > warm, patient.
@@ -121,8 +138,9 @@ All three: no text, no logos, no packaging, no modern branded equipment.
 ## S6. Everyday rituals
 
 **Where it goes:** "Made for the food you already cook."
-**Size:** 1600 x 1200, landscape.
 
+> **Landscape, 4:3, 1600 x 1200 pixels.**
+>
 > An unstyled Indian home meal on a simple table: hot rotis, a bowl of dal, plain
 > rice, a small dish of ghee with a spoon in it. Daylight from a window. A hand
 > reaching in to spoon ghee over a roti. Real household, slightly imperfect,
@@ -182,14 +200,15 @@ landscape.
 
 ### Generate
 
-**Reference for all four:** image 06, the laddoo frame — it is the brand's own
-light, warm and low and unstyled. Attach it, then paste the prompt.
+Each prompt stands alone. Image 06, the laddoo frame, is the brand's own light
+if a generator will take a reference, but none of these need it.
 
 #### G1. Texture macro
 
 **Where:** gallery, and the ghee story section.
-**Size:** 1600 x 1600, square.
 
+> **Square, 1:1, 1600 x 1600 pixels.**
+>
 > Extreme close-up of golden clarified butter with a fine granular crystalline
 > texture, lifted on a plain steel spoon over a wooden surface. Warm daylight
 > from one side, shallow depth of field. No jar, no packaging, no text. The
@@ -198,8 +217,9 @@ light, warm and low and unstyled. Attach it, then paste the prompt.
 #### G2. On the roti
 
 **Where:** gallery, usage.
-**Size:** 1600 x 1200, landscape 4:3.
 
+> **Landscape, 4:3, 1600 x 1200 pixels.**
+>
 > A hot phulka roti on a plain steel plate, a spoonful of golden ghee melting
 > and running across it. Overhead, close, home kitchen, morning daylight. No
 > packaging, no branded objects, no text. Real food, slightly imperfect.
@@ -207,8 +227,9 @@ light, warm and low and unstyled. Attach it, then paste the prompt.
 #### G3. The source
 
 **Where:** gallery, and the ingredient slot the brief asks for.
-**Size:** 1600 x 1200, landscape 4:3.
 
+> **Landscape, 4:3, 1600 x 1200 pixels.**
+>
 > Fresh milk being poured into a steel pail in a hill village at first light,
 > steam rising, a native Indian cow out of focus behind. Documentary, unposed,
 > muted natural colour. No packaging, no text, no branded equipment.
@@ -216,8 +237,9 @@ light, warm and low and unstyled. Attach it, then paste the prompt.
 #### G4. The kitchen it lives in
 
 **Where:** gallery, lifestyle.
-**Size:** 1600 x 1200, landscape 4:3.
 
+> **Landscape, 4:3, 1600 x 1200 pixels.**
+>
 > A plain Pahadi kitchen shelf in daylight: brass and steel vessels, a wooden
 > spoon, a stone wall behind. Warm and worn, genuinely used, nothing styled or
 > arranged for camera. Leave the right third of the frame quiet. No packaging,
