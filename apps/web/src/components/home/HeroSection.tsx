@@ -249,6 +249,7 @@ export default function HeroSection() {
               );
             })()}
 
+
             {/* Darkened only as much as the banner's own layout asks for, and
                 not at all when there is no text to keep legible. */}
             {showOverlay && <div className={`absolute inset-0 ${layout.scrim}`} />}
@@ -259,9 +260,6 @@ export default function HeroSection() {
               className={`relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full ${layout.container}`}
             >
               <div className={layout.block} style={layout.blockStyle}>
-                <div className="inline-flex items-center gap-1 bg-[rgb(var(--forest-rgb)/0.85)] backdrop-blur-xs text-[var(--brass-on-dark)] border border-[rgb(var(--brass-rgb)/0.3)] px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider">
-                  <span>Devbhoomi Uttarakhand Origin</span>
-                </div>
                 <h1 className={layout.headline}>
                   {headline.split('. ').map((part: string, i: number, arr: string[]) => (
                     <React.Fragment key={i}>
@@ -286,6 +284,29 @@ export default function HeroSection() {
           </div>
           );
         })}
+
+        {/*
+          * The origin seal — one of them, over the whole carousel.
+          *
+          * It used to sit inside each slide, which meant it inherited the
+          * thousand-millisecond crossfade: during every transition two
+          * translucent badges overlapped and blended, and the mark appeared to
+          * pulse while the pictures moved underneath it. Rendered once, above
+          * the slides, it simply does not move.
+          *
+          * Pinned to the hero's own corner rather than the content container,
+          * which put it 112px in at desktop and left it floating in open sky.
+          *
+          * Top-left is the only region quiet on all three banners: the bottom
+          * third carries cattle, jars and foreground on every one, and the
+          * top-centre is where two of the three posters set their own
+          * headline. Two sizes larger and it clips "COUNTRY DAIRY" on slide 2.
+          */}
+        <div className="pointer-events-none absolute left-4 top-4 z-30 sm:left-6 sm:top-6">
+          <span className="inline-flex items-center rounded-full border border-[rgb(var(--brass-rgb)/0.35)] bg-[rgb(var(--forest-rgb)/0.85)] px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-[var(--brass-on-dark)] backdrop-blur-[2px] sm:text-[13px]">
+            Devbhoomi Uttarakhand Origin
+          </span>
+        </div>
 
         {/* Indicators */}
         <div className="absolute bottom-6 left-0 right-0 z-30 flex justify-center space-x-3">
