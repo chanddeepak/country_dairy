@@ -38,7 +38,7 @@ export default function StarRating({
                 filled
                   ? 'fill-[var(--brass)] text-[var(--brass)]'
                   : half
-                    ? 'fill-[var(--brass)]/50 text-[var(--brass)]'
+                    ? 'fill-[rgb(var(--brass-rgb)/0.5)] text-[var(--brass)]'
                     : 'fill-[var(--line)] text-[var(--line)]'
               }`}
             />

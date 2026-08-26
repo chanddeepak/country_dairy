@@ -919,7 +919,7 @@ function AccountPageContent() {
                   </form>
 
                   {/* Closing the account */}
-                  <div className="border border-[var(--danger-line)] bg-[var(--danger-bg)]/40 rounded-sm p-5 space-y-3">
+                  <div className="border border-[var(--danger-line)] bg-[rgb(var(--danger-bg-rgb)/0.4)] rounded-sm p-5 space-y-3">
                     <div className="flex items-start gap-2">
                       <AlertTriangle className="h-4 w-4 text-[var(--danger)] shrink-0 mt-0.5" />
                       <div>
@@ -1025,7 +1025,7 @@ function AccountPageContent() {
                             {/* isDefault comes from the API — position in the
                                 list is not the same thing once one is deleted. */}
                             {addr.isDefault && (
-                              <span className="inline-block mt-1.5 text-[10px] font-bold text-[var(--forest)] bg-[var(--forest)]/10 px-2 py-0.5 rounded-full">
+                              <span className="inline-block mt-1.5 text-[10px] font-bold text-[var(--forest)] bg-[rgb(var(--forest-rgb)/0.1)] px-2 py-0.5 rounded-full">
                                 DEFAULT
                               </span>
                             )}
@@ -1177,7 +1177,7 @@ function AccountPageContent() {
 
                   {/* Delete confirmation */}
                   {pendingDeleteAddr && (
-                    <div className="fixed inset-0 bg-[var(--ink)]/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="fixed inset-0 bg-[rgb(var(--ink-rgb)/0.6)] backdrop-blur-sm flex items-center justify-center p-4 z-50">
                       <div className="bg-white w-full max-w-sm rounded-sm shadow-2xl border border-[var(--line)] p-6 space-y-4">
                         <h4 className="font-serif font-normal text-base text-[var(--ink)]">
                           Delete this address?

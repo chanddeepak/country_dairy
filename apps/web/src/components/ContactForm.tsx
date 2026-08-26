@@ -60,7 +60,7 @@ export default function ContactForm() {
   };
 
   const field =
-    'w-full bg-white/8 border border-white/18 text-[var(--ivory)] placeholder:text-[var(--sand)]/60 ' +
+    'w-full bg-white/8 border border-white/18 text-[var(--ivory)] placeholder:text-[rgb(var(--sand-rgb)/0.6)] ' +
     'px-3 py-2.5 rounded-sm text-sm focus:outline-none focus:border-[var(--brass)]';
 
   return (

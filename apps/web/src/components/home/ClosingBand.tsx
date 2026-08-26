@@ -34,7 +34,7 @@ export default function ClosingBand() {
           shown ? 'scale-100' : 'scale-105'
         }`}
       />
-      <div className="absolute inset-0 bg-[var(--forest)]/72" />
+      <div className="absolute inset-0 bg-[rgb(var(--forest-rgb)/0.72)]" />
       <ContourField tone="brass" spacing={58} opacity={0.14} className="absolute inset-0" />
 
       <div className="relative mx-auto flex min-h-[520px] max-w-3xl flex-col items-center justify-center px-4 py-24 text-center sm:px-6">

@@ -118,7 +118,7 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
         )}
 
         {isOutOfStock && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--forest)]/45 backdrop-blur-[1px]">
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[rgb(var(--forest-rgb)/0.45)] backdrop-blur-[1px]">
             <span className="bg-[var(--ivory)] text-[var(--forest)] text-[10px] font-medium px-3.5 py-1.5 uppercase tracking-[0.14em]">
               Out of stock
             </span>

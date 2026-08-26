@@ -43,7 +43,7 @@ function PanelTile({ cat, onNavigate }: { cat: NavCategory; onNavigate: () => vo
         className={`grid h-14 w-14 place-items-center rounded-full transition ${
           empty
             ? 'bg-[var(--cream)] text-[var(--ink-soft)]'
-            : 'bg-[var(--forest)]/10 text-[var(--forest)] group-hover:bg-[var(--forest)] group-hover:text-[var(--ivory)]'
+            : 'bg-[rgb(var(--forest-rgb)/0.1)] text-[var(--forest)] group-hover:bg-[var(--forest)] group-hover:text-[var(--ivory)]'
         }`}
       >
         <Icon className="h-6 w-6" strokeWidth={1.5} />
@@ -178,7 +178,7 @@ export default function CategoryBar() {
                   className={`grid h-8 w-8 place-items-center rounded-full transition ${
                     on
                       ? 'bg-[var(--forest)] text-[var(--ivory)]'
-                      : 'bg-[var(--forest)]/10 text-[var(--forest)] group-hover:bg-[var(--forest)]/20'
+                      : 'bg-[rgb(var(--forest-rgb)/0.1)] text-[var(--forest)] group-hover:bg-[rgb(var(--forest-rgb)/0.2)]'
                   }`}
                 >
                   <Icon className="h-4 w-4" strokeWidth={1.75} />
@@ -270,7 +270,7 @@ export default function CategoryBar() {
 
           <Link
             href="/products"
-            className="rounded-full border border-[var(--forest)]/30 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--forest)] transition hover:border-[var(--forest)] hover:bg-[var(--forest)] hover:text-[var(--ivory)]"
+            className="rounded-full border border-[rgb(var(--forest-rgb)/0.3)] px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--forest)] transition hover:border-[var(--forest)] hover:bg-[var(--forest)] hover:text-[var(--ivory)]"
           >
             Shop all
           </Link>

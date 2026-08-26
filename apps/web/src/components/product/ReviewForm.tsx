@@ -216,7 +216,7 @@ export default function ReviewForm({
               <button
                 type="button"
                 onClick={() => removeMedia(idx)}
-                className="absolute top-0.5 right-0.5 bg-[var(--forest)]/70 hover:bg-[var(--danger)] text-white rounded-full p-0.5 transition"
+                className="absolute top-0.5 right-0.5 bg-[rgb(var(--forest-rgb)/0.7)] hover:bg-[var(--danger)] text-white rounded-full p-0.5 transition"
                 aria-label="Remove attachment"
               >
                 <X className="h-3 w-3" />
@@ -229,7 +229,7 @@ export default function ReviewForm({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="w-20 h-20 rounded-sm border-2 border-dashed border-[var(--line)] hover:border-[var(--forest)] hover:bg-[var(--forest)]/5 flex flex-col items-center justify-center gap-1 text-[var(--ink-soft)] hover:text-[var(--forest)] transition disabled:opacity-50"
+              className="w-20 h-20 rounded-sm border-2 border-dashed border-[var(--line)] hover:border-[var(--forest)] hover:bg-[rgb(var(--forest-rgb)/0.05)] flex flex-col items-center justify-center gap-1 text-[var(--ink-soft)] hover:text-[var(--forest)] transition disabled:opacity-50"
             >
               {uploading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />

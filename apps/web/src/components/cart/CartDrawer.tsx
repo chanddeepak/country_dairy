@@ -57,7 +57,7 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[var(--ink)]/55 backdrop-blur-sm flex justify-end" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-[rgb(var(--ink-rgb)/0.55)] backdrop-blur-sm flex justify-end" onClick={onClose}>
       <div
         className="bg-white w-full max-w-md shadow-2xl relative flex flex-col h-full animate-slide-in-right"
         onClick={(e) => e.stopPropagation()}

@@ -165,36 +165,36 @@ export default function HeroSection() {
       <section className="relative w-full overflow-hidden bg-[var(--forest)] min-h-[520px] md:min-h-[600px]">
         <div className={`${BOX} bg-gradient-to-r from-[var(--forest)] via-[var(--pine)] to-[var(--forest)] animate-pulse flex items-center`}>
           {/* Shimmer background gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[var(--ink)]/80 via-[var(--forest)]/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[rgb(var(--ink-rgb)/0.8)] via-[rgb(var(--forest-rgb)/0.6)] to-transparent" />
           
           <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
             <div className="max-w-xl space-y-6">
               {/* Badge skeleton */}
-              <div className="w-32 h-6 bg-[var(--pine)]/80 rounded-full border border-[var(--pine)]/50 animate-pulse" />
+              <div className="w-32 h-6 bg-[rgb(var(--pine-rgb)/0.8)] rounded-full border border-[rgb(var(--pine-rgb)/0.5)] animate-pulse" />
               
               {/* Headline skeleton lines */}
               <div className="space-y-3">
-                <div className="w-3/4 h-10 md:h-14 bg-[var(--pine)]/90 rounded-sm animate-pulse" />
-                <div className="w-1/2 h-10 md:h-14 bg-[var(--pine)]/90 rounded-sm animate-pulse" />
+                <div className="w-3/4 h-10 md:h-14 bg-[rgb(var(--pine-rgb)/0.9)] rounded-sm animate-pulse" />
+                <div className="w-1/2 h-10 md:h-14 bg-[rgb(var(--pine-rgb)/0.9)] rounded-sm animate-pulse" />
               </div>
               
               {/* Subtitle skeleton */}
               <div className="space-y-2 max-w-md pt-2">
-                <div className="w-full h-4 bg-[var(--pine)]/70 rounded animate-pulse" />
-                <div className="w-4/5 h-4 bg-[var(--pine)]/70 rounded animate-pulse" />
+                <div className="w-full h-4 bg-[rgb(var(--pine-rgb)/0.7)] rounded animate-pulse" />
+                <div className="w-4/5 h-4 bg-[rgb(var(--pine-rgb)/0.7)] rounded animate-pulse" />
               </div>
               
               {/* CTA button skeleton */}
               <div className="pt-4">
-                <div className="w-48 h-12 bg-[var(--warn)]/30 rounded-sm border border-[var(--warn)]/30 animate-pulse" />
+                <div className="w-48 h-12 bg-[rgb(var(--warn-rgb)/0.3)] rounded-sm border border-[rgb(var(--warn-rgb)/0.3)] animate-pulse" />
               </div>
             </div>
           </div>
 
           {/* Bottom indicator dots skeleton */}
           <div className="absolute bottom-6 left-0 right-0 z-30 flex justify-center space-x-3">
-            <div className="w-2.5 h-2.5 rounded-full bg-[var(--pine)]/60 animate-pulse" />
-            <div className="w-2.5 h-2.5 rounded-full bg-[var(--pine)]/60 animate-pulse" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[rgb(var(--pine-rgb)/0.6)] animate-pulse" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[rgb(var(--pine-rgb)/0.6)] animate-pulse" />
           </div>
         </div>
       </section>
@@ -259,7 +259,7 @@ export default function HeroSection() {
               className={`relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full ${layout.container}`}
             >
               <div className={layout.block} style={layout.blockStyle}>
-                <div className="inline-flex items-center gap-1 bg-[var(--forest)]/85 backdrop-blur-xs text-[var(--brass-on-dark)] border border-[var(--brass)]/30 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider">
+                <div className="inline-flex items-center gap-1 bg-[rgb(var(--forest-rgb)/0.85)] backdrop-blur-xs text-[var(--brass-on-dark)] border border-[rgb(var(--brass-rgb)/0.3)] px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider">
                   <span>Devbhoomi Uttarakhand Origin</span>
                 </div>
                 <h1 className={layout.headline}>

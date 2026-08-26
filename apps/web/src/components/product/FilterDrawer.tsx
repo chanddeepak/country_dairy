@@ -90,7 +90,7 @@ export default function FilterDrawer({
       <div
         onClick={onClose}
         aria-hidden="true"
-        className={`fixed inset-0 z-50 bg-[var(--ink)]/55 transition-opacity duration-200 ${
+        className={`fixed inset-0 z-50 bg-[rgb(var(--ink-rgb)/0.55)] transition-opacity duration-200 ${
           open ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
       />
@@ -158,7 +158,7 @@ export default function FilterDrawer({
                     />
                     <span
                       aria-hidden="true"
-                      className={`grid h-[18px] w-[18px] shrink-0 place-items-center rounded-sm border transition peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--forest)]/40 ${
+                      className={`grid h-[18px] w-[18px] shrink-0 place-items-center rounded-sm border transition peer-focus-visible:ring-2 peer-focus-visible:ring-[rgb(var(--forest-rgb)/0.4)] ${
                         on ? 'border-[var(--forest)] bg-[var(--forest)] text-white' : 'border-[var(--line)]'
                       }`}
                     >

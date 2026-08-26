@@ -281,7 +281,7 @@ export default function ProductDetailPage() {
      * jumps when the product arrives, and it reads as "this is loading"
      * without anyone having to word it.
      */
-    const bar = 'rounded bg-[var(--sand)]/80';
+    const bar = 'rounded bg-[rgb(var(--sand-rgb)/0.8)]';
 
     return (
       <div className="flex flex-col min-h-screen">
@@ -573,8 +573,8 @@ export default function ProductDetailPage() {
                       onClick={() => setActiveImage(thumb.url)}
                       className={`relative w-20 h-20 bg-white rounded-sm overflow-hidden border-2 transition-all flex-shrink-0 p-1.5 ${
                         isSelected
-                          ? 'border-[var(--forest)] ring-2 ring-[var(--forest)]/20 scale-95'
-                          : 'border-[var(--line)] hover:border-[var(--forest)]/50 opacity-70 hover:opacity-100'
+                          ? 'border-[var(--forest)] ring-2 ring-[rgb(var(--forest-rgb)/0.2)] scale-95'
+                          : 'border-[var(--line)] hover:border-[rgb(var(--forest-rgb)/0.5)] opacity-70 hover:opacity-100'
                       }`}
                     >
                       <Image
@@ -594,7 +594,7 @@ export default function ProductDetailPage() {
             <div className="space-y-6">
               <div>
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <span className="text-xs font-bold uppercase tracking-wider text-[var(--forest)] bg-[var(--forest)]/10 px-2.5 py-1 rounded-full">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[var(--forest)] bg-[rgb(var(--forest-rgb)/0.1)] px-2.5 py-1 rounded-full">
                     {(product as any).categoryLabel || (typeof product.category === 'string' ? product.category : (product.category as any)?.name) || (product as any).categoryName || 'A2 Dairy'}
                   </span>
                   <span className="text-xs text-[var(--ink-soft)]">•</span>
@@ -644,7 +644,7 @@ export default function ProductDetailPage() {
                   <span className="text-lg text-[var(--ink-soft)] line-through font-medium">₹{currentOriginalPrice}</span>
                 )}
                 {currentDiscountBadge && (
-                  <span className="text-xs font-extrabold text-[var(--forest)] bg-[var(--forest)]/10 px-2 py-0.5 rounded">
+                  <span className="text-xs font-extrabold text-[var(--forest)] bg-[rgb(var(--forest-rgb)/0.1)] px-2 py-0.5 rounded">
                     {currentDiscountBadge}
                   </span>
                 )}
@@ -692,8 +692,8 @@ export default function ProductDetailPage() {
                           onClick={() => handleVariantSelect(variant)}
                           className={`p-3 rounded-sm border-2 text-left transition-all relative ${
                             isSelected
-                              ? 'border-[var(--forest)] bg-[var(--forest)]/5'
-                              : 'border-[var(--line)] bg-white hover:border-[var(--forest)]/40'
+                              ? 'border-[var(--forest)] bg-[rgb(var(--forest-rgb)/0.05)]'
+                              : 'border-[var(--line)] bg-white hover:border-[rgb(var(--forest-rgb)/0.4)]'
                           }`}
                         >
                           <span className="block font-bold text-xs text-[var(--ink)] mb-1">
@@ -802,7 +802,7 @@ export default function ProductDetailPage() {
                       if (!user) { setIsAuthOpen(true); return; }
                       setIsSubscrOpen(true);
                     }}
-                    className="w-full flex items-center justify-center border-2 border-[var(--forest)] text-[var(--forest)] hover:bg-[var(--forest)]/5 font-bold py-3 rounded-sm text-sm uppercase tracking-wider transition"
+                    className="w-full flex items-center justify-center border-2 border-[var(--forest)] text-[var(--forest)] hover:bg-[rgb(var(--forest-rgb)/0.05)] font-bold py-3 rounded-sm text-sm uppercase tracking-wider transition"
                   >
                     <Calendar className="h-4 w-4 mr-2" />
                     Subscribe Daily — ₹{Math.round(Number(currentPrice) * 0.9)}
@@ -811,7 +811,7 @@ export default function ProductDetailPage() {
               </div>
 
               {/* DETAILED PRODUCT DESCRIPTION SECTION */}
-              <div className="pt-6 border-t border-[var(--line)]/80 space-y-3">
+              <div className="pt-6 border-t border-[rgb(var(--line-rgb)/0.8)] space-y-3">
                 <h3 className="font-serif font-light text-sm text-[var(--ink)] uppercase tracking-wider">
                   Product Description
                 </h3>
@@ -825,23 +825,23 @@ export default function ProductDetailPage() {
                 </div>
 
                 {/* Trust Badges Grid (Matching Reference Screenshot) */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-[var(--line)]/60">
-                  <div className="flex flex-col items-center text-center p-3.5 rounded-sm bg-white border border-[var(--line)]/60">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-[rgb(var(--line-rgb)/0.6)]">
+                  <div className="flex flex-col items-center text-center p-3.5 rounded-sm bg-white border border-[rgb(var(--line-rgb)/0.6)]">
                     <Truck className="h-6 w-6 text-[var(--forest)] mb-2" />
                     <span className="text-xs font-bold text-[var(--ink)] mb-0.5">Free Shipping</span>
                     <span className="text-[10px] text-[var(--ink-soft)]">Orders Above ₹499</span>
                   </div>
-                  <div className="flex flex-col items-center text-center p-3.5 rounded-sm bg-white border border-[var(--line)]/60">
+                  <div className="flex flex-col items-center text-center p-3.5 rounded-sm bg-white border border-[rgb(var(--line-rgb)/0.6)]">
                     <Headphones className="h-6 w-6 text-[var(--forest)] mb-2" />
                     <span className="text-xs font-bold text-[var(--ink)] mb-0.5">360° Support</span>
                     <span className="text-[10px] text-[var(--ink-soft)]">Always Here to Help</span>
                   </div>
-                  <div className="flex flex-col items-center text-center p-3.5 rounded-sm bg-white border border-[var(--line)]/60">
+                  <div className="flex flex-col items-center text-center p-3.5 rounded-sm bg-white border border-[rgb(var(--line-rgb)/0.6)]">
                     <RotateCcw className="h-6 w-6 text-[var(--forest)] mb-2" />
                     <span className="text-xs font-bold text-[var(--ink)] mb-0.5">100% Purity</span>
                     <span className="text-[10px] text-[var(--ink-soft)]">Guaranteed Fresh</span>
                   </div>
-                  <div className="flex flex-col items-center text-center p-3.5 rounded-sm bg-white border border-[var(--line)]/60">
+                  <div className="flex flex-col items-center text-center p-3.5 rounded-sm bg-white border border-[rgb(var(--line-rgb)/0.6)]">
                     <ClipboardCheck className="h-6 w-6 text-[var(--forest)] mb-2" />
                     <span className="text-xs font-bold text-[var(--ink)] mb-0.5">70+ Checks</span>
                     <span className="text-[10px] text-[var(--ink-soft)]">Lab Tested Quality</span>
@@ -877,8 +877,8 @@ export default function ProductDetailPage() {
                   {isGheeProduct && activeTab === 'bilonaProcess' ? (
                 <div className="max-w-4xl mx-auto space-y-8 py-2">
                   {/* Header Banner */}
-                  <div className="bg-[var(--ivory)] border border-[var(--line)]/80 rounded-sm p-6 text-center space-y-2">
-                    <span className="text-xs font-extrabold uppercase tracking-widest text-[var(--forest)] bg-[var(--forest)]/10 px-3 py-1 rounded-full">
+                  <div className="bg-[var(--ivory)] border border-[rgb(var(--line-rgb)/0.8)] rounded-sm p-6 text-center space-y-2">
+                    <span className="text-xs font-extrabold uppercase tracking-widest text-[var(--forest)] bg-[rgb(var(--forest-rgb)/0.1)] px-3 py-1 rounded-full">
                       Himalayan Heritage & Craftsmanship
                     </span>
                     <h3 className="font-serif font-light text-2xl md:text-3xl text-[var(--ink)]">
@@ -891,7 +891,7 @@ export default function ProductDetailPage() {
 
                   {/* 5 Steps Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div className="bg-[var(--ivory)]/60 border border-[var(--line)]/80 rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
+                    <div className="bg-[rgb(var(--ivory-rgb)/0.6)] border border-[rgb(var(--line-rgb)/0.8)] rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
                       <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
                         1
                       </div>
@@ -901,7 +901,7 @@ export default function ProductDetailPage() {
                       </p>
                     </div>
 
-                    <div className="bg-[var(--ivory)]/60 border border-[var(--line)]/80 rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
+                    <div className="bg-[rgb(var(--ivory-rgb)/0.6)] border border-[rgb(var(--line-rgb)/0.8)] rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
                       <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
                         2
                       </div>
@@ -911,7 +911,7 @@ export default function ProductDetailPage() {
                       </p>
                     </div>
 
-                    <div className="bg-[var(--ivory)]/60 border border-[var(--line)]/80 rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
+                    <div className="bg-[rgb(var(--ivory-rgb)/0.6)] border border-[rgb(var(--line-rgb)/0.8)] rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
                       <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
                         3
                       </div>
@@ -921,7 +921,7 @@ export default function ProductDetailPage() {
                       </p>
                     </div>
 
-                    <div className="bg-[var(--ivory)]/60 border border-[var(--line)]/80 rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
+                    <div className="bg-[rgb(var(--ivory-rgb)/0.6)] border border-[rgb(var(--line-rgb)/0.8)] rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
                       <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
                         4
                       </div>
@@ -931,7 +931,7 @@ export default function ProductDetailPage() {
                       </p>
                     </div>
 
-                    <div className="bg-[var(--ivory)]/60 border border-[var(--line)]/80 rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
+                    <div className="bg-[rgb(var(--ivory-rgb)/0.6)] border border-[rgb(var(--line-rgb)/0.8)] rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
                       <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
                         5
                       </div>
@@ -944,21 +944,21 @@ export default function ProductDetailPage() {
 
                   {/* Purity Comparison Highlights */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                    <div className="p-4 bg-[var(--ok-bg)]/50 border border-[var(--ok-line)]/60 rounded-sm flex items-start gap-3">
+                    <div className="p-4 bg-[rgb(var(--ok-bg-rgb)/0.5)] border border-[rgb(var(--ok-line-rgb)/0.6)] rounded-sm flex items-start gap-3">
                       <Droplet className="h-[18px] w-[18px] shrink-0 text-[var(--ok)]" strokeWidth={1.5} />
                       <div>
                         <h5 className="font-bold text-xs text-[var(--forest)] uppercase tracking-wider mb-0.5">100% Curd Churned</h5>
                         <p className="text-xs text-[var(--ink-soft)] leading-relaxed">Never made from raw industrial cream. 25-30 litres of A2 milk yields just 1 litre of Bilona ghee.</p>
                       </div>
                     </div>
-                    <div className="p-4 bg-[var(--warn-bg)]/50 border border-[var(--warn-line)]/60 rounded-sm flex items-start gap-3">
+                    <div className="p-4 bg-[rgb(var(--warn-bg-rgb)/0.5)] border border-[rgb(var(--warn-line-rgb)/0.6)] rounded-sm flex items-start gap-3">
                       <CookingPot className="h-[18px] w-[18px] shrink-0 text-[var(--brass-text)]" strokeWidth={1.5} />
                       <div>
                         <h5 className="font-bold text-xs text-[var(--brass-text)] uppercase tracking-wider mb-0.5">Rich Granular Aroma</h5>
                         <p className="text-xs text-[var(--ink-soft)] leading-relaxed">Natural golden colour, nutty Pahadi aroma, and bio-available nutrients intact.</p>
                       </div>
                     </div>
-                    <div className="p-4 bg-[var(--cream)] border border-[var(--line)]/80 rounded-sm flex items-start gap-3">
+                    <div className="p-4 bg-[var(--cream)] border border-[rgb(var(--line-rgb)/0.8)] rounded-sm flex items-start gap-3">
                       <ShieldCheck className="h-[18px] w-[18px] shrink-0 text-[var(--ink-soft)]" strokeWidth={1.5} />
                       <div>
                         <h5 className="font-bold text-xs text-[var(--ink)] uppercase tracking-wider mb-0.5">Zero Additives</h5>
@@ -977,7 +977,7 @@ export default function ProductDetailPage() {
                       </h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {Object.entries((product as any).nutritionFacts).map(([key, val]) => (
-                          <div key={key} className="flex justify-between items-center p-3 rounded-sm bg-[var(--ivory)]/80 border border-[var(--line)]/80">
+                          <div key={key} className="flex justify-between items-center p-3 rounded-sm bg-[rgb(var(--ivory-rgb)/0.8)] border border-[rgb(var(--line-rgb)/0.8)]">
                             <span className="font-bold text-[var(--ink)] text-xs">{key}</span>
                             <span className="font-extrabold text-[var(--forest)] text-xs font-mono">{String(val)}</span>
                           </div>

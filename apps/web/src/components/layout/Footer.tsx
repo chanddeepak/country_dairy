@@ -34,7 +34,7 @@ export default function Footer() {
             height={260}
             className="h-12 w-auto object-contain mb-5"
           />
-          <p className="text-[13px] leading-relaxed max-w-xs text-[var(--sand)]/75 font-light">
+          <p className="text-[13px] leading-relaxed max-w-xs text-[rgb(var(--sand-rgb)/0.75)] font-light">
             From the heart of Devbhoomi, to your home. Handcrafted in the Himalayan
             foothills of Tanakpur, Uttarakhand, with a batch report for everything
             we make.
@@ -66,7 +66,7 @@ export default function Footer() {
               </a>
             </p>
             <p className="m-0 text-[var(--ivory)]">Delivery across India</p>
-            <p className="m-0 text-[11px] uppercase tracking-[0.12em] text-[var(--sand)]/55 pt-1">
+            <p className="m-0 text-[11px] uppercase tracking-[0.12em] text-[rgb(var(--sand-rgb)/0.55)] pt-1">
               Daily 6:00 AM to 9:00 PM
             </p>
           </div>
@@ -74,14 +74,14 @@ export default function Footer() {
 
         <div>
           <p className="mb-5 text-[10px] uppercase tracking-[0.22em] text-[var(--brass-on-dark)]">Ask us anything</p>
-          <p className="text-[13px] leading-relaxed mb-4 text-[var(--sand)]/75 font-light">
+          <p className="text-[13px] leading-relaxed mb-4 text-[rgb(var(--sand-rgb)/0.75)] font-light">
             No account needed. We read every message and reply by email.
           </p>
           <ContactForm />
         </div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto mt-14 pt-7 border-t border-white/12 flex flex-wrap justify-between gap-4 text-[12px] text-[var(--sand)]/60 font-light">
+      <div className="relative z-10 max-w-7xl mx-auto mt-14 pt-7 border-t border-white/12 flex flex-wrap justify-between gap-4 text-[12px] text-[rgb(var(--sand-rgb)/0.6)] font-light">
         <p className="m-0">&copy; 2026 Country Dairy</p>
         <p className="m-0">Every batch tested. Every jar traceable.</p>
       </div>

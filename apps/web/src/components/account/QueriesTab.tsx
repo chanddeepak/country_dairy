@@ -31,7 +31,7 @@ const STATUS_LABEL: Record<SupportTicket['status'], string> = {
 
 const STATUS_STYLE: Record<SupportTicket['status'], string> = {
   OPEN: 'bg-[var(--warn-bg)] text-[var(--warn)] border-[var(--warn-line)]',
-  AWAITING_CUSTOMER: 'bg-[var(--forest)]/10 text-[var(--forest)] border-[var(--forest)]/25',
+  AWAITING_CUSTOMER: 'bg-[rgb(var(--forest-rgb)/0.1)] text-[var(--forest)] border-[rgb(var(--forest-rgb)/0.25)]',
   RESOLVED: 'bg-[var(--ok-bg)] text-[var(--ok)] border-[var(--ok-line)]',
   CLOSED: 'bg-[var(--cream)] text-[var(--ink-soft)] border-[var(--line)]',
 };
@@ -106,8 +106,8 @@ export default function QueriesTab({
       <div className="space-y-3 animate-pulse">
         {[0, 1].map((i) => (
           <div key={i} className="bg-white border border-[var(--line)] rounded-sm p-5 space-y-3">
-            <div className="h-4 w-2/5 rounded bg-[var(--sand)]/80" />
-            <div className="h-3 w-1/4 rounded bg-[var(--sand)]/80" />
+            <div className="h-4 w-2/5 rounded bg-[rgb(var(--sand-rgb)/0.8)]" />
+            <div className="h-3 w-1/4 rounded bg-[rgb(var(--sand-rgb)/0.8)]" />
           </div>
         ))}
       </div>
@@ -147,7 +147,7 @@ export default function QueriesTab({
                 setOpenId(isOpen ? null : ticket.id);
                 setDraft('');
               }}
-              className="w-full text-left p-5 hover:bg-[var(--cream)]/60 transition"
+              className="w-full text-left p-5 hover:bg-[rgb(var(--cream-rgb)/0.6)] transition"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">

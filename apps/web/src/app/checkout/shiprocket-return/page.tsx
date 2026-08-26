@@ -73,7 +73,7 @@ function ReturnContent() {
               </Link>
               <Link
                 href="/products"
-                className="rounded-full border border-[var(--forest)]/30 px-6 py-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--forest)] transition hover:bg-[var(--forest)] hover:text-white"
+                className="rounded-full border border-[rgb(var(--forest-rgb)/0.3)] px-6 py-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--forest)] transition hover:bg-[var(--forest)] hover:text-white"
               >
                 Keep shopping
               </Link>
@@ -102,7 +102,7 @@ function ReturnContent() {
               </Link>
               <Link
                 href="/products"
-                className="rounded-full border border-[var(--forest)]/30 px-6 py-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--forest)] transition hover:bg-[var(--forest)] hover:text-white"
+                className="rounded-full border border-[rgb(var(--forest-rgb)/0.3)] px-6 py-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--forest)] transition hover:bg-[var(--forest)] hover:text-white"
               >
                 Keep shopping
               </Link>

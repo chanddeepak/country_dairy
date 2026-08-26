@@ -115,7 +115,7 @@ export default function ReviewSection({
         ) : (
           <button
             onClick={onRequestSignIn}
-            className="border-2 border-[var(--forest)] text-[var(--forest)] hover:bg-[var(--forest)]/5 font-bold py-2.5 px-5 rounded-sm text-sm transition shrink-0"
+            className="border-2 border-[var(--forest)] text-[var(--forest)] hover:bg-[rgb(var(--forest-rgb)/0.05)] font-bold py-2.5 px-5 rounded-sm text-sm transition shrink-0"
           >
             Sign in to review
           </button>
@@ -317,7 +317,7 @@ export default function ReviewSection({
       {/* Write-a-review modal */}
       {showForm && token && (
         <div
-          className="fixed inset-0 z-50 bg-[var(--ink)]/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-[rgb(var(--ink-rgb)/0.6)] backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
           onClick={() => {
             setShowForm(false);
             setEditing(null);
@@ -355,7 +355,7 @@ export default function ReviewSection({
       {/* Attachment lightbox */}
       {lightbox && (
         <div
-          className="fixed inset-0 z-50 bg-[var(--ink)]/85 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-[rgb(var(--ink-rgb)/0.85)] flex items-center justify-center p-4"
           onClick={() => setLightbox(null)}
         >
           <button

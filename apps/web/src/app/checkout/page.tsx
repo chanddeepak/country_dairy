@@ -264,7 +264,7 @@ export default function CheckoutPage() {
           {/* Guest Checkout - Ask for login first */}
           {!user ? (
             <div className="bg-white border border-[var(--line)] rounded-sm p-8 max-w-md mx-auto text-center">
-              <div className="w-16 h-16 bg-[var(--forest)]/10 text-[var(--forest)] rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-16 h-16 bg-[rgb(var(--forest-rgb)/0.1)] text-[var(--forest)] rounded-full flex items-center justify-center mx-auto mb-6">
                 <UserCheck className="h-8 w-8" />
               </div>
               <h2 className="font-serif font-light text-2xl text-[var(--ink)] mb-2">Secure Checkout</h2>
@@ -447,7 +447,7 @@ export default function CheckoutPage() {
                           key={addr.id}
                           className={`flex items-start gap-3.5 p-4 rounded-sm border cursor-pointer transition ${
                             selectedAddress === addr.id
-                              ? 'border-[var(--forest)] bg-[var(--forest)]/5'
+                              ? 'border-[var(--forest)] bg-[rgb(var(--forest-rgb)/0.05)]'
                               : 'border-[var(--line)] hover:border-[var(--line)]'
                           }`}
                         >
@@ -462,7 +462,7 @@ export default function CheckoutPage() {
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-bold text-[var(--ink)]">{addr.line1}, {addr.city}</span>
                               {addr.isDefault && (
-                                <span className="text-[9px] font-bold text-[var(--forest)] bg-[var(--forest)]/10 px-2 py-0.5 rounded-full">DEFAULT</span>
+                                <span className="text-[9px] font-bold text-[var(--forest)] bg-[rgb(var(--forest-rgb)/0.1)] px-2 py-0.5 rounded-full">DEFAULT</span>
                               )}
                             </div>
                             <p className="text-xs text-[var(--ink-soft)]">{addr.state} - {addr.postalCode}</p>
@@ -486,7 +486,7 @@ export default function CheckoutPage() {
                       Add New Address
                     </button>
                   ) : (
-                    <form onSubmit={handleSaveAddress} data-testid="address-form" className="border border-[var(--line)] p-5 rounded-sm bg-[var(--cream)]/50 space-y-3.5">
+                    <form onSubmit={handleSaveAddress} data-testid="address-form" className="border border-[var(--line)] p-5 rounded-sm bg-[rgb(var(--cream-rgb)/0.5)] space-y-3.5">
                       <h3 className="text-xs font-bold text-[var(--ink-soft)] uppercase tracking-wider">Add Delivery Address</h3>
                       {addrError && (
                         <div className="bg-[var(--danger-bg)] border border-[var(--danger-line)] text-[var(--danger)] p-2.5 rounded-sm text-xs font-bold">
@@ -634,7 +634,7 @@ export default function CheckoutPage() {
                 </h2>
                 <div className="space-y-3">
                   <label className={`flex items-center gap-3 p-4 rounded-sm border cursor-pointer transition ${
-                    paymentMethod === 'razorpay' ? 'border-[var(--forest)] bg-[var(--forest)]/5' : 'border-[var(--line)] hover:border-[var(--line)]'
+                    paymentMethod === 'razorpay' ? 'border-[var(--forest)] bg-[rgb(var(--forest-rgb)/0.05)]' : 'border-[var(--line)] hover:border-[var(--line)]'
                   }`}>
                     <input type="radio" name="payment" checked={paymentMethod === 'razorpay'}
                       onChange={() => setPaymentMethod('razorpay')} className="accent-[var(--forest)]" />
@@ -645,7 +645,7 @@ export default function CheckoutPage() {
                   </label>
                   {walletEnabled && (
                   <label className={`flex items-center gap-3 p-4 rounded-sm border cursor-pointer transition ${
-                    paymentMethod === 'wallet' ? 'border-[var(--forest)] bg-[var(--forest)]/5' : 'border-[var(--line)] hover:border-[var(--line)]'
+                    paymentMethod === 'wallet' ? 'border-[var(--forest)] bg-[rgb(var(--forest-rgb)/0.05)]' : 'border-[var(--line)] hover:border-[var(--line)]'
                   }`}>
                     <input type="radio" name="payment" checked={paymentMethod === 'wallet'}
                       onChange={() => setPaymentMethod('wallet')} className="accent-[var(--forest)]" />
@@ -724,7 +724,7 @@ export default function CheckoutPage() {
       {/* Payment confirmation. Razorpay is in mock mode, so this stands in for
           the gateway's own modal until live keys are configured. */}
       {showMockRazorpay && pendingOrderData && (
-        <div className="fixed inset-0 z-50 bg-[var(--ink)]/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-[rgb(var(--ink-rgb)/0.7)] backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-sm shadow-2xl max-w-sm w-full overflow-hidden">
             <div className="bg-[var(--forest)] text-white p-5">
               <div className="flex items-center gap-2 mb-1">

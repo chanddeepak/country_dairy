@@ -161,7 +161,7 @@ export default function CategoryPage() {
                   key={`${groupId}:${value}`}
                   onClick={() => toggle(groupId, value)}
                   data-testid="applied-filter"
-                  className="flex items-center gap-1.5 rounded-full bg-[var(--forest)]/10 px-3 py-1.5 text-[12px] font-semibold text-[var(--forest)] transition hover:bg-[var(--forest)]/20"
+                  className="flex items-center gap-1.5 rounded-full bg-[rgb(var(--forest-rgb)/0.1)] px-3 py-1.5 text-[12px] font-semibold text-[var(--forest)] transition hover:bg-[rgb(var(--forest-rgb)/0.2)]"
                 >
                   {filterChipLabel(groupId, value)}
                   <X className="h-3 w-3" />

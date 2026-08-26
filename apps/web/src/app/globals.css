@@ -18,6 +18,32 @@
   --cream: #F3EDE1;
   --ivory: #FBF8F1;
 
+  /*
+   * Channel triples for the tokens that are used at partial opacity.
+   *
+   * Tailwind compiles `bg-[var(--forest)]/72` to color-mix(), and emits a
+   * fallback of the *fully opaque* colour for browsers without it. So on
+   * Chrome below 111 every scrim turned solid — photographs vanished behind
+   * their own overlay, and tinted pills became dark blocks with dark text on
+   * them. rgb(var(--x-rgb) / 0.72) needs nothing newer than Chrome 65 and
+   * compiles to one plain declaration.
+   */
+  --brass-rgb: 176 141 66;
+  --cream-rgb: 243 237 225;
+  --danger-bg-rgb: 247 231 225;
+  --forest-rgb: 30 58 43;
+  --ink-rgb: 36 30 23;
+  --ivory-rgb: 251 248 241;
+  --line-rgb: 224 215 198;
+  --ok-rgb: 47 87 65;
+  --ok-bg-rgb: 233 239 231;
+  --ok-line-rgb: 201 216 197;
+  --pine-rgb: 47 87 65;
+  --sand-rgb: 230 220 201;
+  --warn-rgb: 138 106 31;
+  --warn-bg-rgb: 246 238 218;
+  --warn-line-rgb: 227 211 168;
+
   /* the single accent */
   --brass: #B08D42;
 

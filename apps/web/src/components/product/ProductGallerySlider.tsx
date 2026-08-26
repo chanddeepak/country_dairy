@@ -66,7 +66,7 @@ export default function ProductGallerySlider({ images, title }: ProductGallerySl
           )}
 
           {/* Inspect Badge */}
-          <div className="absolute bottom-3 right-3 bg-[var(--forest)]/80 backdrop-blur-sm text-[var(--ivory)] text-[11px] font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+          <div className="absolute bottom-3 right-3 bg-[rgb(var(--forest-rgb)/0.8)] backdrop-blur-sm text-[var(--ivory)] text-[11px] font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
             <ZoomIn className="h-3.5 w-3.5" />
             <span>Hover to Zoom</span>
           </div>
@@ -80,7 +80,7 @@ export default function ProductGallerySlider({ images, title }: ProductGallerySl
                   e.stopPropagation();
                   setSelectedIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
                 }}
-                className="md:hidden absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-[var(--forest)]/60 text-white rounded-full"
+                className="md:hidden absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-[rgb(var(--forest-rgb)/0.6)] text-white rounded-full"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
@@ -90,7 +90,7 @@ export default function ProductGallerySlider({ images, title }: ProductGallerySl
                   e.stopPropagation();
                   setSelectedIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
                 }}
-                className="md:hidden absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[var(--forest)]/60 text-white rounded-full"
+                className="md:hidden absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[rgb(var(--forest-rgb)/0.6)] text-white rounded-full"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
@@ -109,7 +109,7 @@ export default function ProductGallerySlider({ images, title }: ProductGallerySl
                 onMouseEnter={() => setSelectedIndex(idx)}
                 className={`relative w-16 h-16 rounded-sm overflow-hidden border-2 transition-all shrink-0 ${
                   selectedIndex === idx
-                    ? 'border-[var(--ok)] ring-2 ring-[var(--ok)]/20 scale-105'
+                    ? 'border-[var(--ok)] ring-2 ring-[rgb(var(--ok-rgb)/0.2)] scale-105'
                     : 'border-[var(--line)] opacity-70 hover:opacity-100'
                 }`}
               >
@@ -139,7 +139,7 @@ export default function ProductGallerySlider({ images, title }: ProductGallerySl
       {/* Full-Screen Pinch & Zoom Modal */}
       {isZoomModalOpen && (
         <div 
-          className="fixed inset-0 z-50 bg-[var(--ink)]/90 backdrop-blur-md flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-[rgb(var(--ink-rgb)/0.9)] backdrop-blur-md flex items-center justify-center p-4"
           onClick={() => setIsZoomModalOpen(false)}
         >
           <div className="relative max-w-4xl max-h-[90vh] overflow-auto rounded-sm">

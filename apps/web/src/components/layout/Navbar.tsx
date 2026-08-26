@@ -177,7 +177,7 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
           </span>
           <span className="hidden sm:inline">Handcrafted in the Himalayan Foothills of Tanakpur, Uttarakhand</span>
           <span className="sm:hidden">Tanakpur, Uttarakhand</span>
-          <span className="text-[var(--sand)]/40">&middot;</span>
+          <span className="text-[rgb(var(--sand-rgb)/0.4)]">&middot;</span>
           <span className="text-[var(--brass-on-dark)]">Free shipping over &#8377;499</span>
         </div>
 
@@ -185,7 +185,7 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
           className={`transition-colors duration-500 ${
             overHero
               ? 'bg-transparent border-b border-white/15'
-              : 'bg-[var(--ivory)]/95 backdrop-blur-sm border-b border-[var(--line)]'
+              : 'bg-[rgb(var(--ivory-rgb)/0.95)] backdrop-blur-sm border-b border-[var(--line)]'
           }`}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex justify-between items-center">
@@ -420,7 +420,7 @@ export default function Navbar({ onCartOpen, onAuthOpen }: NavbarProps) {
               </div>
             )}
 
-            <div className="mt-auto pt-10 text-[12px] text-[var(--sand)]/70 leading-relaxed">
+            <div className="mt-auto pt-10 text-[12px] text-[rgb(var(--sand-rgb)/0.7)] leading-relaxed">
               <p className="m-0">Tanakpur, Champawat, Uttarakhand</p>
               <p className="m-0">From the heart of Devbhoomi, to your home.</p>
             </div>

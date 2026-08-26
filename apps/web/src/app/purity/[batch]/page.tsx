@@ -96,7 +96,7 @@ export default function BatchPurityPage() {
         )}
 
         {status === 'missing' && (
-          <div className="bg-white rounded-sm border border-[var(--line)]/80 p-8 text-center">
+          <div className="bg-white rounded-sm border border-[rgb(var(--line-rgb)/0.8)] p-8 text-center">
             <h2 className="font-serif font-normal text-lg text-[var(--ink)] mb-2">
               No report for this batch
             </h2>
@@ -116,8 +116,8 @@ export default function BatchPurityPage() {
 
         {status === 'found' && report && (
           <div className="space-y-5">
-            <div className="bg-white rounded-sm border border-[var(--line)]/80 overflow-hidden">
-              <div className="px-5 py-4 border-b border-[var(--line)]/80 flex flex-wrap items-center justify-between gap-3">
+            <div className="bg-white rounded-sm border border-[rgb(var(--line-rgb)/0.8)] overflow-hidden">
+              <div className="px-5 py-4 border-b border-[rgb(var(--line-rgb)/0.8)] flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="font-serif font-normal text-[var(--ink)]">{report.productTitle}</div>
                   <div className="text-xs text-[var(--ink-soft)] mt-0.5">
@@ -142,13 +142,13 @@ export default function BatchPurityPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead>
-                      <tr className="text-[10px] font-bold text-[var(--ink-soft)] uppercase tracking-wider bg-[var(--ivory)]/60">
+                      <tr className="text-[10px] font-bold text-[var(--ink-soft)] uppercase tracking-wider bg-[rgb(var(--ivory-rgb)/0.6)]">
                         <th className="px-5 py-2.5">Parameter</th>
                         <th className="px-5 py-2.5">Result</th>
                         <th className="px-5 py-2.5">Permissible</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[var(--line)]/70">
+                    <tbody className="divide-y divide-[rgb(var(--line-rgb)/0.7)]">
                       {report.parameters.map((p, i) => (
                         <tr key={i}>
                           <td className="px-5 py-3 font-bold text-[var(--ink)] text-xs">{p.name}</td>
@@ -171,7 +171,7 @@ export default function BatchPurityPage() {
               )}
 
               {report.notes && (
-                <p className="px-5 py-4 text-xs leading-relaxed text-[var(--ink-soft)] border-t border-[var(--line)]/80">
+                <p className="px-5 py-4 text-xs leading-relaxed text-[var(--ink-soft)] border-t border-[rgb(var(--line-rgb)/0.8)]">
                   {report.notes}
                 </p>
               )}

@@ -191,7 +191,7 @@ export default function Journey() {
               <span
                 key={step.label}
                 className={`h-px w-10 transition-colors duration-300 ${
-                  i <= active ? 'bg-[var(--brass)]' : 'bg-[var(--ivory)]/25'
+                  i <= active ? 'bg-[var(--brass)]' : 'bg-[rgb(var(--ivory-rgb)/0.25)]'
                 }`}
               />
             ))}

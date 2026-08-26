@@ -79,25 +79,25 @@ export default function OrderDetailPage() {
             role="status"
             aria-label="Loading order"
           >
-            <div className="h-3 w-40 rounded bg-[var(--sand)]/80" />
+            <div className="h-3 w-40 rounded bg-[rgb(var(--sand-rgb)/0.8)]" />
 
             <div className="bg-white border border-[var(--line)] rounded-sm p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="h-5 w-48 rounded bg-[var(--sand)]/80" />
-                <div className="h-6 w-24 rounded-full bg-[var(--sand)]/80" />
+                <div className="h-5 w-48 rounded bg-[rgb(var(--sand-rgb)/0.8)]" />
+                <div className="h-6 w-24 rounded-full bg-[rgb(var(--sand-rgb)/0.8)]" />
               </div>
-              <div className="h-3 w-32 rounded bg-[var(--sand)]/80" />
+              <div className="h-3 w-32 rounded bg-[rgb(var(--sand-rgb)/0.8)]" />
             </div>
 
             <div className="bg-white border border-[var(--line)] rounded-sm p-6 space-y-4">
               {[0, 1].map((i) => (
                 <div key={i} className="flex items-center gap-4">
-                  <div className="h-16 w-16 rounded bg-[var(--sand)]/80" />
+                  <div className="h-16 w-16 rounded bg-[rgb(var(--sand-rgb)/0.8)]" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-3.5 w-2/5 rounded bg-[var(--sand)]/80" />
-                    <div className="h-3 w-1/4 rounded bg-[var(--sand)]/80" />
+                    <div className="h-3.5 w-2/5 rounded bg-[rgb(var(--sand-rgb)/0.8)]" />
+                    <div className="h-3 w-1/4 rounded bg-[rgb(var(--sand-rgb)/0.8)]" />
                   </div>
-                  <div className="h-4 w-16 rounded bg-[var(--sand)]/80" />
+                  <div className="h-4 w-16 rounded bg-[rgb(var(--sand-rgb)/0.8)]" />
                 </div>
               ))}
             </div>
@@ -105,8 +105,8 @@ export default function OrderDetailPage() {
             <div className="bg-white border border-[var(--line)] rounded-sm p-6 space-y-3">
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <div className="h-5 w-5 rounded-full bg-[var(--sand)]/80" />
-                  <div className="h-3 w-44 rounded bg-[var(--sand)]/80" />
+                  <div className="h-5 w-5 rounded-full bg-[rgb(var(--sand-rgb)/0.8)]" />
+                  <div className="h-3 w-44 rounded bg-[rgb(var(--sand-rgb)/0.8)]" />
                 </div>
               ))}
             </div>
@@ -536,11 +536,11 @@ export default function OrderDetailPage() {
           )}
 
           {querySentRef && (
-            <div className="mt-4 text-xs rounded-sm p-3 border text-[var(--forest)] bg-[var(--forest)]/5 border-[var(--forest)]/20">
+            <div className="mt-4 text-xs rounded-sm p-3 border text-[var(--forest)] bg-[rgb(var(--forest-rgb)/0.05)] border-[rgb(var(--forest-rgb)/0.2)]">
               <p className="font-bold">
                 Sent. Your reference is {querySentRef}.
               </p>
-              <p className="mt-1 text-[var(--forest)]/85">
+              <p className="mt-1 text-[rgb(var(--forest-rgb)/0.85)]">
                 We usually reply within a working day. You will find our answer under{' '}
                 <Link href="/account?tab=queries" className="font-bold underline underline-offset-2">
                   My Questions
@@ -555,7 +555,7 @@ export default function OrderDetailPage() {
               className={`mt-4 text-xs font-bold rounded-sm p-3 border ${
                 queryFailed
                   ? 'text-[var(--danger)] bg-[var(--danger-bg)] border-[var(--danger-line)]'
-                  : 'text-[var(--forest)] bg-[var(--forest)]/5 border-[var(--forest)]/20'
+                  : 'text-[var(--forest)] bg-[rgb(var(--forest-rgb)/0.05)] border-[rgb(var(--forest-rgb)/0.2)]'
               }`}
             >
               {queryNote}

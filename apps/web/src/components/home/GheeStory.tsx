@@ -139,7 +139,7 @@ export default function GheeStory() {
             </div>
 
             {specs.length > 0 ? (
-              <dl className="mt-9 grid grid-cols-1 gap-x-10 gap-y-5 border-t border-[var(--ivory)]/15 pt-8 sm:grid-cols-2">
+              <dl className="mt-9 grid grid-cols-1 gap-x-10 gap-y-5 border-t border-[rgb(var(--ivory-rgb)/0.15)] pt-8 sm:grid-cols-2">
                 {specs.map(([label, value]) => (
                   <div key={label}>
                     <dt className="text-[10px] uppercase tracking-[0.18em] text-[var(--brass-on-dark)]">
@@ -155,7 +155,7 @@ export default function GheeStory() {
 
             <Link
               href={`/products/${product.slug}`}
-              className="mt-9 inline-flex items-center rounded-sm border border-[var(--ivory)]/35 px-7 py-3.5 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ivory)] transition-colors duration-300 hover:bg-[var(--ivory)] hover:text-[var(--forest)]"
+              className="mt-9 inline-flex items-center rounded-sm border border-[rgb(var(--ivory-rgb)/0.35)] px-7 py-3.5 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ivory)] transition-colors duration-300 hover:bg-[var(--ivory)] hover:text-[var(--forest)]"
             >
               See the ghee
             </Link>

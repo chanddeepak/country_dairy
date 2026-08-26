@@ -67,8 +67,8 @@ export default function LabReportPanel({ productId }: { productId?: string }) {
         Independent Lab Report
       </h4>
 
-      <div className="rounded-sm border border-[var(--line)]/80 bg-[var(--ivory)]/80 overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-[var(--line)]/80">
+      <div className="rounded-sm border border-[rgb(var(--line-rgb)/0.8)] bg-[rgb(var(--ivory-rgb)/0.8)] overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-[rgb(var(--line-rgb)/0.8)]">
           <div>
             <div className="text-xs font-bold text-[var(--ink)]">
               Batch <span className="font-mono">{latest.batchNumber}</span>
@@ -101,7 +101,7 @@ export default function LabReportPanel({ productId }: { productId?: string }) {
                   <th className="px-4 py-2">Permissible</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--line)]/70">
+              <tbody className="divide-y divide-[rgb(var(--line-rgb)/0.7)]">
                 {latest.parameters.map((p, i) => (
                   <tr key={i}>
                     <td className="px-4 py-2.5 font-bold text-[var(--ink)]">{p.name}</td>
@@ -120,7 +120,7 @@ export default function LabReportPanel({ productId }: { productId?: string }) {
         )}
 
         {latest.notes && (
-          <p className="px-4 py-3 text-xs leading-relaxed text-[var(--ink-soft)] border-t border-[var(--line)]/80">
+          <p className="px-4 py-3 text-xs leading-relaxed text-[var(--ink-soft)] border-t border-[rgb(var(--line-rgb)/0.8)]">
             {latest.notes}
           </p>
         )}

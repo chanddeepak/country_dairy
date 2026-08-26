@@ -40,7 +40,7 @@ export default function SubscriptionModal({ isOpen, onClose, product }: Subscrip
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[var(--ink)]/55 backdrop-blur-sm flex items-center justify-center p-4" onClick={handleClose}>
+    <div className="fixed inset-0 z-50 bg-[rgb(var(--ink-rgb)/0.55)] backdrop-blur-sm flex items-center justify-center p-4" onClick={handleClose}>
       <div className="bg-white max-w-md w-full p-8 rounded-sm shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
         <button onClick={handleClose} className="absolute top-4 right-4 text-[var(--ink-soft)] hover:text-[var(--ink)]">
           <X className="h-5 w-5" />
@@ -92,7 +92,7 @@ export default function SubscriptionModal({ isOpen, onClose, product }: Subscrip
                       onClick={() => setFreq(f)}
                       className={`py-2 px-3 text-xs font-bold rounded-sm border text-center transition ${
                         freq === f
-                          ? 'border-[var(--forest)] bg-[var(--forest)]/5 text-[var(--forest)]'
+                          ? 'border-[var(--forest)] bg-[rgb(var(--forest-rgb)/0.05)] text-[var(--forest)]'
                           : 'border-[var(--line)] text-[var(--ink-soft)] hover:bg-[var(--cream)]'
                       }`}
                     >
