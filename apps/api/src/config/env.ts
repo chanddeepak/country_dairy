@@ -67,6 +67,16 @@ export const env = {
   get razorpayKeySecret(): string {
     return optionalEnv('RAZORPAY_KEY_SECRET');
   },
+  get cashfreeClientId(): string {
+    return optionalEnv('CASHFREE_CLIENT_ID');
+  },
+  get cashfreeClientSecret(): string {
+    return optionalEnv('CASHFREE_CLIENT_SECRET');
+  },
+  /** `sandbox` unless explicitly `production`. The safe direction to fail. */
+  get cashfreeEnv(): string {
+    return optionalEnv('CASHFREE_ENV') || 'sandbox';
+  },
   get googleClientId(): string {
     return optionalEnv('GOOGLE_CLIENT_ID');
   },

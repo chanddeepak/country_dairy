@@ -18,7 +18,7 @@ export interface GatewayPayment {
  * `a === b` on a signature leaks how many leading bytes matched through timing,
  * which is enough to forge one byte at a time.
  */
-function safeEqual(a: string, b: string): boolean {
+export function safeEqual(a: string, b: string): boolean {
   const bufA = Buffer.from(a, 'utf8');
   const bufB = Buffer.from(b, 'utf8');
 

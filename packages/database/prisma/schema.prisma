@@ -52,6 +52,9 @@ enum PaymentStatus {
 
 enum PaymentProvider {
   RAZORPAY
+  /// Cashfree Payment Gateway, and the One Click Checkout built on it.
+  /// Razorpay stays listed so existing rows keep resolving.
+  CASHFREE
   COD
   WALLET
 }

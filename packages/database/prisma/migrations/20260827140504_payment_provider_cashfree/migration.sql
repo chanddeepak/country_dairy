@@ -1,0 +1,12 @@
+-- Cashfree joins the payment providers.
+--
+-- Written by hand rather than generated: `prisma migrate dev` needs an
+-- interactive terminal, and this is one well-understood statement.
+--
+-- ADD VALUE is additive — no row changes, no rewrite, no lock on Payment.
+-- IF NOT EXISTS keeps it idempotent if it is ever applied twice, and AFTER
+-- puts it where schema.prisma has it so Prisma sees no drift in the ordering.
+--
+-- Since Postgres 12 this may run inside a transaction as long as the new value
+-- is not *used* in the same transaction. Nothing here uses it.
+ALTER TYPE "PaymentProvider" ADD VALUE IF NOT EXISTS 'CASHFREE' AFTER 'RAZORPAY';
