@@ -18,6 +18,8 @@ import { pageParams, paginate } from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { RazorpayService } from './razorpay.service';
+import { CashfreeService } from './cashfree.service';
+import { FLAG, FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import { CmsService } from '../cms/cms.service';
 import { calculateOrderTotals, priceLine, round2, toPaise } from './pricing';
 
@@ -39,6 +41,8 @@ export class OrdersService {
   constructor(
     private prisma: PrismaService,
     private razorpayService: RazorpayService,
+    private cashfreeService: CashfreeService,
+    private flags: FeatureFlagsService,
     private cms: CmsService,
     private audit: AuditService,
   ) {}
@@ -209,6 +213,86 @@ export class OrdersService {
       return created;
     });
 
+    /*
+     * Which gateway takes the money.
+     *
+     * The flag is the switch and the credentials are the veto: turning it on
+     * without configuring Cashfree would create an order and then fail to make
+     * it payable, leaving stock decremented against something nobody can pay
+     * for. Falling back to Razorpay keeps that from being a dead end.
+     */
+    const useCashfree =
+      (await this.flags.isEnabled(FLAG.CASHFREE_CHECKOUT)) && this.cashfreeService.isConfigured;
+
+    if (useCashfree) {
+      const user = await this.prisma.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { id: true, name: true, email: true, phone: true },
+      });
+
+      const cashfreeOrder = await this.cashfreeService.createOrder({
+        /*
+         * Order number plus the head of our uuid, not the order number alone.
+         *
+         * generateOrderNumber takes max(orderNumber) + 1 across surviving
+         * rows, so deleting an order frees its number for the next one to
+         * reuse. Cashfree's ids are permanent and unique per merchant, so the
+         * reused number comes back 409 order_already_exists and the customer
+         * cannot pay — for a reason nothing on our side would explain.
+         *
+         * The number still leads so it is recognisable in their dashboard
+         * beside a support conversation; the suffix is what makes it safe.
+         */
+        orderId: `${order.orderNumber}-${order.id.slice(0, 8)}`,
+        amount: Number(totals.totalAmount),
+        customerId: user.id,
+        // Their API requires ten digits. An address phone is the better guess
+        // than an account that may have signed up by email.
+        customerPhone: (user.phone || address.phone || '').replace(/\D/g, '').slice(-10),
+        customerEmail: user.email ?? undefined,
+        customerName: user.name ?? undefined,
+        returnUrl: `${this.storefrontUrl()}/checkout/cashfree-return?order_id={order_id}`,
+        notifyUrl: `${this.apiUrl()}/orders/webhook/cashfree`,
+        cartItems: lines.map(({ item, priced }) => ({
+          item_id: item.variant.sku || item.variantId,
+          item_name: `${item.product.title} — ${item.variant.sizeLabel}`,
+          // What the customer sees on their summary has to be what we charge.
+          // MRP above selling renders as a struck-through price and a discount
+          // line; inventing a gap here would show a discount we never gave.
+          item_original_unit_price: Number(item.variant.mrpPrice),
+          item_discounted_unit_price: priced.unitPrice,
+          item_quantity: priced.quantity,
+          item_currency: 'INR',
+        })),
+        collectAddress: false,
+      });
+
+      await this.prisma.payment.create({
+        data: {
+          orderId: order.id,
+          amount: totals.totalAmount,
+          currency: 'INR',
+          provider: 'CASHFREE',
+          status: PaymentStatus.PENDING,
+          gatewayOrderId: cashfreeOrder.order_id,
+        },
+      });
+
+      this.logger.log(`Created order ${order.orderNumber} for ₹${totals.totalAmount} (Cashfree)`);
+
+      return {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        provider: 'CASHFREE' as const,
+        // What the browser SDK needs. Short-lived, and useless without it.
+        paymentSessionId: cashfreeOrder.payment_session_id,
+        paymentGatewayId: cashfreeOrder.order_id,
+        amount: totals.totalAmount,
+        currency: 'INR',
+        breakdown: totals,
+      };
+    }
+
     const gatewayOrder = await this.razorpayService.createOrder(
       toPaise(totals.totalAmount),
       order.id,
@@ -230,11 +314,22 @@ export class OrdersService {
     return {
       orderId: order.id,
       orderNumber: order.orderNumber,
+      provider: 'RAZORPAY' as const,
       paymentGatewayId: gatewayOrder.id,
       amount: totals.totalAmount,
       currency: 'INR',
       breakdown: totals,
     };
+  }
+
+  /** Where the customer comes back to. */
+  private storefrontUrl(): string {
+    return (process.env.STOREFRONT_URL || 'http://localhost:3000').replace(/\/$/, '');
+  }
+
+  /** Where Cashfree posts the webhook. */
+  private apiUrl(): string {
+    return (process.env.PUBLIC_API_URL || 'http://localhost:4000/api').replace(/\/$/, '');
   }
 
   private async resolveCoupon(code: string, userId: string) {

@@ -49,6 +49,10 @@ const FEATURE_FLAGS = [
     description: 'Hand checkout to Shiprocket (needs SHIPROCKET_API_KEY and SECRET)',
   },
   {
+    key: 'ENABLE_CASHFREE_CHECKOUT',
+    description: 'Take payment through Cashfree One Click Checkout (needs CASHFREE_CLIENT_ID and SECRET)',
+  },
+  {
     key: 'ENABLE_SHIPROCKET_OUR_COUPONS',
     description: 'Validate coupons against our own table rather than Shiprocket\'s dashboard',
   },

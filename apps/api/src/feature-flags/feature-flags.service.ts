@@ -21,6 +21,16 @@ export const FLAG = {
   SHIPROCKET_CHECKOUT: 'ENABLE_SHIPROCKET_CHECKOUT',
 
   /**
+   * Takes payment through Cashfree rather than Razorpay.
+   *
+   * A switch rather than a replacement: off, checkout behaves exactly as it
+   * did, which matters because this is the first payment path on the site that
+   * has ever actually opened a gateway. Razorpay stays wired underneath so
+   * turning this off is a rollback rather than an outage.
+   */
+  CASHFREE_CHECKOUT: 'ENABLE_CASHFREE_CHECKOUT',
+
+  /**
    * Where the discount rule lives, and only meaningful while the above is on.
    * Off, coupons are configured in Shiprocket's dashboard. On, we validate
    * against our own Coupon table and pass cart_discount at token creation.
