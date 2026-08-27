@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { OrderStatus, PaymentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RazorpayService, type GatewayPayment } from './razorpay.service';
+import { CashfreeService } from './cashfree.service';
 
 /** Events we act on. Anything else is stored and acknowledged. */
 const HANDLED_EVENTS = [
@@ -9,6 +10,21 @@ const HANDLED_EVENTS = [
   'payment.authorized',
   'payment.failed',
   'refund.processed',
+] as const;
+
+/**
+ * The Cashfree events we act on.
+ *
+ * Refunds are absent on purpose. Their refund payload is a different shape and
+ * reports rupees, while `onRefund` reads Razorpay's paise and divides by a
+ * hundred. Pointing one at the other would refund a hundredth of the right
+ * amount, silently. Refunds are C12; until then those events are stored and
+ * acknowledged rather than mishandled.
+ */
+const CASHFREE_HANDLED = [
+  'PAYMENT_SUCCESS_WEBHOOK',
+  'PAYMENT_FAILED_WEBHOOK',
+  'PAYMENT_USER_DROPPED_WEBHOOK',
 ] as const;
 
 export interface WebhookResult {
@@ -33,6 +49,7 @@ export class WebhookService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly razorpay: RazorpayService,
+    private readonly cashfree: CashfreeService,
   ) {}
 
   async handleRazorpay(rawBody: Buffer | string, signature: string): Promise<WebhookResult> {
@@ -115,6 +132,116 @@ export class WebhookService {
         data: { error: (err as Error).message },
       });
       this.logger.error(`Webhook ${eventType} failed: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  /**
+   * Cashfree webhooks. Same job as the Razorpay one, different envelope.
+   *
+   * Their signature covers `timestamp + rawBody` rather than the body alone,
+   * so the timestamp header is as load-bearing as the signature and a missing
+   * one is a rejection, not a default.
+   */
+  async handleCashfree(
+    rawBody: Buffer | string,
+    signature: string,
+    timestamp: string,
+  ): Promise<WebhookResult> {
+    if (!this.cashfree.verifyWebhookSignature(rawBody, signature, timestamp)) {
+      // Vague on purpose: a caller probing for a valid signature learns nothing
+      // about whether the secret is configured.
+      this.logger.warn('Rejected a Cashfree webhook with an invalid signature');
+      throw new BadRequestException('Invalid signature');
+    }
+
+    let event: {
+      type?: string;
+      data?: {
+        order?: { order_id?: string };
+        payment?: Record<string, unknown>;
+      };
+    };
+
+    try {
+      event = JSON.parse(rawBody.toString('utf8' as BufferEncoding));
+    } catch {
+      throw new BadRequestException('Malformed webhook body');
+    }
+
+    const eventType = event.type ?? 'unknown';
+    const paymentEntity = event.data?.payment;
+    const cashfreeOrderId = event.data?.order?.order_id ?? '';
+
+    // Their payload carries no delivery id, so the key is the pair that is
+    // stable across retries of the same event.
+    const eventId = `${eventType}:${cashfreeOrderId}:${String(paymentEntity?.cf_payment_id ?? '')}`;
+
+    const existing = await this.prisma.webhookEvent.findUnique({
+      where: { provider_eventId: { provider: 'CASHFREE', eventId } },
+      select: { id: true, processedAt: true },
+    });
+
+    if (existing?.processedAt) {
+      this.logger.log(`Ignoring duplicate Cashfree webhook ${eventType} (${eventId})`);
+      return { received: true, handled: true, duplicate: true, event: eventType };
+    }
+
+    const record = existing
+      ? await this.prisma.webhookEvent.update({
+          where: { id: existing.id },
+          data: { payload: event as unknown as Prisma.InputJsonValue, error: null },
+        })
+      : await this.prisma.webhookEvent.create({
+          data: {
+            provider: 'CASHFREE',
+            eventId,
+            eventType,
+            payload: event as unknown as Prisma.InputJsonValue,
+          },
+        });
+
+    if (!CASHFREE_HANDLED.includes(eventType as (typeof CASHFREE_HANDLED)[number]) || !paymentEntity) {
+      await this.prisma.webhookEvent.update({
+        where: { id: record.id },
+        data: { processedAt: new Date() },
+      });
+      return { received: true, handled: false, duplicate: false, event: eventType };
+    }
+
+    try {
+      // order_id lives on the order, not the payment, and readPaymentEntity
+      // expects to find it beside the rest.
+      const payment = this.cashfree.readPaymentEntity({
+        ...paymentEntity,
+        order_id: cashfreeOrderId,
+      });
+
+      let orderId: string | null;
+      if (eventType === 'PAYMENT_SUCCESS_WEBHOOK') {
+        orderId = await this.onCaptured(payment);
+      } else if (eventType === 'PAYMENT_FAILED_WEBHOOK') {
+        orderId = await this.onFailed(payment);
+      } else {
+        // Dropped at the payment page. The attempt is worth recording; the
+        // order stays PENDING and is not a failure they cannot retry.
+        orderId = await this.recordAttempt(payment, PaymentStatus.PENDING);
+      }
+
+      await this.prisma.webhookEvent.update({
+        where: { id: record.id },
+        data: { processedAt: new Date(), orderId },
+      });
+
+      return { received: true, handled: true, duplicate: false, event: eventType };
+    } catch (err) {
+      // processedAt stays null so their retry is allowed to try again, and the
+      // error is rethrown so they see a non-2xx and do retry.
+      await this.prisma.webhookEvent.update({
+        where: { id: record.id },
+        data: { error: (err as Error).message },
+      });
+      this.logger.error(`Cashfree webhook ${eventType} failed: ${(err as Error).message}`);
       throw err;
     }
   }

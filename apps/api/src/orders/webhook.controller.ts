@@ -5,7 +5,7 @@ import { WebhookService } from './webhook.service';
 /**
  * Deliberately its own controller with no AuthGuard.
  *
- * Razorpay cannot present a JWT — the HMAC over the raw body is the
+ * A gateway cannot present a JWT — the HMAC over the raw body is the
  * authentication, and it is checked before anything in the payload is read or
  * trusted. Adding this route to OrdersController would inherit that class's
  * AuthGuard and every real webhook would 401.
@@ -29,5 +29,22 @@ export class WebhookController {
       : JSON.stringify(req.body ?? {});
 
     return this.webhooks.handleRazorpay(rawBody, signature);
+  }
+
+  @Post('cashfree')
+  @HttpCode(200)
+  async cashfree(
+    @Req() req: Request,
+    @Headers('x-webhook-signature') signature: string,
+    @Headers('x-webhook-timestamp') timestamp: string,
+  ) {
+    // Same raw-body mount as the route above. Cashfree signs the timestamp
+    // header together with these exact bytes, so both travel to the verifier
+    // untouched.
+    const rawBody: Buffer | string = Buffer.isBuffer(req.body)
+      ? req.body
+      : JSON.stringify(req.body ?? {});
+
+    return this.webhooks.handleCashfree(rawBody, signature, timestamp);
   }
 }

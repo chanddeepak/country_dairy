@@ -63,6 +63,11 @@ async function bootstrap() {
 
   // Same reasoning for Shiprocket, whose HMAC is over the body they sent.
   app.use(
+    '/api/orders/webhook/cashfree',
+    express.raw({ type: '*/*', limit: '1mb' }),
+  );
+
+  app.use(
     '/api/shiprocket/webhook/order',
     express.raw({ type: '*/*', limit: '1mb' }),
   );
