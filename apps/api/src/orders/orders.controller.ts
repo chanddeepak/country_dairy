@@ -20,7 +20,7 @@ import {
   CancelOrderDto,
   CheckoutDto,
   UpdateOrderStatusDto, SetDeliveryTypeDto,
-  VerifyPaymentDto,
+  VerifyPaymentDto, ConfirmOrderDto,
 } from './dto/orders.dto';
 
 const ORDER_STAFF = [Role.SUPER_ADMIN, Role.ORDER_MANAGER] as const;
@@ -104,6 +104,11 @@ export class OrdersController {
       dto.razorpayPaymentId,
       dto.signature,
     );
+  }
+
+  @Post('confirm')
+  async confirmCashfree(@CurrentUser() user: { id: string }, @Body() dto: ConfirmOrderDto) {
+    return this.ordersService.confirmCashfreeOrder(user.id, dto.orderId);
   }
 
   @Get()

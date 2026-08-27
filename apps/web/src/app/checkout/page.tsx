@@ -4,6 +4,7 @@ import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, CreditCard, Wallet, ShieldCheck, Plus, CheckCircle2, UserCheck, KeyRound, PhoneCall, AlertCircle, Mail, Lock, User, Loader2 } from 'lucide-react';
+import { load as loadCashfree } from '@cashfreepayments/cashfree-js';
 import { useApp } from '../../context/AppContext';
 import StateSelect from '../../components/address/StateSelect';
 import { usePincodeLookup } from '../../lib/usePincodeLookup';
@@ -212,19 +213,48 @@ export default function CheckoutPage() {
 
       const orderResult = await checkout(selectedAddress);
 
-      if (orderResult?.orderId) {
-        // Trigger Mock Razorpay Payment Modal
-        // Use the server's numbers, not the client's estimate.
-        setPendingOrderData({
-          orderId: orderResult.orderId,
-          orderNumber: orderResult.orderNumber,
-          amount: orderResult.breakdown?.totalAmount ?? orderResult.amount ?? total,
-          breakdown: orderResult.breakdown,
-        });
-        setShowMockRazorpay(true);
-      } else {
+      if (!orderResult?.orderId) {
         setError(orderResult?.message || 'Checkout failed. Please try again.');
+        return;
       }
+
+      /*
+       * Which gateway the server chose, not which one we assume.
+       *
+       * The flag lives on the server and the credentials veto it, so the
+       * browser cannot know the answer before asking — and guessing would open
+       * the wrong thing for whoever the flag is off for.
+       */
+      if (orderResult.provider === 'CASHFREE' && orderResult.paymentSessionId) {
+        const cashfree = await loadCashfree({
+          mode: process.env.NEXT_PUBLIC_CASHFREE_ENV === 'production' ? 'production' : 'sandbox',
+        });
+
+        if (!cashfree) {
+          setError('The payment window could not be opened. Please try again.');
+          return;
+        }
+
+        // _modal keeps them on this page. The order is already created and its
+        // stock already held, so the return page settles it either way — and
+        // the webhook settles it independently if the tab is closed.
+        await cashfree.checkout({
+          paymentSessionId: orderResult.paymentSessionId,
+          redirectTarget: '_modal',
+        });
+
+        router.push(`/checkout/cashfree-return?order_id=${orderResult.orderId}`);
+        return;
+      }
+
+      // Use the server's numbers, not the client's estimate.
+      setPendingOrderData({
+        orderId: orderResult.orderId,
+        orderNumber: orderResult.orderNumber,
+        amount: orderResult.breakdown?.totalAmount ?? orderResult.amount ?? total,
+        breakdown: orderResult.breakdown,
+      });
+      setShowMockRazorpay(true);
     } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {

@@ -28,6 +28,11 @@ export class VerifyPaymentDto {
   signature: string;
 }
 
+export class ConfirmOrderDto {
+  @IsUUID()
+  orderId: string;
+}
+
 export class CancelOrderDto {
   @IsOptional()
   @IsString()

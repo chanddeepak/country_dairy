@@ -264,7 +264,11 @@ export class OrdersService {
           item_quantity: priced.quantity,
           item_currency: 'INR',
         })),
-        collectAddress: false,
+        // Their checkout collects an address either way. This says we take
+        // the one the customer actually chose there over the one they picked
+        // at our step — shipping anywhere else would be shipping somewhere
+        // they did not ask for.
+        preferTheirAddress: true,
       });
 
       await this.prisma.payment.create({
@@ -450,6 +454,101 @@ export class OrdersService {
     ]);
 
     this.logger.log(`Order ${order.orderNumber} confirmed`);
+    return confirmed;
+  }
+
+  /**
+   * Settles an order by asking Cashfree, rather than by trusting the browser.
+   *
+   * The webhook is the authoritative path and it is idempotent, but it cannot
+   * reach a laptop, so in local development it never fires at all. This is also
+   * what closes the gap in production when a customer returns before the
+   * webhook lands.
+   *
+   * Nothing in the request says whether the order was paid — only the order id
+   * does, and the answer comes from Cashfree. A browser claiming "paid" is not
+   * evidence, which is the whole reason `verifyPayment` checks a signature.
+   */
+  async confirmCashfreeOrder(userId: string, orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { payments: { orderBy: { createdAt: 'desc' }, take: 1 } },
+    });
+
+    if (!order || order.userId !== userId) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // Idempotent, like verifyPayment: whichever of the webhook and the return
+    // trip arrives second finds the work already done.
+    if (order.paymentStatus === PaymentStatus.PAID) {
+      return order;
+    }
+
+    const pending = order.payments[0];
+    if (!pending?.gatewayOrderId) {
+      throw new BadRequestException('This order has no Cashfree payment to confirm');
+    }
+
+    const remote = await this.cashfreeService.getOrder(pending.gatewayOrderId);
+    const status = String(remote.order_status ?? '');
+
+    if (status !== 'PAID') {
+      // ACTIVE means they have not paid yet — not a failure, just not done.
+      // Recording it as FAILED would strand an order the customer is still
+      // paying for.
+      this.logger.log(`Order ${order.orderNumber} is ${status} at Cashfree, not settling`);
+      return order;
+    }
+
+    /*
+     * Where it actually ships.
+     *
+     * Their checkout always collects an address, so the customer may well have
+     * chosen a different one there. Keeping ours would send the parcel
+     * somewhere they did not pick — and they would have no way of knowing
+     * until it arrived.
+     */
+    const extended = await this.cashfreeService
+      .getOrderExtended(pending.gatewayOrderId)
+      .catch(() => null);
+    const theirs = extended?.shipping_address;
+
+    const shippingAddress = theirs?.address1
+      ? {
+          line1: theirs.address1,
+          line2: theirs.address2 ?? null,
+          city: theirs.city ?? '',
+          state: theirs.state ?? '',
+          postalCode: theirs.pincode ?? '',
+          country: theirs.country ?? 'India',
+          phone: theirs.phone ?? '',
+          name: theirs.name ?? null,
+          source: 'cashfree',
+        }
+      : null;
+
+    const [confirmed] = await this.prisma.$transaction([
+      this.prisma.order.update({
+        where: { id: orderId },
+        data: {
+          status: OrderStatus.CONFIRMED,
+          paymentStatus: PaymentStatus.PAID,
+          confirmedAt: new Date(),
+          ...(shippingAddress ? { shippingAddress } : {}),
+          statusHistory: {
+            create: { status: OrderStatus.CONFIRMED, note: 'Payment confirmed with Cashfree' },
+          },
+        },
+      }),
+      this.prisma.payment.update({
+        where: { id: pending.id },
+        data: { status: PaymentStatus.PAID },
+      }),
+      this.prisma.cartItem.deleteMany({ where: { userId } }),
+    ]);
+
+    this.logger.log(`Order ${order.orderNumber} confirmed via Cashfree`);
     return confirmed;
   }
 

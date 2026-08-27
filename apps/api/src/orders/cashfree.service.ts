@@ -147,9 +147,10 @@ export class CashfreeService {
    * "Cart Discount" line — a difference invented here would be a discount we
    * never gave.
    *
-   * `collectAddress` is what makes this One Click Checkout rather than a
-   * payment page: Cashfree logs the customer in, offers their saved addresses,
-   * and hands the chosen one back through `getOrderExtended`.
+   * Cashfree logs the customer in, offers their saved addresses, and hands the
+   * chosen one back through `getOrderExtended`. `preferTheirAddress` decides
+   * whether that answer replaces the one taken at our own step — it cannot
+   * decide whether they ask, because their checkout breaks if they do not.
    */
   async createOrder(params: {
     orderId: string;
@@ -161,10 +162,22 @@ export class CashfreeService {
     returnUrl: string;
     notifyUrl?: string;
     cartItems: CashfreeCartItem[];
-    collectAddress: boolean;
+    preferTheirAddress: boolean;
   }): Promise<CashfreeOrder> {
-    const features = ['checkoutAuthenticate'];
-    if (params.collectAddress) features.push('checkoutCollectAddress');
+    /*
+     * checkoutCollectAddress is not optional, whatever the parameter suggests.
+     *
+     * With `checkoutAuthenticate` alone their checkout renders a blank panel
+     * and throws `RangeError: Invalid currency code :` from inside their own
+     * bundle — a NumberFormat built with an empty currency. Bisected against
+     * sandbox: the same order with both features renders correctly, and with
+     * authenticate alone it does not. Their documentation says nothing about
+     * the pairing.
+     *
+     * So One Click Checkout always collects the address, and the caller's
+     * choice is only whether we then keep ours or theirs.
+     */
+    const features = ['checkoutAuthenticate', 'checkoutCollectAddress'];
 
     return this.request<CashfreeOrder>('/orders', {
       method: 'POST',

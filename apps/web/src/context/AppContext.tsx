@@ -75,6 +75,8 @@ interface AppContextType {
   removeFromCart: (itemId: string) => Promise<void>;
   checkout: (addressId: string) => Promise<any>;
   verifyPayment: (orderId: string, payId: string) => Promise<boolean>;
+  /** Asks the server to settle a Cashfree order by checking with Cashfree. */
+  confirmCashfreeOrder: (orderId: string) => Promise<{ paid: boolean; status?: string }>;
   createSubscription: (data: { productId: string; quantity: number; frequency: string; daysOfWeek: number[]; startDate: string }) => Promise<any>;
   addAddress: (
     line1: string,
@@ -780,6 +782,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  /**
+   * Settles an order after the customer comes back from Cashfree.
+   *
+   * The browser is not trusted here — it says which order, and the server asks
+   * Cashfree whether it was paid. The webhook does the same job independently
+   * and whichever lands second is a no-op, which is what makes it safe to call
+   * this on every return.
+   */
+  const confirmCashfreeOrder = async (orderId: string) => {
+    if (!token) return { paid: false };
+    try {
+      const res = await fetch(`${API_URL}/orders/confirm`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId }),
+      });
+      if (!res.ok) return { paid: false };
+      const order = await res.json();
+      if (order?.paymentStatus === 'PAID') await fetchCart();
+      return { paid: order?.paymentStatus === 'PAID', status: order?.paymentStatus };
+    } catch (err) {
+      console.error('Failed to confirm the Cashfree order:', err);
+      return { paid: false };
+    }
+  };
+
   const createSubscription = async (subData: any) => {
     if (!token) throw new Error('Not authenticated');
     try {
@@ -1125,6 +1156,7 @@ function normalisePostalCode(value: string): string {
         removeFromCart,
         checkout,
         verifyPayment,
+        confirmCashfreeOrder,
         createSubscription,
         addAddress,
         updateAddress,
