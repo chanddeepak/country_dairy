@@ -514,13 +514,13 @@ export class OrdersService {
       .catch(() => null);
     const theirs = extended?.shipping_address;
 
-    const shippingAddress = theirs?.address1
+    const shippingAddress = theirs?.address_line_one
       ? {
-          line1: theirs.address1,
-          line2: theirs.address2 ?? null,
+          line1: theirs.address_line_one,
+          line2: theirs.address_line_two ?? null,
           city: theirs.city ?? '',
           state: theirs.state ?? '',
-          postalCode: theirs.pincode ?? '',
+          postalCode: theirs.pin_code ?? '',
           country: theirs.country ?? 'India',
           phone: theirs.phone ?? '',
           name: theirs.name ?? null,

@@ -20,17 +20,36 @@ export interface CashfreeOrder {
   payment_session_id: string;
 }
 
-/** An address as One Click Checkout returns it. */
+/**
+ * An address as One Click Checkout returns it.
+ *
+ * Field names are theirs, verified against the Get Order Extended reference —
+ * `address_line_one`, not `address1`; `pin_code`, not `pincode`. An earlier
+ * guess at these names type-checked perfectly and read `undefined` from every
+ * field, so the customer's chosen address was silently discarded and ours kept.
+ * Nothing would have failed; the parcel would just have gone to the wrong door.
+ */
 export interface CashfreeAddress {
   name?: string;
   phone?: string;
   email?: string;
-  address1?: string;
-  address2?: string;
+  address_line_one?: string;
+  address_line_two?: string;
   city?: string;
   state?: string;
-  pincode?: string;
+  state_code?: string;
+  pin_code?: string;
   country?: string;
+  country_code?: string;
+}
+
+/** Who Cashfree says placed the order. */
+export interface CashfreeCustomerDetails {
+  customer_id?: string;
+  customer_uid?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
 }
 
 /**
@@ -219,6 +238,7 @@ export class CashfreeService {
    * which is one reason this service talks to the API directly.
    */
   async getOrderExtended(orderId: string): Promise<{
+    customer_details?: CashfreeCustomerDetails | null;
     shipping_address?: CashfreeAddress | null;
     billing_address?: CashfreeAddress | null;
     cart?: Record<string, unknown>;
