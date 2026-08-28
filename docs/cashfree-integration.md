@@ -1,8 +1,16 @@
 # Cashfree One Click Checkout — the plan
 
-Source of truth for replacing the checkout, the way
-`docs/himalayan-redesign.md` was for the redesign. Written before any code so
-the decisions are visible and arguable.
+> **Superseded by `docs/checkout-and-identity.md`.**
+>
+> This document planned a payment gateway. What is being built turned out to be
+> larger: the mobile number becomes the identity for the whole site, and
+> WhatsApp carries everything we say to a customer afterwards.
+>
+> Kept because sections 2, 3 and 11 are still accurate and worth reading — the
+> comparison against Shiprocket, what we build against, and the guardrails. The
+> tasks and the address question in section 4 are answered elsewhere: One Click
+> Checkout cannot collect an address without doing the login, so the choice
+> section 4 poses does not exist.
 
 **Scope: web only.** Mobile is deferred — see section 9.
 
