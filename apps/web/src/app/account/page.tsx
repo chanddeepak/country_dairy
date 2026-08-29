@@ -495,7 +495,6 @@ function AccountPageContent() {
         <CartDrawer
           isOpen={isCartOpen}
           onClose={() => setIsCartOpen(false)}
-          onCheckout={() => router.push('/checkout')}
         />
       </div>
     );
@@ -1217,7 +1216,7 @@ function AccountPageContent() {
 
       <Footer />
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} onCheckout={() => router.push('/checkout')} />
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </div>
   );
 }

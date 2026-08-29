@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Minus, Plus, Calendar, ShoppingBag, MessageCircle, Share2, Check, Truck, Headphones, RotateCcw, ClipboardCheck, Loader2, Droplet, CookingPot, ShieldCheck } from 'lucide-react';
@@ -23,7 +23,6 @@ import { buildProductMessage, whatsAppUrl } from '../../../lib/storeConfig';
 
 export default function ProductDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const slug = params?.slug as string;
   const variantIdFromQuery = searchParams?.get('variant');
@@ -1050,7 +1049,7 @@ export default function ProductDetailPage() {
 
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
       <SubscriptionModal isOpen={isSubscrOpen} onClose={() => setIsSubscrOpen(false)} product={product} />
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} onCheckout={() => router.push('/checkout')} />
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </div>
   );
 }

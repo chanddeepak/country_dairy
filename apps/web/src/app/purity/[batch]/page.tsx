@@ -3,7 +3,7 @@
 import { FlaskConical } from 'lucide-react';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../../../components/layout/Navbar';
 import Footer from '../../../components/layout/Footer';
@@ -42,7 +42,6 @@ function formatDate(iso: string): string {
  */
 export default function BatchPurityPage() {
   const params = useParams();
-  const router = useRouter();
   const batch = decodeURIComponent(String(params?.batch ?? ''));
 
   const [report, setReport] = useState<BatchReport | null>(null);
@@ -191,7 +190,6 @@ export default function BatchPurityPage() {
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
-        onCheckout={() => router.push('/checkout')}
       />
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </div>

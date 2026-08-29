@@ -25,7 +25,6 @@ import {
 } from '../../lib/productFilters';
 import { X } from 'lucide-react';
 import { useStoreConfig } from '../../context/StoreConfigContext';
-import { useRouter } from 'next/navigation';
 
 const SORT_OPTIONS = [
   { label: 'Relevance', value: 'relevance' },
@@ -38,7 +37,6 @@ export default function ProductsPage() {
   const { isFlagOn } = useStoreConfig();
   const ENABLE_PRODUCT_RATINGS = isFlagOn('ENABLE_PRODUCT_RATINGS');
   const { user, addToCart } = useApp();
-  const router = useRouter();
   const [products, setProducts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
@@ -310,7 +308,7 @@ export default function ProductsPage() {
 
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
       <SubscriptionModal isOpen={isSubscrOpen} onClose={() => { setIsSubscrOpen(false); setSubscrProduct(null); }} product={subscrProduct} />
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} onCheckout={() => router.push('/checkout')} />
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </div>
   );
 }

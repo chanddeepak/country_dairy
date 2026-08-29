@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useApp } from '../context/AppContext';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
@@ -20,7 +19,6 @@ import SubscriptionModal from '../components/modals/SubscriptionModal';
 import CartDrawer from '../components/cart/CartDrawer';
 
 export default function Home() {
-  const router = useRouter();
   const { user } = useApp();
 
   // Modal / drawer state
@@ -36,18 +34,6 @@ export default function Home() {
     }
     setSubscrProduct(product);
     setIsSubscrOpen(true);
-  };
-
-  /*
-   * No sign-in gate. Every other page has always been a plain push to
-   * /checkout; this one alone demanded an account first, which is why checkout
-   * still opened our login modal from the home page long after the checkout
-   * page itself had stopped asking. Cashfree collects and verifies the mobile
-   * number during payment, and the account is created from it afterwards.
-   */
-  const handleCheckout = () => {
-    setIsCartOpen(false);
-    router.push('/checkout');
   };
 
   return (
@@ -82,7 +68,6 @@ export default function Home() {
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
-        onCheckout={handleCheckout}
       />
     </div>
   );

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import React from 'react';
+import { useCheckoutFlow } from '../../lib/useCheckoutFlow';
 import { X, ShoppingBag, Minus, Plus, MessageCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useStoreConfig } from '../../context/StoreConfigContext';
@@ -12,10 +13,19 @@ import { trackStorefrontEvent } from '../../lib/analytics';
 interface CartDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  onCheckout: () => void;
 }
 
-export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerProps) {
+/**
+ * The drawer decides what Checkout does, not the page it happens to sit on.
+ *
+ * It used to take an onCheckout prop, so seven pages each supplied their own
+ * answer — and one of them drifted: the home page opened the sign-in modal and
+ * never navigated at all, so checkout behaved differently depending on where
+ * the shopper had added to the basket. There is one answer now and no way for a
+ * page to give a different one.
+ */
+export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
+  const { start: startCheckout, starting, error: checkoutError } = useCheckoutFlow();
   // Every hook must run before the early return below, otherwise the hook
   // count differs between the open and closed renders and React errors.
   const { cart, updateCartQty, removeFromCart } = useApp();
@@ -182,13 +192,17 @@ export default function CartDrawer({ isOpen, onClose, onCheckout }: CartDrawerPr
               <span>Total:</span>
               <span>₹{subtotal + delivery}</span>
             </div>
+            {checkoutError && (
+              <p className="mb-3 text-xs font-bold text-[var(--danger)]">{checkoutError}</p>
+            )}
             {checkoutEnabled && (
               <button
-                onClick={onCheckout}
+                onClick={() => startCheckout()}
+                disabled={starting}
                 data-testid="checkout-now"
-                className="w-full bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-3.5 rounded-sm transition"
+                className="w-full bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-3.5 rounded-sm transition disabled:opacity-60"
               >
-                Checkout Now
+                {starting ? 'Opening secure payment…' : 'Checkout Now'}
               </button>
             )}
 

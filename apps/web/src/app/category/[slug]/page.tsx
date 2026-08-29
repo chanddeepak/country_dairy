@@ -24,7 +24,7 @@ import {
   toggleInSelection,
 } from '../../../lib/productFilters';
 import type { NavCategory } from '../../../lib/useNavTree';
-import { notFound, useParams, useRouter } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 
 // Deliberately the same types the bar uses. A second copy had already drifted:
 // it omitted iconName, which the API has sent since the tree existed.
@@ -46,7 +46,6 @@ export default function CategoryPage() {
   const slug = String(params?.slug ?? '');
 
   const { addToCart } = useApp();
-  const router = useRouter();
 
   const [shelf, setShelf] = useState<NavShelf | null>(null);
   const [products, setProducts] = useState<any[]>([]);
@@ -240,7 +239,6 @@ export default function CategoryPage() {
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
-        onCheckout={() => router.push('/checkout')}
       />
     </div>
   );
