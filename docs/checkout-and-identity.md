@@ -144,10 +144,36 @@ own order without ever seeing a registration form.
 space and the country code. `normaliseIndianPhone` strips non-digits and keeps
 the last ten, so it survived; worth knowing before anyone simplifies it.
 
-**Q5 is answered: OCC does return an email.** `customer_email` came back
-populated, and we currently throw it away, creating the account with
-`email: null`. That is a decision to revisit — it is a free contact channel we
-are discarding.
+**The email and name come from the address, never from `customer_details`.**
+A real payment returned:
+
+| field | value |
+| --- | --- |
+| `customer_details.customer_email` | `test123@gmail.com` — Cashfree's placeholder |
+| `customer_details.customer_name` | `Cashfree Customer` — also a placeholder |
+| `shipping_address.email` | the customer's actual address |
+| `shipping_address.name` | the customer's actual name |
+
+`customer_details` is Cashfree's own record and is filled with defaults for a
+guest, because we send no email for someone we have never met. The address block
+is what the customer confirmed. Reading the obvious field would have written a
+placeholder into a real account, so confirm takes both from
+`shipping_address`, falling back to `billing_address`.
+
+They are filled in only where the account has a gap — never overwritten. What a
+customer has already told us outranks anything a gateway returns, and a checkout
+address may be someone else's entirely (a gift, an office). The email is also
+checked for uniqueness first: `User.email` is unique, so writing one that
+belongs to another account would throw, and quietly claiming their address would
+be worse than failing.
+
+Note also that the lookup still keys on the **phone**. `resolveUserForIdentity`
+matches on email first when it has one, and only the phone is verified here —
+matching on an email could attach a stranger's order to whoever owns it.
+
+**Q5 answered: verified end to end.** A re-run of confirm against the real paid
+order produced an account with the phone, `deepak07chand@gmail.com` and `Neha` —
+not the placeholders.
 
 **Still unexercised: the totals rewrite (C1, C2).** `offer` was null because no
 offer is configured in their dashboard, so their amount matched ours exactly and
@@ -555,7 +581,7 @@ C1–C8 from the superseded doc are done.
 | Q2 | Does the 0% GMV offer apply to OCC, or only plain PG? | Same |
 | Q3 | Is there a fee on the Offers Engine, or on discounted orders? | Same |
 | Q4 | Does `order_amount` on the extended response change when an offer applies, or does the discount only appear under `offer`? | C1, C2 |
-| Q5 | Does Cashfree re-OTP a returning browser, or remember it? | How much friction §6.2 really carries |
+| ~~Q5~~ | ~~Does Cashfree re-OTP a returning browser?~~ **answered: it remembers.** A second checkout from the same browser skipped mobile and OTP entirely and opened on the saved address | — |
 | Q5b | Is the coupon field on Cashfree's payment screen or its login screen? If payment, skipping their OTP for a signed-in customer becomes free again | Whether §4.1 can be reversed |
 | Q6 | Is the Create/Get Offer API available on our account? `GET /pg/offers` is 404 | Whether offers can ever be scripted |
 | ~~Q6b~~ | ~~Sandbox OTP for the OCC login step~~ **answered: `111000`**, undocumented for this step but it works | — |

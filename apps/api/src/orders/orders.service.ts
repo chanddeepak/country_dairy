@@ -762,9 +762,23 @@ export class OrdersService {
     let ownerId = order.userId;
 
     if (!ownerId && verifiedPhone) {
+      /*
+       * Name and email come from the address, never from customer_details.
+       *
+       * customer_details is Cashfree's own record and is filled with defaults
+       * for a guest — a real payment came back with customer_name "Cashfree
+       * Customer" and customer_email "test123@gmail.com", while the shipping
+       * address carried the customer's actual name and address. Reading the
+       * obvious field would have written that placeholder into a real account.
+       */
+      const contact = theirs ?? extended?.billing_address;
+
       // find-or-create. A number that already has an account lands on it rather
       // than growing a second one — the same rule the OTP sign-in follows.
-      const signedIn = await this.auth.signInByVerifiedPhone(verifiedPhone);
+      const signedIn = await this.auth.signInByVerifiedPhone(verifiedPhone, {
+        email: contact?.email,
+        name: contact?.name,
+      });
       ownerId = signedIn.user.id;
       session = signedIn;
     }

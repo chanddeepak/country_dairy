@@ -290,10 +290,60 @@ export class AuthService {
    * The caller must have verified the phone with the gateway. Nothing here can
    * check that, which is why it is not reachable from a controller.
    */
-  async signInByVerifiedPhone(phone: string) {
+  async signInByVerifiedPhone(
+    phone: string,
+    profile?: { email?: string | null; name?: string | null },
+  ) {
+    /*
+     * Note what is NOT passed to resolveUserForIdentity: the email.
+     *
+     * That function looks up by email first when it has one, and the phone is
+     * the only thing verified here — matching on an email instead could attach
+     * a stranger's order to whoever happens to own that address. So the lookup
+     * stays keyed on the phone, and contact details are filled in afterwards.
+     */
     const user = await this.resolveUserForIdentity(AuthProvider.PHONE, phone, { phone });
-    await this.touchLastLogin(user.id);
-    return this.buildAuthResponse(user);
+    const enriched = await this.fillMissingContactDetails(user, profile);
+    await this.touchLastLogin(enriched.id);
+    return this.buildAuthResponse(enriched);
+  }
+
+  /**
+   * Adds a name or email to an account that has none.
+   *
+   * Only fills gaps — never overwrites. What the customer has already told us
+   * outranks anything a gateway hands back, and a checkout address may well be
+   * somebody else's (a gift, an office) rather than the account holder's.
+   */
+  private async fillMissingContactDetails(
+    user: User,
+    profile?: { email?: string | null; name?: string | null },
+  ): Promise<User> {
+    if (!profile) return user;
+
+    const data: { email?: string; name?: string } = {};
+
+    const name = profile.name?.trim();
+    if (!user.name && name) data.name = name;
+
+    const email = profile.email?.trim().toLowerCase();
+    if (!user.email && email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      // User.email is unique, so writing one that already belongs to somebody
+      // else would throw — and quietly claiming their address would be worse.
+      const taken = await this.prisma.user.findUnique({ where: { email } });
+      if (taken) {
+        this.logger.warn(
+          `Not attaching ${email} to user ${user.id}: another account already uses it`,
+        );
+      } else {
+        data.email = email;
+      }
+    }
+
+    if (Object.keys(data).length === 0) return user;
+
+    this.logger.log(`Filled in ${Object.keys(data).join(' and ')} for user ${user.id}`);
+    return this.prisma.user.update({ where: { id: user.id }, data });
   }
 
   private async assertOtpEnabled() {
