@@ -254,6 +254,28 @@ export class CashfreeService {
   }
 
   /**
+   * What was actually taken from the customer.
+   *
+   * Not `order_amount`, which is what we asked for and does not move when an
+   * offer applies. Proved with a real discounted payment: the order still read
+   * ₹1450 while the payment read ₹1250, and code reading the order would have
+   * invoiced the undiscounted figure without ever looking wrong.
+   */
+  async getOrderPayments(orderId: string): Promise<
+    {
+      payment_amount?: number | null;
+      payment_status?: string | null;
+      cf_payment_id?: string | number | null;
+      payment_offers?: unknown;
+      payment_message?: string | null;
+      [key: string]: unknown;
+    }[]
+  > {
+    const res = await this.request<unknown>(`/orders/${encodeURIComponent(orderId)}/payments`);
+    return Array.isArray(res) ? res : [];
+  }
+
+  /**
    * Verifies a webhook.
    *
    * base64( HMAC-SHA256( timestamp + rawBody, clientSecret ) ).

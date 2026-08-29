@@ -57,6 +57,10 @@ function buildService(order: Record<string, unknown>) {
   const cashfreeService = {
     getOrder: jest.fn().mockResolvedValue(SOMEONE_ELSE),
     getOrderExtended: jest.fn().mockResolvedValue(SOMEONE_ELSE),
+    // What was actually charged lives on the payment, not the order.
+    getOrderPayments: jest.fn().mockResolvedValue([
+      { payment_status: 'SUCCESS', payment_amount: 2230, payment_message: null },
+    ]),
   };
 
   const service = new OrdersService(

@@ -834,7 +834,21 @@ export class OrdersService {
      *
      * Skipped when the two already agree, which is the ordinary case.
      */
-    const charged = Number(extended?.order_amount ?? 0);
+    /*
+     * What the customer was actually charged, which is on the *payment* and
+     * not on the order.
+     *
+     * `order_amount` is the figure we asked for and does not move when one of
+     * their offers applies. Proved with a real discounted payment: the order
+     * read ₹1450 while the payment read ₹1250. Reading the order here would
+     * have put the undiscounted amount on the invoice and never looked wrong.
+     */
+    type CashfreePayment = Awaited<ReturnType<CashfreeService['getOrderPayments']>>[number];
+    const payments: CashfreePayment[] = await this.cashfreeService
+      .getOrderPayments(pending.gatewayOrderId)
+      .catch(() => [] as CashfreePayment[]);
+    const captured = payments.find((p) => String(p.payment_status) === 'SUCCESS');
+    const charged = Number(captured?.payment_amount ?? extended?.order_amount ?? 0);
     const gatewayFees = round2(
       Number(extended?.charges?.shipping_charges ?? 0) +
         Number(extended?.charges?.cod_handling_charges ?? 0),
@@ -892,7 +906,10 @@ export class OrdersService {
           // Everything they told us about the payment, kept verbatim. The
           // column has existed since the model was written and nothing has
           // ever filled it, so a dispute had nothing to read.
-          rawPayload: (extended ?? remote) as never,
+          // The payment alongside the order: the offer that moved the amount
+          // is only visible on the payment side.
+          rawPayload: { order: extended ?? remote, payment: captured ?? null } as never,
+          failureReason: captured?.payment_message ?? null,
           // Keep the Payment row and the order agreeing when an offer moved
           // the amount; a dispute is read from this row.
           ...(reconciled ? { amount: reconciled.totalAmount } : {}),
