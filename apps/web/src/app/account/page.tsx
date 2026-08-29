@@ -22,7 +22,7 @@ const addrField =
   'w-full px-3 py-2.5 bg-[var(--ivory)] border border-[var(--line)] rounded-sm text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--forest)] transition';
 const addrLabel = 'block text-[11px] font-bold text-[var(--ink-soft)] uppercase tracking-wider mb-1.5';
 
-const TAB_KEYS: Tab[] = ['overview', 'orders', 'queries', 'profile', 'subscriptions', 'wallet', 'addresses'];
+const TAB_KEYS: Tab[] = ['overview', 'orders', 'queries', 'profile', 'subscriptions', 'wallet'];
 
 function isTab(value: string | null): value is Tab {
   return !!value && (TAB_KEYS as string[]).includes(value);
@@ -365,19 +365,13 @@ function AccountPageContent() {
       setProfileError('Enter your name.');
       return;
     }
-    if (profileForm.phone && !/^[6-9][0-9]{9}$/.test(profileForm.phone)) {
-      setProfileError('Enter a valid 10-digit Indian mobile number.');
-      return;
-    }
-
     setProfileError('');
     setProfileSaved(false);
     setIsSavingProfile(true);
     try {
-      const result = await updateProfile({
-        name: profileForm.name.trim(),
-        phone: profileForm.phone || undefined,
-      });
+      // Name only. The number is the login identity and the server refuses to
+      // change it here, so sending it would only produce an error.
+      const result = await updateProfile({ name: profileForm.name.trim() });
 
       if (!result.ok) {
         setProfileError(result.error || 'Could not update your profile.');
@@ -440,7 +434,15 @@ function AccountPageContent() {
     ...(walletEnabled
       ? [{ key: 'wallet' as Tab, label: 'Wallet', icon: <Wallet className="h-4 w-4" /> }]
       : []),
-    { key: 'addresses', label: 'Addresses', icon: <MapPin className="h-4 w-4" /> },
+    /*
+     * No Addresses tab.
+     *
+     * Nothing reads the address book any more: checkout passes no addressId,
+     * Cashfree collects the delivery address itself and we send
+     * preferTheirAddress, and the address that matters is snapshotted onto each
+     * order. A customer curating a list nothing consults is a page that can
+     * only mislead them about where their next parcel will go.
+     */
     { key: 'profile', label: 'Profile & Security', icon: <UserCog className="h-4 w-4" /> },
   ];
 
@@ -765,20 +767,24 @@ function AccountPageContent() {
                       />
                     </div>
 
+                    {/*
+                      * Read-only, because this number is how you sign in.
+                      *
+                      * Changing it needs the new number verified by OTP before
+                      * the swap, and there is no such flow yet. Without one, a
+                      * typo would lock somebody out of their own account and a
+                      * deliberate change would claim someone else's way in.
+                      */}
                     <div>
                       <label className={addrLabel}>Mobile number</label>
                       <input
                         type="tel"
-                        maxLength={10}
-                        value={profileForm.phone}
-                        onChange={(e) =>
-                          setProfileForm({ ...profileForm, phone: e.target.value.replace(/\D/g, '') })
-                        }
-                        placeholder="10-digit mobile"
-                        className={addrField}
+                        value={user?.phone ?? ''}
+                        readOnly
+                        className={`${addrField} bg-[var(--cream)] text-[var(--ink-soft)] cursor-not-allowed`}
                       />
                       <p className="text-[11px] text-[var(--ink-soft)] mt-1.5">
-                        Used for delivery updates and to reach you about an order.
+                        This is how you sign in. Contact us if it needs changing.
                       </p>
                     </div>
 
@@ -859,7 +865,15 @@ function AccountPageContent() {
                     ))}
                   </div>
 
-                  {/* Password */}
+                  {/*
+                    * Only for accounts that have a password.
+                    *
+                    * Signing in by OTP means there is no password to change,
+                    * and the server rightly refuses — so offering the form
+                    * could only ever produce an error for the customers who
+                    * are now the majority.
+                    */}
+                  {user?.hasPassword && (
                   <form onSubmit={savePassword} className="bg-white border border-[var(--line)] rounded-sm p-5 space-y-3">
                     <h3 className="font-bold text-sm text-[var(--ink)]">Change password</h3>
 
@@ -916,6 +930,7 @@ function AccountPageContent() {
                       {isSavingPw ? 'Changing…' : 'Change password'}
                     </button>
                   </form>
+                  )}
 
                   {/* Closing the account */}
                   <div className="border border-[var(--danger-line)] bg-[rgb(var(--danger-bg-rgb)/0.4)] rounded-sm p-5 space-y-3">

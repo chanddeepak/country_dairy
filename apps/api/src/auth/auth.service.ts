@@ -36,7 +36,24 @@ const STAFF_ROLES: Role[] = [
   Role.DELIVERY_DRIVER,
 ];
 
-type SafeUser = Omit<User, 'passwordHash'>;
+/**
+ * A user as the client may see them: no hash, but whether one exists.
+ *
+ * The account page needs that to decide whether "change password" is a
+ * meaningful thing to offer — an OTP customer has no password, and a form that
+ * can only fail is worse than no form.
+ */
+type SafeUser = Omit<User, 'passwordHash'> & { hasPassword: boolean };
+
+/**
+ * What the guard and `/auth/me` see.
+ *
+ * Derived from the loader so the field list stays in one place, with the hash
+ * reduced to a boolean before anything is cached — it is never held in memory
+ * beyond the query that fetched it.
+ */
+type LoadedUser = NonNullable<Awaited<ReturnType<AuthService['loadUserById']>>>;
+type CachedUser = (Omit<LoadedUser, 'passwordHash'> & { hasPassword: boolean }) | null;
 
 @Injectable()
 export class AuthService {
@@ -482,8 +499,15 @@ export class AuthService {
       email: user.email,
     });
 
-    const { passwordHash: _passwordHash, ...safeUser } = user;
-    return { accessToken, user: safeUser };
+    /*
+     * The hash never leaves the server, but whether one exists does: the
+     * account page has no other way to know whether "change password" is a
+     * meaningful thing to offer. A customer who signed up by OTP has no
+     * password, and showing them a form that can only fail is worse than
+     * showing them nothing.
+     */
+    const { passwordHash, ...safeUser } = user;
+    return { accessToken, user: { ...safeUser, hasPassword: Boolean(passwordHash) } };
   }
 
   /**
@@ -494,7 +518,7 @@ export class AuthService {
    * The window is deliberately short: a deactivated or deleted account still
    * loses access within seconds, which is the property the guard exists for.
    */
-  private userCache = new Map<string, { at: number; user: Awaited<ReturnType<AuthService['loadUserById']>> }>();
+  private userCache = new Map<string, { at: number; user: CachedUser }>();
 
   private static readonly USER_CACHE_TTL_MS = 10_000;
 
@@ -504,7 +528,10 @@ export class AuthService {
       return cached.user;
     }
 
-    const user = await this.loadUserById(userId);
+    const loaded = await this.loadUserById(userId);
+    // Reduced to a boolean before it is cached, so the hash is never held in
+    // memory longer than the query that fetched it.
+    const user = loaded ? this.toSafeUser(loaded) : loaded;
     this.userCache.set(userId, { at: Date.now(), user });
     return user;
   }
@@ -532,24 +559,39 @@ export class AuthService {
         emailOptIn: true,
         smsOptIn: true,
         whatsappOptIn: true,
+        // Selected only so it can be reduced to a boolean below. The hash
+        // itself must not reach the client.
+        passwordHash: true,
       },
     });
+  }
+
+  /** Strips the hash, keeping only whether there is one. */
+  private toSafeUser<T extends { passwordHash?: string | null }>(user: T) {
+    const { passwordHash, ...rest } = user;
+    return { ...rest, hasPassword: Boolean(passwordHash) };
   }
 
   // --- ADDRESSES ---
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
+    /*
+     * The mobile number cannot be edited here.
+     *
+     * It is the login identity now, and this route asks for no proof that the
+     * new number belongs to the person typing it. Two ways that goes wrong: a
+     * typo locks a customer out of their own account for good, and a deliberate
+     * change to somebody else's number claims their way in.
+     *
+     * Changing it properly means verifying the new number by OTP before the
+     * swap, which is a flow that does not exist yet. Until it does, refusing is
+     * the honest answer — quietly ignoring the field would leave the customer
+     * believing it had changed.
+     */
     if (dto.phone) {
-      // phone is unique on User, so a clash must be reported as a conflict
-      // rather than surfacing as a raw Prisma error.
-      const clash = await this.prisma.user.findFirst({
-        where: { phone: dto.phone, id: { not: userId } },
-        select: { id: true },
-      });
-
-      if (clash) {
-        throw new BadRequestException('That mobile number is already on another account');
-      }
+      throw new BadRequestException(
+        'Your mobile number is how you sign in and cannot be changed here. Please contact us.',
+      );
     }
 
     await this.prisma.user.update({
