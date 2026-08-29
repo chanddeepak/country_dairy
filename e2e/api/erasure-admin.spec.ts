@@ -23,6 +23,17 @@ import {
  * separately drift, and the way you discover the drift is a regulator asking
  * why a name is still in the database.
  */
+/**
+ * Email sign-in is behind ENABLE_EMAIL_LOGIN and off by default: customers
+ * arrive by phone OTP now and an OTP account has neither an email nor a
+ * password. Cases that exercise those run only when the older door is
+ * unlocked, rather than asserting something about a feature nobody switched on.
+ */
+async function emailLoginOn(): Promise<boolean> {
+  const row = await db.featureFlag.findUnique({ where: { key: 'ENABLE_EMAIL_LOGIN' } });
+  return Boolean(row?.isEnabled);
+}
+
 test.describe('Admin erasure @security', () => {
   let t: Tracked;
 
@@ -106,18 +117,25 @@ test.describe('Admin erasure @security', () => {
     expect((await asStaff.delete(resolve(`/users/customers/${customer.id}`))).ok()).toBeTruthy();
     await asStaff.dispose();
 
-    // Erasure that leaves a working login is not erasure.
-    const anon = await apiClient();
-    const signIn = await anon.post(resolve('/auth/email/login'), {
-      data: { email, password: TEST_PASSWORD },
-    });
-    expect(signIn.status()).toBeGreaterThanOrEqual(400);
+    /*
+     * Erasure that leaves a working login is not erasure.
+     *
+     * Only meaningful while email sign-in is on: with it off the route refuses
+     * everybody, so this would pass without testing anything.
+     */
+    if (await emailLoginOn()) {
+      const anon = await apiClient();
+      const signIn = await anon.post(resolve('/auth/email/login'), {
+        data: { email, password: TEST_PASSWORD },
+      });
+      expect(signIn.status()).toBeGreaterThanOrEqual(400);
+      await anon.dispose();
+    }
 
     // And the token they were already holding stops working.
     const stale = await apiClient(customer.token);
     expect((await stale.get(resolve('/auth/me'))).status()).toBeGreaterThanOrEqual(400);
 
-    await anon.dispose();
     await stale.dispose();
   });
 

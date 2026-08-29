@@ -94,7 +94,7 @@ test.describe('Cashfree checkout', () => {
      * reuse, and Cashfree answers a reused id with 409 order_already_exists.
      */
     expect(payment?.gatewayOrderId).toMatch(
-      new RegExp(`^${body.orderNumber}-[0-9a-f]{8}$`),
+      new RegExp(`^${body.orderNumber}-[0-9a-f]{6}$`),
     );
   });
 

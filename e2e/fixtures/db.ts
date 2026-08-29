@@ -125,6 +125,19 @@ export async function cleanup(t: Tracked): Promise<void> {
  */
 export const RUN_ID = `e2e${Date.now().toString(36)}`;
 
+/**
+ * A mobile number no other run will pick.
+ *
+ * Customers are created by phone now — email sign-up is switched off — so this
+ * is what makes a test account, and two runs colliding on a number would have
+ * them fighting over one order history.
+ */
+export function uniquePhone(): string {
+  const tail = String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0');
+  // 9 keeps it a valid Indian mobile; the rest is the run and a random tail.
+  return `+919${RUN_ID.replace(/\D/g, '').slice(-3).padStart(3, '0')}${tail}`;
+}
+
 export function uniqueEmail(role = 'customer'): string {
   return `${RUN_ID}-${role}-${Math.random().toString(36).slice(2, 7)}@countrydairy.test`;
 }

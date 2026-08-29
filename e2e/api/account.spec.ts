@@ -20,6 +20,17 @@ import {
  * invoice to stay. Getting either half wrong is a problem no amount of
  * customer support fixes afterwards.
  */
+/**
+ * Email sign-in is behind ENABLE_EMAIL_LOGIN and off by default: customers
+ * arrive by phone OTP now and an OTP account has neither an email nor a
+ * password. Cases that exercise those run only when the older door is
+ * unlocked, rather than asserting something about a feature nobody switched on.
+ */
+async function emailLoginOn(): Promise<boolean> {
+  const row = await db.featureFlag.findUnique({ where: { key: 'ENABLE_EMAIL_LOGIN' } });
+  return Boolean(row?.isEnabled);
+}
+
 test.describe('Addresses @auth', () => {
   let t: Tracked;
 
@@ -123,61 +134,67 @@ test.describe('Profile and preferences @auth', () => {
     await cleanup(t);
   });
 
-  test('F9/F10 · name and phone save; email is not editable', async () => {
+  test('F9/F10 · the name saves; email and mobile are not editable', async () => {
     const customer = await createCustomer(t);
     const api = await apiClient(customer.token);
 
     const res = await api.patch(resolve('/auth/profile'), {
-      data: { name: 'Renamed Customer', phone: '9876500011' },
+      data: { name: 'Renamed Customer' },
     });
     expect(res.ok()).toBeTruthy();
 
     const user = await db.user.findUniqueOrThrow({ where: { id: customer.id } });
     expect(user.name).toBe('Renamed Customer');
-    expect(user.phone).toBe('9876500011');
 
-    // Email is the sign-in identity. Sending one must not change it — the
+    // Email is a sign-in identity. Sending one must not change it — the
     // global validation pipe rejects unknown properties outright.
     const sneaky = await api.patch(resolve('/auth/profile'), {
       data: { email: 'someone-else@countrydairy.test' },
     });
     expect(sneaky.status()).toBe(400);
 
+    // Compared against what is stored, not against the fixture's idea of it:
+    // an account created by phone has no email at all, so this is null here
+    // and the point is only that the PATCH did not write one.
     expect((await db.user.findUniqueOrThrow({ where: { id: customer.id } })).email).toBe(
-      customer.email,
+      user.email,
     );
 
     await api.dispose();
   });
 
-  test('F11 · a mobile number already in use is refused clearly', async () => {
-    const first = await createCustomer(t, 'First');
-    const second = await createCustomer(t, 'Second');
+  test('F11 · the mobile number cannot be changed or cleared @security', async () => {
+    /*
+     * The number is the only way into the account now that email sign-in is
+     * off, and this route asks for no proof that a new one belongs to the
+     * person typing it. So every shape of a change is refused here.
+     *
+     * `null` is the case that matters and the one that was live: the guard
+     * read `if (dto.phone)`, which null slips past, and the update then wrote
+     * it — 200, phone erased, customer locked out for good with nothing
+     * looking wrong. Regression cover for that, not a hypothetical.
+     */
+    const customer = await createCustomer(t);
+    const before = (await db.user.findUniqueOrThrow({ where: { id: customer.id } })).phone;
+    expect(before).toBeTruthy();
 
-    const api1 = await apiClient(first.token);
-    expect((await api1.patch(resolve('/auth/profile'), {
-      data: { phone: '9876500022' },
-    })).ok()).toBeTruthy();
-    await api1.dispose();
+    const api = await apiClient(customer.token);
 
-    const api2 = await apiClient(second.token);
-    const clash = await api2.patch(resolve('/auth/profile'), {
-      data: { phone: '9876500022' },
-    });
+    for (const phone of ['9876500022', '', null]) {
+      const res = await api.patch(resolve('/auth/profile'), { data: { phone } });
+      expect(res.ok(), `phone ${JSON.stringify(phone)} was accepted`).toBeFalsy();
 
-    expect(clash.ok()).toBeFalsy();
-    // Read before disposing: disposing the context disposes its responses,
-    // and the body is gone by the time you ask for it.
-    const text = (await clash.text()).toLowerCase();
-    await api2.dispose();
-    // A raw Prisma unique-constraint dump reaching the customer is the bug
-    // this case exists to catch.
-    expect(text).not.toContain('prisma');
-    expect(text).not.toContain('unique constraint');
-    expect(text).toMatch(/number|mobile|phone/);
+      expect(
+        (await db.user.findUniqueOrThrow({ where: { id: customer.id } })).phone,
+        `phone ${JSON.stringify(phone)} changed the stored number`,
+      ).toBe(before);
+    }
+
+    await api.dispose();
   });
 
   test('F12/F13 · the password changes, and only with the current one', async () => {
+    test.skip(!(await emailLoginOn()), 'Password sign-in is switched off');
     const customer = await createCustomer(t);
     const before = (await db.user.findUniqueOrThrow({ where: { id: customer.id } }))
       .passwordHash;
@@ -242,6 +259,7 @@ test.describe('Closing an account @security', () => {
   });
 
   test('F15 · closure is guarded by the password', async () => {
+    test.skip(!(await emailLoginOn()), 'Password sign-in is switched off');
     const customer = await createCustomer(t);
     const api = await apiClient(customer.token);
 
@@ -271,6 +289,9 @@ test.describe('Closing an account @security', () => {
   });
 
   test('F16/F17/F18 · erasure removes the person and keeps the invoice', async () => {
+    // F18 asserts a closed email can be registered again, which needs the
+    // email door open to mean anything.
+    test.skip(!(await emailLoginOn()), 'Email sign-up is switched off');
     test.setTimeout(180_000);
 
     const customer = await createCustomer(t);
@@ -352,6 +373,7 @@ test.describe('Closing an account @security', () => {
   });
 
   test('F15 · an account cannot be closed twice', async () => {
+    test.skip(!(await emailLoginOn()), 'Password sign-in is switched off');
     const customer = await createCustomer(t);
     const api = await apiClient(customer.token);
 

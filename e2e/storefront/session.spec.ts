@@ -11,6 +11,17 @@ import { uniqueEmail, db } from '../fixtures/db';
  * rendering a customer's name, orders and addresses from localStorage while
  * every write silently failed.
  */
+/**
+ * Email sign-in is behind ENABLE_EMAIL_LOGIN and off by default: customers
+ * arrive by phone OTP now, and the older form exists only for the accounts
+ * that predate it. These cases test that door, so they run only when it is
+ * unlocked rather than failing to describe a feature nobody switched on.
+ */
+async function emailLoginOn(): Promise<boolean> {
+  const row = await db.featureFlag.findUnique({ where: { key: 'ENABLE_EMAIL_LOGIN' } });
+  return Boolean(row?.isEnabled);
+}
+
 test.describe('Session', () => {
   let t: Tracked;
 
@@ -23,6 +34,7 @@ test.describe('Session', () => {
   });
 
   test('A1 · register, and the row looks right @auth', async ({ page }) => {
+    test.skip(!(await emailLoginOn()), 'Email sign-up is switched off');
     const email = uniqueEmail('signup');
 
     await registerOnStorefront(page, {
@@ -49,6 +61,7 @@ test.describe('Session', () => {
   });
 
   test('A3 · the same email cannot register twice @auth', async ({ request }) => {
+    test.skip(!(await emailLoginOn()), 'Email sign-up is switched off');
     const customer = await createCustomer(t);
 
     for (const variant of [

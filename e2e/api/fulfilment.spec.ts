@@ -242,9 +242,13 @@ test.describe('Choosing how an order ships @security', () => {
 
     expect(await onRoundSheet(), 'a local order is missing from the round').toBe(true);
 
-    await api.patch(resolve(`/orders/admin/${orderId}/delivery-type`), {
+    // Asserted, not fired and forgotten: an unchecked PATCH that fails leaves
+    // the order local and reports it as "still on the local round", which
+    // describes the symptom and hides the cause.
+    const moved = await api.patch(resolve(`/orders/admin/${orderId}/delivery-type`), {
       data: { deliveryType: 'COURIER' },
     });
+    expect(moved.ok(), `moving to courier failed: ${await moved.text()}`).toBe(true);
 
     // The consignment desk reads deliveryType !== LOCAL, so leaving it on the
     // sheet would have the same parcel queued for a van and a courier at once.

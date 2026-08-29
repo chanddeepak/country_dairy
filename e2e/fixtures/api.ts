@@ -1,8 +1,16 @@
 import { request, type APIRequestContext } from '@playwright/test';
 import { API } from '../../playwright.config';
-import { db, uniqueEmail, type Tracked } from './db';
+import { db, uniqueEmail, uniquePhone, type Tracked } from './db';
 
 export const TEST_PASSWORD = 'E2ePass#2026';
+
+/**
+ * The fixed sign-in code the API issues when OTP_DEV_CODE is set.
+ *
+ * Customers are created by phone now, and a real code is bcrypt-hashed and
+ * unreadable from here — so the suite needs the API running with a known one.
+ */
+export const DEV_OTP = process.env.E2E_DEV_OTP || '123456';
 
 export const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL || 'admin@countrydairy.in';
 export const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD || 'ChangeMe#2026';
@@ -33,8 +41,11 @@ export function resolve(path: string): string {
 
 export interface TestUser {
   id: string;
+  /** Empty for a customer: an OTP account has no email until one is given. */
   email: string;
+  /** Empty for a customer: an OTP account has no password. */
   password: string;
+  phone?: string;
   token: string;
 }
 
@@ -46,25 +57,62 @@ export interface TestUser {
  * order history, which is exactly how four of them ended up on the storefront.
  */
 export async function createCustomer(t: Tracked, name = 'E2E Customer'): Promise<TestUser> {
-  const email = uniqueEmail('customer');
-  const api = await apiClient();
+  const phone = uniquePhone();
+  const bcrypt = await import('bcryptjs');
 
-  const res = await api.post(resolve('/auth/email/register'), {
-    data: { email, password: TEST_PASSWORD, name },
+  /*
+   * By phone, because that is how a customer account comes into existence now.
+   * Email sign-up is switched off, so registering that way would test a door
+   * that is locked — the fixture should build accounts the way the product
+   * does, or every spec is exercising a path nobody takes.
+   *
+   * The code is written straight into the table rather than requested through
+   * /auth/send-otp, for the same reason createStaff writes its user directly:
+   * that endpoint spends real money on every call and is rate limited to ten
+   * per IP per hour. A suite that creates a customer per test would exhaust it
+   * within one run — it did, which is how this was found — and raising the
+   * limit to suit the tests would be weakening a control to avoid an
+   * inconvenience.
+   *
+   * verify-otp is still the real route, so what is under test stays under test.
+   */
+  const code = '123456';
+  await db.otpVerification.create({
+    data: {
+      phone,
+      codeHash: await bcrypt.hash(code, 10),
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+    },
   });
 
+  const api = await apiClient();
+  const res = await api.post(resolve('/auth/verify-otp'), { data: { phone, otp: code } });
+
   if (!res.ok()) {
-    throw new Error(`Could not register ${email}: ${res.status()} ${await res.text()}`);
+    throw new Error(
+      `Could not sign in ${phone}: ${res.status()} ${await res.text()}\n` +
+        'Customers are created by phone OTP now, so ENABLE_OTP_LOGIN must be on.',
+    );
   }
 
   const body = await res.json();
-  const user = await db.user.findUnique({ where: { email } });
-  if (!user) throw new Error(`Registered ${email} but no row appeared`);
+  const user = await db.user.findUnique({ where: { phone } });
+  if (!user) throw new Error(`Signed in ${phone} but no row appeared`);
+
+  // OTP sign-up carries no name; specs that show one need it set.
+  await db.user.update({ where: { id: user.id }, data: { name } });
 
   t.userIds.push(user.id);
   await api.dispose();
 
-  return { id: user.id, email, password: TEST_PASSWORD, token: body.accessToken };
+  return {
+    id: user.id,
+    phone,
+    // Empty on purpose: an OTP account has neither until the customer gives one.
+    email: user.email ?? '',
+    password: '',
+    token: body.accessToken,
+  };
 }
 
 /** A staff account of any role, created directly so no console click is needed. */

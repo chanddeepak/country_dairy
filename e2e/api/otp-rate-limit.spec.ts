@@ -27,6 +27,24 @@ test.describe('OTP rate limits @security', () => {
     return p;
   }
 
+  /*
+   * The per-phone limit is isolated by the run-scoped number above. The per-IP
+   * one is not: it counts every row this machine has produced in the last
+   * hour, so a run that was interrupted before its afterAll leaves up to
+   * nineteen behind and the next run starts already throttled — which is
+   * exactly how this spec failed in the full suite while passing alone.
+   *
+   * Only this spec calls /auth/send-otp, so rows carrying an IP are its own.
+   */
+  test.beforeAll(async () => {
+    await db.otpVerification.deleteMany({
+      where: {
+        requestIp: { not: null },
+        createdAt: { gt: new Date(Date.now() - 60 * 60 * 1000) },
+      },
+    });
+  });
+
   test.afterAll(async () => {
     if (phones.length) {
       await db.otpVerification.deleteMany({ where: { phone: { in: phones } } });
