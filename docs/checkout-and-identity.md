@@ -116,6 +116,43 @@ So §4.1 — that OCC is all-or-nothing and a signed-in customer must be OTP'd
 twice — rests on a measurement that has been withdrawn. **Re-run the feature
 bisect with a 30-second wait before treating it as a constraint.**
 
+### 3.2 The full flow, proven end to end (29 August)
+
+**The sandbox OTP is `111000`** — the same code their test-data page documents
+for cards. It is not documented for the OCC login step, but it works there.
+That unblocked everything below, which had never once run.
+
+A real sandbox order, guest checkout from the storefront, paid through their
+net-banking simulator:
+
+| | |
+| --- | --- |
+| Order | CD-2026-00019, CONFIRMED / PAID |
+| Account created from the phone Cashfree verified | `+91 8800573313`, no email, no password |
+| Claim token | consumed, single use held |
+| Address | `source: cashfree` — **their saved address for that number**, name and pincode included |
+| `rawPayload` | stored: cart, offer, charges, billing_address, customer_details, shipping_address |
+| Their `order_amount` vs ours | 1450 = 1450 |
+| `charges` | `{shipping_charges: 0, cod_handling_charges: 0}` |
+
+So §6.1 works exactly as designed: a stranger buys, and lands signed in on their
+own order without ever seeing a registration form.
+
+**Two things the payload changed:**
+
+`customer_details.customer_phone` comes back as `"+91 8800573313"` — with a
+space and the country code. `normaliseIndianPhone` strips non-digits and keeps
+the last ten, so it survived; worth knowing before anyone simplifies it.
+
+**Q5 is answered: OCC does return an email.** `customer_email` came back
+populated, and we currently throw it away, creating the account with
+`email: null`. That is a decision to revisit — it is a free contact channel we
+are discarding.
+
+**Still unexercised: the totals rewrite (C1, C2).** `offer` was null because no
+offer is configured in their dashboard, so their amount matched ours exactly and
+the apportionment code never ran. Create a test offer before trusting it.
+
 **Sandbox does not deliver the OTP.** The modal says it sent one; nothing
 arrives, on SMS or WhatsApp, and a resend changes nothing. Their test-data page
 documents `111000` for cards and `777777` for cardless EMI and no code at all
@@ -521,8 +558,9 @@ C1–C8 from the superseded doc are done.
 | Q5 | Does Cashfree re-OTP a returning browser, or remember it? | How much friction §6.2 really carries |
 | Q5b | Is the coupon field on Cashfree's payment screen or its login screen? If payment, skipping their OTP for a signed-in customer becomes free again | Whether §4.1 can be reversed |
 | Q6 | Is the Create/Get Offer API available on our account? `GET /pg/offers` is 404 | Whether offers can ever be scripted |
-| Q6b | **What is the sandbox OTP for the OCC login step, or does sandbox simply not send one?** Driven live on 29 Aug: the modal says it sent to SMS and WhatsApp, nothing arrives, resend does nothing | Everything after payment is untestable without this or a live order |
-| Q6c | Does sandbox only message a number registered on the account? | Same |
+| ~~Q6b~~ | ~~Sandbox OTP for the OCC login step~~ **answered: `111000`**, undocumented for this step but it works | — |
+| Q6d | **Is One Click Checkout activated in Production?** The dashboard shows Request Activation there and `one-click-checkout-activated` only in Test | Launch |
+| Q6e | Should we keep the `customer_email` OCC returns? We discard it today | Whether email is ever a contact channel |
 | Q7 | What is charged on a COD order, where no money moves? | E4 |
 | Q8 | Refund and chargeback fees, and refunding a discounted order | E3 |
 | Q9 | Which WhatsApp number, and does it move off the consumer app? | A1 |
