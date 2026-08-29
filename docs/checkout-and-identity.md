@@ -281,6 +281,44 @@ The browser's return and the webhook both settle the order, and either may land
 first. Both go through the same guard — if `paymentStatus` is already `PAID`, do
 nothing. Proven for the webhook path; the confirm path has the same check.
 
+### 6.8 There is no checkout page
+
+Clicking Checkout opens Cashfree. Nothing of ours sits in between, because
+nothing our page collected was needed before payment:
+
+| What it collected | Why it can go |
+| --- | --- |
+| Address | Cashfree collects it and returns it on `/extended` |
+| Coupon | Never had a box (§4); offers are Cashfree's now |
+| Delivery charge | `calculateDeliveryCharge(subtotal)` — free over ₹500, else ₹40. Subtotal only; never reads the pincode |
+| `deliveryType` | Not a customer choice. See below |
+
+`deliveryType` is `LOCAL | COURIER` — our own van or a courier. It is a
+fulfilment routing flag the desk sets, already optional with a `LOCAL` default
+at `orders.controller.ts:94`, already reassignable through
+`setDeliveryTypeAdmin`. The code has said so all along
+(`orders.service.ts:1012`): *"Nothing decides this at checkout — the storefront
+cannot know whether an address is inside the van's area — so the desk decides
+per order."*
+
+**And there is no serviceability check anywhere.** An earlier draft claimed it
+ran before payment against a known pincode. It does not exist. Pincode is read
+only in `delivery.service.ts` to group route sheets for a delivery day, after
+the order exists. Nothing has ever blocked an order by location.
+
+So the only thing the page still supplies is `addressId`, which has to become
+optional for guest checkout regardless — B8.
+
+### 6.9 Shipping must be charged once, by one of us
+
+We compute ₹40 under ₹500 and bake it into the `order_amount` we send. Cashfree
+also has `charges.shipping_charges` and shipping profiles in their dashboard.
+Both configured means the customer pays shipping twice.
+
+**Decision: keep ours, configure no shipping profile in Cashfree.** The rule
+already exists and is one line. If that ever changes, it changes in one place,
+not two.
+
 ---
 
 ## 7. Notifications
@@ -305,6 +343,11 @@ Meta moved to per-message pricing in July 2025. For India:
 | Marketing | ₹0.86 |
 | Replies within a 24-hour service window | free |
 
+**Shipping updates are utility messages, and they cost.** A dispatch or
+delivery notification is business-initiated, so it is a paid utility template at
+₹0.115–0.13, not free. Only replies inside 24 hours of the *customer* messaging
+us are free. Small money at our volumes, but it is not zero.
+
 WhatsApp OTP is **cheaper than SMS** (MSG91 ≈ ₹0.15) and needs **no DLT
 registration**. An earlier note in this project said WhatsApp was three to four
 times SMS; that was wrong and is corrected here.
@@ -319,6 +362,27 @@ times SMS; that was wrong and is corrected here.
 3. Cloud API direct, or a BSP (AiSensy, Interakt, Gupshup, MSG91).
 4. Template approval — free, hours.
 5. A webhook for delivery receipts and inbound messages.
+
+### 7.3a Why not SMS first
+
+SMS looks like the cheaper, simpler start. It is neither.
+
+| | WhatsApp Cloud API | SMS (MSG91) |
+| --- | --- | --- |
+| Per OTP | ₹0.115 – 0.13 | ₹0.15 |
+| Setup cost | ₹0 | **~₹11,800** DLT |
+| Setup time | Business verification | DLT approval after paperwork |
+| Failure mode | Template rejected loudly | **Blocked silently** on a byte mismatch |
+
+The code for SMS is one HTTP POST, so it *reads* easier. DLT is the real gate,
+and a template differing by one character is dropped by the operator with no
+error — a horrible thing to debug during a launch.
+
+The decisive argument is that WhatsApp is needed for shipping updates anyway.
+SMS first means building two integrations and paying ₹11,800 for the worse one.
+
+SMS keeps one genuine advantage — it reaches a phone without the app — so it
+stays on the list as a fallback, below.
 
 ### 7.4 SMS, later
 
@@ -363,7 +427,8 @@ C1–C8 from the superseded doc are done.
 | B4 | Find-or-create by phone, collision rules from §5.3 | Spec covers all three cases |
 | B5 | Auto sign-in on confirm | Guest lands on their order, signed in |
 | B6 | Prefill phone and address for signed-in customers | Their Cashfree form starts filled |
-| B7 | Our address step removed — OCC always collects | No double entry |
+| B7 | **Our checkout page removed** — Checkout opens Cashfree directly | §6.8 |
+| B8 | `addressId` optional on `POST /orders/checkout` | Guest and signed-in both create orders without one |
 
 ### Phase C — money
 
@@ -393,7 +458,6 @@ C1–C8 from the superseded doc are done.
 | E2 | Reconciliation for orders never confirmed | A job finds them and asks Cashfree |
 | E3 | Refunds — and what a refund means with an offer applied | Admin can trigger one |
 | E4 | COD, if taken | Order settles with no money through the gateway |
-| E5 | Serviceability | Pincode blocking at Cashfree, or a refund path |
 | E6 | Live credentials, production guard honoured | Mock mode cannot start in production |
 | E7 | Full suite, real sandbox payment, `next build` | Green |
 
@@ -408,7 +472,9 @@ C1–C8 from the superseded doc are done.
 | Q3 | Is there a fee on the Offers Engine, or on discounted orders? | Same |
 | Q4 | Does `order_amount` on the extended response change when an offer applies, or does the discount only appear under `offer`? | C1, C2 |
 | Q5 | Does Cashfree re-OTP a returning browser, or remember it? | How much friction §6.2 really carries |
+| Q5b | Is the coupon field on Cashfree's payment screen or its login screen? If payment, skipping their OTP for a signed-in customer becomes free again | Whether §4.1 can be reversed |
 | Q6 | Is the Create/Get Offer API available on our account? `GET /pg/offers` is 404 | Whether offers can ever be scripted |
+| Q6b | Is there a sandbox test OTP for the OCC *login* step? Their test-data page documents card OTP `111000` and cardless EMI `777777`, and no login OTP | Testing the guest flow without a real handset |
 | Q7 | What is charged on a COD order, where no money moves? | E4 |
 | Q8 | Refund and chargeback fees, and refunding a discounted order | E3 |
 | Q9 | Which WhatsApp number, and does it move off the consumer app? | A1 |
