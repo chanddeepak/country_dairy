@@ -161,7 +161,7 @@ export default function CheckoutPage() {
     try {
       const verified = await verifyOtp(authOtp);
       if (!verified) {
-        setAuthError('Invalid OTP code. Please use: 123456');
+        setAuthError('That code was not right. Check the message, or request a new code.');
       }
     } catch {
       setAuthError('OTP verification error.');

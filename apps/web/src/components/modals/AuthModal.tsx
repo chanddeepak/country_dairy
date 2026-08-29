@@ -10,6 +10,9 @@ interface AuthModalProps {
   onClose: () => void;
 }
 
+/** How long before a new code can be requested. */
+const RESEND_SECONDS = 30;
+
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const { loginPhone, setLoginPhone, sendOtp, verifyOtp, loginWithEmail, registerWithEmail, loginWithGoogle, isLoading } = useApp();
   const { isFlagOn } = useStoreConfig();
@@ -38,6 +41,22 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   // Mobile states
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
+  /*
+   * Sending takes about 700ms — three rate-limit counts, a bcrypt hash and an
+   * insert, against a database in Singapore. That is real work rather than a
+   * bug, but with no feedback the button looks dead and people press it again.
+   */
+  const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+
+  // Ticks the resend countdown down to zero, then stops.
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn((n) => n - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
+
   
   // Email states
   const [isRegistering, setIsRegistering] = useState(false);
@@ -92,18 +111,48 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (sending) return;
     setError('');
-    const success = await sendOtp(loginPhone);
-    if (success) setOtpSent(true);
-    else setError('Failed to send OTP. Please try again.');
+    setSending(true);
+    try {
+      const success = await sendOtp(loginPhone);
+      if (success) {
+        setOtpSent(true);
+        setResendIn(RESEND_SECONDS);
+      } else {
+        setError('We could not send a code to that number. Check it and try again.');
+      }
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (verifying) return;
     setError('');
-    const success = await verifyOtp(otpCode);
-    if (success) handleClose();
-    else setError('Invalid OTP code. Please use: 123456');
+    setVerifying(true);
+    try {
+      const success = await verifyOtp(otpCode);
+      if (success) handleClose();
+      else setError('That code was not right. Check the message, or request a new code.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resendIn > 0 || sending) return;
+    setError('');
+    setOtpCode('');
+    setSending(true);
+    try {
+      const success = await sendOtp(loginPhone);
+      if (success) setResendIn(RESEND_SECONDS);
+      else setError('We could not send another code just yet. Please wait a moment.');
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
@@ -124,6 +173,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     onClose();
     setOtpSent(false);
     setOtpCode('');
+    setSending(false);
+    setVerifying(false);
+    setResendIn(0);
     setEmail('');
     setPassword('');
     setName('');
@@ -196,8 +248,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   className="w-full bg-[var(--ivory)] border border-[var(--line)] px-4 py-3 rounded-sm text-[var(--ink)] placeholder-[var(--ink-soft)] focus:outline-none focus:border-[var(--forest)] transition"
                 />
               </div>
-              <button type="submit" className="w-full bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-3 rounded-sm transition">
-                Request OTP
+              <button
+                type="submit"
+                disabled={sending}
+                className="flex w-full items-center justify-center gap-2 bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-3 rounded-sm transition disabled:opacity-60"
+              >
+                {sending && <Loader2 className="h-4 w-4 animate-spin" />}
+                {sending ? 'Sending code…' : 'Request OTP'}
               </button>
             </form>
           ) : (
@@ -208,17 +265,34 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   type="text"
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value)}
-                  placeholder="e.g. 123456"
+                  placeholder="······"
                   maxLength={6}
                   className="w-full bg-[var(--ivory)] border border-[var(--line)] px-4 py-3 rounded-sm text-[var(--ink)] focus:outline-none focus:border-[var(--forest)] text-center tracking-[0.5em] font-black transition"
                 />
               </div>
-              <button type="submit" className="w-full bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-3 rounded-sm transition">
-                Verify Code
+              <button
+                type="submit"
+                disabled={verifying || otpCode.length < 6}
+                className="flex w-full items-center justify-center gap-2 bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-3 rounded-sm transition disabled:opacity-60"
+              >
+                {verifying && <Loader2 className="h-4 w-4 animate-spin" />}
+                {verifying ? 'Verifying…' : 'Verify Code'}
               </button>
-              <div className="bg-[var(--ok-bg)] text-[var(--ok)] p-3 rounded-sm text-[10px] text-center font-bold">
-                Development Code: <strong>123456</strong>
-              </div>
+
+              <p className="text-center text-[11px] text-[var(--ink-soft)]">
+                {resendIn > 0 ? (
+                  `Resend code in ${resendIn}s`
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={sending}
+                    className="font-bold text-[var(--forest)] underline underline-offset-2 disabled:opacity-60"
+                  >
+                    {sending ? 'Sending…' : 'Resend code'}
+                  </button>
+                )}
+              </p>
             </form>
           )
         )}

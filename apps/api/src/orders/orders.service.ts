@@ -34,19 +34,20 @@ const CLAIM_TOKEN_TTL_MS = 2 * 60 * 60 * 1000;
  *
  * Undocumented and slightly absurd: One Click Checkout exists to collect and
  * verify the customer's number, and the create-order call rejects
- * `customer_phone_missing` before it ever gets the chance. They accept any ten
- * digits — probed with 0000000000, 1111111111 and 9999999999, all 200 — so
- * this is a placeholder their own login step overwrites.
+ * `customer_phone_missing` before it ever gets the chance.
  *
- * Zeros rather than a plausible number on purpose: if it ever leaks into a
- * message or an invoice it must be obviously not a phone number.
+ * Whitespace, after probing what they accept and then rendering each one:
  *
- * UNVERIFIED: whether their login screen prefills this, and what the customer
- * sees if it does. The first real sandbox payment answers it. If prefilled
- * zeros are confusing, asking for the number in one field on our side before
- * opening their modal is the fallback.
+ *   omitted / ''      400 customer_phone_missing
+ *   '0' '00' '+91'    400 customer_phone_invalid
+ *   '0000000000'      200, but their field then shows a literal "0"
+ *   '           '     200, and their field renders EMPTY with a grey hint
+ *                     and Continue disabled until the customer types
+ *
+ * So this is the only value that leaves their form looking untouched, which is
+ * what it should look like to someone who has not told us their number yet.
  */
-const GUEST_PHONE_PLACEHOLDER = '0000000000';
+const GUEST_PHONE_PLACEHOLDER = '           ';
 
 /**
  * Cashfree reports ten digits; User.phone is stored as +91XXXXXXXXXX.

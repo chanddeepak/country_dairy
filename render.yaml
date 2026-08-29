@@ -31,6 +31,14 @@ services:
       #
       # The other thing this changes is that localhost origins are accepted,
       # which lets a local frontend talk to the dev API.
+      # A fixed sign-in code so the dev site can be walked before WhatsApp
+      # exists. The API refuses to boot with this set alongside
+      # CASHFREE_ENV=production. Leave it unset to get real random codes.
+      #
+      # WARNING: the dev site is publicly reachable, so whoever knows this
+      # string can sign in as any account in the dev database.
+      - key: OTP_DEV_CODE
+        sync: false
       - key: NODE_ENV
         value: staging
       - key: PORT
