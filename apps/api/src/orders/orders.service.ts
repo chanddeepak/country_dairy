@@ -17,12 +17,13 @@ import {
 import { pageParams, paginate } from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { AuthService } from '../auth/auth.service';
 import { RazorpayService } from './razorpay.service';
 import { CashfreeService } from './cashfree.service';
 import { FLAG, FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import { CmsService } from '../cms/cms.service';
 import { calculateOrderTotals, priceLine, round2, toPaise } from './pricing';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 
 /** Long enough to pay, short enough that a leaked URL goes stale. */
 const CLAIM_TOKEN_TTL_MS = 2 * 60 * 60 * 1000;
@@ -46,6 +47,26 @@ const CLAIM_TOKEN_TTL_MS = 2 * 60 * 60 * 1000;
  * opening their modal is the fallback.
  */
 const GUEST_PHONE_PLACEHOLDER = '0000000000';
+
+/**
+ * Cashfree reports ten digits; User.phone is stored as +91XXXXXXXXXX.
+ *
+ * Returns null for anything that is not a real Indian mobile, which includes
+ * the placeholder above. That guard matters: if their checkout ever handed the
+ * placeholder straight back, creating an account on it would collect every
+ * unclaimed guest order under one fictional customer.
+ */
+export function normaliseIndianPhone(raw: string | null | undefined): string | null {
+  const digits = (raw ?? '').replace(/\D/g, '').slice(-10);
+  if (!/^[6-9][0-9]{9}$/.test(digits)) return null;
+  return `+91${digits}`;
+}
+
+/** Constant-time compare of two hex digests of the same length. */
+function digestsMatch(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
+}
 
 /**
  * SHA-256 rather than bcrypt. The token is 32 random bytes, so there is no
@@ -78,6 +99,7 @@ export class OrdersService {
     private flags: FeatureFlagsService,
     private cms: CmsService,
     private audit: AuditService,
+    private auth: AuthService,
   ) {}
 
   /**
@@ -615,20 +637,48 @@ export class OrdersService {
    * does, and the answer comes from Cashfree. A browser claiming "paid" is not
    * evidence, which is the whole reason `verifyPayment` checks a signature.
    */
-  async confirmCashfreeOrder(userId: string, orderId: string) {
+  /**
+   * Settles a Cashfree order, and for a guest, creates the account it belongs to.
+   *
+   * @param userId     The signed-in customer, or null for a guest.
+   * @param claimToken Proof this browser placed the order. The only thing a
+   *                   guest can present, since there is no session yet.
+   */
+  async confirmCashfreeOrder(userId: string | null, orderId: string, claimToken?: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: { payments: { orderBy: { createdAt: 'desc' }, take: 1 } },
     });
 
-    if (!order || order.userId !== userId) {
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    /*
+     * Two ways to be allowed in, and an order id is not one of them.
+     *
+     * orderNumber is max + 1, so ids are guessable; if this route accepted one
+     * on its own, guessing would hand back a session as that customer. The
+     * token is compared in constant time against the stored digest.
+     */
+    const ownedByCaller = userId !== null && order.userId === userId;
+    const presentedClaim =
+      claimToken !== undefined &&
+      order.claimTokenHash !== null &&
+      order.claimTokenExpiresAt !== null &&
+      order.claimTokenExpiresAt.getTime() > Date.now() &&
+      digestsMatch(hashClaimToken(claimToken), order.claimTokenHash);
+
+    if (!ownedByCaller && !presentedClaim) {
+      // 404 rather than 403: telling a caller the order exists but is not
+      // theirs confirms the id was a good guess.
       throw new NotFoundException('Order not found');
     }
 
     // Idempotent, like verifyPayment: whichever of the webhook and the return
     // trip arrives second finds the work already done.
     if (order.paymentStatus === PaymentStatus.PAID) {
-      return order;
+      return { order, session: null };
     }
 
     const pending = order.payments[0];
@@ -644,7 +694,7 @@ export class OrdersService {
       // Recording it as FAILED would strand an order the customer is still
       // paying for.
       this.logger.log(`Order ${order.orderNumber} is ${status} at Cashfree, not settling`);
-      return order;
+      return { order, session: null };
     }
 
     /*
@@ -674,6 +724,41 @@ export class OrdersService {
         }
       : null;
 
+    /*
+     * Who this order belongs to.
+     *
+     * Cashfree ran its own OTP before taking the money, so the number on the
+     * order is verified — just not by us. That is enough to attach the order
+     * and hand back a session, which is what saves the buyer from filling in a
+     * registration form for an account they did not ask for.
+     *
+     * normaliseIndianPhone returns null for the guest placeholder we sent, so a
+     * checkout that somehow echoed it back cannot collect every unclaimed order
+     * under one fictional customer.
+     */
+    const verifiedPhone = normaliseIndianPhone(
+      extended?.customer_details?.customer_phone ?? theirs?.phone,
+    );
+
+    let session: Awaited<ReturnType<AuthService['signInByVerifiedPhone']>> | null = null;
+    let ownerId = order.userId;
+
+    if (!ownerId && verifiedPhone) {
+      // find-or-create. A number that already has an account lands on it rather
+      // than growing a second one — the same rule the OTP sign-in follows.
+      const signedIn = await this.auth.signInByVerifiedPhone(verifiedPhone);
+      ownerId = signedIn.user.id;
+      session = signedIn;
+    }
+
+    if (!ownerId && !verifiedPhone) {
+      // Paid, but nothing identifies the buyer. Settle it anyway — the money
+      // moved — and leave it unclaimed for reconciliation rather than losing it.
+      this.logger.error(
+        `Order ${order.orderNumber} is PAID but Cashfree returned no usable phone; leaving it unowned`,
+      );
+    }
+
     const [confirmed] = await this.prisma.$transaction([
       this.prisma.order.update({
         where: { id: orderId },
@@ -682,6 +767,11 @@ export class OrdersService {
           paymentStatus: PaymentStatus.PAID,
           confirmedAt: new Date(),
           ...(shippingAddress ? { shippingAddress } : {}),
+          ...(ownerId ? { userId: ownerId } : {}),
+          // Single use. The order is settled and owned; presenting it again
+          // must not hand a session to whoever else has seen the URL.
+          claimTokenHash: null,
+          claimTokenExpiresAt: null,
           statusHistory: {
             create: { status: OrderStatus.CONFIRMED, note: 'Payment confirmed with Cashfree' },
           },
@@ -689,13 +779,21 @@ export class OrdersService {
       }),
       this.prisma.payment.update({
         where: { id: pending.id },
-        data: { status: PaymentStatus.PAID },
+        data: {
+          status: PaymentStatus.PAID,
+          // Everything they told us about the payment, kept verbatim. The
+          // column has existed since the model was written and nothing has
+          // ever filled it, so a dispute had nothing to read.
+          rawPayload: (extended ?? remote) as never,
+        },
       }),
-      this.prisma.cartItem.deleteMany({ where: { userId } }),
+      // A guest's cart lives in their browser; only a signed-in customer has
+      // rows here to clear.
+      ...(userId ? [this.prisma.cartItem.deleteMany({ where: { userId } })] : []),
     ]);
 
     this.logger.log(`Order ${order.orderNumber} confirmed via Cashfree`);
-    return confirmed;
+    return { order: confirmed, session };
   }
 
   /**

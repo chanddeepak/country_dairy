@@ -76,7 +76,10 @@ interface AppContextType {
   checkout: (addressId: string) => Promise<any>;
   verifyPayment: (orderId: string, payId: string) => Promise<boolean>;
   /** Asks the server to settle a Cashfree order by checking with Cashfree. */
-  confirmCashfreeOrder: (orderId: string) => Promise<{ paid: boolean; status?: string }>;
+  confirmCashfreeOrder: (
+    orderId: string,
+    claimToken?: string,
+  ) => Promise<{ paid: boolean; status?: string }>;
   createSubscription: (data: { productId: string; quantity: number; frequency: string; daysOfWeek: number[]; startDate: string }) => Promise<any>;
   addAddress: (
     line1: string,
@@ -790,21 +793,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
    * and whichever lands second is a no-op, which is what makes it safe to call
    * this on every return.
    */
-  const confirmCashfreeOrder = async (orderId: string) => {
-    if (!token) return { paid: false };
+  /**
+   * Settles the order Cashfree just took money for.
+   *
+   * Works signed in or not. A guest has no token, so it sends the claim token
+   * minted at checkout — proof this browser is the one that placed the order,
+   * which an order id alone would not be, since order numbers are sequential.
+   *
+   * When the API answers with a session, the guest now has an account created
+   * from the phone Cashfree verified, and this signs them in on the spot. That
+   * is the whole point: they reach their order without ever seeing a
+   * registration form.
+   */
+  const confirmCashfreeOrder = async (orderId: string, claimToken?: string) => {
     try {
       const res = await fetch(`${API_URL}/orders/confirm`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ orderId }),
+        body: JSON.stringify({ orderId, ...(claimToken ? { claimToken } : {}) }),
       });
       if (!res.ok) return { paid: false };
-      const order = await res.json();
-      if (order?.paymentStatus === 'PAID') await fetchCart();
-      return { paid: order?.paymentStatus === 'PAID', status: order?.paymentStatus };
+
+      const { order, session } = await res.json();
+
+      if (session?.accessToken) {
+        setToken(session.accessToken);
+        setUser(session.user);
+        setWalletBalance(Number(session.user?.walletBalance || 0));
+        localStorage.setItem('cd_token', session.accessToken);
+        localStorage.setItem('cd_user', JSON.stringify(session.user));
+        /*
+         * Not handleAuthSuccess: that merges the guest basket into the server
+         * cart, which is right after a sign-in and wrong here — they have just
+         * bought these items, and re-adding them would greet a customer with
+         * their own completed order sitting back in the cart.
+         */
+        localStorage.removeItem('cd_guest_cart');
+        setCart([]);
+      }
+
+      const paid = order?.paymentStatus === 'PAID';
+      if (paid && token) await fetchCart();
+      return { paid, status: order?.paymentStatus };
     } catch (err) {
       console.error('Failed to confirm the Cashfree order:', err);
       return { paid: false };

@@ -27,7 +27,7 @@ const GAP_MS = 2000;
 function CashfreeReturn() {
   const params = useSearchParams();
   const router = useRouter();
-  const { confirmCashfreeOrder, user } = useApp();
+  const { confirmCashfreeOrder } = useApp();
 
   const orderId = params.get('order_id');
   const [state, setState] = useState<'checking' | 'paid' | 'unpaid' | 'missing'>(
@@ -40,9 +40,22 @@ function CashfreeReturn() {
   const poll = useCallback(async () => {
     if (!orderId) return;
 
+    /*
+     * A guest has no session, so the claim token is the only thing that proves
+     * this browser placed the order. sessionStorage first — that is where
+     * checkout puts it; the query string is the fallback for the redirect flow,
+     * where Cashfree brings the customer back rather than the SDK resolving in
+     * place.
+     */
+    const claimToken =
+      sessionStorage.getItem(`cd_claim_${orderId}`) ?? params.get('claim') ?? undefined;
+
     for (let attempt = 0; attempt < ATTEMPTS; attempt += 1) {
-      const { paid } = await confirmCashfreeOrder(orderId);
+      const { paid } = await confirmCashfreeOrder(orderId, claimToken);
       if (paid) {
+        // Single use on the server, so the copy here is spent. Leaving it in
+        // storage would only be a credential sitting around for the tab's life.
+        sessionStorage.removeItem(`cd_claim_${orderId}`);
         setState('paid');
         router.replace(`/orders/${orderId}?status=success`);
         return;
@@ -54,13 +67,16 @@ function CashfreeReturn() {
     // whether or not this tab is open — so the honest message is "not yet",
     // with somewhere to look.
     setState('unpaid');
-  }, [orderId, confirmCashfreeOrder, router]);
+  }, [orderId, confirmCashfreeOrder, router, params]);
 
   useEffect(() => {
-    if (!orderId || started.current || !user) return;
+    // No `user` check: a guest arrives here without a session, and confirming
+    // is what creates their account. Requiring one would have stranded exactly
+    // the customer this page exists for.
+    if (!orderId || started.current) return;
     started.current = true;
     void poll();
-  }, [orderId, poll, user]);
+  }, [orderId, poll]);
 
   return (
     <div className="flex min-h-screen flex-col">

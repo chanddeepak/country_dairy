@@ -79,6 +79,15 @@ export class VerifyPaymentDto {
 export class ConfirmOrderDto {
   @IsUUID()
   orderId: string;
+
+  /**
+   * What a guest presents instead of a session. Optional because a signed-in
+   * customer is already identified by their token.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  claimToken?: string;
 }
 
 export class CancelOrderDto {

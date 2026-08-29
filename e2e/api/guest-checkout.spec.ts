@@ -128,6 +128,68 @@ test.describe('Guest checkout', () => {
     expect(res.status()).toBe(400);
   });
 
+  test('an order id alone confirms nothing @security', async () => {
+    test.skip(!(await cashfreeOn()), 'Guest checkout needs Cashfree');
+
+    const { res, text } = await guestCheckout();
+    expect(res.ok(), text).toBeTruthy();
+    const body = JSON.parse(text);
+    t.orderIds.push(body.orderId);
+
+    const api = await apiClient();
+
+    /*
+     * The attack this whole design exists to stop. orderNumber is max + 1, so
+     * ids are guessable; if confirm accepted one on its own, guessing would
+     * settle a stranger's order and hand back a session as them.
+     */
+    const noProof = await api.post(resolve('/orders/confirm'), {
+      data: { orderId: body.orderId },
+    });
+    expect(noProof.status()).toBe(404);
+
+    const wrongToken = await api.post(resolve('/orders/confirm'), {
+      data: { orderId: body.orderId, claimToken: 'a'.repeat(43) },
+    });
+    // 404 rather than 403 — a 403 would confirm the id was a good guess.
+    expect(wrongToken.status()).toBe(404);
+
+    await api.dispose();
+  });
+
+  test('the right token on an unpaid order still grants no session @security', async () => {
+    test.skip(!(await cashfreeOn()), 'Guest checkout needs Cashfree');
+
+    const { res, text } = await guestCheckout();
+    expect(res.ok(), text).toBeTruthy();
+    const body = JSON.parse(text);
+    t.orderIds.push(body.orderId);
+
+    const api = await apiClient();
+    const confirmed = await api.post(resolve('/orders/confirm'), {
+      data: { orderId: body.orderId, claimToken: body.claimToken },
+    });
+    const payload = await confirmed.json();
+    await api.dispose();
+
+    expect(confirmed.ok()).toBeTruthy();
+    /*
+     * The token proves which browser placed the order; it is the *payment* that
+     * earns an account. So a leaked token before payment is worth nothing — it
+     * cannot mint a session, and the order stays unowned.
+     */
+    expect(payload.order.paymentStatus).toBe('PENDING');
+    expect(payload.session).toBeNull();
+
+    const order = await db.order.findUniqueOrThrow({
+      where: { id: body.orderId },
+      select: { userId: true, claimTokenHash: true },
+    });
+    expect(order.userId).toBeNull();
+    // Not consumed either — the customer may still be paying.
+    expect(order.claimTokenHash).toBeTruthy();
+  });
+
   test('an empty basket is refused', async () => {
     const api = await apiClient();
     const res = await api.post(resolve('/orders/checkout'), { data: { items: [] } });

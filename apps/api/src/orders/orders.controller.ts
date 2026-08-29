@@ -110,8 +110,12 @@ export class OrdersController {
   }
 
   @Post('confirm')
-  async confirmCashfree(@CurrentUser() user: { id: string }, @Body() dto: ConfirmOrderDto) {
-    return this.ordersService.confirmCashfreeOrder(user.id, dto.orderId);
+  @AllowGuest()
+  async confirmCashfree(
+    @CurrentUser() user: { id: string } | undefined,
+    @Body() dto: ConfirmOrderDto,
+  ) {
+    return this.ordersService.confirmCashfreeOrder(user?.id ?? null, dto.orderId, dto.claimToken);
   }
 
   @Get()

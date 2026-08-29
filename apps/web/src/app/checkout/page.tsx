@@ -235,6 +235,18 @@ export default function CheckoutPage() {
           return;
         }
 
+        /*
+         * The claim token goes in sessionStorage, not the URL.
+         *
+         * It is a credential — presenting it settles the order and returns a
+         * session — so putting it in a query string would write it into browser
+         * history and into any Referer this tab later sends. sessionStorage
+         * dies with the tab, which is exactly the lifetime it needs.
+         */
+        if (orderResult.claimToken) {
+          sessionStorage.setItem(`cd_claim_${orderResult.orderId}`, orderResult.claimToken);
+        }
+
         // _modal keeps them on this page. The order is already created and its
         // stock already held, so the return page settles it either way — and
         // the webhook settles it independently if the tab is closed.

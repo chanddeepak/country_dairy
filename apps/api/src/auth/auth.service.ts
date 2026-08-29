@@ -238,6 +238,27 @@ export class AuthService {
     return this.buildAuthResponse(user);
   }
 
+  /**
+   * Signs in the holder of a phone number that somebody else verified.
+   *
+   * Used after a guest pays: Cashfree ran its own OTP before taking the money,
+   * so the number is proven — just not by us. Everything else is the ordinary
+   * phone path, including find-or-create, so a returning customer lands on the
+   * account they already had rather than a second one.
+   *
+   * Deliberately not behind ENABLE_OTP_LOGIN. That flag governs whether *we*
+   * send codes; this session comes from a completed payment, and refusing it
+   * would take money and then leave the buyer with no way to see the order.
+   *
+   * The caller must have verified the phone with the gateway. Nothing here can
+   * check that, which is why it is not reachable from a controller.
+   */
+  async signInByVerifiedPhone(phone: string) {
+    const user = await this.resolveUserForIdentity(AuthProvider.PHONE, phone, { phone });
+    await this.touchLastLogin(user.id);
+    return this.buildAuthResponse(user);
+  }
+
   private async assertOtpEnabled() {
     if (!(await this.featureFlags.isEnabled(FLAG.OTP_LOGIN))) {
       throw new ForbiddenException('Phone sign-in is currently unavailable');

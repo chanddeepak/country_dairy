@@ -96,11 +96,35 @@ runtime.
 number; Cashfree ids are permanent and answer a reuse with `409
 order_already_exists`. Their id is now `CD-2026-00009-0bd64070`.
 
-**Unverified, and marked so it does not get treated as fact later:** that
-omitting the OCC block sends a customer straight to payment options. It was
-observed once in a browser, and a later attempt to reproduce it failed with the
-control case rendering blank too — so the harness was wrong, not necessarily the
-finding. Nothing below depends on it.
+### 3.1 The blank modal was a stopwatch problem
+
+**The bisect above is retracted as evidence.** Driving the real SDK against
+sandbox on 29 August, the One Click Checkout modal renders correctly — but it
+takes **15–20 seconds** to paint. Every "blank, throws" observation came from
+screenshotting at six or thirteen seconds.
+
+What is now actually seen, with our live sandbox keys and a real cart:
+
+- The modal opens with our line item and amount on the left.
+- **`customer_phone` is prefilled.** The first screen reads *"Enter your mobile
+  number"* with the number already filled and *"This helps us pre-fill your
+  saved details"*. §6.2 works as designed.
+- Continue moves to *"6-digit OTP sent to +91 …"*, offering resend **via SMS and
+  WhatsApp**.
+
+So §4.1 — that OCC is all-or-nothing and a signed-in customer must be OTP'd
+twice — rests on a measurement that has been withdrawn. **Re-run the feature
+bisect with a 30-second wait before treating it as a constraint.**
+
+**Sandbox does not deliver the OTP.** The modal says it sent one; nothing
+arrives, on SMS or WhatsApp, and a resend changes nothing. Their test-data page
+documents `111000` for cards and `777777` for cardless EMI and no code at all
+for this step, which is consistent with sandbox never sending. Everything past
+this point — account creation, the address write, the totals rewrite — is
+therefore still unexercised, and a live ₹1 order is the only way to reach it.
+
+The sandbox merchant profile also has no business name or logo, so the modal
+shows a placeholder "Business Name". A dashboard setting, not our integration.
 
 ---
 
@@ -490,7 +514,8 @@ C1–C8 from the superseded doc are done.
 | Q5 | Does Cashfree re-OTP a returning browser, or remember it? | How much friction §6.2 really carries |
 | Q5b | Is the coupon field on Cashfree's payment screen or its login screen? If payment, skipping their OTP for a signed-in customer becomes free again | Whether §4.1 can be reversed |
 | Q6 | Is the Create/Get Offer API available on our account? `GET /pg/offers` is 404 | Whether offers can ever be scripted |
-| Q6b | Is there a sandbox test OTP for the OCC *login* step? Their test-data page documents card OTP `111000` and cardless EMI `777777`, and no login OTP | Testing the guest flow without a real handset |
+| Q6b | **What is the sandbox OTP for the OCC login step, or does sandbox simply not send one?** Driven live on 29 Aug: the modal says it sent to SMS and WhatsApp, nothing arrives, resend does nothing | Everything after payment is untestable without this or a live order |
+| Q6c | Does sandbox only message a number registered on the account? | Same |
 | Q7 | What is charged on a COD order, where no money moves? | E4 |
 | Q8 | Refund and chargeback fees, and refunding a discounted order | E3 |
 | Q9 | Which WhatsApp number, and does it move off the consumer app? | A1 |
