@@ -38,12 +38,14 @@ export default function Home() {
     setIsSubscrOpen(true);
   };
 
+  /*
+   * No sign-in gate. Every other page has always been a plain push to
+   * /checkout; this one alone demanded an account first, which is why checkout
+   * still opened our login modal from the home page long after the checkout
+   * page itself had stopped asking. Cashfree collects and verifies the mobile
+   * number during payment, and the account is created from it afterwards.
+   */
   const handleCheckout = () => {
-    if (!user) {
-      setIsCartOpen(false);
-      setIsAuthOpen(true);
-      return;
-    }
     setIsCartOpen(false);
     router.push('/checkout');
   };
