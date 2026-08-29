@@ -359,8 +359,31 @@ is asked for the phone on the order and OTP'd. No public lookup by order number
   phone before payment, so the number is trustworthy even though no money moved.
   They can sign in by OTP, see the failed order, and pay it.
 
-**Not yet decided: when a PENDING order releases its stock.** Today it never
-does, so an abandoned checkout holds a jar for ever.
+**Decided and built: an abandoned checkout releases its stock after an hour.**
+
+Every checkout decrements stock inside the transaction that creates the order,
+so two customers cannot both take the last jar — and nothing ever put it back.
+A single run of nine test scenarios left twenty orders holding stock, which on a
+live shop is inventory reserved against orders nobody will ever pay for.
+
+`expireAbandonedOrders` sweeps them, and **asks Cashfree before releasing
+anything.** A PENDING order is not proof of abandonment: the customer may have
+paid while the browser closed or the webhook went astray. One that turns out to
+be paid is settled rather than cancelled, which makes the sweep the
+reconciliation pass as well.
+
+**A failed payment is included, and is the easier one to miss.** A decline sets
+`paymentStatus: FAILED` and deliberately leaves the order PENDING so the
+customer can retry — cancelling immediately would release stock they are about
+to buy back. But nothing released it afterwards either, so a sweep looking only
+at PENDING payments would hold those jars for ever. Both states are swept; only
+the cancellation reason differs.
+
+**Still needs a trigger.** There is no scheduler in the application, and the
+free Render plan sleeps after fifteen minutes idle, so an in-process cron would
+not fire dependably. `POST /orders/admin/expire-abandoned` is staff-guarded and
+safe to call repeatedly; a Render cron job, a GitHub Action or any uptime pinger
+can drive it.
 
 ### 6.7 The race
 
@@ -564,8 +587,9 @@ C1–C8 from the superseded doc are done.
 
 | # | Task | Done when |
 | --- | --- | --- |
-| E1 | Stock release for abandoned orders | §6.6, decided and implemented |
-| E2 | Reconciliation for orders never confirmed | A job finds them and asks Cashfree |
+| ~~E1~~ | ~~Stock release for abandoned orders~~ **done** | Sweep asks the gateway first, then releases; 8 specs |
+| ~~E2~~ | ~~Reconciliation for orders never confirmed~~ **done** — same sweep | A paid-but-unconfirmed order is settled, not cancelled |
+| E2b | **Schedule the sweep.** No scheduler exists and the free Render plan sleeps after 15 minutes idle, so it needs an external ping | Stock frees itself without a person |
 | E3 | Refunds — and what a refund means with an offer applied | Admin can trigger one |
 | E4 | COD, if taken | Order settles with no money through the gateway |
 | E6 | Live credentials, production guard honoured | Mock mode cannot start in production |

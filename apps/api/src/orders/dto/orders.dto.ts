@@ -131,3 +131,18 @@ export class UpdateOrderStatusDto {
   @MaxLength(300)
   note?: string;
 }
+
+export class ExpireAbandonedDto {
+  /**
+   * How long to leave a checkout alone before treating it as over.
+   *
+   * Floored at fifteen minutes: a customer who has switched to a banking app
+   * to approve a payment is still buying, and cancelling underneath them is
+   * far worse than holding a jar for another hour.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(15)
+  @Max(10080)
+  olderThanMinutes?: number;
+}

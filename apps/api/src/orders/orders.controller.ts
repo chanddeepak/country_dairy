@@ -18,6 +18,7 @@ import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { OrdersService } from './orders.service';
 import {
+  ExpireAbandonedDto,
   CancelOrderDto,
   CheckoutDto,
   UpdateOrderStatusDto, SetDeliveryTypeDto,
@@ -53,6 +54,25 @@ export class OrdersController {
       page: Number(page) || undefined,
       pageSize: Number(pageSize) || undefined,
     });
+  }
+
+  /**
+   * Frees stock held by checkouts that were never paid for.
+   *
+   * Staff-triggered rather than scheduled, because there is no scheduler in
+   * this application and the free Render plan sleeps after fifteen minutes
+   * idle, so an in-process cron would not fire dependably. An external ping —
+   * a Render cron job, a GitHub Action, any uptime pinger — can call this on a
+   * timer; until one exists, the desk can run it.
+   *
+   * Safe to call as often as you like: it only looks at orders older than the
+   * window, and it asks Cashfree before releasing anything.
+   */
+  @Post('admin/expire-abandoned')
+  @UseGuards(RolesGuard)
+  @Roles(...ORDER_STAFF)
+  async expireAbandoned(@Body() dto: ExpireAbandonedDto) {
+    return this.ordersService.expireAbandonedOrders(dto.olderThanMinutes);
   }
 
   @Get('admin/stats')

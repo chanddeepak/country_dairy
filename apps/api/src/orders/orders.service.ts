@@ -695,7 +695,12 @@ export class OrdersService {
    * @param claimToken Proof this browser placed the order. The only thing a
    *                   guest can present, since there is no session yet.
    */
-  async confirmCashfreeOrder(userId: string | null, orderId: string, claimToken?: string) {
+  async confirmCashfreeOrder(
+    userId: string | null,
+    orderId: string,
+    claimToken?: string,
+    options?: { internal?: boolean },
+  ) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: { payments: { orderBy: { createdAt: 'desc' }, take: 1 } },
@@ -720,7 +725,17 @@ export class OrdersService {
       order.claimTokenExpiresAt.getTime() > Date.now() &&
       digestsMatch(hashClaimToken(claimToken), order.claimTokenHash);
 
-    if (!ownedByCaller && !presentedClaim) {
+    /*
+     * `internal` is for the abandoned-order sweep, which has already asked
+     * Cashfree and been told the order is PAID. It has no claim token — nobody
+     * is holding a browser — and refusing it would mean throwing away a
+     * customer's completed payment.
+     *
+     * The controller passes three arguments and cannot set this. It must stay
+     * that way: it is the one path that settles an order without proving who
+     * is asking.
+     */
+    if (!options?.internal && !ownedByCaller && !presentedClaim) {
       // 404 rather than 403: telling a caller the order exists but is not
       // theirs confirms the id was a good guess.
       throw new NotFoundException('Order not found');
@@ -1239,6 +1254,114 @@ export class OrdersService {
   }
 
   /** Returns reserved stock to inventory and marks the order cancelled. */
+  /**
+   * Frees stock held by checkouts that were started and never paid for.
+   *
+   * Every checkout decrements stock inside the transaction that creates the
+   * order, so two customers cannot both take the last jar. Nothing ever put it
+   * back when the customer simply walked away — a real run of nine test
+   * scenarios left twenty orders holding stock indefinitely, and on a live shop
+   * that is inventory quietly reserved against orders nobody will ever pay.
+   *
+   * **It asks the gateway before releasing anything.** A PENDING order is not
+   * proof of abandonment: the customer may have paid while the browser closed
+   * or the webhook went astray, and cancelling that would destroy a paid order
+   * and its stock allocation together. So each candidate is checked, and one
+   * that turns out to be paid is settled rather than cancelled — which makes
+   * this the reconciliation pass as well as the sweep.
+   *
+   * @param olderThanMinutes how long to leave a checkout alone before assuming
+   *   it is over. Generous by default: a customer switching to a banking app to
+   *   approve a payment can be gone a long while, and cancelling underneath
+   *   them is far worse than holding a jar for an extra hour.
+   */
+  async expireAbandonedOrders(olderThanMinutes = 60): Promise<{
+    examined: number;
+    released: number;
+    settled: number;
+    failed: number;
+  }> {
+    const cutoff = new Date(Date.now() - olderThanMinutes * 60 * 1000);
+
+    const stale = await this.prisma.order.findMany({
+      where: {
+        /*
+         * FAILED belongs here as much as PENDING, and it is the easier one to
+         * miss. A declined payment sets paymentStatus FAILED and leaves the
+         * order PENDING so the customer can try again — but nothing ever
+         * released its stock, so a sweep that only looked at PENDING payments
+         * would hold those jars for ever.
+         *
+         * status stays PENDING in the filter regardless: an order already
+         * CONFIRMED has been paid for, and one already CANCELLED has had its
+         * stock returned.
+         */
+        paymentStatus: { in: [PaymentStatus.PENDING, PaymentStatus.FAILED] },
+        status: OrderStatus.PENDING,
+        createdAt: { lt: cutoff },
+      },
+      select: {
+        id: true,
+        orderNumber: true,
+        paymentStatus: true,
+        orderItems: { select: { variantId: true, quantity: true } },
+        payments: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+      // Bounded so one sweep cannot run for ever on a long backlog; the next
+      // run picks up where this one stopped.
+      take: 200,
+    });
+
+    const result = { examined: stale.length, released: 0, settled: 0, failed: 0 };
+
+    for (const order of stale) {
+      const payment = order.payments[0];
+      try {
+        /*
+         * Only Cashfree orders can be asked. A Razorpay order without a gateway
+         * id has nothing to check against, so releasing its stock is the only
+         * safe reading — it was never payable.
+         */
+        if (payment?.provider === 'CASHFREE' && payment.gatewayOrderId) {
+          const remote = await this.cashfreeService.getOrder(payment.gatewayOrderId);
+          if (String(remote.order_status) === 'PAID') {
+            // Paid after all. Settle it rather than cancel it — this is the
+            // customer whose payment we would otherwise have thrown away.
+            await this.confirmCashfreeOrder(null, order.id, undefined, { internal: true });
+            this.logger.warn(
+              `Order ${order.orderNumber} was paid but never confirmed; settled by the sweep`,
+            );
+            result.settled += 1;
+            continue;
+          }
+        }
+
+        await this.restockAndCancel(
+          order.id,
+          order.orderItems,
+          order.paymentStatus === PaymentStatus.FAILED
+            ? 'Payment failed and was not retried'
+            : `Payment not completed within ${olderThanMinutes} minutes`,
+        );
+        result.released += 1;
+      } catch (err) {
+        // One bad order must not stop the sweep; the next run tries again.
+        this.logger.error(
+          `Could not expire order ${order.orderNumber}: ${(err as Error).message}`,
+        );
+        result.failed += 1;
+      }
+    }
+
+    if (result.examined > 0) {
+      this.logger.log(
+        `Abandoned-order sweep: examined ${result.examined}, released ${result.released}, ` +
+          `settled ${result.settled}, failed ${result.failed}`,
+      );
+    }
+    return result;
+  }
+
   private async restockAndCancel(
     orderId: string,
     items: { variantId: string | null; quantity: number }[],
