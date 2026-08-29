@@ -121,6 +121,53 @@ real account.
 
 ---
 
+## Sandbox test data
+
+Everything below is Cashfree's own test data. It only works against
+`sandbox.cashfree.com` — none of it moves money.
+
+**The One Click Checkout login step: `111000`.** This is the one that matters
+and the one they do not document. It is listed for cards, works on the OCC login
+too, and nothing else gets past that screen. Sandbox does not deliver a real SMS,
+so waiting for one is waiting for nothing.
+
+**Cards** — expiry `03/2028`, CVV `123`, name `Test`, then OTP `111000`:
+
+| Card | Number |
+| --- | --- |
+| Visa debit | `4706131211212123` |
+| Visa credit | `4444333322221111` |
+| Mastercard debit | `5409162669381034` |
+| Mastercard credit | `5105105105105100` |
+| RuPay debit | `6074825972083818` |
+
+**UPI** — the outcome is chosen by the VPA:
+
+| VPA | Simulates |
+| --- | --- |
+| `testsuccess@gocash` | paid |
+| `testfailure@gocash` | declined |
+| `testinsufficientfunds@gocash` | not enough balance |
+| `testtimeoutbank@gocash` | bank timeout |
+| `testfraud@gocash` | risk rejection |
+
+**Net banking** is the easiest to drive and needs no card details at all. Pick
+any bank and their simulator opens with buttons for **SUCCESS**, **PENDING**,
+**USER_DROPPED** and **FAILED**, plus an OTP box that takes `111000`. This is
+what the scenario runs above use, deliberately: automating card numbers into a
+payment form is not something worth doing when a plain success/failure page
+exists.
+
+**Cardless EMI and Paylater**: phone `8714268343`, PAN digits `1234`, OTP
+`777777`.
+
+**To test a failed payment**, choose FAILED in the net-banking simulator or pay
+with `testfailure@gocash`. The order should stay PENDING with
+`paymentStatus: FAILED` — deliberately retryable — and the abandoned-order sweep
+cancels it and returns the stock an hour later.
+
+---
+
 ## Running it again
 
 The driver lives in the run artefacts rather than the repo, since it depends on

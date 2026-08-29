@@ -39,14 +39,11 @@ const FEATURE_FLAGS = [
   { key: 'ENABLE_PRODUCT_RATINGS', description: 'Customer ratings and reviews' },
   { key: 'ENABLE_WALLET', description: 'Customer wallet balance and subscription auto-debit' },
   { key: 'ENABLE_OTP_LOGIN', description: 'Phone OTP sign-in (needs an SMS provider)' },
-  // Seeded on, unlike everything else here. Email and password is the only
-  // way into the site today, so a row created off would lock every customer
-  // out the moment this flag started being read.
-  {
-    key: 'ENABLE_EMAIL_LOGIN',
-    description: 'Email and password sign-in (legacy accounts)',
-    defaultEnabled: true,
-  },
+  // Off. Mobile OTP is how customers sign in; this exists so the older form
+  // can be switched back on for the accounts that predate it, not as a path
+  // anyone new should take. Staff are unaffected — the console uses
+  // /auth/admin/login, which is deliberately a separate route.
+  { key: 'ENABLE_EMAIL_LOGIN', description: 'Email and password sign-in (legacy accounts)' },
   { key: 'ENABLE_GOOGLE_LOGIN', description: 'Google sign-in (needs GOOGLE_CLIENT_ID)' },
   // Declared in code since the integration was written, but never given rows —
   // so the console had no switch for them and the storefront could not read

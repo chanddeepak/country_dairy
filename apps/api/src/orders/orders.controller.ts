@@ -113,7 +113,7 @@ export class OrdersController {
     return this.ordersService.checkout(
       user?.id ?? null,
       dto.addressId,
-      dto.deliveryType ?? DeliveryType.LOCAL,
+      dto.deliveryType ?? DeliveryType.COURIER,
       dto.couponCode,
       dto.items,
     );

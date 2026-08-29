@@ -78,7 +78,14 @@ export class AuthService {
 
   // --- EMAIL + PASSWORD ---
 
+  /** Registration follows the same switch: no new email-and-password accounts. */
   async registerWithEmail(email: string, password: string, name: string) {
+    if (!(await this.featureFlags.isEnabled(FLAG.EMAIL_LOGIN))) {
+      throw new ForbiddenException(
+        'Accounts are created with a mobile number now. Please sign in with yours.',
+      );
+    }
+
     const normalizedEmail = email.trim().toLowerCase();
 
     const existing = await this.prisma.user.findUnique({
@@ -111,6 +118,22 @@ export class AuthService {
   }
 
   async loginWithEmail(email: string, password: string) {
+    /*
+     * Behind the flag on the server, not only in the storefront.
+     *
+     * Hiding the form left the endpoint answering, so "email sign-in is off"
+     * was true of the page and false of the API — anyone with the old form
+     * cached, a bookmark, or curl could still sign in.
+     *
+     * Staff are not affected: the console uses loginStaff, which is a separate
+     * path precisely so a customer-facing switch cannot lock the desk out.
+     */
+    if (!(await this.featureFlags.isEnabled(FLAG.EMAIL_LOGIN))) {
+      throw new ForbiddenException(
+        'Email sign-in is no longer available. Please sign in with your mobile number.',
+      );
+    }
+
     const normalizedEmail = email.trim().toLowerCase();
 
     const user = await this.prisma.user.findUnique({

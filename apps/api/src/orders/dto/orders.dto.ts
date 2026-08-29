@@ -55,7 +55,7 @@ export class CheckoutDto {
 
   @IsOptional()
   @IsEnum(DeliveryType)
-  deliveryType?: DeliveryType = DeliveryType.LOCAL;
+  deliveryType?: DeliveryType = DeliveryType.COURIER;
 
   @IsOptional()
   @IsString()

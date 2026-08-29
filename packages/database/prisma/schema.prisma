@@ -653,7 +653,11 @@ model Order {
   paymentStatus PaymentStatus @default(PENDING)
 
   // Logistics
-  deliveryType     DeliveryType @default(LOCAL)
+  /// Courier by default: the shop delivers across India, and the local van
+  /// round is the exception rather than the rule. The desk moves an order to
+  /// LOCAL when the address turns out to be inside the van's area — nothing at
+  /// checkout can know that.
+  deliveryType     DeliveryType @default(COURIER)
   driverId         String?
   driver           User?        @relation("DriverAssignment", fields: [driverId], references: [id], onDelete: SetNull)
   shippingCarrier  String?
