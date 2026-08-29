@@ -86,5 +86,21 @@ services:
       - key: RAZORPAY_WEBHOOK_SECRET
         sync: false
 
+      # Cashfree. Without these, CashfreeService.isConfigured is false, so
+      # checkout falls back to Razorpay however ENABLE_CASHFREE_CHECKOUT is set
+      # — and a guest is refused outright, because Razorpay's confirm needs a
+      # session. That is what "Please sign in to complete your order" means on
+      # a deployed environment: not a login problem, a missing credential.
+      #
+      # Sandbox keys here. CASHFREE_ENV must stay "sandbox": the API refuses to
+      # start with a TEST client id and CASHFREE_ENV=production, and refuses
+      # again if OTP_DEV_CODE is set alongside production.
+      - key: CASHFREE_ENV
+        value: sandbox
+      - key: CASHFREE_CLIENT_ID
+        sync: false
+      - key: CASHFREE_CLIENT_SECRET
+        sync: false
+
       - key: SEED_ADMIN_PASSWORD
         sync: false

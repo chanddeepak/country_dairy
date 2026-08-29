@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import {
   DeliveryType,
@@ -322,8 +323,24 @@ export class OrdersService {
      * Razorpay's confirm path requires a session, so a guest sent down it would
      * get an order that is created, has stock held against it, and can never be
      * paid. Refuse before that happens rather than after.
+     *
+     * Two different reasons land here, and telling them apart matters. If
+     * Razorpay is live, signing in genuinely does complete the order. If
+     * neither gateway is configured, no amount of signing in will help — that
+     * is a deployment missing its credentials, and saying "please sign in"
+     * sends whoever is testing to hunt for a login bug that does not exist.
      */
     if (!useCashfree && !userId) {
+      if (this.razorpayService.isMockMode) {
+        this.logger.error(
+          'Guest checkout refused: Cashfree is not configured and Razorpay is in mock mode, ' +
+            'so this environment has no gateway that can take a payment. ' +
+            'Set CASHFREE_CLIENT_ID and CASHFREE_CLIENT_SECRET.',
+        );
+        throw new ServiceUnavailableException(
+          'Online payment is not available right now. Please try again shortly.',
+        );
+      }
       throw new BadRequestException('Please sign in to complete your order');
     }
 
