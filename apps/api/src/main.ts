@@ -6,6 +6,7 @@ import * as fs from 'fs';
 
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import * as express from 'express';
 import { AppModule } from './app.module';
 
@@ -44,7 +45,17 @@ function resolveAllowedOrigins(isProduction: boolean): string[] {
 };
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  /*
+   * Behind Render every request arrives from their proxy, so req.ip is the
+   * proxy's address and the per-IP OTP limit would count every customer as the
+   * same caller — throttling everyone at once while stopping no attacker.
+   *
+   * `1` trusts exactly one hop. Trusting them all would let a caller spoof
+   * X-Forwarded-For and opt out of the limit entirely.
+   */
+  app.set('trust proxy', 1);
   const isProduction = process.env.NODE_ENV === 'production';
 
   const uploadDir = path.join(process.cwd(), 'uploads');

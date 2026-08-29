@@ -199,7 +199,14 @@ model OtpVerification {
   consumedAt DateTime?
   createdAt  DateTime  @default(now())
 
+  /// Who asked. Rate limiting by phone alone stops nothing: an attacker cycles
+  /// numbers and every request looks like a different customer, while each one
+  /// spends a real message.
+  requestIp  String?
+
   @@index([phone, expiresAt])
+  @@index([requestIp, createdAt])
+  @@index([createdAt])
 }
 
 model PasswordResetToken {

@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Ip,
   Param,
   Patch,
   Post,
@@ -59,8 +60,8 @@ export class AuthController {
 
   @Post('send-otp')
   @HttpCode(HttpStatus.OK)
-  async sendOtp(@Body() dto: SendOtpDto) {
-    return this.authService.sendOtp(dto.phone);
+  async sendOtp(@Body() dto: SendOtpDto, @Ip() ip: string) {
+    return this.authService.sendOtp(dto.phone, ip);
   }
 
   @Post('verify-otp')

@@ -384,6 +384,22 @@ SMS first means building two integrations and paying ₹11,800 for the worse one
 SMS keeps one genuine advantage — it reaches a phone without the app — so it
 stays on the list as a fallback, below.
 
+### 7.3b Configuration
+
+Unset, the API falls back to the log channel: it prints codes in development
+and **refuses to send in production** rather than returning success while
+sending nothing. A sign-in that silently posts no message strands every
+customer at the code screen with nothing in any log.
+
+| Variable | Default |
+| --- | --- |
+| `WHATSAPP_PHONE_NUMBER_ID` | — |
+| `WHATSAPP_ACCESS_TOKEN` | — |
+| `WHATSAPP_OTP_TEMPLATE` | `otp_login` |
+| `WHATSAPP_OTP_LANGUAGE` | `en` |
+| `WHATSAPP_API_VERSION` | `v21.0` |
+| `OTP_DAILY_LIMIT` | `500` |
+
 ### 7.4 SMS, later
 
 Fallback for customers who do not receive WhatsApp. MSG91 ≈ ₹0.15, plus **DLT
@@ -412,8 +428,8 @@ C1–C8 from the superseded doc are done.
 | # | Task | Done when |
 | --- | --- | --- |
 | A1 | WhatsApp Business onboarding: number, verification, templates | A test OTP arrives on a real phone |
-| A2 | Send channel behind an interface, WhatsApp first | `sendOtp` actually sends |
-| A3 | **Rate limit by IP and a daily ceiling** | An attacker cycling numbers cannot burn credit |
+| A2 | ~~Send channel behind an interface, WhatsApp first~~ **done** | Boots as `Message channel: log`; `sendOtp` dispatches through it |
+| A3 | ~~**Rate limit by IP and a daily ceiling**~~ **done** | Proven live: 6th send to one phone and 11th from one IP both refused |
 | A4 | Navbar sign-in becomes phone-first | Email form still present for existing accounts |
 | A5 | `ENABLE_OTP_LOGIN` on | Flag has a row and the console can switch it |
 

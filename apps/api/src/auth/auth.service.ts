@@ -16,6 +16,8 @@ import * as bcrypt from 'bcryptjs';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { PrismaService } from '../prisma/prisma.service';
 import { FLAG, FeatureFlagsService } from '../feature-flags/feature-flags.service';
+import { MESSAGE_CHANNEL } from '../notifications/message-channel';
+import type { MessageChannel } from '../notifications/message-channel';
 import {
   ChangePasswordDto,
   CreateAddressDto,
@@ -48,6 +50,8 @@ export class AuthService {
     @Inject(forwardRef(() => MediaService))
     private media: MediaService,
     private audit: AuditService,
+    @Inject(MESSAGE_CHANNEL)
+    private messageChannel: MessageChannel,
   ) {
     this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
   }
@@ -138,19 +142,52 @@ export class AuthService {
 
   // --- PHONE OTP ---
   //
-  // Behind ENABLE_OTP_LOGIN and not yet wired to an SMS provider. The codes
-  // are stored hashed in OtpVerification rather than in memory, so this works
-  // across instances and survives a redeploy once a provider is connected.
+  // Behind ENABLE_OTP_LOGIN. The codes are stored hashed in OtpVerification
+  // rather than in memory, so this works across instances and survives a
+  // redeploy.
 
-  async sendOtp(phone: string): Promise<{ success: boolean }> {
+  /** Per phone, per quarter hour. Stops a customer hammering Resend. */
+  private static readonly OTP_PER_PHONE = 5;
+  /** Per IP, per hour. Stops one attacker cycling numbers. */
+  private static readonly OTP_PER_IP = 10;
+  /**
+   * Everyone, per day. The last line: a distributed attack defeats both limits
+   * above, and every request past this point is money. Deliberately generous
+   * enough that real traffic never reaches it, and finite so a bill cannot run
+   * away overnight.
+   */
+  private static readonly OTP_PER_DAY = Number(process.env.OTP_DAILY_LIMIT ?? 500);
+
+  async sendOtp(phone: string, requestIp?: string): Promise<{ success: boolean }> {
     await this.assertOtpEnabled();
 
-    const recentCount = await this.prisma.otpVerification.count({
-      where: { phone, createdAt: { gt: new Date(Date.now() - 15 * 60 * 1000) } },
-    });
+    const now = Date.now();
+    const since = (ms: number) => ({ gt: new Date(now - ms) });
 
-    if (recentCount >= 5) {
+    const [perPhone, perIp, perDay] = await Promise.all([
+      this.prisma.otpVerification.count({
+        where: { phone, createdAt: since(15 * 60 * 1000) },
+      }),
+      requestIp
+        ? this.prisma.otpVerification.count({
+            where: { requestIp, createdAt: since(60 * 60 * 1000) },
+          })
+        : Promise.resolve(0),
+      this.prisma.otpVerification.count({ where: { createdAt: since(24 * 60 * 60 * 1000) } }),
+    ]);
+
+    if (perPhone >= AuthService.OTP_PER_PHONE || perIp >= AuthService.OTP_PER_IP) {
+      // One message for both, on purpose. Telling a caller which limit they hit
+      // tells them how to stay under the other one.
       throw new BadRequestException('Too many verification attempts. Try again later.');
+    }
+
+    if (perDay >= AuthService.OTP_PER_DAY) {
+      this.logger.error(
+        `Daily OTP ceiling of ${AuthService.OTP_PER_DAY} reached — sign-in is refusing everyone. ` +
+          'Either traffic has grown or someone is cycling numbers.',
+      );
+      throw new BadRequestException('Verification is temporarily unavailable. Please try again later.');
     }
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -159,14 +196,14 @@ export class AuthService {
       data: {
         phone,
         codeHash: await bcrypt.hash(code, 10),
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        expiresAt: new Date(now + 5 * 60 * 1000),
+        requestIp,
       },
     });
 
-    // TODO: dispatch via MSG91 once the SMS provider is configured.
-    if (process.env.NODE_ENV !== 'production') {
-      this.logger.debug(`[dev] OTP for ${phone} is ${code}`);
-    }
+    // The row is written before the send, so a provider failure still counts
+    // against the limits above. A send that throws must not also be free.
+    await this.messageChannel.sendOtp(phone, code);
 
     return { success: true };
   }

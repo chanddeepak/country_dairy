@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { MediaModule } from '../media/media.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 /**
  * There is deliberately no fallback secret here. A shared default is worse
@@ -26,6 +27,7 @@ function requireJwtSecret(): string {
 @Module({
   imports: [
     PrismaModule,
+    NotificationsModule,
     // Mutual by nature rather than by accident: closing an account has to
     // remove the customer's uploaded review photographs, and MediaModule's
     // own controller is guarded by AuthGuard, which injects AuthService.
