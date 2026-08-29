@@ -1472,6 +1472,21 @@ export class OrdersService {
     }
 
     if (order.status !== status && !ALLOWED_TRANSITIONS[order.status].includes(status)) {
+      /*
+       * Say what is actually wrong.
+       *
+       * Nearly every refusal here is one case — a dispatch attempt on an order
+       * nobody has paid for — and "Cannot move an order from PENDING to
+       * SHIPPED" describes the rule rather than the problem, leaving the desk
+       * to work out that PENDING means unpaid.
+       */
+      if (order.status === OrderStatus.PENDING && status === OrderStatus.SHIPPED) {
+        throw new BadRequestException(
+          `Order ${order.orderNumber} has not been paid for yet, so it cannot be dispatched. ` +
+            'It will confirm itself when the payment lands, or be cancelled if it never does.',
+        );
+      }
+
       throw new BadRequestException(
         `Cannot move an order from ${order.status} to ${status}`,
       );
