@@ -1101,3 +1101,20 @@ enum SupportStatus {
   RESOLVED
   CLOSED
 }
+
+/// Allocates the next number in a named, human-facing series.
+///
+/// One row per series per period — `order:2026`, `invoice:CD/2026-27` — so a
+/// new series (credit notes, RMAs, purchase orders) needs a new key and no
+/// schema change.
+///
+/// Exists because the numbers used to be derived from `max(orderNumber) + 1`,
+/// which reused a number whenever an order was deleted, raced when two people
+/// checked out at once, and broke permanently past 99,999 because the maximum
+/// was found with a *text* sort.
+model NumberSeries {
+  /// `<series>:<period>`. Opaque to the database, meaningful to the caller.
+  key       String   @id
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+}

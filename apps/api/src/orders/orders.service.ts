@@ -24,6 +24,11 @@ import { CashfreeService } from './cashfree.service';
 import { FLAG, FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import { CmsService } from '../cms/cms.service';
 import { calculateOrderTotals, priceLine, round2, toPaise } from './pricing';
+import {
+  NumberSeriesService,
+  businessFinancialYear,
+  businessYear,
+} from '../common/number-series.service';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 
 /** Long enough to pay, short enough that a leaked URL goes stale. */
@@ -102,24 +107,31 @@ export class OrdersService {
     private cms: CmsService,
     private audit: AuditService,
     private auth: AuthService,
+    private numbers: NumberSeriesService,
   ) {}
 
   /**
    * Human-readable order reference. Customers quote this over WhatsApp, so it
    * has to be something a person can read out loud.
    */
-  private async generateOrderNumber(tx: Prisma.TransactionClient): Promise<string> {
-    const year = new Date().getFullYear();
-    const prefix = `CD-${year}-`;
-
-    const latest = await tx.order.findFirst({
-      where: { orderNumber: { startsWith: prefix } },
-      orderBy: { orderNumber: 'desc' },
-      select: { orderNumber: true },
-    });
-
-    const nextSeq = latest ? Number(latest.orderNumber.slice(prefix.length)) + 1 : 1;
-    return `${prefix}${String(nextSeq).padStart(5, '0')}`;
+  private async generateOrderNumber(): Promise<string> {
+    const year = businessYear();
+    /*
+     * Allocated outside the checkout transaction on purpose. That transaction
+     * decrements stock and writes the order; holding the series row lock across
+     * it would put every customer in a queue behind the one in front.
+     *
+     * An abandoned checkout therefore leaves a gap in the numbering, which
+     * costs nothing — unlike an invoice, an order number carries no obligation
+     * to be consecutive.
+     *
+     * No zero padding any more. Its only real job was to make a *text* sort
+     * agree with a numeric one so `max(orderNumber)` found the true maximum —
+     * and that sort is exactly what broke past 99,999. Nothing sorts these now,
+     * so CD-2026-21 is simply shorter to read out over WhatsApp.
+     */
+    const seq = await this.numbers.allocate(`order:${year}`);
+    return `CD-${year}-${seq}`;
   }
 
   async checkout(
@@ -211,6 +223,8 @@ export class OrdersService {
     const claimToken = randomBytes(32).toString('base64url');
     const claimTokenHash = hashClaimToken(claimToken);
 
+    const orderNumber = await this.generateOrderNumber();
+
     // Stock is decremented with the order in one transaction, so two customers
     // racing for the last jar cannot both succeed.
     const order = await this.prisma.$transaction(async (tx) => {
@@ -227,7 +241,7 @@ export class OrdersService {
         }
       }
 
-      const orderNumber = await this.generateOrderNumber(tx);
+
 
       const created = await tx.order.create({
         data: {
@@ -306,7 +320,26 @@ export class OrdersService {
       }
 
       return created;
-    });
+    },
+      {
+        /*
+         * Prisma's defaults are 2s to acquire and 5s to run, and this
+         * transaction takes a row lock on the variant before doing three more
+         * round trips to a database in Singapore — roughly 600ms each time it
+         * runs. Eight customers buying the same jar at once therefore queue for
+         * about five seconds, and the last one used to fail with a 500 while
+         * the seven ahead of it succeeded.
+         *
+         * This is headroom, not a cure. The real cost is doing several round
+         * trips while holding a lock on a row every buyer of that product
+         * wants; fewer statements inside the transaction would shorten the
+         * queue rather than tolerate it. Worth revisiting if a single product
+         * ever sells fast enough to make this bite again.
+         */
+        maxWait: 10_000,
+        timeout: 20_000,
+      },
+    );
 
     /*
      * Which gateway takes the money.
@@ -958,8 +991,15 @@ export class OrdersService {
    *
    * GST requires a series that is consecutive and gap-free for the financial
    * year, which is why this is not the order number: an order cancelled before
-   * dispatch would leave a hole. Serialised through a transaction so two
-   * concurrent dispatches cannot take the same number.
+   * dispatch would leave a hole.
+   *
+   * It used to say a transaction serialised this. It did not — Postgres runs at
+   * READ COMMITTED, so two dispatches could read the same maximum, and only the
+   * unique index stopped a duplicate. The lock is real now: the number comes
+   * from NumberSeries, taken inside this transaction so it rolls back with it.
+   *
+   * Padding is kept here, unlike order numbers, because an invoice series is
+   * read by an auditor rather than a customer and fixed width is conventional.
    */
   async assignInvoiceNumber(orderId: string): Promise<string> {
     return this.prisma.$transaction(async (tx) => {
@@ -973,17 +1013,21 @@ export class OrdersService {
 
       const seller = await this.cms.getSellerIdentity();
       const now = new Date();
-      const fy = this.financialYear(now);
-      const prefix = `${seller.invoicePrefix}/${fy}/`;
+      const fy = businessFinancialYear(now);
+      const series = `${seller.invoicePrefix}/${fy}`;
 
-      const last = await tx.order.findFirst({
-        where: { invoiceNumber: { startsWith: prefix } },
-        orderBy: { invoiceNumber: 'desc' },
-        select: { invoiceNumber: true },
-      });
-
-      const lastSeq = last?.invoiceNumber ? Number(last.invoiceNumber.split('/').pop()) : 0;
-      const invoiceNumber = `${prefix}${String(lastSeq + 1).padStart(5, '0')}`;
+      /*
+       * Allocated inside this transaction, unlike an order number, so a
+       * dispatch that fails after taking a number gives it back. GST wants the
+       * series consecutive for the financial year, and a hole is not a
+       * cosmetic problem.
+       *
+       * That holds the series row lock until this commits, so two dispatches
+       * happening at once queue. Accepted: gap-free is the requirement, and
+       * dispatch is staff-initiated and low-volume.
+       */
+      const seq = await this.numbers.allocateWithin(tx, `invoice:${series}`);
+      const invoiceNumber = `${series}/${String(seq).padStart(5, '0')}`;
 
       await tx.order.update({
         where: { id: orderId },

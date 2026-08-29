@@ -67,6 +67,7 @@ function buildService(order: Record<string, unknown>) {
     {} as never, // cms
     {} as never, // audit
     { signInByVerifiedPhone } as never,
+    {} as never, // number series — confirm never allocates
   );
 
   return { service, prisma, signInByVerifiedPhone, updates };

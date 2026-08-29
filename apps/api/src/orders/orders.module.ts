@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { OrdersService } from './orders.service';
+import { NumberSeriesService } from '../common/number-series.service';
 import { OrdersController } from './orders.controller';
 import { RazorpayService } from './razorpay.service';
 import { CashfreeService } from './cashfree.service';
@@ -11,7 +12,7 @@ import { CmsModule } from '../cms/cms.module';
 @Module({
   imports: [AuthModule, CmsModule],
   controllers: [OrdersController, WebhookController],
-  providers: [OrdersService, RazorpayService, CashfreeService, WebhookService],
+  providers: [OrdersService, NumberSeriesService, RazorpayService, CashfreeService, WebhookService],
   exports: [OrdersService, CashfreeService],
 })
 export class OrdersModule {}

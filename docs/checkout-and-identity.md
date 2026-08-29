@@ -598,6 +598,61 @@ answered either, and that integration was built anyway.
 
 ---
 
+## 9a. How numbers are issued
+
+Order and invoice numbers used to come from `max(...) + 1` over surviving rows.
+Three faults, one of which cost a real payment:
+
+- **Deleting an order freed its number.** Cashfree's ids are permanent, so the
+  reissued number came back `409 order_already_exists` and the customer could
+  not pay, for a reason nothing on our side would have explained.
+- **Two simultaneous checkouts read the same maximum.** The unique index kept
+  the data sound, so one customer simply got a 500 and lost their basket, at
+  random, under load.
+- **It broke permanently at 100,000.** The maximum was found with a *text* sort,
+  and `CD-2026-99999` sorts above `CD-2026-100000` — so past 99,999 the query
+  returns 99999 for ever and every order collides.
+
+Speed was never the problem: the old query was an index-only scan measured at
+0.05 ms and would not have degraded.
+
+**One table, `NumberSeries`, keyed `<series>:<period>`** — `order:2026`,
+`invoice:CD/2026-27`. A new series needs a key, not a migration. The increment
+is a single `INSERT … ON CONFLICT DO UPDATE … RETURNING`, so there is no window
+between reading and writing.
+
+**Two allocation policies, because the two callers need different things:**
+
+| | Orders | Invoices |
+| --- | --- | --- |
+| Allocated | in its own transaction, committed at once | inside the caller's transaction |
+| Lock held | microseconds | until the dispatch commits |
+| Gaps | possible, and harmless | impossible — GST requires consecutive |
+| Concurrency | checkouts never queue on numbering | dispatches serialise, deliberately |
+
+An abandoned checkout leaves a hole in the order numbering and that costs
+nothing. A dispatch that fails after taking an invoice number must give it back,
+so that one alone holds the lock.
+
+**Formats changed.** Order numbers lost their zero padding — its only real job
+was making a text sort agree with a numeric one, which is the thing that broke.
+`CD-2026-21` is also shorter to read out over WhatsApp, which the format exists
+for. Invoice numbers keep padding: an auditor reads those, and fixed width is
+conventional.
+
+**And they are dated in India.** Render runs UTC, so `getFullYear()` disagreed
+with the shop for the first five and a half hours of every year. On 1 April that
+is a GST problem — an invoice issued at 02:00 IST would have been filed against
+the previous financial year.
+
+**Found while testing this, and not caused by it:** eight simultaneous checkouts
+for the same variant exceeded Prisma's 5-second transaction timeout, because the
+transaction takes a row lock on the variant and then makes three more round
+trips to Singapore. Given headroom for now; the real fix is fewer statements
+inside that lock.
+
+---
+
 ## 10. Guardrails
 
 1. **No secret in the repo.** `render.yaml` uses `sync: false`.
