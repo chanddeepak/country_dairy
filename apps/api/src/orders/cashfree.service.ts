@@ -242,6 +242,12 @@ export class CashfreeService {
     shipping_address?: CashfreeAddress | null;
     billing_address?: CashfreeAddress | null;
     cart?: Record<string, unknown>;
+    /** What they actually charged, in rupees. Ours until an offer moves it. */
+    order_amount?: number | null;
+    /** Populated once an offer from their dashboard applies. Null otherwise. */
+    offer?: Record<string, unknown> | null;
+    /** Their own additions, which we must not charge for a second time. */
+    charges?: { shipping_charges?: number | null; cod_handling_charges?: number | null } | null;
     [key: string]: unknown;
   }> {
     return this.request(`/orders/${encodeURIComponent(orderId)}/extended`);

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowRight, Calendar, Loader2, Mail, MapPin, Phone, Printer, RefreshCw, Search, Truck, X } from 'lucide-react';
+import { ArrowRight, Calendar, Loader2, Mail, MapPin, MessageCircle, Phone, Printer, RefreshCw, Search, Truck, X } from 'lucide-react';
 import StatusBadge from '../components/ui/StatusBadge';
 import { adminApi } from '../services/apiClient';
 import Pagination from '../components/Pagination';
 import type { AdminOrder, OrderStats, OrderStatus } from '../types';
+import { customerPhone, messageForStatus, openWhatsApp } from '../services/whatsappMessage';
 
 /**
  * Mirrors the API's order state machine. Offering a transition the server will
@@ -557,6 +558,30 @@ export default function Orders({
                     <Phone className="h-4 w-4 text-stone-400" />
                     <span>{selectedOrder.shippingAddress.phone || selectedOrder.user?.phone}</span>
                   </div>
+                )}
+
+                {/*
+                  * Opens WhatsApp with the message written, for a person to
+                  * send. The wording follows the order's status, so the desk
+                  * does not have to decide what to say — tracking once it has
+                  * shipped, a nudge for feedback once it has arrived.
+                  */}
+                {customerPhone(selectedOrder) ? (
+                  <button
+                    type="button"
+                    data-testid="whatsapp-customer"
+                    onClick={() =>
+                      openWhatsApp(selectedOrder, messageForStatus(selectedOrder).body)
+                    }
+                    className="mt-1 inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-700"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    {messageForStatus(selectedOrder).label}
+                  </button>
+                ) : (
+                  <p className="mt-1 text-xs text-stone-400">
+                    No phone on this order, so there is nobody to message.
+                  </p>
                 )}
                 <div className="flex items-start gap-2.5 text-sm text-stone-600">
                   <MapPin className="h-4 w-4 text-stone-400 mt-0.5 shrink-0" />

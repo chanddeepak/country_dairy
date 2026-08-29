@@ -23,7 +23,7 @@ import { RazorpayService } from './razorpay.service';
 import { CashfreeService } from './cashfree.service';
 import { FLAG, FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import { CmsService } from '../cms/cms.service';
-import { calculateOrderTotals, priceLine, round2, toPaise } from './pricing';
+import { calculateOrderTotals, priceLine, reconcileTotals, round2, toPaise } from './pricing';
 import {
   NumberSeriesService,
   businessFinancialYear,
@@ -824,6 +824,40 @@ export class OrdersService {
       );
     }
 
+    /*
+     * What they charged, not what we quoted.
+     *
+     * An offer from their dashboard can move the amount after the order was
+     * created, and their own shipping or COD handling can add to it. Money
+     * moved on their figure, so the invoice has to show their figure — ours
+     * was a quote until this moment.
+     *
+     * Skipped when the two already agree, which is the ordinary case.
+     */
+    const charged = Number(extended?.order_amount ?? 0);
+    const gatewayFees = round2(
+      Number(extended?.charges?.shipping_charges ?? 0) +
+        Number(extended?.charges?.cod_handling_charges ?? 0),
+    );
+    const ourTotal = Number(order.totalAmount);
+
+    let reconciled: ReturnType<typeof reconcileTotals> | null = null;
+    if (charged > 0 && (Math.abs(charged - ourTotal) > 0.009 || gatewayFees > 0)) {
+      const lines = await this.prisma.orderItem.findMany({
+        where: { orderId },
+        select: { lineTotal: true, gstRate: true },
+      });
+      reconciled = reconcileTotals(
+        lines.map((l) => ({ lineTotal: Number(l.lineTotal), gstRate: Number(l.gstRate) })),
+        charged,
+        gatewayFees,
+      );
+      this.logger.warn(
+        `Order ${order.orderNumber}: Cashfree charged ₹${charged} against our ₹${ourTotal}` +
+          `${gatewayFees ? ` (incl. ₹${gatewayFees} of their charges)` : ''} — totals rewritten`,
+      );
+    }
+
     const [confirmed] = await this.prisma.$transaction([
       this.prisma.order.update({
         where: { id: orderId },
@@ -831,6 +865,15 @@ export class OrdersService {
           status: OrderStatus.CONFIRMED,
           paymentStatus: PaymentStatus.PAID,
           confirmedAt: new Date(),
+          ...(reconciled
+            ? {
+                subtotal: reconciled.subtotal,
+                discountAmount: reconciled.discountAmount,
+                taxAmount: reconciled.taxAmount,
+                deliveryCharges: reconciled.deliveryCharges,
+                totalAmount: reconciled.totalAmount,
+              }
+            : {}),
           ...(shippingAddress ? { shippingAddress } : {}),
           ...(ownerId ? { userId: ownerId } : {}),
           // Single use. The order is settled and owned; presenting it again
@@ -850,6 +893,9 @@ export class OrdersService {
           // column has existed since the model was written and nothing has
           // ever filled it, so a dispute had nothing to read.
           rawPayload: (extended ?? remote) as never,
+          // Keep the Payment row and the order agreeing when an offer moved
+          // the amount; a dispute is read from this row.
+          ...(reconciled ? { amount: reconciled.totalAmount } : {}),
         },
       }),
       // A guest's cart lives in their browser; only a signed-in customer has
