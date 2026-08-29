@@ -23,7 +23,14 @@ import { RazorpayService } from './razorpay.service';
 import { CashfreeService } from './cashfree.service';
 import { FLAG, FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import { CmsService } from '../cms/cms.service';
-import { calculateOrderTotals, priceLine, reconcileTotals, round2, toPaise } from './pricing';
+import {
+  basketFingerprint,
+  calculateOrderTotals,
+  priceLine,
+  reconcileTotals,
+  round2,
+  toPaise,
+} from './pricing';
 import {
   NumberSeriesService,
   businessFinancialYear,
@@ -33,6 +40,15 @@ import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 
 /** Long enough to pay, short enough that a leaked URL goes stale. */
 const CLAIM_TOKEN_TTL_MS = 2 * 60 * 60 * 1000;
+
+/**
+ * How long an interrupted checkout can be picked up again.
+ *
+ * Matched to the sweep, so the two never disagree: after this the order has
+ * been cancelled and its Cashfree order terminated, and there is nothing to
+ * resume. It also stops somebody paying a week-old price from a forgotten tab.
+ */
+const RESUME_WINDOW_MS = 60 * 60 * 1000;
 
 /**
  * What we send Cashfree as a guest's phone, because they will not create an
@@ -146,12 +162,88 @@ export class OrdersService {
     return `CD-${year}-${seq}`;
   }
 
+  /**
+   * Picks up an interrupted checkout instead of starting another one.
+   *
+   * A customer who closes the payment window and comes back used to get a
+   * second order, a second number and a second hold on the same jar. Nothing
+   * about their intent changed, so nothing should have.
+   *
+   * Reuse only when everything still lines up: the order is theirs, still
+   * unpaid, still open at Cashfree, and its basket fingerprint still matches
+   * what is in front of them. If the basket changed the fingerprint changed,
+   * and Cashfree cannot amend an order — so that case genuinely needs a new
+   * one, and falls through to the ordinary path.
+   *
+   * Returns null when the order cannot be resumed, which the caller reads as
+   * "make a new one" rather than an error.
+   */
+  private async resumeCheckout(
+    userId: string | null,
+    orderId: string,
+    claimToken: string | undefined,
+    fingerprint: string,
+  ) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { payments: { orderBy: { createdAt: 'desc' }, take: 1 } },
+    });
+    if (!order) return null;
+
+    const ownedByCaller = userId !== null && order.userId === userId;
+    const presentedClaim =
+      claimToken !== undefined &&
+      order.claimTokenHash !== null &&
+      order.claimTokenExpiresAt !== null &&
+      order.claimTokenExpiresAt.getTime() > Date.now() &&
+      digestsMatch(hashClaimToken(claimToken), order.claimTokenHash);
+    if (!ownedByCaller && !presentedClaim) return null;
+
+    // Settled, cancelled, or old enough that the sweep has been through it.
+    if (order.status !== OrderStatus.PENDING) return null;
+    if (order.paymentStatus === PaymentStatus.PAID) return null;
+    if (Date.now() - order.createdAt.getTime() > RESUME_WINDOW_MS) return null;
+
+    const payment = order.payments[0];
+    if (!payment?.gatewayOrderId) return null;
+
+    // A different basket means a different fingerprint, and their order cannot
+    // be amended to match it.
+    if (!payment.gatewayOrderId.includes(fingerprint)) return null;
+
+    /*
+     * Their order has to still be open. A failed attempt or a sweep may have
+     * left it in a state that cannot take money, and asking is cheaper than
+     * assuming — a fresh session against a dead order would send the customer
+     * to a window that cannot work.
+     */
+    const remote = await this.cashfreeService.getOrder(payment.gatewayOrderId).catch(() => null);
+    if (!remote || String(remote.order_status) !== 'ACTIVE' || !remote.payment_session_id) {
+      return null;
+    }
+
+    this.logger.log(`Resuming ${order.orderNumber} rather than creating another order`);
+    return {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      provider: 'CASHFREE' as const,
+      // Their GET hands back a new session every time, so an interrupted
+      // checkout can be reopened without touching anything else.
+      paymentSessionId: remote.payment_session_id,
+      paymentGatewayId: payment.gatewayOrderId,
+      amount: Number(order.totalAmount),
+      currency: 'INR',
+      resumed: true as const,
+    };
+  }
+
   async checkout(
     userId: string | null,
     addressId: string | undefined,
     deliveryType: DeliveryType,
     couponCode?: string,
     guestItems?: { variantId: string; quantity: number }[],
+    resume?: { orderId: string; claimToken?: string },
   ) {
     /*
      * An address is optional now. Cashfree's checkout collects and verifies one
@@ -225,6 +317,30 @@ export class OrdersService {
           }
         : null,
     );
+
+    /*
+     * What is being charged, as a short fingerprint. It decides both whether an
+     * interrupted checkout can be picked up and what the gateway order is
+     * called, so the two can never disagree.
+     */
+    const fingerprint = basketFingerprint(
+      lines.map(({ item, priced }) => ({
+        variantId: item.variantId,
+        quantity: priced.quantity,
+        unitPrice: priced.unitPrice,
+      })),
+      totals.totalAmount,
+    );
+
+    if (resume?.orderId) {
+      const resumed = await this.resumeCheckout(
+        userId,
+        resume.orderId,
+        resume.claimToken,
+        fingerprint,
+      );
+      if (resumed) return resumed;
+    }
 
     /*
      * Minted here rather than after the order exists, because it has to travel
@@ -415,7 +531,16 @@ export class OrdersService {
          * The number still leads so it is recognisable in their dashboard
          * beside a support conversation; the suffix is what makes it safe.
          */
-        orderId: `${order.orderNumber}-${order.id.slice(0, 8)}`,
+        /*
+         * The order number, then the basket fingerprint.
+         *
+         * The uuid fragment this used to carry existed only because order
+         * numbers were reissued after a deletion; NumberSeries never reuses one
+         * now, so the number alone is unique and the id is shorter to read in
+         * their dashboard. The fingerprint is what makes it change when — and
+         * only when — the basket does.
+         */
+        orderId: `${order.orderNumber}-${fingerprint}`,
         amount: Number(totals.totalAmount),
         // Their API wants a customer id even for someone we have never seen.
         // The order id is stable, unique, and says nothing about a person.
@@ -1348,9 +1473,22 @@ export class OrdersService {
       }
     }
 
-    await this.restockAndCancel(order.id, order.orderItems, 'Customer left the payment window');
-    this.logger.log(`Order ${order.orderNumber} cancelled: customer abandoned checkout`);
-    return { cancelled: true };
+    /*
+     * Left alone deliberately, where this used to cancel.
+     *
+     * Cashfree keeps an abandoned order payable for thirty days, and closing
+     * ours would burn the gateway order id — a terminated id answers 409 for
+     * ever, and an identical basket produces an identical fingerprint, so the
+     * customer could neither resume nor replace it. Cancelling here would trade
+     * a tidy list for a checkout that cannot be finished.
+     *
+     * So it stays PENDING and resumable for the hour, and the sweep closes it
+     * properly if they do not come back.
+     */
+    this.logger.log(
+      `Order ${order.orderNumber}: customer left the payment window, keeping it resumable`,
+    );
+    return { cancelled: false, reason: 'kept for resume' };
   }
 
   /**
@@ -1422,10 +1560,25 @@ export class OrdersService {
          * safe reading — it was never payable.
          */
         if (payment?.provider === 'CASHFREE' && payment.gatewayOrderId) {
-          const remote = await this.cashfreeService.getOrder(payment.gatewayOrderId);
-          if (String(remote.order_status) === 'PAID') {
-            // Paid after all. Settle it rather than cancel it — this is the
-            // customer whose payment we would otherwise have thrown away.
+          /*
+           * Close it at Cashfree *before* reading it, not after.
+           *
+           * Asking first and cancelling second leaves a gap: the customer can
+           * pay in the moment between, and we then cancel a paid order and
+           * hand its stock back — money taken, nothing shipped, and nobody
+           * looking. Terminating first makes that impossible, because no
+           * payment can arrive once it has succeeded. Only then is it safe to
+           * ask what happened.
+           */
+          await this.cashfreeService.terminateOrder(payment.gatewayOrderId);
+
+          const remote = await this.cashfreeService
+            .getOrder(payment.gatewayOrderId)
+            .catch(() => null);
+
+          if (remote && String(remote.order_status) === 'PAID') {
+            // Paid just before we closed it. Settle rather than cancel — this
+            // is the customer whose payment we would otherwise throw away.
             await this.confirmCashfreeOrder(null, order.id, undefined, { internal: true });
             this.logger.warn(
               `Order ${order.orderNumber} was paid but never confirmed; settled by the sweep`,
@@ -1467,6 +1620,36 @@ export class OrdersService {
     reason: string,
   ) {
     return this.prisma.$transaction(async (tx) => {
+      /*
+       * Refuse to cancel an order that has been settled since the caller
+       * looked at it.
+       *
+       * The sweep and a webhook can be working on the same order at the same
+       * moment, and returning stock for an order somebody has paid for is the
+       * one outcome here that costs real money. Re-read inside the transaction
+       * rather than trusting what was read outside it.
+       */
+      const current = await tx.order.findUnique({
+        where: { id: orderId },
+        select: { status: true, paymentStatus: true, orderNumber: true },
+      });
+
+      if (!current) throw new NotFoundException('Order not found');
+
+      if (current.paymentStatus === PaymentStatus.PAID) {
+        this.logger.warn(
+          `Refusing to cancel ${current.orderNumber}: it was paid while this was in flight`,
+        );
+        throw new ConflictException('That order has been paid and cannot be cancelled');
+      }
+
+      if (current.status === OrderStatus.CANCELLED) {
+        // Someone else got there first. Returning the stock twice would invent
+        // inventory that does not exist.
+        this.logger.log(`${current.orderNumber} was already cancelled; leaving stock alone`);
+        return tx.order.findUniqueOrThrow({ where: { id: orderId } });
+      }
+
       for (const item of items) {
         if (!item.variantId) continue;
 

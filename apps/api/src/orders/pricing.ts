@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 /**
  * Order pricing. Kept as pure functions so the money maths can be unit-tested
  * without a database or a payment gateway.
@@ -153,4 +154,33 @@ export function reconcileTotals(
     // Never recomputed from the parts. The gateway's number is the invoice's.
     totalAmount: round2(charged),
   };
+}
+
+/**
+ * A short fingerprint of what is being charged.
+ *
+ * The gateway order id carries this, so the id changes exactly when the basket
+ * or the price changes and not otherwise. That is what lets an interrupted
+ * checkout be resumed: an identical basket produces an identical id, so there
+ * is nothing new to create.
+ *
+ * It has to be a fingerprint rather than a counter because Cashfree cannot
+ * amend an order once made — probed directly: PATCH accepts only order_status,
+ * PUT is 404, and the amount stayed put. A changed basket therefore needs a new
+ * order there, and this is what tells us so.
+ *
+ * Six hex characters. Not a security boundary — it only distinguishes versions
+ * of one order, a handful at most.
+ */
+export function basketFingerprint(
+  lines: { variantId: string; quantity: number; unitPrice: number }[],
+  totalAmount: number,
+): string {
+  const canonical = [
+    round2(totalAmount).toFixed(2),
+    ...lines
+      .map((l) => `${l.variantId}:${l.quantity}:${round2(l.unitPrice).toFixed(2)}`)
+      .sort(),
+  ].join('|');
+  return createHash('sha256').update(canonical).digest('hex').slice(0, 6);
 }

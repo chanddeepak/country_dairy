@@ -6,6 +6,35 @@ import { load as loadCashfree } from '@cashfreepayments/cashfree-js';
 import { useApp } from '../context/AppContext';
 import { useStoreConfig } from '../context/StoreConfigContext';
 
+const PENDING_KEY = 'cd_pending_checkout';
+
+/** The checkout this tab started and has not finished. */
+function readPendingCheckout(): { orderId: string; claimToken?: string } | null {
+  try {
+    const raw = sessionStorage.getItem(PENDING_KEY);
+    return raw ? (JSON.parse(raw) as { orderId: string; claimToken?: string }) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writePendingCheckout(orderId: string, claimToken?: string) {
+  try {
+    sessionStorage.setItem(PENDING_KEY, JSON.stringify({ orderId, claimToken }));
+  } catch {
+    // Private browsing, or storage full. Losing this only means the next
+    // attempt creates a new order, which is what used to happen anyway.
+  }
+}
+
+function clearPendingCheckout() {
+  try {
+    sessionStorage.removeItem(PENDING_KEY);
+  } catch {
+    /* see above */
+  }
+}
+
 /**
  * Placing the order and opening the payment window, in one place.
  *
@@ -75,7 +104,16 @@ export function useCheckoutFlow() {
           return;
         }
 
-        const result = await checkout(addressId);
+        /*
+         * Offer the last interrupted checkout back to the server.
+         *
+         * Kept per tab, because that is the life of the thing it describes:
+         * somebody who closed the payment window and is trying again. The
+         * server decides whether it is really resumable and quietly makes a
+         * new order if not, so a stale value here costs nothing.
+         */
+        const pending = readPendingCheckout();
+        const result = await checkout(addressId, pending ?? undefined);
 
         if (!result?.orderId) {
           setError(result?.message || 'We could not start your checkout. Please try again.');
@@ -97,6 +135,9 @@ export function useCheckoutFlow() {
         if (result.claimToken) {
           sessionStorage.setItem(`cd_claim_${result.orderId}`, result.claimToken);
         }
+        // Remembered so closing the window and coming back picks this up
+        // rather than starting another order.
+        writePendingCheckout(result.orderId, result.claimToken);
 
         const cashfree = await loadCashfree({
           mode: process.env.NEXT_PUBLIC_CASHFREE_ENV === 'production' ? 'production' : 'sandbox',
@@ -133,7 +174,11 @@ export function useCheckoutFlow() {
             result.orderId,
             sessionStorage.getItem(`cd_claim_${result.orderId}`) ?? undefined,
           );
-          sessionStorage.removeItem(`cd_claim_${result.orderId}`);
+          /*
+           * The claim token and the pointer both stay. The order is kept alive
+           * for the hour precisely so coming back reuses it, and throwing away
+           * the proof it belongs to this browser would defeat that.
+           */
           setError('Checkout cancelled. Your basket is still here whenever you are ready.');
           return;
         }
@@ -155,6 +200,7 @@ export function useCheckoutFlow() {
         const paid = await pollForPayment(result.orderId);
 
         if (paid) {
+          clearPendingCheckout();
           router.push(`/orders/${result.orderId}?status=success`);
           return;
         }

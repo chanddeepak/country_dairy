@@ -23,8 +23,13 @@ function buildService(orders: unknown[], remoteStatus: Record<string, string>) {
     ),
   };
 
+  const terminated: string[] = [];
   const cashfreeService = {
     getOrder: jest.fn(async (id: string) => ({ order_status: remoteStatus[id] ?? 'ACTIVE' })),
+    terminateOrder: jest.fn(async (id: string) => {
+      terminated.push(id);
+      return { terminated: true };
+    }),
   };
 
   const service = new OrdersService(
@@ -41,7 +46,7 @@ function buildService(orders: unknown[], remoteStatus: Record<string, string>) {
     return { order: {}, session: null } as never;
   });
 
-  return { service, restocked, confirmed, cashfreeService, prisma };
+  return { service, restocked, confirmed, cashfreeService, prisma, terminated };
 }
 
 const order = (
@@ -85,6 +90,30 @@ describe('expireAbandonedOrders', () => {
     expect(confirmed).toEqual(['2']);
     expect(restocked).toEqual([]);
     expect(r).toMatchObject({ released: 0, settled: 1 });
+  });
+
+  it('closes the order at Cashfree before reading it @money', async () => {
+    const { service, cashfreeService } = buildService(
+      [order('8', 'CF-8')], { 'CF-8': 'ACTIVE' },
+    );
+
+    await service.expireAbandonedOrders();
+
+    /*
+     * Order matters more than either call. Asking first and cancelling second
+     * leaves a window where the customer pays in between — and we then cancel
+     * a paid order and hand its stock back. Terminating first shuts that gap,
+     * because no payment can arrive afterwards.
+     */
+    const terminateAt = cashfreeService.terminateOrder.mock.invocationCallOrder[0];
+    const readAt = cashfreeService.getOrder.mock.invocationCallOrder[0];
+    expect(terminateAt).toBeLessThan(readAt);
+  });
+
+  it('stops a payable order being left open for thirty days', async () => {
+    const { service, terminated } = buildService([order('9', 'CF-9')], { 'CF-9': 'ACTIVE' });
+    await service.expireAbandonedOrders();
+    expect(terminated).toEqual(['CF-9']);
   });
 
   it('always asks before releasing', async () => {

@@ -73,7 +73,10 @@ interface AppContextType {
   lastAddedVariantId: string | null;
   updateCartQty: (itemId: string, quantity: number) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
-  checkout: (addressId?: string) => Promise<any>;
+  checkout: (
+    addressId?: string,
+    resume?: { orderId: string; claimToken?: string },
+  ) => Promise<any>;
   verifyPayment: (orderId: string, payId: string) => Promise<boolean>;
   /** Asks the server to settle a Cashfree order by checking with Cashfree. */
   confirmCashfreeOrder: (
@@ -750,7 +753,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
    * cart lives here, so its lines travel with the request — variant ids and
    * quantities only, since the server prices every line from its own rows.
    */
-  const checkout = async (addressId?: string) => {
+  const checkout = async (
+    addressId?: string,
+    resume?: { orderId: string; claimToken?: string },
+  ) => {
     try {
       const guestLines = cart.map((item: any) => ({
         variantId: item.variantId ?? item.product?.id,
@@ -765,6 +771,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify({
           ...(addressId ? { addressId } : {}),
+          ...(resume
+            ? { resumeOrderId: resume.orderId, ...(resume.claimToken ? { claimToken: resume.claimToken } : {}) }
+            : {}),
           /*
            * deliveryType is not sent at all.
            *

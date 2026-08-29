@@ -53,6 +53,23 @@ export class CheckoutDto {
   @Type(() => GuestCartItemDto)
   items?: GuestCartItemDto[];
 
+  /**
+   * An interrupted checkout to pick up rather than replace.
+   *
+   * Sent when the customer closed the payment window and came back. The server
+   * decides whether it is really resumable — same basket, still unpaid, still
+   * open at Cashfree — and quietly makes a new order if not.
+   */
+  @IsOptional()
+  @IsUUID()
+  resumeOrderId?: string;
+
+  /** Proof the interrupted order is theirs, when there is no session. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  claimToken?: string;
+
   @IsOptional()
   @IsEnum(DeliveryType)
   deliveryType?: DeliveryType = DeliveryType.COURIER;

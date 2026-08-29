@@ -116,6 +116,7 @@ export class OrdersController {
       dto.deliveryType ?? DeliveryType.COURIER,
       dto.couponCode,
       dto.items,
+      dto.resumeOrderId ? { orderId: dto.resumeOrderId, claimToken: dto.claimToken } : undefined,
     );
   }
 

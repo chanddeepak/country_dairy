@@ -254,6 +254,37 @@ export class CashfreeService {
   }
 
   /**
+   * Closes an order at Cashfree so it can never be paid.
+   *
+   * An abandoned order stays ACTIVE and payable for thirty days otherwise —
+   * long enough for somebody to find an old tab and pay for a basket we gave
+   * up on and restocked. Terminating is also what makes the sweep safe: once
+   * this succeeds no payment can arrive, so the check that follows it cannot
+   * be overtaken.
+   *
+   * `order_status` is the only field their PATCH accepts, and TERMINATED the
+   * only value — everything else comes back order_status_invalid.
+   *
+   * One-way: a terminated id answers 409 for ever, so never call this on an
+   * order a customer might still come back to.
+   */
+  async terminateOrder(orderId: string): Promise<{ terminated: boolean }> {
+    try {
+      await this.request(`/orders/${encodeURIComponent(orderId)}`, {
+        method: 'PATCH',
+        // request() stringifies; passing a string here would double-encode.
+        body: { order_status: 'TERMINATED' },
+      });
+      return { terminated: true };
+    } catch (err) {
+      // Already paid, already terminated, or unreachable. The caller re-reads
+      // the order either way, so a failure here is not fatal to the sweep.
+      this.logger.warn(`Could not terminate ${orderId}: ${(err as Error).message}`);
+      return { terminated: false };
+    }
+  }
+
+  /**
    * What was actually taken from the customer.
    *
    * Not `order_amount`, which is what we asked for and does not move when an
