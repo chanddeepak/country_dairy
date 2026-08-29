@@ -15,7 +15,7 @@ import { useShiprocketCheckout } from '../../lib/useShiprocketCheckout';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { isFlagOn } = useStoreConfig();
+  const { isFlagOn, isLoading: configLoading } = useStoreConfig();
   const walletEnabled = isFlagOn('ENABLE_WALLET');
   const otpLoginEnabled = isFlagOn('ENABLE_OTP_LOGIN');
   /*
@@ -346,7 +346,17 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cashfreeCheckout, cart.length, addressReady]);
 
-  if (cashfreeCheckout) {
+  /*
+   * Nothing is decided until the flags arrive.
+   *
+   * They are fetched, so the first render has an empty map and every isFlagOn
+   * reads false — which would render the old page, and for a logged-out visitor
+   * that is the sign-in block, exactly the thing this page is meant never to
+   * show again. It settles a moment later, but a flash of "please sign in" on
+   * the way to paying is its own bug, and if the request is slow or fails it is
+   * not a flash at all.
+   */
+  if (configLoading || cashfreeCheckout) {
     return (
       <div className="flex min-h-screen flex-col">
         <Navbar onCartOpen={() => {}} onAuthOpen={() => {}} />
@@ -366,7 +376,7 @@ export default function CheckoutPage() {
                   Back to shopping
                 </button>
               </>
-            ) : cart.length === 0 ? (
+            ) : cart.length === 0 && !configLoading ? (
               <>
                 <h1 className="font-serif text-[26px] font-light text-[var(--ink)]">
                   Your cart is empty
@@ -382,11 +392,12 @@ export default function CheckoutPage() {
               <>
                 <Loader2 className="mx-auto mb-6 h-8 w-8 animate-spin text-[var(--forest)]" />
                 <h1 className="font-serif text-[26px] font-light text-[var(--ink)]">
-                  Opening secure payment
+                  {configLoading ? 'Preparing your order' : 'Opening secure payment'}
                 </h1>
                 <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-soft)]">
-                  This takes a few seconds. You&rsquo;ll confirm your mobile number and delivery
-                  address in the payment window.
+                  {configLoading
+                    ? 'One moment.'
+                    : 'This takes a few seconds. You\u2019ll confirm your mobile number and delivery address in the payment window.'}
                 </p>
               </>
             )}
