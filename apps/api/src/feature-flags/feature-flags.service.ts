@@ -10,6 +10,13 @@ export const FLAG = {
   PRODUCT_RATINGS: 'ENABLE_PRODUCT_RATINGS',
   WALLET: 'ENABLE_WALLET',
   OTP_LOGIN: 'ENABLE_OTP_LOGIN',
+
+  /**
+   * Email and password sign-in. Phone OTP is the default way in now, and this
+   * exists so the older form can be retired without deleting the accounts that
+   * still depend on it.
+   */
+  EMAIL_LOGIN: 'ENABLE_EMAIL_LOGIN',
   GOOGLE_LOGIN: 'ENABLE_GOOGLE_LOGIN',
 
   /**

@@ -14,26 +14,26 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const { loginPhone, setLoginPhone, sendOtp, verifyOtp, loginWithEmail, registerWithEmail, loginWithGoogle, isLoading } = useApp();
   const { isFlagOn } = useStoreConfig();
 
-  // Only offer methods that are actually switched on. Mobile used to be the
-  // default tab while OTP was disabled, so the modal opened on the one method
-  // guaranteed to fail with a 403.
+  // Only offer methods that are actually switched on. Mobile is the default
+  // way in now; the effect below moves off it while ENABLE_OTP_LOGIN is still
+  // off, so the modal never opens on a method guaranteed to fail with a 403.
   const methods = {
     mobile: isFlagOn('ENABLE_OTP_LOGIN'),
-    email: true,
+    email: isFlagOn('ENABLE_EMAIL_LOGIN'),
     google: isFlagOn('ENABLE_GOOGLE_LOGIN'),
   };
   const enabledMethods = (Object.keys(methods) as ('mobile' | 'email' | 'google')[]).filter(
     (m) => methods[m],
   );
 
-  const [activeTab, setActiveTab] = useState<'mobile' | 'email' | 'google'>('email');
+  const [activeTab, setActiveTab] = useState<'mobile' | 'email' | 'google'>('mobile');
 
   // If the flags change, never leave the modal on a disabled method.
   useEffect(() => {
     if (!methods[activeTab] && enabledMethods.length > 0) {
       setActiveTab(enabledMethods[0]);
     }
-  }, [methods.mobile, methods.google, activeTab]);
+  }, [methods.mobile, methods.email, methods.google, activeTab]);
   
   // Mobile states
   const [otpSent, setOtpSent] = useState(false);
@@ -132,8 +132,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   return (
-    <div data-testid="auth-modal" className="fixed inset-0 z-50 bg-[rgb(var(--ink-rgb)/0.55)] backdrop-blur-sm flex items-center justify-center p-4" onClick={handleClose}>
-      <div className="bg-white max-w-sm w-full p-8 rounded-sm shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+    <div data-testid="auth-modal" className="fixed inset-0 z-50 bg-[rgb(var(--ink-rgb)/0.55)] backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white max-w-sm w-full p-8 rounded-sm shadow-2xl relative">
         <button
           onClick={handleClose}
           className="absolute top-4 right-4 text-[var(--ink-soft)] hover:text-[var(--ink)] transition"
@@ -157,12 +157,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <Smartphone className="w-4 h-4 mr-1" /> Mobile
           </button>
           )}
+          {methods.email && (
           <button 
             onClick={() => setActiveTab('email')}
             className={`flex-1 py-2 text-xs font-bold rounded-sm flex items-center justify-center transition ${activeTab === 'email' ? 'bg-white shadow text-[var(--ink)]' : 'text-[var(--ink-soft)]'}`}
           >
             <Mail className="w-4 h-4 mr-1" /> Email
           </button>
+          )}
           {methods.google && (
           <button 
             onClick={() => setActiveTab('google')}
