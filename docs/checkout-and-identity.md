@@ -2,8 +2,8 @@
 
 Supersedes `docs/cashfree-integration.md`, which planned a payment gateway.
 What is actually being built is larger than that: **the mobile number becomes
-the identity for the whole site**, Cashfree takes the payment, and WhatsApp
-carries everything we say to a customer afterwards.
+the identity for the whole site**, Cashfree runs the checkout — address, offers
+and payment — and WhatsApp carries everything we say to a customer afterwards.
 
 Source of truth. If the code and this document disagree, one of them is a bug.
 
@@ -12,23 +12,22 @@ Source of truth. If the code and this document disagree, one of them is a bug.
 ## 1. The shape, in one paragraph
 
 A customer is a **mobile number**. They sign in with an OTP we send. At
-checkout, if we already know them, Cashfree opens straight on payment because
-we hand over the phone we have already verified. If we do not know them, they
-buy as a guest and Cashfree's One Click Checkout does the OTP, the address and
-the payment — then we create their account from the number Cashfree confirms,
-sign them in, and they are on their order page without ever filling a
-registration form. Everything after that — order confirmed, dispatched,
-delivered — arrives on WhatsApp.
+checkout, Cashfree's One Click Checkout takes over: it verifies the phone,
+collects or recalls the address, applies whatever offer is best, and takes the
+money. For a customer we already know we prefill the phone we verified. For a
+guest we create the account afterwards from the number Cashfree confirmed, sign
+them in, and land them on their order without a registration form ever
+appearing. Everything after that — order confirmed, dispatched, delivered —
+arrives on WhatsApp.
 
-Nobody logs in twice. Nobody types an address twice. Nobody creates an account
-on purpose.
+Nobody creates an account on purpose. Nobody types an address twice.
 
 ---
 
 ## 2. What is already built and proven
 
-Five commits, all on `dev`, all verified against the Cashfree sandbox rather
-than inferred:
+Five commits, all on `dev`, verified against the Cashfree sandbox rather than
+inferred:
 
 | | |
 | --- | --- |
@@ -52,51 +51,125 @@ phone-as-identity.**
 
 ---
 
-## 3. Four things sandbox taught us that no document says
+## 3. What sandbox taught us that no document says
 
 **One Click Checkout cannot collect an address without doing the login.**
-Sending `checkoutAuthenticate` alone renders a blank panel and throws
-`RangeError: Invalid currency code :` from inside Cashfree's own bundle.
-Bisected against three otherwise identical orders:
+Bisected against otherwise identical orders:
 
 | features sent | result |
 | --- | --- |
 | `checkoutCollectAddress` + `checkoutAuthenticate` | renders |
-| `checkoutCollectAddress` alone | blank, throws |
+| `checkoutCollectAddress` alone | blank, throws `RangeError: Invalid currency code :` |
 | `checkoutAuthenticate` alone | blank, throws |
-| no `products` block at all | **straight to payment options** |
 
-So OCC is all-or-nothing, and the last row is the important one.
+There is no documented `DENY` action and no documented third feature value —
+their reference lists exactly these two, with the non-exhaustive phrase "such
+as". `customer_uid` exists on the customer object but nothing documents it
+skipping the OTP. **So the login step cannot be turned off inside OCC.**
 
-**Omitting the OCC block gives a logged-in customer a one-step checkout.** With
-`customer_phone` set and no `products` block, their modal opens on *"Payment
-Options for +91 98765 43210"* — UPI QR, wallets, cards, netbanking. No login
-step, no address step. This is the whole reason a returning customer never sees
-a second OTP.
+**The extended order response, read from live sandbox** — the real shape, not a
+guess:
 
-**Their address fields are not what a reasonable person would guess.**
-`address_line_one`, `address_line_two`, `pin_code` — not `address1`,
-`address2`, `pincode`. The guess type-checked and read `undefined` from every
-field, silently keeping our address instead of the customer's. Fixed in
-`47476e8`. Third time on this project a plausible field name has compiled green
-and been dropped at runtime.
+```json
+{
+  "billing_address": null,
+  "shipping_address": null,
+  "offer": null,
+  "order_amount": 1650,
+  "charges": { "shipping_charges": 0, "cod_handling_charges": 0 },
+  "cart": { "items": [ … ] },
+  "customer_details": { "customer_id": "…", "customer_phone": "…", "customer_uid": null },
+  "cf_order_id": "214148631971776"
+}
+```
+
+`shipping_address` and `billing_address` are **top-level**, null until Cashfree
+collects them. Address fields inside them are `address_line_one`,
+`address_line_two`, `pin_code` — not `address1`, `address2`, `pincode`. The
+guessed names type-checked, read `undefined` from every field, and silently
+kept our address instead of the customer's. Fixed in `47476e8`. Third time on
+this project a plausible field name has compiled green and dropped data at
+runtime.
 
 **Order numbers cannot be their order id.** `generateOrderNumber` is
 `max(orderNumber) + 1` over surviving rows, so deleting an order frees its
 number; Cashfree ids are permanent and answer a reuse with `409
 order_already_exists`. Their id is now `CD-2026-00009-0bd64070`.
 
+**Unverified, and marked so it does not get treated as fact later:** that
+omitting the OCC block sends a customer straight to payment options. It was
+observed once in a browser, and a later attempt to reproduce it failed with the
+control case rendering blank too — so the harness was wrong, not necessarily the
+finding. Nothing below depends on it.
+
 ---
 
-## 4. Identity
+## 4. Coupons are theirs now
 
-### 4.1 The rule
+We have a complete coupon system on the API — `Coupon` with percentage/fixed,
+max discount, min order, usage limit, per-user limit and a date window, resolved
+at `orders.service.ts:113` before the gateway order is created, with
+`usageCount` incremented at line 207.
+
+**The storefront has never had a coupon box.** The only mention of "coupon" in
+`apps/web/src` is line 377 of the order detail page, displaying
+`order.couponCode` after the fact. `couponCode` is never sent from the browser.
+The API accepts it; nothing calls it. Coupons have never worked on the site.
+
+**Decision: use Cashfree's Offers Engine**, managed at Payments → One Click
+Checkout → Offers in their dashboard. Flat and percentage discounts, cashbacks,
+BxGy, free gifts, bank/BIN offers, no-cost EMI, caps and per-customer limits,
+auto-applied rather than typed in. More than we would ever build.
+
+Our `Coupon` model and `resolveCoupon` become dead code. **Left in place, not
+deleted** — removing them is not part of this work.
+
+Two limits on confidence: `GET /pg/offers` returns 404 on our sandbox account,
+so the Create/Get Offer API that marketing pages mention is not reachable at
+that path, and dashboard management is the only route confirmed. And the offers
+menu sits *under* One Click Checkout — bank/BIN offers surface on plain PG too,
+but a merchant promo code needs OCC's cart UI.
+
+### 4.1 This forces OCC on every order
+
+Coupons live inside Cashfree's checkout UI, so we cannot skip that UI. Every
+order goes through OCC, including for a customer who has already signed in with
+our OTP. **They will be OTP'd again by Cashfree.** That is the price of the
+offers engine, accepted deliberately.
+
+Whether Cashfree remembers a returning browser and skips its own OTP is unknown,
+and is one of the things the first real sandbox payment will show.
+
+### 4.2 Their amount wins
+
+An offer changes the amount *after* we have created the order. We create at
+₹1650, Cashfree applies ₹200, the customer pays ₹1450 — and `charges` can add
+shipping and COD handling on top, so the divergence goes both ways.
+
+**Decision: `confirmCashfreeOrder` rewrites the order totals from the extended
+response**, the way it already rewrites the shipping address. Cashfree's figure
+is the one money moved on, so it is the one the invoice must show.
+
+The fiddly part is GST. Our `gstRate` is per product, so a gateway-applied
+discount has to be apportioned across line items before tax can be recomputed.
+This is the part that will be wrong quietly if it is wrong, so it gets its own
+tests with worked examples rather than a round-number happy path.
+
+The existing `@money` spec asserts `payment.amount === order.totalAmount`. It
+will fail once offers are live, and it is right to — it is catching exactly
+this. It gets rewritten to assert against Cashfree's reported amount.
+
+---
+
+## 5. Identity
+
+### 5.1 The rule
 
 **The mobile number is the account.** Email is a contact detail, not a login.
-Existing email-and-password accounts keep working — nothing is taken away — but
-new customers arrive by phone and that is the path the site is designed around.
+Existing email-and-password accounts keep working, but new customers arrive by
+phone and that is the path the site is designed around.
 
-### 4.2 Where a phone can come from
+### 5.2 Where a phone can come from
 
 | Source | Verified by |
 | --- | --- |
@@ -104,17 +177,16 @@ new customers arrive by phone and that is the path the site is designed around.
 | Checkout sign-in | our OTP |
 | Guest checkout | **Cashfree's OTP**, confirmed server-side before we trust it |
 
-In every case the number is verified before it becomes an account. We never
-create an account from a number somebody merely typed.
+We never create an account from a number somebody merely typed.
 
-### 4.3 Collisions
+### 5.3 Collisions
 
 `User.phone` is unique, so find-or-create has to decide what happens when a
 guest's number already belongs to an account:
 
 - **Phone matches an existing account** — attach the order to it. Do not create
-  a second account, and do not sign the buyer in as that person unless the
-  claim token in §5.2 says this browser placed the order.
+  a second account, and do not sign the buyer in as that person unless the claim
+  token in §6.3 says this browser placed the order.
 - **Phone is new** — create the account, no password, no email unless Cashfree
   gave us one.
 - **An email account exists with no phone** — leave it alone. Linking is the
@@ -122,29 +194,31 @@ guest's number already belongs to an account:
 
 ---
 
-## 5. The flows
+## 6. The flows
 
-### 5.1 Guest buys — the headline flow
+### 6.1 Guest buys
 
 ```
   browser                     our API                    Cashfree
      | add to cart (local)
      | Checkout
      |------------------------->| create Order (PENDING) for a guest
-     |                          | POST /pg/orders  + cart_details + OCC block
+     |                          | POST /pg/orders + cart_details + OCC block
      |                          |------------------------------->|
      |<-- sessionId + claim ----|<---------- payment_session_id --|
      |
      | cashfree.checkout({ paymentSessionId })
      |------------------------------------------------------->|
-     |            mobile -> OTP -> address -> payment          |
+     |      mobile -> OTP -> address -> offer applied -> pay   |
      |<---------------------------------- return_url + claim --|
      |
      |  POST /orders/confirm { claim }
      |------------------------->| verify order is PAID at Cashfree
      |                          | GET /orders/{id}/extended
-     |                          | find-or-create user by phone
+     |                          | rewrite totals from amount + offer + charges
      |                          | write their address onto the order
+     |                          | find-or-create user by phone
+     |                          | store rawPayload
      |                          | issue our JWT
      |<---- order + session ----|
      |
@@ -153,7 +227,13 @@ guest's number already belongs to an account:
 
 They never saw a registration form, and they have an account.
 
-### 5.2 The claim token
+### 6.2 Signed-in customer
+
+Identical, except we pass the phone we already verified so Cashfree prefills it,
+and we pass the address we hold so their form starts filled. They still complete
+Cashfree's OTP (§4.1).
+
+### 6.3 The claim token
 
 The guest confirm route cannot require a session — there isn't one yet. If it
 took an order id instead, **anyone who guessed an order id would be handed a
@@ -161,71 +241,60 @@ session as that customer**, and our order numbers are sequential.
 
 So checkout mints a token: random, single use, short lived, stored against the
 order, returned to the browser and carried in `return_url`. `POST
-/orders/confirm` takes the token, not the id. Presenting it proves this browser
-is the one that placed the order.
+/orders/confirm` takes the token, not the id.
 
-### 5.3 Returning customer, already signed in
-
-```
-  Checkout -> we have their phone and address
-           -> create order, POST /pg/orders WITHOUT the OCC block
-           -> modal opens on payment options
-           -> pay -> confirm -> done
-```
-
-One tap from cart to payment. No OTP, no address, because we already have both.
-
-### 5.4 Returning customer, signed out
-
-The checkout offers "sign in with your mobile" before paying. Signing in turns
-this into §5.3. Declining turns it into §5.1 — and if the phone they give
-Cashfree matches their existing account, the order lands there anyway.
-
-### 5.5 Navbar sign-in
+### 6.4 Navbar sign-in
 
 Phone → OTP → signed in. The email and password form stays for accounts that
 already have one, below the phone field rather than beside it.
 
-### 5.6 Order tracking
+### 6.5 Order tracking
 
-Signed in: `/account?tab=orders`, as now. From WhatsApp: the confirmation
-carries a link to `/orders/{id}`, and if the browser is not signed in it asks
-for the phone on the order and OTPs it. No public lookup by order number —
-sequential ids make that enumerable.
+Signed in: `/account?tab=orders`. The list is `where: { userId }` with no status
+filter (`orders.service.ts:811`) and the account page already renders `<Badge
+status={order.paymentStatus} />`, so failed and pending orders show up with no
+extra work.
 
-### 5.7 When payment does not complete
+From WhatsApp: the confirmation links to `/orders/{id}`, and an unsigned browser
+is asked for the phone on the order and OTP'd. No public lookup by order number
+— sequential ids make that enumerable.
 
-Abandoned at the modal, or a failed card:
+### 6.6 When payment does not complete
 
 - The order stays `PENDING`. Stock stays held.
+- `Payment.failureReason` and `Payment.rawPayload` are written. **Both columns
+  exist on the model today and nothing writes to either.**
 - The return page polls `confirm` for a few seconds, then says *"we have not
   seen the payment yet"* — never *"failed"*. The webhook may still be coming.
 - `PAYMENT_USER_DROPPED_WEBHOOK` records the attempt without failing the order.
-- Reconciliation (C11) sweeps orders left PENDING and asks Cashfree.
+- **A signed-in customer sees the failed order in their list** and can retry it.
+- **A guest whose payment failed still gets an account.** Cashfree verified the
+  phone before payment, so the number is trustworthy even though no money moved.
+  They can sign in by OTP, see the failed order, and pay it.
 
 **Not yet decided: when a PENDING order releases its stock.** Today it never
 does, so an abandoned checkout holds a jar for ever.
 
-### 5.8 The race
+### 6.7 The race
 
 The browser's return and the webhook both settle the order, and either may land
-first. Both go through the same guard — if `paymentStatus` is already `PAID`,
-do nothing. Proven for the webhook path; the confirm path has the same check.
+first. Both go through the same guard — if `paymentStatus` is already `PAID`, do
+nothing. Proven for the webhook path; the confirm path has the same check.
 
 ---
 
-## 6. Notifications
+## 7. Notifications
 
-### 6.1 There are none today
+### 7.1 There are none today
 
-No mailer, no SMS, no WhatsApp send anywhere in the API. The "Order on
-WhatsApp" link is a `wa.me` the customer taps; it sends from their phone.
-`whatsappOptIn` is a preference with nothing behind it.
+No mailer, no SMS, no WhatsApp send anywhere in the API. The "Order on WhatsApp"
+link is a `wa.me` the customer taps; it sends from their phone. `whatsappOptIn`
+is a preference with nothing behind it.
 
-**So nobody currently receives an order confirmation.** That is a launch
-blocker independent of everything else here.
+**So nobody currently receives an order confirmation.** A launch blocker
+independent of everything else here.
 
-### 6.2 WhatsApp first, and why that reverses an earlier recommendation
+### 7.2 WhatsApp first, and why that reverses an earlier recommendation
 
 Meta moved to per-message pricing in July 2025. For India:
 
@@ -240,31 +309,25 @@ WhatsApp OTP is **cheaper than SMS** (MSG91 ≈ ₹0.15) and needs **no DLT
 registration**. An earlier note in this project said WhatsApp was three to four
 times SMS; that was wrong and is corrected here.
 
-It is also the better channel for this brand: customers already message the
-WhatsApp ordering number, a confirmation can carry the jar photograph and a
-batch link, and any conversation they start makes our replies free for 24 hours.
-
-### 6.3 What WhatsApp needs
+### 7.3 What WhatsApp needs
 
 1. Meta Business Manager, business verified — GST certificate and incorporation
    documents.
 2. **A phone number not in use on the consumer WhatsApp app.** The footer's
    +91 99978 01112 is almost certainly on a handset today. Moving it to the API
    means losing the app on that number, so a second number is usually right.
-3. Cloud API direct, or a BSP (AiSensy, Interakt, Gupshup, MSG91). A BSP costs a
-   markup and gives the team an inbox.
-4. Template approval — free, hours. Authentication templates are
-   format-constrained; utility templates are freer.
+3. Cloud API direct, or a BSP (AiSensy, Interakt, Gupshup, MSG91).
+4. Template approval — free, hours.
 5. A webhook for delivery receipts and inbound messages.
 
-### 6.4 SMS, later
+### 7.4 SMS, later
 
-As a fallback for customers who do not receive WhatsApp. MSG91 ≈ ₹0.15, plus
-**DLT registration**: Principal Entity ≈ ₹5,900, header ≈ ₹5,900, 24–48 hours,
-and every template registered byte-exact or the operator blocks the message
-silently. Worth doing once volume justifies it, not before launch.
+Fallback for customers who do not receive WhatsApp. MSG91 ≈ ₹0.15, plus **DLT
+registration**: Principal Entity ≈ ₹5,900, header ≈ ₹5,900, 24–48 hours, and
+every template registered byte-exact or the operator blocks it silently. Worth
+doing once volume justifies it, not before launch.
 
-### 6.5 Messages to write
+### 7.5 Messages to write
 
 | When | Category |
 | --- | --- |
@@ -276,11 +339,9 @@ silently. Worth doing once volume justifies it, not before launch.
 
 ---
 
-## 7. Tasks
+## 8. Tasks
 
-Carried over from `cashfree-integration.md`: C1–C5 are **done**. C6 and C7 are
-done as part of C5. C8 is done. C9, C10, C11, C12, C13, C14, C15 remain and are
-renumbered below.
+C1–C8 from the superseded doc are done.
 
 ### Phase A — identity
 
@@ -292,59 +353,74 @@ renumbered below.
 | A4 | Navbar sign-in becomes phone-first | Email form still present for existing accounts |
 | A5 | `ENABLE_OTP_LOGIN` on | Flag has a row and the console can switch it |
 
-### Phase B — guest checkout
+### Phase B — checkout
 
 | # | Task | Done when |
 | --- | --- | --- |
-| B1 | Claim token minted at checkout, carried in `return_url` | Token is single use and short lived |
+| B1 | Claim token minted at checkout, carried in `return_url` | Single use, short lived |
 | B2 | Guest `POST /orders/confirm` takes the token, not the id | Spec: a guessed order id gets nothing |
 | B3 | Order creatable without a signed-in user | `Order.userId` nullable, or a pre-created guest row |
-| B4 | Find-or-create by phone, collision rules from §4.3 | Spec covers all three cases |
+| B4 | Find-or-create by phone, collision rules from §5.3 | Spec covers all three cases |
 | B5 | Auto sign-in on confirm | Guest lands on their order, signed in |
-| B6 | Our address step hidden when OCC will collect it | No double entry |
+| B6 | Prefill phone and address for signed-in customers | Their Cashfree form starts filled |
+| B7 | Our address step removed — OCC always collects | No double entry |
 
-### Phase C — notifications
-
-| # | Task | Done when |
-| --- | --- | --- |
-| C1 | Order confirmed message | Arrives with the batch link |
-| C2 | Dispatched and delivered messages | Fire from the status change |
-| C3 | Payment failed message with a way back | Arrives once, not per retry |
-
-### Phase D — launch
+### Phase C — money
 
 | # | Task | Done when |
 | --- | --- | --- |
-| D1 | Stock release for abandoned orders | §5.7, decided and implemented |
-| D2 | Reconciliation for orders never confirmed | A job finds them and asks Cashfree |
-| D3 | Refunds | Confirmed against their API, admin can trigger one |
-| D4 | COD, if taken | Order settles with no money through the gateway |
-| D5 | Serviceability | Pincode blocking at Cashfree, or a refund path |
-| D6 | Live credentials, production guard honoured | Mock mode cannot start in production |
-| D7 | Full suite, real sandbox payment, `next build` | Green |
+| C1 | **Rewrite order totals from the extended response** | `totalAmount` matches what Cashfree charged |
+| C2 | **Apportion a gateway discount across line items, recompute GST** | Worked examples in tests, not round numbers |
+| C3 | Apply `charges.shipping_charges` and `cod_handling_charges` | Order total reconciles to the paisa |
+| C4 | Persist `offer` on the order | Admin can see which offer applied |
+| C5 | Write `rawPayload` and `failureReason` | Both columns stop being empty |
+| C6 | Rewrite the `@money` spec against Cashfree's amount | Green with an offer applied |
+| C7 | Create one test offer in their dashboard | An end-to-end discounted order reconciles |
+
+### Phase D — notifications
+
+| # | Task | Done when |
+| --- | --- | --- |
+| D1 | Order confirmed message | Arrives with the batch link |
+| D2 | Dispatched and delivered messages | Fire from the status change |
+| D3 | Payment failed message with a way back | Arrives once, not per retry |
+
+### Phase E — launch
+
+| # | Task | Done when |
+| --- | --- | --- |
+| E1 | Stock release for abandoned orders | §6.6, decided and implemented |
+| E2 | Reconciliation for orders never confirmed | A job finds them and asks Cashfree |
+| E3 | Refunds — and what a refund means with an offer applied | Admin can trigger one |
+| E4 | COD, if taken | Order settles with no money through the gateway |
+| E5 | Serviceability | Pincode blocking at Cashfree, or a refund path |
+| E6 | Live credentials, production guard honoured | Mock mode cannot start in production |
+| E7 | Full suite, real sandbox payment, `next build` | Green |
 
 ---
 
-## 8. Open questions
+## 9. Open questions
 
 | # | Question | Blocks |
 | --- | --- | --- |
 | Q1 | **What does One Click Checkout cost?** Published nowhere — not the pricing page, the charges page, or the FAQs | Commercial go/no-go |
 | Q2 | Does the 0% GMV offer apply to OCC, or only plain PG? | Same |
-| Q3 | What is charged on a COD order, where no money moves? | D4 |
-| Q4 | Refund and chargeback fees | D3 |
-| Q5 | Does OCC return an email, or only echo ours? | Whether email is ever a contact channel |
-| Q6 | Which WhatsApp number, and does it move off the consumer app? | A1 |
-| Q7 | Does Country Dairy already hold a DLT Principal Entity id? | 6.4, if SMS is ever added |
-| Q8 | Shiprocket: checkout retired entirely, or kept for logistics? | 1,324 lines and three `externalId` columns |
+| Q3 | Is there a fee on the Offers Engine, or on discounted orders? | Same |
+| Q4 | Does `order_amount` on the extended response change when an offer applies, or does the discount only appear under `offer`? | C1, C2 |
+| Q5 | Does Cashfree re-OTP a returning browser, or remember it? | How much friction §6.2 really carries |
+| Q6 | Is the Create/Get Offer API available on our account? `GET /pg/offers` is 404 | Whether offers can ever be scripted |
+| Q7 | What is charged on a COD order, where no money moves? | E4 |
+| Q8 | Refund and chargeback fees, and refunding a discounted order | E3 |
+| Q9 | Which WhatsApp number, and does it move off the consumer app? | A1 |
+| Q10 | Shiprocket: checkout retired entirely, or kept for logistics? | 1,324 lines and three `externalId` columns |
 
-**Q1 is still the one that matters.** It has been open since the first version
-of this plan. Shiprocket's per-order pricing was never answered either, and that
-integration was built anyway.
+**Q1 is still the one that matters.** Open since the first draft of the
+superseded doc, published nowhere. Shiprocket's per-order pricing was never
+answered either, and that integration was built anyway.
 
 ---
 
-## 9. Guardrails
+## 10. Guardrails
 
 1. **No secret in the repo.** `render.yaml` uses `sync: false`.
 2. **Verify against the raw body.** Cashfree signs `timestamp + rawBody`.
@@ -352,8 +428,10 @@ integration was built anyway.
 4. **Settle exactly once.** The return trip and the webhook race.
 5. **Never trust a phone we did not verify**, or one Cashfree has not confirmed
    to us server-side.
-6. **Never issue a session from a guessable identifier.** §5.2 exists because
+6. **Never issue a session from a guessable identifier.** §6.3 exists because
    order numbers are sequential.
-7. **Read the field names from their reference, not from memory.** Three
+7. **Read the field names from a live response, not from memory.** Three
    silent-drop bugs on this project so far.
 8. **An OTP endpoint spends real money.** Rate limit it like it does.
+9. **Cashfree's amount is the invoice amount.** Ours is a quote until they
+   confirm it.
