@@ -588,7 +588,7 @@ export class AuthService {
      * the honest answer — quietly ignoring the field would leave the customer
      * believing it had changed.
      */
-    if (dto.phone) {
+    if (dto.phone !== undefined) {
       throw new BadRequestException(
         'Your mobile number is how you sign in and cannot be changed here. Please contact us.',
       );
@@ -598,7 +598,6 @@ export class AuthService {
       where: { id: userId },
       data: {
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-        ...(dto.phone !== undefined ? { phone: dto.phone } : {}),
         ...(dto.emailOptIn !== undefined ? { emailOptIn: dto.emailOptIn } : {}),
         ...(dto.smsOptIn !== undefined ? { smsOptIn: dto.smsOptIn } : {}),
         ...(dto.whatsappOptIn !== undefined ? { whatsappOptIn: dto.whatsappOptIn } : {}),
