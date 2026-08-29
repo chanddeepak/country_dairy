@@ -1216,9 +1216,31 @@ export class OrdersService {
     };
   }
 
+  /**
+   * A customer's orders — meaning the ones they actually placed.
+   *
+   * An abandoned checkout leaves a PENDING row behind, because the order has to
+   * exist before the payment does: stock is held in the same transaction that
+   * creates it, Cashfree needs an id to bill against, and the webhook needs
+   * something to settle when the browser dies mid-payment. That is deliberate
+   * and cannot move.
+   *
+   * What it must not do is look like an order to the person who did not buy
+   * anything. Closing the payment window and then finding a mystery order in
+   * your account is alarming in a way that no explanation on the row fixes.
+   *
+   * FAILED is shown, PENDING is not. A failed payment is something the customer
+   * did and may want to retry; an abandoned one is something they chose not to
+   * do. Three things cover the case where money moved and the confirmation did
+   * not arrive: the checkout polls, the webhook is retried server to server,
+   * and the sweep settles anything both of those missed.
+   */
   async getUserOrders(userId: string) {
     return this.prisma.order.findMany({
-      where: { userId },
+      where: {
+        userId,
+        NOT: { status: OrderStatus.PENDING, paymentStatus: PaymentStatus.PENDING },
+      },
       include: {
         orderItems: { include: { product: { select: { slug: true } } } },
       },
