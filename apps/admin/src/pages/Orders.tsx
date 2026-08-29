@@ -13,7 +13,7 @@ import { customerPhone, messageForStatus, openWhatsApp } from '../services/whats
  */
 const NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
   PENDING: ['CONFIRMED', 'CANCELLED'],
-  CONFIRMED: ['PROCESSING', 'CANCELLED'],
+  CONFIRMED: ['PROCESSING', 'SHIPPED', 'CANCELLED'],
   PROCESSING: ['SHIPPED', 'CANCELLED'],
   SHIPPED: ['DELIVERED', 'RETURNED'],
   DELIVERED: ['RETURNED'],

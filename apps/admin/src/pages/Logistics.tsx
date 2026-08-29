@@ -86,7 +86,17 @@ export default function Logistics() {
 
   // A local milk round is not a courier consignment; only parcels belong here.
   const courierOrders = orders.filter((o) => o.deliveryType !== 'LOCAL');
-  const awaiting = courierOrders.filter((o) => !o.trackingNumber);
+  /*
+   * Only orders that can actually be dispatched.
+   *
+   * The desk used to list every courier order awaiting a waybill, including
+   * ones still PENDING — unpaid. The state machine refused them, so the only
+   * result was a confusing error for anyone who tried, and an unpaid order
+   * sitting on the dispatch list looking ready to send.
+   */
+  const awaiting = courierOrders.filter(
+    (o) => !o.trackingNumber && (o.status === 'CONFIRMED' || o.status === 'PROCESSING'),
+  );
   const dispatched = courierOrders.filter((o) => o.trackingNumber);
 
   const openOrder = (order: AdminOrder) => {

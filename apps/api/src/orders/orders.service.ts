@@ -87,7 +87,19 @@ export function hashClaimToken(token: string): string {
 /** Transitions the order state machine permits. */
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   PENDING: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
-  CONFIRMED: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
+  /*
+   * SHIPPED directly, as well as through PROCESSING.
+   *
+   * Handing a paid order to a courier is a complete action, and the
+   * consignment desk records the waybill in one step because that is what
+   * actually happens at the counter. Nothing reads PROCESSING — no queue, no
+   * report — so insisting on it first was a click with no consumer, and the
+   * desk got "Cannot move an order from CONFIRMED to SHIPPED" for doing the
+   * obvious thing.
+   *
+   * PROCESSING stays for anyone who wants to mark a batch as being packed.
+   */
+  CONFIRMED: [OrderStatus.PROCESSING, OrderStatus.SHIPPED, OrderStatus.CANCELLED],
   PROCESSING: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
   SHIPPED: [OrderStatus.DELIVERED, OrderStatus.RETURNED],
   DELIVERED: [OrderStatus.RETURNED],
