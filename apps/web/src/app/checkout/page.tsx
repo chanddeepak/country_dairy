@@ -278,6 +278,11 @@ export default function CheckoutPage() {
           redirectTarget: '_modal',
         });
 
+        /*
+         * Same rule as the cart drawer: only a payment that happened earns a
+         * navigation. The return page stays for the redirect flow, where
+         * Cashfree brings the customer back rather than the SDK resolving here.
+         */
         router.push(`/checkout/cashfree-return?order_id=${orderResult.orderId}`);
         return;
       }

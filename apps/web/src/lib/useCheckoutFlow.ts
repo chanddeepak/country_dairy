@@ -22,14 +22,40 @@ import { useStoreConfig } from '../context/StoreConfigContext';
  */
 export function useCheckoutFlow() {
   const router = useRouter();
-  const { checkout } = useApp();
+  const { checkout, confirmCashfreeOrder } = useApp();
   const { isFlagOn, isLoading: configLoading } = useStoreConfig();
 
   const [starting, setStarting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState('');
   // Guards a second click while the first is still in flight: two orders would
   // be created and stock held against both.
   const inFlight = useRef(false);
+
+  /**
+   * Gives the payment a few seconds to land before deciding it did not.
+   *
+   * Cashfree can take a moment to move an order to PAID after the window
+   * closes, so a single check would strand somebody who genuinely paid — and
+   * telling a paying customer their payment failed is the worst outcome here.
+   */
+  const pollForPayment = useCallback(
+    async (orderId: string) => {
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const { paid } = await confirmCashfreeOrder(
+          orderId,
+          sessionStorage.getItem(`cd_claim_${orderId}`) ?? undefined,
+        );
+        if (paid) {
+          sessionStorage.removeItem(`cd_claim_${orderId}`);
+          return true;
+        }
+        await new Promise((r) => setTimeout(r, 1800));
+      }
+      return false;
+    },
+    [confirmCashfreeOrder],
+  );
 
   const start = useCallback(
     async (addressId?: string) => {
@@ -81,26 +107,50 @@ export function useCheckoutFlow() {
           return;
         }
 
-        // Resolves when their modal closes, however it closed. The order is
-        // already created and its stock already held, so the return page
-        // settles it either way — and the webhook settles it independently if
-        // this tab is closed mid-payment.
+        // Resolves when their modal closes, however it closed — paid,
+        // declined, or dismissed. The SDK does not reliably say which, so the
+        // server is asked rather than guessed at.
         await cashfree.checkout({
           paymentSessionId: result.paymentSessionId,
           redirectTarget: '_modal',
         });
 
-        router.push(`/checkout/cashfree-return?order_id=${result.orderId}`);
+        /*
+         * Ask before going anywhere.
+         *
+         * Sending everyone to the return page meant a customer who simply
+         * changed their mind and closed the window landed on "We haven't seen
+         * the payment yet" — a page that reads like something went wrong, on a
+         * URL they never asked for, having done nothing wrong at all.
+         *
+         * So the confirm runs here, and the only thing that earns a navigation
+         * is a payment that actually happened. Anyone else stays exactly where
+         * they were with their basket intact.
+         */
+        setStarting(false);
+        setConfirming(true);
+        const paid = await pollForPayment(result.orderId);
+
+        if (paid) {
+          router.push(`/orders/${result.orderId}?status=success`);
+          return;
+        }
+
+        // Not paid, and that is usually a choice rather than a fault. The
+        // order stays PENDING, the webhook settles it if the money does turn
+        // up, and the sweep releases its stock if it never does.
+        setError('Payment was not completed. Your basket is still here whenever you are ready.');
       } catch (err) {
         console.error('Checkout failed to start:', err);
         setError('Something went wrong starting your checkout. Please try again.');
       } finally {
         inFlight.current = false;
         setStarting(false);
+        setConfirming(false);
       }
     },
-    [checkout, configLoading, isFlagOn, router],
+    [checkout, confirmCashfreeOrder, configLoading, isFlagOn, router],
   );
 
-  return { start, starting, error };
+  return { start, starting, confirming, error };
 }

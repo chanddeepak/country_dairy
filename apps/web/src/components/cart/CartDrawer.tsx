@@ -25,7 +25,7 @@ interface CartDrawerProps {
  * page to give a different one.
  */
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
-  const { start: startCheckout, starting, error: checkoutError } = useCheckoutFlow();
+  const { start: startCheckout, starting, confirming, error: checkoutError } = useCheckoutFlow();
   // Every hook must run before the early return below, otherwise the hook
   // count differs between the open and closed renders and React errors.
   const { cart, updateCartQty, removeFromCart } = useApp();
@@ -198,11 +198,15 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             {checkoutEnabled && (
               <button
                 onClick={() => startCheckout()}
-                disabled={starting}
+                disabled={starting || confirming}
                 data-testid="checkout-now"
                 className="w-full bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-3.5 rounded-sm transition disabled:opacity-60"
               >
-                {starting ? 'Opening secure payment…' : 'Checkout Now'}
+                {confirming
+                  ? 'Confirming your payment…'
+                  : starting
+                    ? 'Opening secure payment…'
+                    : 'Checkout Now'}
               </button>
             )}
 
