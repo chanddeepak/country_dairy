@@ -18,6 +18,16 @@ export default function CheckoutPage() {
   const { isFlagOn } = useStoreConfig();
   const walletEnabled = isFlagOn('ENABLE_WALLET');
   const otpLoginEnabled = isFlagOn('ENABLE_OTP_LOGIN');
+  /*
+   * Gated on the flag, not on whether someone is signed in.
+   *
+   * With Cashfree on, nobody sees a checkout page of ours: their window
+   * collects the mobile number, the address and the payment, so anything we
+   * asked for first would be asked for twice. With the flag off, the page
+   * below is still the whole checkout, which is what makes turning it off a
+   * rollback rather than an outage.
+   */
+  const cashfreeCheckout = isFlagOn('ENABLE_CASHFREE_CHECKOUT');
   const { user, cart, walletBalance, checkout, verifyPayment, addAddress, sendOtp, verifyOtp, setLoginPhone, loginWithEmail, registerWithEmail, syncCart, unsyncedCount } = useApp();
 
   const [selectedAddress, setSelectedAddress] = useState<string>('');
@@ -194,11 +204,15 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     /*
-     * A signed-in customer picks from their saved addresses; a guest has none,
-     * and Cashfree's checkout collects and verifies one during payment. So the
-     * address is required of the first and not of the second.
+     * Cashfree's checkout collects and verifies the address during payment, so
+     * with it on nobody needs one first — not a guest, and not a signed-in
+     * customer who has never saved one. We still pass whatever we hold, because
+     * that prefills their form.
+     *
+     * With the flag off, our own page is the whole checkout and the address is
+     * the one thing it cannot do without.
      */
-    if (user && !selectedAddress) {
+    if (!cashfreeCheckout && !selectedAddress) {
       setError('Please select a delivery address to proceed.');
       return;
     }
@@ -316,18 +330,23 @@ export default function CheckoutPage() {
    * The ref guards React's double-mount in development, which would otherwise
    * place the order twice and hold stock against both.
    */
-  const guestStarted = useRef(false);
+  const autoStarted = useRef(false);
+
+  // A signed-in customer's saved address is worth waiting a beat for: passing
+  // it prefills their Cashfree form. A guest has none, so there is nothing to
+  // wait for.
+  const addressReady = !user || !user.addresses?.length || Boolean(selectedAddress);
 
   useEffect(() => {
-    if (user || cart.length === 0 || guestStarted.current) return;
-    guestStarted.current = true;
+    if (!cashfreeCheckout || cart.length === 0 || !addressReady || autoStarted.current) return;
+    autoStarted.current = true;
     void handlePlaceOrder();
-    // handlePlaceOrder is recreated each render; the ref is what makes this
-    // run once, so it is deliberately not a dependency.
+    // handlePlaceOrder is rebuilt every render; the ref is what makes this run
+    // once, so it is deliberately not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, cart.length]);
+  }, [cashfreeCheckout, cart.length, addressReady]);
 
-  if (!user) {
+  if (cashfreeCheckout) {
     return (
       <div className="flex min-h-screen flex-col">
         <Navbar onCartOpen={() => {}} onAuthOpen={() => {}} />
