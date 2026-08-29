@@ -402,11 +402,34 @@ export default function OrderDetailPage() {
           <div className="bg-white border border-[var(--line)] rounded-sm p-6 mb-6">
             <h3 className="font-bold text-sm text-[var(--ink)] mb-4">DELIVERY</h3>
             <div className="text-sm text-[var(--ink-soft)] space-y-1">
-              <p><span className="font-bold text-[var(--ink)]">Type:</span> {order.deliveryType || 'LOCAL DELIVERY'}</p>
-              {order.address && (
+              {/*
+                * No "Type: LOCAL". That is our own word for whether a parcel
+                * goes on the van or to a courier, the desk decides it after the
+                * order is placed, and it means nothing to the person reading
+                * this page.
+                *
+                * The address is read from the snapshot, not from `order.address`.
+                * A Cashfree order has no addressId — their checkout collects the
+                * address and it is stored on the order — so gating on the
+                * relation showed this customer a delivery panel with no
+                * delivery address in it.
+                */}
+              {order.shippingAddress?.line1 && (
                 <p>
-                  <span className="font-bold text-[var(--ink)]">Address:</span> {order.shippingAddress?.line1}, {order.shippingAddress?.city} {order.shippingAddress?.postalCode}
-                  {order.address.phone && <span className="block text-xs font-semibold text-[var(--forest)] mt-1">Contact {order.address.phone}</span>}
+                  <span className="font-bold text-[var(--ink)]">Address:</span>{' '}
+                  {[
+                    order.shippingAddress.line1,
+                    order.shippingAddress.line2,
+                    order.shippingAddress.city,
+                    order.shippingAddress.postalCode,
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}
+                  {(order.shippingAddress.phone || order.address?.phone) && (
+                    <span className="block text-xs font-semibold text-[var(--forest)] mt-1">
+                      Contact {order.shippingAddress.phone || order.address?.phone}
+                    </span>
+                  )}
                 </p>
               )}
               {order.trackingNumber && (

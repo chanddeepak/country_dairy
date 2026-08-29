@@ -764,7 +764,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify({
           ...(addressId ? { addressId } : {}),
-          deliveryType: 'LOCAL',
+          /*
+           * deliveryType is not sent at all.
+           *
+           * It was hardcoded to LOCAL, which quietly overrode the server's
+           * default and put every order on the van round. The storefront
+           * cannot know whether an address is inside the van's area — the desk
+           * decides that once the order exists — so the browser has no business
+           * having an opinion. The server defaults to COURIER.
+           */
           ...(token ? {} : { items: guestLines }),
         }),
       });
