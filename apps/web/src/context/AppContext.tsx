@@ -73,7 +73,7 @@ interface AppContextType {
   lastAddedVariantId: string | null;
   updateCartQty: (itemId: string, quantity: number) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
-  checkout: (addressId: string) => Promise<any>;
+  checkout: (addressId?: string) => Promise<any>;
   verifyPayment: (orderId: string, payId: string) => Promise<boolean>;
   /** Asks the server to settle a Cashfree order by checking with Cashfree. */
   confirmCashfreeOrder: (
@@ -741,16 +741,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const checkout = async (addressId: string) => {
-    if (!token) throw new Error('Not authenticated');
+  /**
+   * Creates the order the payment will settle.
+   *
+   * Works with or without a session. A signed-in customer's cart is on the
+   * server, so the body carries nothing but the optional address; a guest's
+   * cart lives here, so its lines travel with the request — variant ids and
+   * quantities only, since the server prices every line from its own rows.
+   */
+  const checkout = async (addressId?: string) => {
     try {
+      const guestLines = cart.map((item: any) => ({
+        variantId: item.variantId ?? item.product?.id,
+        quantity: item.quantity,
+      }));
+
       const res = await fetch(`${API_URL}/orders/checkout`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ addressId, deliveryType: 'LOCAL' }),
+        body: JSON.stringify({
+          ...(addressId ? { addressId } : {}),
+          deliveryType: 'LOCAL',
+          ...(token ? {} : { items: guestLines }),
+        }),
       });
       return await res.json();
     } catch (err) {

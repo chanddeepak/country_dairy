@@ -423,6 +423,13 @@ customer at the code screen with nothing in any log.
 | `WHATSAPP_OTP_LANGUAGE` | `en` |
 | `WHATSAPP_API_VERSION` | `v21.0` |
 | `OTP_DAILY_LIMIT` | `500` |
+| `OTP_DEV_CODE` | unset — **see below** |
+
+`OTP_DEV_CODE` fixes the sign-in code so the flow can be walked before a message
+channel exists. It is a master key to every account on the site, so it is
+guarded rather than merely discouraged: the API **refuses to boot** with it set
+alongside `CASHFREE_ENV=production`, warns at startup, and warns on every code
+it issues. Unset it and real random codes resume with no other change.
 
 ### 7.4 SMS, later
 

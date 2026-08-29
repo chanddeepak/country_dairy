@@ -54,6 +54,26 @@ export class AuthService {
     private messageChannel: MessageChannel,
   ) {
     this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+    /*
+     * A fixed OTP is a master key to every account on the site. Refusing to
+     * start is the only guard that cannot be skipped by someone not reading
+     * the logs — and CASHFREE_ENV=production is the clearest signal available
+     * that this instance is taking real money from real customers.
+     */
+    if (AuthService.DEV_OTP_CODE && process.env.CASHFREE_ENV === 'production') {
+      throw new Error(
+        'OTP_DEV_CODE is set while CASHFREE_ENV=production. A fixed sign-in code would let ' +
+          'anyone into any account. Unset OTP_DEV_CODE before running against live payments.',
+      );
+    }
+
+    if (AuthService.DEV_OTP_CODE) {
+      this.logger.warn(
+        'OTP_DEV_CODE is set: every phone sign-in accepts the same fixed code. ' +
+          'Never set this where real customers can reach it.',
+      );
+    }
   }
 
   // --- EMAIL + PASSWORD ---
@@ -158,6 +178,19 @@ export class AuthService {
    */
   private static readonly OTP_PER_DAY = Number(process.env.OTP_DAILY_LIMIT ?? 500);
 
+  /**
+   * A fixed sign-in code, for walking the flow before a message channel exists.
+   *
+   * Every account on the site can be entered by anyone who knows this string
+   * and a mobile number, so it is guarded rather than merely discouraged: the
+   * application refuses to boot with it set alongside production Cashfree
+   * credentials (see the constructor), and every use is logged as a warning so
+   * it cannot sit in an environment unnoticed.
+   *
+   * Delete the variable and real random codes resume with no other change.
+   */
+  private static readonly DEV_OTP_CODE = process.env.OTP_DEV_CODE;
+
   async sendOtp(phone: string, requestIp?: string): Promise<{ success: boolean }> {
     await this.assertOtpEnabled();
 
@@ -190,7 +223,11 @@ export class AuthService {
       throw new BadRequestException('Verification is temporarily unavailable. Please try again later.');
     }
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = AuthService.DEV_OTP_CODE ?? Math.floor(100000 + Math.random() * 900000).toString();
+
+    if (AuthService.DEV_OTP_CODE) {
+      this.logger.warn(`Fixed OTP_DEV_CODE issued for ${phone} — not a real verification`);
+    }
 
     await this.prisma.otpVerification.create({
       data: {

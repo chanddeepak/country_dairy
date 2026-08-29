@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, CreditCard, Wallet, ShieldCheck, Plus, CheckCircle2, UserCheck, KeyRound, PhoneCall, AlertCircle, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { load as loadCashfree } from '@cashfreepayments/cashfree-js';
@@ -193,15 +193,24 @@ export default function CheckoutPage() {
   };
 
   const handlePlaceOrder = async () => {
-    if (!user) return;
-    if (!selectedAddress) { setError('Please select a delivery address to proceed.'); return; }
+    /*
+     * A signed-in customer picks from their saved addresses; a guest has none,
+     * and Cashfree's checkout collects and verifies one during payment. So the
+     * address is required of the first and not of the second.
+     */
+    if (user && !selectedAddress) {
+      setError('Please select a delivery address to proceed.');
+      return;
+    }
     setError('');
     setProcessing(true);
 
     try {
       // Flush anything an earlier network blip left unsaved, so the order
       // contains everything the cart showed rather than silently less.
-      const stillFailing = await syncCart();
+      // Only a signed-in customer has a server cart to reconcile; a guest's
+      // lines travel with the checkout request itself.
+      const stillFailing = user ? await syncCart() : [];
       if (stillFailing.length > 0) {
         setError(
           `We could not confirm ${stillFailing.join(', ')} with the server. ` +
@@ -211,7 +220,7 @@ export default function CheckoutPage() {
         return;
       }
 
-      const orderResult = await checkout(selectedAddress);
+      const orderResult = await checkout(selectedAddress || undefined);
 
       if (!orderResult?.orderId) {
         setError(orderResult?.message || 'Checkout failed. Please try again.');
@@ -294,6 +303,80 @@ export default function CheckoutPage() {
   };
 
   const addresses = user?.addresses || [];
+
+  /*
+   * A guest is handed to Cashfree the moment they land here.
+   *
+   * This page used to answer a logged-out visitor with our own sign-in form,
+   * which is the wrong thing twice over: it demands an account before we have
+   * given anyone a reason to want one, and Cashfree is about to collect and
+   * verify a mobile number anyway. So there is nothing for a guest to fill in
+   * here, and nothing to show but the wait.
+   *
+   * The ref guards React's double-mount in development, which would otherwise
+   * place the order twice and hold stock against both.
+   */
+  const guestStarted = useRef(false);
+
+  useEffect(() => {
+    if (user || cart.length === 0 || guestStarted.current) return;
+    guestStarted.current = true;
+    void handlePlaceOrder();
+    // handlePlaceOrder is recreated each render; the ref is what makes this
+    // run once, so it is deliberately not a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, cart.length]);
+
+  if (!user) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Navbar onCartOpen={() => {}} onAuthOpen={() => {}} />
+        <main className="flex flex-1 items-center justify-center bg-[var(--ivory)] px-4 py-24">
+          <div className="w-full max-w-md text-center">
+            {error ? (
+              <>
+                <AlertCircle className="mx-auto mb-6 h-8 w-8 text-[var(--danger)]" />
+                <h1 className="font-serif text-[26px] font-light text-[var(--ink)]">
+                  We couldn&rsquo;t open the payment window
+                </h1>
+                <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-soft)]">{error}</p>
+                <button
+                  onClick={() => router.push('/')}
+                  className="mt-8 inline-flex items-center rounded-sm bg-[var(--forest)] px-6 py-3 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ivory)] transition-colors hover:bg-[var(--pine)]"
+                >
+                  Back to shopping
+                </button>
+              </>
+            ) : cart.length === 0 ? (
+              <>
+                <h1 className="font-serif text-[26px] font-light text-[var(--ink)]">
+                  Your cart is empty
+                </h1>
+                <button
+                  onClick={() => router.push('/')}
+                  className="mt-8 inline-flex items-center rounded-sm bg-[var(--forest)] px-6 py-3 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ivory)] transition-colors hover:bg-[var(--pine)]"
+                >
+                  Start shopping
+                </button>
+              </>
+            ) : (
+              <>
+                <Loader2 className="mx-auto mb-6 h-8 w-8 animate-spin text-[var(--forest)]" />
+                <h1 className="font-serif text-[26px] font-light text-[var(--ink)]">
+                  Opening secure payment
+                </h1>
+                <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-soft)]">
+                  This takes a few seconds. You&rsquo;ll confirm your mobile number and delivery
+                  address in the payment window.
+                </p>
+              </>
+            )}
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
