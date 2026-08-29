@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { DeliveryType, OrderStatus, Role } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guard';
+import { AllowGuest } from '../auth/allow-guest.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -87,12 +88,14 @@ export class OrdersController {
   // --- Customer routes ---
 
   @Post('checkout')
-  async checkout(@CurrentUser() user: { id: string }, @Body() dto: CheckoutDto) {
+  @AllowGuest()
+  async checkout(@CurrentUser() user: { id: string } | undefined, @Body() dto: CheckoutDto) {
     return this.ordersService.checkout(
-      user.id,
+      user?.id ?? null,
       dto.addressId,
       dto.deliveryType ?? DeliveryType.LOCAL,
       dto.couponCode,
+      dto.items,
     );
   }
 

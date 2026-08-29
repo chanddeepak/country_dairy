@@ -202,7 +202,7 @@ export default function Orders({
           <div class="details">
             <div>
               <div class="section-title">Delivery To</div>
-              <strong>${escapeHtml(order.user.name || order.user.email || 'Customer')}</strong><br/>
+              <strong>${escapeHtml(order.user?.name || order.user?.email || order.shippingAddress?.phone || 'Guest')}</strong><br/>
               ${escapeHtml(addr.line1)}${addr.line2 ? `, ${escapeHtml(addr.line2)}` : ''}<br/>
               ${escapeHtml(addr.city)}, ${escapeHtml(addr.state)} ${escapeHtml(addr.postalCode)}<br/>
               ${addr.phone ? escapeHtml(addr.phone) : ''}<br/>
@@ -359,7 +359,7 @@ export default function Orders({
                         {formatDate(o.createdAt)}
                       </div>
                     </td>
-                    <td className="p-4 text-stone-700">{o.user.name || o.user.email || '—'}</td>
+                    <td className="p-4 text-stone-700">{o.user?.name || o.user?.email || o.shippingAddress?.phone || 'Guest'}</td>
                     <td className="p-4 text-stone-600 max-w-[220px]">
                       <div className="line-clamp-2">
                         {o.orderItems
@@ -544,18 +544,18 @@ export default function Orders({
               </h4>
               <div className="space-y-2">
                 <div className="text-sm font-bold text-stone-800">
-                  {selectedOrder.user.name || 'Customer'}
+                  {selectedOrder.user?.name || (selectedOrder.user ? 'Customer' : 'Guest')}
                 </div>
-                {selectedOrder.user.email && (
+                {selectedOrder.user?.email && (
                   <div className="flex items-center gap-2.5 text-sm text-stone-600">
                     <Mail className="h-4 w-4 text-stone-400" />
                     <span>{selectedOrder.user.email}</span>
                   </div>
                 )}
-                {(selectedOrder.shippingAddress.phone || selectedOrder.user.phone) && (
+                {(selectedOrder.shippingAddress.phone || selectedOrder.user?.phone) && (
                   <div className="flex items-center gap-2.5 text-sm text-stone-600">
                     <Phone className="h-4 w-4 text-stone-400" />
-                    <span>{selectedOrder.shippingAddress.phone || selectedOrder.user.phone}</span>
+                    <span>{selectedOrder.shippingAddress.phone || selectedOrder.user?.phone}</span>
                   </div>
                 )}
                 <div className="flex items-start gap-2.5 text-sm text-stone-600">

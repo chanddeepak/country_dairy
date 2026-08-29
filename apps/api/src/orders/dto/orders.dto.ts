@@ -1,9 +1,57 @@
 import { DeliveryType, OrderStatus } from '@prisma/client';
-import { IsEnum, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+
+export class GuestCartItemDto {
+  @IsUUID()
+  variantId: string;
+
+  // Capped so a typo or a hostile client cannot ask for a million jars and
+  // have the stock check do the arguing.
+  @IsInt()
+  @Min(1)
+  @Max(99)
+  quantity: number;
+}
 
 export class CheckoutDto {
-  @IsUUID(undefined, { message: 'A delivery address is required' })
-  addressId: string;
+  /**
+   * Optional now. Cashfree's checkout collects and verifies an address during
+   * payment and returns it on confirm, so requiring one here would make the
+   * customer type an address they are about to type again. A signed-in
+   * customer may still pass one, which prefills their form.
+   */
+  @IsOptional()
+  @IsUUID()
+  addressId?: string;
+
+  /**
+   * A guest's cart lives in their browser, so it travels with the request.
+   * Variant ids and quantities only — prices are read from our own rows, since
+   * a client that could name its own price would be a checkout that charges
+   * whatever it is told to.
+   */
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(50)
+  @ValidateNested({ each: true })
+  @Type(() => GuestCartItemDto)
+  items?: GuestCartItemDto[];
 
   @IsOptional()
   @IsEnum(DeliveryType)

@@ -113,8 +113,10 @@ export class DeliveryService {
     return {
       orderId: order.id,
       orderNumber: order.orderNumber,
-      customerName: order.user.name || 'Customer',
-      customerPhone: address.phone || order.user.phone,
+      customerName: order.user?.name || 'Customer',
+      // For a guest order the address phone is the only phone, and it is the
+      // one Cashfree verified — so it was already the better of the two.
+      customerPhone: address.phone || order.user?.phone || '',
       addressLine: address.line,
       area: address.area,
       pincode: address.pincode,

@@ -612,8 +612,25 @@ model Order {
   /// not create a second order, take stock twice, or burn another invoice
   /// number. Null for orders taken through our own checkout.
   shiprocketOrderId String? @unique
-  userId      String
-  user        User   @relation(fields: [userId], references: [id])
+  /// Null until the order has an owner.
+  ///
+  /// A guest checkout creates the order before anyone has identified
+  /// themselves — Cashfree collects and verifies the phone during payment, and
+  /// only then can the order be attached to an account. Ownership checks read
+  /// `where: { id, userId }`, so an unclaimed order matches nobody, which is
+  /// the behaviour we want until it is claimed.
+  userId      String?
+  user        User?  @relation(fields: [userId], references: [id])
+
+  /// Proof that this browser is the one that placed the order.
+  ///
+  /// The confirm route cannot require a session for a guest — there isn't one
+  /// yet. Keying it on the order id instead would hand a session to anyone who
+  /// guessed one, and `orderNumber` is `max + 1`, so they are trivially
+  /// guessable. Hashed rather than stored plainly: this grants a login, so a
+  /// database leak must not be a pile of usable session tokens.
+  claimTokenHash      String?   @unique
+  claimTokenExpiresAt DateTime?
 
   // Kept for reference, but the authoritative shipping destination is the
   // snapshot below: editing a saved address must not rewrite past orders.

@@ -1,8 +1,10 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { requestContext } from '../audit/request-context';
+import { ALLOW_GUEST } from './allow-guest.decorator';
 
 export interface AuthenticatedUser {
   id: string;
@@ -15,6 +17,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private authService: AuthService,
+    private reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -22,6 +25,19 @@ export class AuthGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
+      /*
+       * Guest routes run with no user rather than being refused. Note the
+       * order: only a *missing* token takes this path. A token that is present
+       * but invalid still fails below, because silently downgrading an expired
+       * session to a guest would attach a customer's order to nobody.
+       */
+      const allowGuest = this.reflector.getAllAndOverride<boolean>(ALLOW_GUEST, [
+        context.getHandler(),
+        context.getClass(),
+      ]);
+
+      if (allowGuest) return true;
+
       throw new UnauthorizedException('Authentication token missing');
     }
 

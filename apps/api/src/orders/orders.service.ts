@@ -22,6 +22,39 @@ import { CashfreeService } from './cashfree.service';
 import { FLAG, FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import { CmsService } from '../cms/cms.service';
 import { calculateOrderTotals, priceLine, round2, toPaise } from './pricing';
+import { createHash, randomBytes } from 'crypto';
+
+/** Long enough to pay, short enough that a leaked URL goes stale. */
+const CLAIM_TOKEN_TTL_MS = 2 * 60 * 60 * 1000;
+
+/**
+ * What we send Cashfree as a guest's phone, because they will not create an
+ * order without one.
+ *
+ * Undocumented and slightly absurd: One Click Checkout exists to collect and
+ * verify the customer's number, and the create-order call rejects
+ * `customer_phone_missing` before it ever gets the chance. They accept any ten
+ * digits — probed with 0000000000, 1111111111 and 9999999999, all 200 — so
+ * this is a placeholder their own login step overwrites.
+ *
+ * Zeros rather than a plausible number on purpose: if it ever leaks into a
+ * message or an invoice it must be obviously not a phone number.
+ *
+ * UNVERIFIED: whether their login screen prefills this, and what the customer
+ * sees if it does. The first real sandbox payment answers it. If prefilled
+ * zeros are confusing, asking for the number in one field on our side before
+ * opening their modal is the fallback.
+ */
+const GUEST_PHONE_PLACEHOLDER = '0000000000';
+
+/**
+ * SHA-256 rather than bcrypt. The token is 32 random bytes, so there is no
+ * low-entropy secret to slow an attacker down — and a plain digest can be
+ * looked up by index, which a salted hash could not.
+ */
+export function hashClaimToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 /** Transitions the order state machine permits. */
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
@@ -66,23 +99,44 @@ export class OrdersService {
   }
 
   async checkout(
-    userId: string,
-    addressId: string,
+    userId: string | null,
+    addressId: string | undefined,
     deliveryType: DeliveryType,
     couponCode?: string,
+    guestItems?: { variantId: string; quantity: number }[],
   ) {
-    const address = await this.prisma.address.findUnique({ where: { id: addressId } });
-    if (!address || address.userId !== userId) {
+    /*
+     * An address is optional now. Cashfree's checkout collects and verifies one
+     * during payment and hands it back on confirm, so requiring it here would
+     * make the customer type an address they are about to type again.
+     *
+     * A signed-in customer may still pass one — it prefills their form.
+     */
+    const address = addressId
+      ? await this.prisma.address.findUnique({ where: { id: addressId } })
+      : null;
+
+    if (addressId && (!address || address.userId !== userId)) {
       throw new BadRequestException('Invalid delivery address');
     }
 
-    const cartItems = await this.prisma.cartItem.findMany({
-      where: { userId },
-      include: {
-        variant: true,
-        product: { select: { id: true, title: true, status: true, forceOutOfStock: true, gstRate: true, hsnCode: true } },
-      },
-    });
+    /*
+     * Where the cart lives depends on who is buying. A signed-in customer has
+     * rows in CartItem; a guest has localStorage and sends the lines up.
+     *
+     * The guest sends variant ids and quantities and nothing else. Prices are
+     * read from the variant below either way — a client that could name its own
+     * price would be a checkout that charges whatever it is told to.
+     */
+    const cartItems = userId
+      ? await this.prisma.cartItem.findMany({
+          where: { userId },
+          include: {
+            variant: true,
+            product: { select: { id: true, title: true, status: true, forceOutOfStock: true, gstRate: true, hsnCode: true } },
+          },
+        })
+      : await this.loadGuestLines(guestItems ?? []);
 
     if (cartItems.length === 0) {
       throw new BadRequestException('Cannot checkout: shopping cart is empty');
@@ -110,7 +164,7 @@ export class OrdersService {
       return { item, priced };
     });
 
-    const coupon = couponCode ? await this.resolveCoupon(couponCode, userId) : null;
+    const coupon = couponCode && userId ? await this.resolveCoupon(couponCode, userId) : null;
 
     const totals = calculateOrderTotals(
       lines.map((l) => l.priced),
@@ -123,6 +177,15 @@ export class OrdersService {
           }
         : null,
     );
+
+    /*
+     * Minted here rather than after the order exists, because it has to travel
+     * in the return_url Cashfree is given below. Only the hash is stored: this
+     * token grants a session, so a leaked database must not be a pile of usable
+     * logins. Short-lived — it only has to survive one payment.
+     */
+    const claimToken = randomBytes(32).toString('base64url');
+    const claimTokenHash = hashClaimToken(claimToken);
 
     // Stock is decremented with the order in one transaction, so two customers
     // racing for the last jar cannot both succeed.
@@ -148,15 +211,21 @@ export class OrdersService {
           userId,
           addressId,
           // Snapshot: editing a saved address must not rewrite past orders.
-          shippingAddress: {
-            line1: address.line1,
-            line2: address.line2,
-            city: address.city,
-            state: address.state,
-            postalCode: address.postalCode,
-            country: address.country,
-            phone: address.phone,
-          },
+          // Empty until Cashfree returns one, which confirmCashfreeOrder writes
+          // over the top of. `source` says which, so a half-filled address is
+          // never mistaken for a real one on an admin screen.
+          shippingAddress: address
+            ? {
+                line1: address.line1,
+                line2: address.line2,
+                city: address.city,
+                state: address.state,
+                postalCode: address.postalCode,
+                country: address.country,
+                phone: address.phone,
+                source: 'account',
+              }
+            : { source: 'awaiting-checkout' },
           subtotal: totals.subtotal,
           taxAmount: totals.taxAmount,
           discountAmount: totals.discountAmount,
@@ -167,6 +236,8 @@ export class OrdersService {
           deliveryType,
           status: OrderStatus.PENDING,
           paymentStatus: PaymentStatus.PENDING,
+          claimTokenHash,
+          claimTokenExpiresAt: new Date(Date.now() + CLAIM_TOKEN_TTL_MS),
           orderItems: {
             create: lines.map(({ item, priced }) => ({
               productId: item.productId,
@@ -224,11 +295,27 @@ export class OrdersService {
     const useCashfree =
       (await this.flags.isEnabled(FLAG.CASHFREE_CHECKOUT)) && this.cashfreeService.isConfigured;
 
+    /*
+     * Razorpay's confirm path requires a session, so a guest sent down it would
+     * get an order that is created, has stock held against it, and can never be
+     * paid. Refuse before that happens rather than after.
+     */
+    if (!useCashfree && !userId) {
+      throw new BadRequestException('Please sign in to complete your order');
+    }
+
     if (useCashfree) {
-      const user = await this.prisma.user.findUniqueOrThrow({
-        where: { id: userId },
-        select: { id: true, name: true, email: true, phone: true },
-      });
+      /*
+       * A guest has no account yet — Cashfree collects and verifies the phone
+       * during payment, and confirmCashfreeOrder creates the account from what
+       * it returns. So this is what we know so far, which may be nothing.
+       */
+      const user = userId
+        ? await this.prisma.user.findUniqueOrThrow({
+            where: { id: userId },
+            select: { id: true, name: true, email: true, phone: true },
+          })
+        : null;
 
       const cashfreeOrder = await this.cashfreeService.createOrder({
         /*
@@ -245,13 +332,20 @@ export class OrdersService {
          */
         orderId: `${order.orderNumber}-${order.id.slice(0, 8)}`,
         amount: Number(totals.totalAmount),
-        customerId: user.id,
-        // Their API requires ten digits. An address phone is the better guess
-        // than an account that may have signed up by email.
-        customerPhone: (user.phone || address.phone || '').replace(/\D/g, '').slice(-10),
-        customerEmail: user.email ?? undefined,
-        customerName: user.name ?? undefined,
-        returnUrl: `${this.storefrontUrl()}/checkout/cashfree-return?order_id={order_id}`,
+        // Their API wants a customer id even for someone we have never seen.
+        // The order id is stable, unique, and says nothing about a person.
+        customerId: user?.id ?? `guest-${order.id}`,
+        // Their API requires ten digits. Prefilling it is the whole reason a
+        // signed-in customer is not asked to type their number again.
+        customerPhone:
+          (user?.phone || address?.phone || '').replace(/\D/g, '').slice(-10) ||
+          GUEST_PHONE_PLACEHOLDER,
+        customerEmail: user?.email ?? undefined,
+        customerName: user?.name ?? undefined,
+        // The claim token rides back with the customer. Without it the confirm
+        // route would have nothing but an order id to trust, and order numbers
+        // are sequential.
+        returnUrl: `${this.storefrontUrl()}/checkout/cashfree-return?order_id={order_id}&claim=${claimToken}`,
         notifyUrl: `${this.apiUrl()}/orders/webhook/cashfree`,
         cartItems: lines.map(({ item, priced }) => ({
           item_id: item.variant.sku || item.variantId,
@@ -290,6 +384,16 @@ export class OrdersService {
         provider: 'CASHFREE' as const,
         // What the browser SDK needs. Short-lived, and useless without it.
         paymentSessionId: cashfreeOrder.payment_session_id,
+        /*
+         * The browser has to carry this to confirm.
+         *
+         * It also rides in Cashfree's return_url, but the modal never navigates
+         * there — the SDK resolves in place and our own code routes onward — so
+         * the redirect copy only covers the `_self` case. Returned to the
+         * browser that just created the order, which is precisely the browser
+         * the token is meant to identify.
+         */
+        claimToken,
         paymentGatewayId: cashfreeOrder.order_id,
         amount: totals.totalAmount,
         currency: 'INR',
@@ -334,6 +438,48 @@ export class OrdersService {
   /** Where Cashfree posts the webhook. */
   private apiUrl(): string {
     return (process.env.PUBLIC_API_URL || 'http://localhost:4000/api').replace(/\/$/, '');
+  }
+
+  /**
+   * Turns `{ variantId, quantity }` from a guest's browser into the same shape
+   * the CartItem query returns, so everything downstream is identical.
+   *
+   * Nothing here trusts the client beyond which variant and how many. Prices,
+   * titles and tax rates are all read from our own rows.
+   */
+  private async loadGuestLines(items: { variantId: string; quantity: number }[]) {
+    if (items.length === 0) return [];
+
+    // Collapse duplicates rather than letting the same variant appear twice,
+    // which would decrement stock twice and print two lines on the invoice.
+    const wanted = new Map<string, number>();
+    for (const { variantId, quantity } of items) {
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        throw new BadRequestException('Invalid quantity');
+      }
+      wanted.set(variantId, (wanted.get(variantId) ?? 0) + quantity);
+    }
+
+    const variants = await this.prisma.productVariant.findMany({
+      where: { id: { in: [...wanted.keys()] } },
+      include: {
+        product: {
+          select: { id: true, title: true, status: true, forceOutOfStock: true, gstRate: true, hsnCode: true },
+        },
+      },
+    });
+
+    if (variants.length !== wanted.size) {
+      throw new BadRequestException('Your basket contains an item we no longer sell');
+    }
+
+    return variants.map((variant) => ({
+      productId: variant.product.id,
+      variantId: variant.id,
+      quantity: wanted.get(variant.id) as number,
+      variant,
+      product: variant.product,
+    }));
   }
 
   private async resolveCoupon(code: string, userId: string) {
@@ -780,8 +926,8 @@ export class OrdersService {
       orderDate: order.createdAt.toISOString(),
       seller,
       buyer: {
-        name: order.user.name ?? 'Customer',
-        phone: shipping.phone ?? order.user.phone ?? '',
+        name: order.user?.name ?? 'Customer',
+        phone: shipping.phone ?? order.user?.phone ?? '',
         addressLine1: shipping.line1 ?? '',
         addressLine2: shipping.line2 ?? '',
         city: shipping.city ?? '',

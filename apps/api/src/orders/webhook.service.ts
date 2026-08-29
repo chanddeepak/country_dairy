@@ -392,7 +392,12 @@ export class WebhookService {
       // The cart is cleared here because the browser callback — which normally
       // does it — is exactly what failed if this webhook is the one confirming
       // the order.
-      this.prisma.cartItem.deleteMany({ where: { userId: order.userId } }),
+      // A guest's cart lives in their browser, not in CartItem, so there is
+      // nothing here to clear for one — and deleteMany with a null userId would
+      // be a query looking for rows that cannot exist.
+      ...(order.userId
+        ? [this.prisma.cartItem.deleteMany({ where: { userId: order.userId } })]
+        : []),
     ]);
 
     this.logger.log(`Order ${order.orderNumber} confirmed by webhook`);

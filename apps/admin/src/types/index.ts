@@ -91,7 +91,8 @@ export interface AdminOrder {
     country?: string;
     phone?: string | null;
   };
-  user: { id: string; name: string | null; email: string | null; phone: string | null };
+  /** Null for a guest order that has not been claimed yet. */
+  user: { id: string; name: string | null; email: string | null; phone: string | null } | null;
   driver?: { id: string; name: string | null } | null;
   orderItems: AdminOrderItem[];
   createdAt: string;
