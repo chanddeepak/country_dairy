@@ -684,4 +684,25 @@ export const adminApi = {
       body: JSON.stringify({ status, ...options }),
     });
   },
+
+  /**
+   * Frees stock held by checkouts nobody paid for.
+   *
+   * Run from here because nothing runs it automatically: there is no scheduler
+   * in the API, and the free hosting plan sleeps when idle, so a timer inside
+   * the process would not fire dependably. Safe to press repeatedly — it only
+   * looks at orders past the window, and asks the gateway before releasing
+   * anything.
+   */
+  async expireAbandonedOrders(olderThanMinutes?: number): Promise<{
+    examined: number;
+    released: number;
+    settled: number;
+    failed: number;
+  }> {
+    return fetchJson('/orders/admin/expire-abandoned', {
+      method: 'POST',
+      body: JSON.stringify(olderThanMinutes ? { olderThanMinutes } : {}),
+    });
+  },
 };

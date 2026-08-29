@@ -145,6 +145,21 @@ export class OrdersController {
    * Guest-accessible for the same reason confirm is: there is no session yet,
    * and the claim token is what proves this browser placed the order.
    */
+  /**
+   * Opens the payment window again for an order that was never paid for.
+   *
+   * Guest-accessible on the same terms as confirm: the claim token is what
+   * proves this browser placed the order when there is no session.
+   */
+  @Post('retry-payment')
+  @AllowGuest()
+  async retryPayment(
+    @CurrentUser() user: { id: string } | undefined,
+    @Body() dto: ConfirmOrderDto,
+  ) {
+    return this.ordersService.retryPayment(user?.id ?? null, dto.orderId, dto.claimToken);
+  }
+
   @Post('abandon')
   @AllowGuest()
   async abandon(

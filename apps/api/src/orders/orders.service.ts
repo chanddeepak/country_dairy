@@ -237,6 +237,146 @@ export class OrdersService {
     };
   }
 
+  /**
+   * Opens the payment window again for an order that was never paid for.
+   *
+   * Distinct from resuming a checkout, because there is no cart involved: the
+   * order *is* the basket. Somebody whose card was declined comes back to the
+   * order, not to a trolley they may since have emptied.
+   *
+   * Two ways it can go. If the gateway order is still open we take a fresh
+   * session against it and change nothing. If it is not — a decline may close
+   * it — we make a new gateway order for the same local order, numbered by
+   * attempt, because their ids cannot be reused and an unchanged basket would
+   * otherwise fingerprint to an id that already exists.
+   */
+  async retryPayment(userId: string | null, orderId: string, claimToken?: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        orderItems: true,
+        payments: { orderBy: { createdAt: 'desc' } },
+        user: { select: { id: true, name: true, email: true, phone: true } },
+      },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    const ownedByCaller = userId !== null && order.userId === userId;
+    const presentedClaim =
+      claimToken !== undefined &&
+      order.claimTokenHash !== null &&
+      order.claimTokenExpiresAt !== null &&
+      order.claimTokenExpiresAt.getTime() > Date.now() &&
+      digestsMatch(hashClaimToken(claimToken), order.claimTokenHash);
+    if (!ownedByCaller && !presentedClaim) throw new NotFoundException('Order not found');
+
+    if (order.paymentStatus === PaymentStatus.PAID) {
+      throw new BadRequestException('This order has already been paid for');
+    }
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException(
+        `Order ${order.orderNumber} is ${order.status.toLowerCase()} and cannot be paid`,
+      );
+    }
+    if (!this.cashfreeService.isConfigured) {
+      throw new ServiceUnavailableException('Online payment is not available right now');
+    }
+
+    const latest = order.payments[0];
+
+    // The cheap path: their order is still open, so a fresh session is all it
+    // takes and nothing else changes.
+    if (latest?.gatewayOrderId) {
+      const remote = await this.cashfreeService.getOrder(latest.gatewayOrderId).catch(() => null);
+      if (remote && String(remote.order_status) === 'ACTIVE' && remote.payment_session_id) {
+        this.logger.log(`Retrying ${order.orderNumber} on the existing gateway order`);
+        return {
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          provider: 'CASHFREE' as const,
+          paymentSessionId: remote.payment_session_id,
+          paymentGatewayId: latest.gatewayOrderId,
+          amount: Number(order.totalAmount),
+          currency: 'INR',
+          resumed: true as const,
+        };
+      }
+    }
+
+    /*
+     * Their order is closed, so this attempt needs a new one. The fingerprint
+     * is unchanged — the basket is the same — so the attempt number is what
+     * makes the id different; a repeat of an existing id comes back 409.
+     */
+    const fingerprint = basketFingerprint(
+      order.orderItems.map((i) => ({
+        variantId: i.variantId ?? i.sku,
+        quantity: i.quantity,
+        unitPrice: Number(i.unitPrice),
+      })),
+      Number(order.totalAmount),
+    );
+    const attempt = order.payments.length + 1;
+
+    const claim = randomBytes(32).toString('base64url');
+    const cashfreeOrder = await this.cashfreeService.createOrder({
+      orderId: `${order.orderNumber}-${fingerprint}-${attempt}`,
+      amount: Number(order.totalAmount),
+      customerId: order.user?.id ?? `guest-${order.id}`,
+      customerPhone:
+        (order.user?.phone || (order.shippingAddress as { phone?: string })?.phone || '')
+          .replace(/\D/g, '')
+          .slice(-10) || GUEST_PHONE_PLACEHOLDER,
+      customerEmail: order.user?.email ?? undefined,
+      customerName: order.user?.name ?? undefined,
+      returnUrl: `${this.storefrontUrl()}/checkout/cashfree-return?order_id={order_id}&claim=${claim}`,
+      notifyUrl: `${this.apiUrl()}/orders/webhook/cashfree`,
+      cartItems: order.orderItems.map((i) => ({
+        item_id: i.sku,
+        item_name: `${i.productTitle} — ${i.variantSizeLabel}`,
+        item_original_unit_price: Number(i.mrpPrice),
+        item_discounted_unit_price: Number(i.unitPrice),
+        item_quantity: i.quantity,
+        item_currency: 'INR',
+      })),
+      preferTheirAddress: true,
+    });
+
+    await this.prisma.$transaction([
+      this.prisma.payment.create({
+        data: {
+          orderId: order.id,
+          amount: order.totalAmount,
+          currency: 'INR',
+          provider: 'CASHFREE',
+          status: PaymentStatus.PENDING,
+          gatewayOrderId: cashfreeOrder.order_id,
+        },
+      }),
+      // A new claim, because the old one may have been spent or expired and
+      // the customer needs to be able to confirm this attempt.
+      this.prisma.order.update({
+        where: { id: order.id },
+        data: {
+          claimTokenHash: hashClaimToken(claim),
+          claimTokenExpiresAt: new Date(Date.now() + CLAIM_TOKEN_TTL_MS),
+        },
+      }),
+    ]);
+
+    this.logger.log(`Retrying ${order.orderNumber} on a new gateway order (attempt ${attempt})`);
+    return {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      provider: 'CASHFREE' as const,
+      paymentSessionId: cashfreeOrder.payment_session_id,
+      paymentGatewayId: cashfreeOrder.order_id,
+      amount: Number(order.totalAmount),
+      currency: 'INR',
+      claimToken: claim,
+    };
+  }
+
   async checkout(
     userId: string | null,
     addressId: string | undefined,

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle2, Circle, Clock, ExternalLink, HelpCircle, MessageCircle, RefreshCw } from 'lucide-react';
+import { load as loadCashfree } from '@cashfreepayments/cashfree-js';
 import { trackingLabelFor, trackingUrlFor } from '@country-dairy/types';
 import { whatsAppUrl } from '../../../lib/storeConfig';
 import { useStoreConfig } from '../../../context/StoreConfigContext';
@@ -28,7 +29,10 @@ export default function OrderDetailPage() {
   const orderId = params?.orderId as string;
   const isSuccess = searchParams?.get('status') === 'success';
 
-  const { user, isSessionReady, sessionExpired, authFetch, reorder } = useApp();
+  const { user, isSessionReady, sessionExpired, authFetch, reorder, retryPayment, confirmCashfreeOrder } =
+    useApp();
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState('');
   const { whatsapp } = useStoreConfig();
   const router = useRouter();
   const [reordering, setReordering] = useState(false);
@@ -41,6 +45,57 @@ export default function OrderDetailPage() {
   const [querySentRef, setQuerySentRef] = useState('');
   const [sendingQuery, setSendingQuery] = useState(false);
   const [order, setOrder] = useState<any>(null);
+
+  /**
+   * Reopens Cashfree on this order, then settles it in place.
+   *
+   * Mirrors the cart's checkout: only a payment that actually happened moves
+   * the customer anywhere, because the SDK does not reliably say whether the
+   * window was paid or simply closed.
+   */
+  const handleRetryPayment = async () => {
+    if (retrying || !order) return;
+    setRetrying(true);
+    setRetryError('');
+    try {
+      const claim = sessionStorage.getItem(`cd_claim_${order.id}`) ?? undefined;
+      const result = await retryPayment(order.id, claim);
+      if (!result.ok || !result.paymentSessionId) {
+        setRetryError(result.error ?? 'Could not reopen the payment window.');
+        return;
+      }
+      if (result.claimToken) {
+        sessionStorage.setItem(`cd_claim_${order.id}`, result.claimToken);
+      }
+
+      const cashfree = await loadCashfree({
+        mode: process.env.NEXT_PUBLIC_CASHFREE_ENV === 'production' ? 'production' : 'sandbox',
+      });
+      if (!cashfree) {
+        setRetryError('The payment window could not be opened. Please try again.');
+        return;
+      }
+      await cashfree.checkout({
+        paymentSessionId: result.paymentSessionId,
+        redirectTarget: '_modal',
+      });
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const { paid } = await confirmCashfreeOrder(
+          order.id,
+          sessionStorage.getItem(`cd_claim_${order.id}`) ?? undefined,
+        );
+        if (paid) {
+          window.location.reload();
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 1800));
+      }
+      setRetryError('Payment was not completed. You can try again whenever you are ready.');
+    } finally {
+      setRetrying(false);
+    }
+  };
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   // 'missing' covers both "no such order" and "not yours" — the API returns
   // 404 for another customer's order, and so should this page.
@@ -310,6 +365,32 @@ export default function OrderDetailPage() {
               <Badge status={order.status} />
               <Badge status={order.paymentStatus} />
             </div>
+
+            {/*
+              * A way back for an order that was never paid for.
+              *
+              * A declined card used to leave the customer looking at a FAILED
+              * badge with nothing to do about it except start again from the
+              * cart — which made a second order for the same jars. This reopens
+              * the payment window on the order they already have.
+              */}
+            {order.status === 'PENDING' && order.paymentStatus !== 'PAID' && (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  data-testid="retry-payment"
+                  onClick={() => void handleRetryPayment()}
+                  disabled={retrying}
+                  className="inline-flex items-center gap-2 rounded-sm bg-[var(--forest)] px-6 py-3 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ivory)] transition-colors hover:bg-[var(--pine)] disabled:opacity-60"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${retrying ? 'animate-spin' : ''}`} />
+                  {retrying ? 'Opening payment…' : 'Complete payment'}
+                </button>
+                {retryError && (
+                  <p className="mt-2 text-xs font-bold text-[var(--danger)]">{retryError}</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Items */}

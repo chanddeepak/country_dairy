@@ -84,6 +84,10 @@ interface AppContextType {
     claimToken?: string,
   ) => Promise<{ paid: boolean; status?: string }>;
   abandonOrder: (orderId: string, claimToken?: string) => Promise<void>;
+  retryPayment: (
+    orderId: string,
+    claimToken?: string,
+  ) => Promise<{ ok: boolean; error?: string; paymentSessionId?: string; claimToken?: string }>;
   createSubscription: (data: { productId: string; quantity: number; frequency: string; daysOfWeek: number[]; startDate: string }) => Promise<any>;
   addAddress: (
     line1: string,
@@ -903,6 +907,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  /**
+   * Opens the payment window again for an order that was never paid for.
+   *
+   * Not the same as checking out: the order is the basket, so this ignores
+   * whatever is in the cart. Somebody whose card was declined comes back to
+   * the order, not to a trolley they may since have emptied.
+   */
+  const retryPayment = async (orderId: string, claimToken?: string) => {
+    try {
+      const res = await fetch(`${API_URL}/orders/retry-payment`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId, ...(claimToken ? { claimToken } : {}) }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { ok: false as const, error: data?.message ?? 'Could not reopen payment.' };
+      return { ok: true as const, ...data };
+    } catch {
+      return { ok: false as const, error: 'Could not reach the payment service.' };
+    }
+  };
+
   const createSubscription = async (subData: any) => {
     if (!token) throw new Error('Not authenticated');
     try {
@@ -1250,6 +1279,7 @@ function normalisePostalCode(value: string): string {
         verifyPayment,
         confirmCashfreeOrder,
         abandonOrder,
+        retryPayment,
         createSubscription,
         addAddress,
         updateAddress,

@@ -589,7 +589,9 @@ C1–C8 from the superseded doc are done.
 | --- | --- | --- |
 | ~~E1~~ | ~~Stock release for abandoned orders~~ **done** | Sweep asks the gateway first, then releases; 8 specs |
 | ~~E2~~ | ~~Reconciliation for orders never confirmed~~ **done** — same sweep | A paid-but-unconfirmed order is settled, not cancelled |
-| E2b | **Schedule the sweep.** No scheduler exists and the free Render plan sleeps after 15 minutes idle, so it needs an external ping | Stock frees itself without a person |
+| E2b | **Schedule the sweep.** No scheduler exists and the free Render plan sleeps after 15 minutes idle, so it needs an external ping. There is a "Release held stock" button on the consignment desk in the meantime | Stock frees itself without a person |
+| ~~E8~~ | ~~Resume an interrupted checkout instead of creating another order~~ **done** | Same order, same number, one stock hold; verified from the UI |
+| ~~E9~~ | ~~Let a customer complete an unpaid order~~ **done** | "Complete payment" on the order page, signed-in customers |
 | E3 | Refunds — and what a refund means with an offer applied | Admin can trigger one |
 | E4 | COD, if taken | Order settles with no money through the gateway |
 | E6 | Live credentials, production guard honoured | Mock mode cannot start in production |

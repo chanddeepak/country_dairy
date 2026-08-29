@@ -99,6 +99,28 @@ export default function Logistics() {
   );
   const dispatched = courierOrders.filter((o) => o.trackingNumber);
 
+  const [isReleasing, setIsReleasing] = useState(false);
+  const [releaseNote, setReleaseNote] = useState<string | null>(null);
+
+  const releaseAbandoned = async () => {
+    setIsReleasing(true);
+    setReleaseNote(null);
+    try {
+      const r = await adminApi.expireAbandonedOrders();
+      setReleaseNote(
+        r.examined === 0
+          ? 'Nothing to release — no checkout has been sitting long enough.'
+          : `Checked ${r.examined}: released ${r.released}, settled ${r.settled}` +
+            (r.failed ? `, ${r.failed} could not be closed` : '') + '.',
+      );
+      await load();
+    } catch (err) {
+      setReleaseNote(err instanceof Error ? err.message : 'Could not release held stock.');
+    } finally {
+      setIsReleasing(false);
+    }
+  };
+
   const openOrder = (order: AdminOrder) => {
     setSelected(order);
     setCarrier(order.shippingCarrier || CARRIERS[0].name);
@@ -236,17 +258,44 @@ export default function Logistics() {
             <h1 className="text-xl font-serif font-bold">Courier Consignments</h1>
           </div>
 
-          <button
-            type="button"
-            data-testid="refresh-consignments"
-            onClick={() => void load()}
-            disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#064e3b] border border-[#064e3b]/25 rounded-lg hover:bg-[#064e3b] hover:text-white disabled:opacity-50 transition-colors"
-          >
-            {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-            {isLoading ? 'Loading' : 'Refresh'}
-          </button>
+          <div className="flex items-center gap-2">
+            {/*
+              * Nothing runs the sweep on a timer: there is no scheduler in the
+              * API and the free hosting plan sleeps when idle, so an in-process
+              * cron would not fire dependably. Until something external pings
+              * it, the desk can — and someone has to, because every abandoned
+              * checkout is holding stock until it runs.
+              */}
+            <button
+              type="button"
+              data-testid="release-abandoned"
+              onClick={() => void releaseAbandoned()}
+              disabled={isReleasing}
+              title="Cancel checkouts nobody paid for and put their stock back"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#064e3b] border border-[#064e3b]/25 rounded-lg hover:bg-[#064e3b] hover:text-white disabled:opacity-50 transition-colors"
+            >
+              {isReleasing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              {isReleasing ? 'Releasing' : 'Release held stock'}
+            </button>
+
+            <button
+              type="button"
+              data-testid="refresh-consignments"
+              onClick={() => void load()}
+              disabled={isLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#064e3b] border border-[#064e3b]/25 rounded-lg hover:bg-[#064e3b] hover:text-white disabled:opacity-50 transition-colors"
+            >
+              {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              {isLoading ? 'Loading' : 'Refresh'}
+            </button>
+          </div>
         </div>
+
+        {releaseNote && (
+          <p className="mt-2 text-xs font-bold text-[#064e3b] bg-emerald-50 border border-emerald-200 rounded-lg p-2.5">
+            {releaseNote}
+          </p>
+        )}
 
         {loadError && (
           <p className="mt-2 text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg p-2.5">
