@@ -1289,6 +1289,71 @@ export class OrdersService {
 
   /** Returns reserved stock to inventory and marks the order cancelled. */
   /**
+   * Cancels an order the customer explicitly abandoned at the payment window.
+   *
+   * Cashfree's SDK resolves with `error.code === 'payment_aborted'` when
+   * somebody answers "Yes, Leave" to their own "Leaving Checkout?" prompt.
+   * That is a statement of intent rather than a silence, so the order can be
+   * closed at once instead of sitting PENDING for an hour holding stock while
+   * the sweep waits to see whether they come back.
+   *
+   * Deliberately conservative about what it will touch:
+   *
+   * - the caller must prove the order is theirs, by session or claim token,
+   *   exactly as confirm does — order numbers are sequential and cancelling a
+   *   stranger's order on a guessed id would be a gift to anyone bored;
+   * - a paid order is never cancelled, whatever the browser claims. The SDK
+   *   can report an abort while the money moved anyway, and the gateway is
+   *   asked rather than believed.
+   */
+  async abandonOrder(userId: string | null, orderId: string, claimToken?: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { orderItems: true, payments: { orderBy: { createdAt: 'desc' }, take: 1 } },
+    });
+
+    if (!order) throw new NotFoundException('Order not found');
+
+    const ownedByCaller = userId !== null && order.userId === userId;
+    const presentedClaim =
+      claimToken !== undefined &&
+      order.claimTokenHash !== null &&
+      order.claimTokenExpiresAt !== null &&
+      order.claimTokenExpiresAt.getTime() > Date.now() &&
+      digestsMatch(hashClaimToken(claimToken), order.claimTokenHash);
+
+    if (!ownedByCaller && !presentedClaim) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // Already settled, or already closed. Nothing to do either way.
+    if (order.status !== OrderStatus.PENDING || order.paymentStatus === PaymentStatus.PAID) {
+      return { cancelled: false, reason: 'already settled' };
+    }
+
+    /*
+     * Ask the gateway before believing the browser. A customer can abort the
+     * window after their bank has already taken the money, and cancelling then
+     * would destroy a real payment and hand the stock back.
+     */
+    const payment = order.payments[0];
+    if (payment?.provider === 'CASHFREE' && payment.gatewayOrderId) {
+      const remote = await this.cashfreeService.getOrder(payment.gatewayOrderId).catch(() => null);
+      if (remote && String(remote.order_status) === 'PAID') {
+        this.logger.warn(
+          `Order ${order.orderNumber} reported as abandoned but is PAID at Cashfree; settling instead`,
+        );
+        await this.confirmCashfreeOrder(null, order.id, undefined, { internal: true });
+        return { cancelled: false, reason: 'paid after all' };
+      }
+    }
+
+    await this.restockAndCancel(order.id, order.orderItems, 'Customer left the payment window');
+    this.logger.log(`Order ${order.orderNumber} cancelled: customer abandoned checkout`);
+    return { cancelled: true };
+  }
+
+  /**
    * Frees stock held by checkouts that were started and never paid for.
    *
    * Every checkout decrements stock inside the transaction that creates the
@@ -1441,7 +1506,26 @@ export class OrdersService {
     const { page, pageSize, skip, take } = pageParams(filters);
 
     const where = {
-        ...(filters.status ? { status: filters.status } : {}),
+        /*
+         * A checkout somebody abandoned before paying is not an order, and the
+         * desk should not have to scroll past it. Those rows are kept — they
+         * consumed a number, held stock for a while, and are worth having if a
+         * customer ever asks what happened — but they are out of the default
+         * list.
+         *
+         * Asking for CANCELLED explicitly still shows them, which is where
+         * anyone looking for one would look. And a cancelled order that *was*
+         * paid is a real event with money behind it, so it stays visible
+         * either way.
+         */
+        ...(filters.status
+          ? { status: filters.status }
+          : {
+              NOT: {
+                status: OrderStatus.CANCELLED,
+                paymentStatus: { in: [PaymentStatus.PENDING, PaymentStatus.FAILED] },
+              },
+            }),
         ...(filters.search
           ? {
               OR: [

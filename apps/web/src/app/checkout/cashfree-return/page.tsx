@@ -88,7 +88,7 @@ function CashfreeReturn() {
             <>
               <Loader2 className="mx-auto mb-6 h-8 w-8 animate-spin text-[var(--forest)]" />
               <h1 className="font-serif text-[26px] font-light text-[var(--ink)]">
-                Confirming your payment
+                Checking with Cashfree
               </h1>
               <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-soft)]">
                 Checking with Cashfree. This takes a few seconds — please don&rsquo;t close

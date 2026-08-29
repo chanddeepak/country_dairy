@@ -80,6 +80,7 @@ interface AppContextType {
     orderId: string,
     claimToken?: string,
   ) => Promise<{ paid: boolean; status?: string }>;
+  abandonOrder: (orderId: string, claimToken?: string) => Promise<void>;
   createSubscription: (data: { productId: string; quantity: number; frequency: string; daysOfWeek: number[]; startDate: string }) => Promise<any>;
   addAddress: (
     line1: string,
@@ -868,6 +869,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  /**
+   * Tells the server the customer walked away, so the order closes now.
+   *
+   * Cashfree distinguishes this from a silence — their SDK reports
+   * `payment_aborted` when somebody answers "Yes, Leave" to their own prompt —
+   * and an intent stated out loud deserves better than an order sitting
+   * PENDING for an hour holding stock.
+   */
+  const abandonOrder = async (orderId: string, claimToken?: string) => {
+    try {
+      await fetch(`${API_URL}/orders/abandon`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId, ...(claimToken ? { claimToken } : {}) }),
+      });
+    } catch (err) {
+      // Best effort. If this never lands the sweep still tidies up, so it is
+      // not worth showing the customer an error about a decision they made.
+      console.error('Could not close the abandoned order:', err);
+    }
+  };
+
   const createSubscription = async (subData: any) => {
     if (!token) throw new Error('Not authenticated');
     try {
@@ -1214,6 +1240,7 @@ function normalisePostalCode(value: string): string {
         checkout,
         verifyPayment,
         confirmCashfreeOrder,
+        abandonOrder,
         createSubscription,
         addAddress,
         updateAddress,

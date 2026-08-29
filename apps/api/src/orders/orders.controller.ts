@@ -138,6 +138,21 @@ export class OrdersController {
     return this.ordersService.confirmCashfreeOrder(user?.id ?? null, dto.orderId, dto.claimToken);
   }
 
+  /**
+   * Closes an order the customer walked away from at the payment window.
+   *
+   * Guest-accessible for the same reason confirm is: there is no session yet,
+   * and the claim token is what proves this browser placed the order.
+   */
+  @Post('abandon')
+  @AllowGuest()
+  async abandon(
+    @CurrentUser() user: { id: string } | undefined,
+    @Body() dto: ConfirmOrderDto,
+  ) {
+    return this.ordersService.abandonOrder(user?.id ?? null, dto.orderId, dto.claimToken);
+  }
+
   @Get()
   async getUserOrders(@CurrentUser() user: { id: string }) {
     return this.ordersService.getUserOrders(user.id);

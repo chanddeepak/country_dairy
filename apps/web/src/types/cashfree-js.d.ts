@@ -21,7 +21,12 @@ declare module '@cashfreepayments/cashfree-js' {
   }
 
   export interface CashfreeCheckoutResult {
-    error?: { message?: string };
+    /**
+     * `code` is 'payment_aborted' when the customer answered "Yes, Leave" to
+     * their own "Leaving Checkout?" prompt — captured from a real cancel, and
+     * the only way to tell a decision from a silence.
+     */
+    error?: { code?: string; message?: string; type?: string };
     redirect?: boolean;
     paymentDetails?: { paymentMessage?: string };
   }

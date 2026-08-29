@@ -202,8 +202,17 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 data-testid="checkout-now"
                 className="w-full bg-[var(--forest)] hover:bg-[var(--pine)] text-white font-bold py-3.5 rounded-sm transition disabled:opacity-60"
               >
+                {/*
+                  * "Checking with Cashfree", not "Confirming your payment".
+                  *
+                  * This runs whenever their window closes without telling us
+                  * why — a closed tab, a dropped connection — and at that point
+                  * we do not know a payment happened. Telling somebody who just
+                  * walked away that we are confirming their payment is alarming
+                  * and, more often than not, untrue.
+                  */}
                 {confirming
-                  ? 'Confirming your payment…'
+                  ? 'Checking with Cashfree…'
                   : starting
                     ? 'Opening secure payment…'
                     : 'Checkout Now'}

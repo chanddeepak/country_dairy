@@ -22,7 +22,7 @@ import { useStoreConfig } from '../context/StoreConfigContext';
  */
 export function useCheckoutFlow() {
   const router = useRouter();
-  const { checkout, confirmCashfreeOrder } = useApp();
+  const { checkout, confirmCashfreeOrder, abandonOrder } = useApp();
   const { isFlagOn, isLoading: configLoading } = useStoreConfig();
 
   const [starting, setStarting] = useState(false);
@@ -110,10 +110,33 @@ export function useCheckoutFlow() {
         // Resolves when their modal closes, however it closed — paid,
         // declined, or dismissed. The SDK does not reliably say which, so the
         // server is asked rather than guessed at.
-        await cashfree.checkout({
+        const outcome = await cashfree.checkout({
           paymentSessionId: result.paymentSessionId,
           redirectTarget: '_modal',
         });
+
+        /*
+         * Cashfree says which kind of ending this was.
+         *
+         * Answering "Yes, Leave" to their own "Leaving Checkout?" prompt
+         * resolves with error.code 'payment_aborted' — a decision, not a
+         * silence. Closing the order straight away means the stock goes back
+         * now rather than in an hour, and no phantom order is left behind for
+         * the customer or the desk to wonder about.
+         *
+         * The server still asks the gateway before cancelling anything: an
+         * abort can be reported after the bank has already taken the money.
+         */
+        const aborted = outcome?.error?.code === 'payment_aborted';
+        if (aborted) {
+          await abandonOrder(
+            result.orderId,
+            sessionStorage.getItem(`cd_claim_${result.orderId}`) ?? undefined,
+          );
+          sessionStorage.removeItem(`cd_claim_${result.orderId}`);
+          setError('Checkout cancelled. Your basket is still here whenever you are ready.');
+          return;
+        }
 
         /*
          * Ask before going anywhere.
@@ -149,7 +172,7 @@ export function useCheckoutFlow() {
         setConfirming(false);
       }
     },
-    [checkout, confirmCashfreeOrder, configLoading, isFlagOn, router],
+    [checkout, confirmCashfreeOrder, abandonOrder, configLoading, isFlagOn, router],
   );
 
   return { start, starting, confirming, error };
