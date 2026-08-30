@@ -31,6 +31,24 @@ test.describe('Full customer journey', () => {
     // React render. This one is allowed to take its time.
     test.setTimeout(300_000);
 
+    /*
+     * This route through the site needs both of the doors it walks through.
+     *
+     * Signing up by email is behind ENABLE_EMAIL_LOGIN and off — customers
+     * arrive by phone OTP now — and our own checkout page only renders when
+     * ENABLE_CASHFREE_CHECKOUT is off, because otherwise Cashfree's window
+     * collects the address and takes the payment. With either flag in its
+     * current position this journey no longer exists to be walked.
+     */
+    const [emailLogin, cashfree] = await Promise.all([
+      db.featureFlag.findUnique({ where: { key: 'ENABLE_EMAIL_LOGIN' } }),
+      db.featureFlag.findUnique({ where: { key: 'ENABLE_CASHFREE_CHECKOUT' } }),
+    ]);
+    test.skip(
+      !emailLogin?.isEnabled || Boolean(cashfree?.isEnabled),
+      'Email sign-up is off, or Cashfree owns the checkout journey',
+    );
+
     const email = uniqueEmail('journey');
     const name = 'Journey Customer';
 

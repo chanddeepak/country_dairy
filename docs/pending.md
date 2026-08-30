@@ -18,30 +18,57 @@ nothing here is assumed.
 | 2 | Terms page | **missing** | `/terms` → 404 |
 | 3 | Clear CTA | **done** | "Add to cart" on cards and detail, "Checkout Now" in the drawer |
 | 4 | FAQ | **missing** | `/faq` → 404 |
-| 5 | robots.txt | **missing** | `/robots.txt` → 404. No `src/app/robots.ts` |
-| 6 | sitemap.xml | **missing** | `/sitemap.xml` → 404. No `src/app/sitemap.ts` |
-| 7 | Custom 404 | **missing** | No `not-found.tsx` anywhere; Next's default page. The **status code is correct** — an unknown URL returns 404, not 200 |
-| 8 | Alt text | **partial** | 24 image tags, **23 carry alt**. One gap: `components/home/HeroSection.tsx:78` |
+| 5 | robots.txt | **done** | `src/app/robots.ts`. Serves live; disallows `/account`, `/checkout`, `/orders/`, `/api/` and points at the sitemap |
+| 6 | sitemap.xml | **done** | `src/app/sitemap.ts`. 6 URLs: home, /products, every nav category, every live product. An unreachable API returns the static routes rather than failing the build |
+| 7 | Custom 404 | **done** | `src/app/not-found.tsx`, on-brand, `noindex`, with a way back. Still a true 404 status. `error.tsx` and `global-error.tsx` added alongside it |
+| 8 | Alt text | **done** | **All 23 image tags carry alt.** An earlier count of "one gap" was wrong — the 24th match was the word `<Image>` inside a comment |
 | 9 | Analytics | **partial** | First-party `page_view` via `PageViewTracker` → `trackStorefrontEvent`. **No third-party vendor** (no GA, GTM, Plausible, PostHog) |
-| 10 | Meta titles | **partial** | Root and `/category/[slug]` only. **Every product page serves the homepage title** |
-| 11 | Meta description | **partial** | Same two places, same gap |
-| 12 | Social share | **missing** | No `og:` tags on home or product. Category has `og:title` and `og:description` only — **no `og:image`**, so a shared link previews with no picture |
+| 10 | Meta titles | **done** | `products/[slug]/layout.tsx` gives every product its own, preferring the `metaTitle` column that existed and was never read. Root sets a `%s | Country Dairy` template |
+| 11 | Meta description | **done** | Same layout: `metaDescription`, else tagline, else story, trimmed to 160 characters on a word boundary |
+| 12 | Social share | **done** | Open Graph and Twitter cards on home, category and product. Product uses its own primary photo; the rest fall back to the site image. Category needed its image repeated — **a route's `openGraph` replaces the root's rather than merging**, so omitting it shipped no picture at all |
 | 13 | Favicon | **done** | `public/favicon.ico`, `src/app/icon.png`, `apple-icon.png`, plus `icons` in root metadata |
-| 14 | Canonical URLs | **missing** | No `rel="canonical"` on any page, and no `metadataBase` |
+| 14 | Canonical URLs | **done** | `metadataBase` from `SITE_URL` (`NEXT_PUBLIC_SITE_URL`, default `https://countrydairy.in` — the apex, since CORS allows both it and www) and a canonical on home, category and product |
 | 15 | Cookie consent | **missing** | No banner, no consent component |
 | 16 | Mobile version | **partial** | Responsive classes throughout (183 breakpoint uses) and Next's default viewport tag. **Not tested on a real device** |
-| 17 | Accessibility | **partial** | `lang="en"` set, alt text good. **Four of five key pages have no `<h1>`** — home, product detail, category and account all return zero; only `/products` has one. Button labelling not properly audited |
+| 17 | Accessibility | **partial** | `lang="en"` set, every image has alt. The `<h1>` finding was **misdiagnosed** — see below. Button labelling still not properly audited |
 | 18 | Test forms | **partial** | e2e covers auth, checkout, account and support. `ContactForm` and `ReviewForm` have no coverage |
 | 19 | Broken links | **partial** | Every nav and footer link resolves (`/`, `/products`, `/account`, `/category/ghee`, `/account?tab=orders` all 200). No site-wide crawl has been run |
 | 20 | Performance | **unmeasured** | No Lighthouse run, and this build's output carried no bundle sizes. Two known drags: **7 files use raw `<img>`** instead of `next/image`, and **all 11 route pages are client components** |
 
-### Two things the checklist does not mention
+### The `<h1>` finding, corrected
 
-**`/phase1-proof` is publicly reachable** and returns 200. Its own comment says
-"Deleted before this branch merges." It was not.
+Every one of those pages **does** have an `<h1>` in its source. What they do
+not have is any content in the response.
 
-**There is no error boundary** — no `error.tsx` and no `global-error.tsx`
-anywhere — so a render error shows Next's default screen.
+Verified against a production `next start`, not the dev server: the body of a
+product page is the announcement bar, the nav, the words **"Loading product
+details"**, and the footer — 812 characters. The product's title, price,
+description and reviews are not in the HTML at all. The title appears exactly
+four times in the document and **all four are in `<head>`** — `<title>`,
+`og:title`, `twitter:title`, `og:image:alt`.
+
+The cause is architectural: **all route pages are client components that fetch
+their own data**, so the server ships a shell. That is why the heading is
+missing, and the missing heading is the symptom rather than the fault.
+
+What this does and does not cost:
+
+- **Search snippets and social previews are fine.** They read `<head>`, which
+  is server-rendered, and that is now complete.
+- **Content indexing is second-pass.** Google executes JavaScript, so pages
+  will be indexed, but later and less reliably than server-rendered HTML.
+  Crawlers that do not run JS see nothing.
+- **Screen readers are fine after hydration** and see no page heading before
+  it.
+
+Fixing it properly means moving data fetching server-side, page by page —
+`/products/[slug]` first, since it is the page that matters for search. That
+is a real refactor and is **not** attempted here.
+
+### One thing the checklist does not mention
+
+`/phase1-proof` was publicly reachable and returned 200, though its own comment
+said "Deleted before this branch merges." **Now deleted.**
 
 ### Why 1, 2 and 4 may block more than SEO
 
@@ -51,13 +78,15 @@ account. **One Click Checkout is still awaiting production activation**, so
 these pages are worth confirming against Cashfree's own activation
 requirements rather than treating them as a marketing nicety.
 
-### The cheapest fixes first
+### What is left on this list
 
-`robots.ts`, `sitemap.ts` and `not-found.tsx` are three small files. Canonical
-URLs and Open Graph are a `metadataBase` plus an `openGraph` block in the root
-metadata. Per-product titles need a `layout.tsx` beside the product page — the
-same trick `/category/[slug]` already uses to get its own metadata out of a
-client page.
+Content pages — **privacy, terms, FAQ** — are not written here because they
+need real business facts: company details, refund and cancellation windows,
+shipping timelines, grievance contact. Invented ones would be worse than none.
+
+Then **cookie consent**, a **Lighthouse run**, **device testing**, coverage for
+`ContactForm` and `ReviewForm`, a **link crawl**, and the server-rendering
+refactor described above.
 
 ---
 
@@ -105,6 +134,20 @@ both open.
 A **declined payment** — the sandbox's FAILED control refuses automated
 clicks. The **webhook winning the race** against the browser's return. And
 **production**, entirely.
+
+### Specs that outlived their features
+
+Three changes this session removed something a storefront spec still drove,
+and each was committed on a green **API** run — which never loads
+`e2e/storefront/*`. They failed unnoticed until the storefront project was run:
+
+| Change | Left behind |
+| --- | --- |
+| Email sign-in switched off | `session.spec.ts` A1/A3, `journey.spec.ts` |
+| Account Addresses tab removed | `account-address.spec.ts` — **deleted**, the tab is gone for good |
+| Our checkout page retired | three `checkout.spec.ts` cases — **gated**, since the page is still the rollback path |
+
+Both projects need running before a UI change is called done.
 
 ### Loose ends
 

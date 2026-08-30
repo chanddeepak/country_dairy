@@ -244,6 +244,10 @@ test.describe('Category page', () => {
   test('a slug nobody has is a 404, not a page titled with the slug', async ({ page }) => {
     const res = await page.goto('/category/definitely-not-a-category');
     expect(res?.status()).toBe(404);
-    await expect(page.getByText(/could not be found/i)).toBeVisible({ timeout: 20_000 });
+    // The hook, not the wording. This asserted Next's default copy ("could not
+    // be found"), so the first custom 404 page the site ever had broke it while
+    // improving the thing it was testing.
+    await expect(page.getByTestId('not-found')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('link', { name: /browse everything/i })).toBeVisible();
   });
 });

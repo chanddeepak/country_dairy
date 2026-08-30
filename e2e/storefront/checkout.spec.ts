@@ -11,6 +11,22 @@ import { SEL, signInToStorefront } from '../fixtures/actions';
  * the address form saves, that the summary on screen is the one the server
  * calculated, and that the payment step ends somewhere sensible.
  */
+/**
+ * Our own checkout page only exists as the rollback path now.
+ *
+ * With ENABLE_CASHFREE_CHECKOUT on, the Checkout button opens Cashfree's
+ * window directly and /checkout renders nothing — their form collects the
+ * address and takes the payment. The page below is what the site falls back to
+ * if that flag is switched off, so these cases still describe something real;
+ * they just cannot run while the gateway owns the journey.
+ */
+async function ownCheckoutInUse(): Promise<boolean> {
+  const row = await db.featureFlag.findUnique({
+    where: { key: 'ENABLE_CASHFREE_CHECKOUT' },
+  });
+  return !row?.isEnabled;
+}
+
 test.describe('Checkout journey', () => {
   let t: Tracked;
 
@@ -33,6 +49,7 @@ test.describe('Checkout journey', () => {
     // Roughly a dozen server round trips to another region, each with a React
     // render behind it.
     test.setTimeout(180_000);
+    test.skip(!(await ownCheckoutInUse()), 'Cashfree owns the checkout journey');
 
     const customer = await createCustomer(t);
     const variant = await findSellableVariant();
@@ -103,6 +120,7 @@ test.describe('Checkout journey', () => {
   });
 
   test('the PIN code fills in the town and state', async ({ page }) => {
+    test.skip(!(await ownCheckoutInUse()), 'Cashfree owns the checkout journey');
     test.setTimeout(180_000);
 
     const customer = await createCustomer(t);
@@ -138,6 +156,7 @@ test.describe('Checkout journey', () => {
   });
 
   test('D4 · a bad PIN code is refused before anything is saved', async ({ page }) => {
+    test.skip(!(await ownCheckoutInUse()), 'Cashfree owns the checkout journey');
     test.setTimeout(120_000);
 
     const customer = await createCustomer(t);
