@@ -28,12 +28,46 @@ nothing here is assumed.
 | 12 | Social share | **done** | Open Graph and Twitter cards on home, category and product. Product uses its own primary photo; the rest fall back to the site image. Category needed its image repeated — **a route's `openGraph` replaces the root's rather than merging**, so omitting it shipped no picture at all |
 | 13 | Favicon | **done** | `public/favicon.ico`, `src/app/icon.png`, `apple-icon.png`, plus `icons` in root metadata |
 | 14 | Canonical URLs | **done** | `metadataBase` from `SITE_URL` (`NEXT_PUBLIC_SITE_URL`, default `https://countrydairy.in` — the apex, since CORS allows both it and www) and a canonical on home, category and product |
-| 15 | Cookie consent | **missing** | No banner, no consent component |
+| 15 | Cookie consent | **decided: none needed** | The site sets **no cookies at all** — verified, no `Set-Cookie` from either server and no `document.cookie` in the source. Only functional browser storage: `cd_token`, `cd_user`, `cd_guest_cart`, `cd_pending_checkout`, `cd_claim_…`. A consent gate over strictly necessary storage would imply tracking that does not happen. The privacy page lists each key instead. **Revisit the moment any analytics or ad script is added** |
 | 16 | Mobile version | **partial** | Responsive classes throughout (183 breakpoint uses) and Next's default viewport tag. **Not tested on a real device** |
 | 17 | Accessibility | **partial** | `lang="en"` set, every image has alt. The `<h1>` finding was **misdiagnosed** — see below. Button labelling still not properly audited |
 | 18 | Test forms | **partial** | e2e covers auth, checkout, account and support. `ContactForm` and `ReviewForm` have no coverage |
-| 19 | Broken links | **partial** | Every nav and footer link resolves (`/`, `/products`, `/account`, `/category/ghee`, `/account?tab=orders` all 200). No site-wide crawl has been run |
-| 20 | Performance | **unmeasured** | No Lighthouse run, and this build's output carried no bundle sizes. Two known drags: **7 files use raw `<img>`** instead of `next/image`, and **all 11 route pages are client components** |
+| 19 | Broken links | **done** | Crawled from the homepage against a production server: **9 internal URLs, 0 broken.** The number is the finding — see below |
+| 20 | Performance | **measured, improved, not finished** | Lighthouse on a production build: **Performance 78, Accessibility 100, Best Practices 100, SEO 100.** Was 61 before the icon fix below |
+
+### Performance: one fix, and what is left
+
+Measured with Lighthouse against `next start`, not the dev server.
+
+| | Before | After |
+| --- | --- | --- |
+| Performance | 61 | **78** |
+| Largest Contentful Paint | 10.9 s | **5.3 s** |
+| Total Blocking Time | 450 ms | **20 ms** |
+| Largest single resource | 990 KB | **71 KB** |
+
+**The fix was one file.** `logo-icon.png` was a 1592×988 PNG weighing 990 KB,
+and it was being served as the favicon, the shortcut icon *and* the Apple touch
+icon — on every page. It was also committed three times over (`public/images/`,
+`src/app/icon.png`, `src/app/apple-icon.png`), about 3 MB of icons in the
+repository. They are now fitted into transparent squares at 192, 180 and a
+multi-size 48px `.ico`: 22 KB, 20 KB and 4.9 KB.
+
+**LCP is still 5.3 s**, and the cause is the same client-rendering problem
+described below: the hero banner comes from an API call the browser only makes
+after JavaScript loads, so the image request starts late no matter how small it
+is. Server-rendering the hero is what moves this number next, not another
+round of image squeezing.
+
+### What the link crawl actually showed
+
+Nothing is broken — and only **nine URLs are reachable**: `/`, `/products`,
+`/account`, `/category/ghee`, the four policy pages, and one image.
+
+A crawler that does not run JavaScript **cannot discover a single product page
+from the homepage**, because the product links are not in the HTML. The sitemap
+is currently the only path to them. That is the same finding as the section
+below, arrived at from the other direction.
 
 ### The `<h1>` finding, corrected
 
@@ -78,7 +112,7 @@ from what the code actually does: the ₹500 free-delivery threshold, GST-
 inclusive pricing, sign-in by mobile code, Cashfree taking the payment,
 per-order address snapshots, account erasure.
 
-**Eighteen facts in them are decisions rather than code**, and each renders as
+**Seventeen facts in them are decisions rather than code**, and each renders as
 a highlighted `[marker]` so none can go live unnoticed:
 
 | Page | Needs |
@@ -107,9 +141,12 @@ requirements rather than treating them as a marketing nicety.
 
 ### What is left on this list
 
-**Cookie consent**, a **Lighthouse run**, **device testing**, coverage for
-`ContactForm` and `ReviewForm`, a **link crawl**, and the server-rendering
-refactor described above — plus filling in the eighteen facts.
+**Device testing**, coverage for `ContactForm` and `ReviewForm`, and the
+server-rendering refactor — which is now the single item behind the remaining
+performance, crawlability and heading findings at once.
+
+Plus the seventeen business facts, which have their own worksheet:
+[business-facts-needed.md](business-facts-needed.md).
 
 ---
 

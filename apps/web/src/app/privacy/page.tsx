@@ -114,11 +114,29 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2>Cookies</h2>
+        <h2>Cookies and browser storage</h2>
         <p>
-          We use cookies and similar browser storage to keep you signed in and to remember what is
-          in your basket. There are no advertising or cross-site tracking cookies. Clearing them
-          signs you out and empties the basket.
+          <strong>This site sets no cookies at all.</strong> What it does use is your browser&rsquo;s
+          own storage, and only for things the shop cannot work without:
+        </p>
+        <ul>
+          <li>
+            <code>cd_token</code> and <code>cd_user</code> — keep you signed in, so you are not
+            asked for a code on every page.
+          </li>
+          <li>
+            <code>cd_guest_cart</code> — remembers your basket before you sign in.
+          </li>
+          <li>
+            <code>cd_pending_checkout</code> and <code>cd_claim_…</code> — held only until the tab
+            is closed, so that a checkout interrupted halfway can be picked up as the same order
+            rather than becoming a second one.
+          </li>
+        </ul>
+        <p>
+          None of these follow you to other sites, and there is no advertising or analytics
+          tracker on this one. Clearing your browser storage signs you out and empties the basket;
+          nothing else is lost.
         </p>
       </section>
 
