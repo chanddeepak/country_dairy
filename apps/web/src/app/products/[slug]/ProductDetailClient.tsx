@@ -855,9 +855,9 @@ export default function ProductDetailClient({
 
               {/* DETAILED PRODUCT DESCRIPTION SECTION */}
               <div className="pt-6 border-t border-[rgb(var(--line-rgb)/0.8)] space-y-3">
-                <h3 className="font-serif font-light text-sm text-[var(--ink)] uppercase tracking-wider">
+                <h2 className="font-serif font-light text-sm text-[var(--ink)] uppercase tracking-wider">
                   Product Description
-                </h3>
+                </h2>
                 <div className="text-sm text-[var(--ink-soft)] leading-relaxed space-y-3">
                   <p>
                     {product.storyDescription || product.description}
@@ -1034,9 +1034,9 @@ export default function ProductDetailClient({
 
                   {/* Product Specifications & Packaging Details */}
                   <div className="space-y-3">
-                    <h4 className="font-serif font-light text-sm text-[var(--ink)] uppercase tracking-wider flex items-center gap-2 border-b border-[var(--line)] pb-2">
-                      Product Specifications & Packaging
-                    </h4>
+                    <h2 className="font-serif font-light text-sm text-[var(--ink)] uppercase tracking-wider flex items-center gap-2 border-b border-[var(--line)] pb-2">
+                      Product Specifications &amp; Packaging
+                    </h2>
                     <div className="space-y-2.5">
                       {Object.entries(dynamicDetails).map(([key, value]) => (
                         <div key={key} className="flex justify-between border-b border-[var(--line)] pb-2 items-center text-xs">

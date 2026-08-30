@@ -205,13 +205,26 @@ test.describe('Category page', () => {
 
     await page.goto(`/category/${shelf!.slug}`);
 
-    // The heading used to fall back to the slug, so a bare lowercase "ghee" sat
-    // in the display serif above three grey boxes until the request landed. A
-    // URL is a machine-readable string, not a page title.
+    /*
+     * The heading used to fall back to the slug, so a bare lowercase "ghee" sat
+     * in the display serif above three grey boxes until the request landed. A
+     * URL is a machine-readable string, not a page title.
+     *
+     * Asserted as "the slug is never the heading" rather than "there is no
+     * heading yet": the shelf is resolved on the server now, so the real name
+     * is in the first response and the delay above — which only throttles the
+     * browser's own request — no longer holds anything back. Demanding an
+     * empty heading would be demanding the old, worse behaviour.
+     */
     await expect(
-      page.getByRole('heading', { level: 1 }),
+      page.getByRole('heading', { level: 1, name: shelf!.slug, exact: true }),
       'the raw slug was shown as the page heading',
     ).toHaveCount(0);
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: shelf!.name, exact: true }),
+      'the shelf name should be in the first response',
+    ).toBeVisible();
 
     await expect(page.getByRole('heading', { name: shelf!.name, level: 1 })).toBeVisible({
       timeout: 20_000,

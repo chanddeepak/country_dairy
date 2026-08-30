@@ -30,7 +30,7 @@ nothing here is assumed.
 | 14 | Canonical URLs | **done** | `metadataBase` from `SITE_URL` (`NEXT_PUBLIC_SITE_URL`, default `https://countrydairy.in` — the apex, since CORS allows both it and www) and a canonical on home, category and product |
 | 15 | Cookie consent | **decided: none needed** | The site sets **no cookies at all** — verified, no `Set-Cookie` from either server and no `document.cookie` in the source. Only functional browser storage: `cd_token`, `cd_user`, `cd_guest_cart`, `cd_pending_checkout`, `cd_claim_…`. A consent gate over strictly necessary storage would imply tracking that does not happen. The privacy page lists each key instead. **Revisit the moment any analytics or ad script is added** |
 | 16 | Mobile version | **partial** | Responsive classes throughout (183 breakpoint uses) and Next's default viewport tag. **Not tested on a real device** |
-| 17 | Accessibility | **partial** | `lang="en"` set, every image has alt. The `<h1>` finding was **misdiagnosed** — see below. Button labelling still not properly audited |
+| 17 | Accessibility | **done, by measurement** | Lighthouse accessibility **100** on home, the shop listing and the policy pages. Three real defects were found and fixed: `role="dialog"` on an `<aside>`, headings skipping h1→h3 on both listings and the product page, and an unlabelled sort `<select>` |
 | 18 | Test forms | **partial** | e2e covers auth, checkout, account and support. `ContactForm` and `ReviewForm` have no coverage |
 | 19 | Broken links | **done** | Crawled from the homepage against a production server: **9 internal URLs, 0 broken.** The number is the finding — see below |
 | 20 | Performance | **measured, improved, not finished** | Lighthouse on a production build: **Performance 78, Accessibility 100, Best Practices 100, SEO 100.** Was 61 before the icon fix below |
@@ -64,7 +64,31 @@ HTML and preloaded. Under Lighthouse's simulated slow 4G the JavaScript bundle
 and two font files compete for the same bandwidth. Cutting or deferring that
 bundle is the next lever; more image work is not.
 
-### What the link crawl actually showed
+### What the link crawl showed, and what closed it
+
+The first crawl reached **9 URLs, 0 broken** — and a crawler that does not run
+JavaScript **could not discover a single product page**, because the links were
+not in the HTML. The sitemap was the only path to them.
+
+After server-rendering both listings: **12 URLs, 0 broken**, and product pages
+are reachable from the homepage for the first time. The `?variant=` links they
+carry canonicalise back to the clean product URL, so the two do not compete.
+
+### The listings, and one measurement I got wrong
+
+`/products` and `/category/[slug]` now render their cards — names, prices,
+discount badges — on the server, seeded into the same client components that
+still own filtering, sorting and the cart drawer. Both fetch with
+`cache: 'no-store'`, decided up front this time: a card shows price and
+sold-out state, which is exactly the data that, cached for five minutes on the
+product page, kept a sold-out variant on sale.
+
+**I reported the shop listing at Performance 50 with 1,800 ms of blocking
+time. That was wrong** — it was measured while the Playwright suite was running
+on the same machine, competing for CPU. Measured cleanly it is **82, with 20 ms
+of blocking**. A number taken under load is not a finding.
+
+### The old crawl note
 
 Nothing is broken — and only **nine URLs are reachable**: `/`, `/products`,
 `/account`, `/category/ghee`, the four policy pages, and one image.
@@ -175,10 +199,9 @@ requirements rather than treating them as a marketing nicety.
 
 ### What is left on this list
 
-**Device testing**, coverage for `ContactForm` and `ReviewForm`, and the
-`/products` and `/category/[slug]` listings, which are still client-rendered —
-so a crawler without JavaScript still cannot walk from the homepage to a
-product, even though the product pages themselves are now server-rendered.
+**Device testing** and coverage for `ContactForm` and `ReviewForm`.
+
+The listings are done — see below — so the crawl path is closed.
 
 Plus the seventeen business facts, which have their own worksheet:
 [business-facts-needed.md](business-facts-needed.md).

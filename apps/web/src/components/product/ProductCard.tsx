@@ -10,6 +10,15 @@ import { buildProductMessage, whatsAppUrl } from '../../lib/storeConfig';
 import { trackStorefrontEvent } from '../../lib/analytics';
 
 interface ProductCardProps {
+  /**
+   * What heading a card title is, which depends on where the grid sits.
+   *
+   * Directly under a page's <h1> — the shop and a category shelf — a card is
+   * an h2; under a section heading like "You May Also Like" it is an h3.
+   * Hardcoding h3 made the listings jump h1 to h3, which axe reports and a
+   * screen-reader user hears as a missing level.
+   */
+  headingLevel?: 'h2' | 'h3';
   product: Product;
   /** Takes a variant id — price, SKU and stock all live on the variant. */
   onAddToCart: (
@@ -26,7 +35,12 @@ interface ProductCardProps {
   onSubscribe?: (product: Product) => void;
 }
 
-export default function ProductCard({ product, onAddToCart, onSubscribe }: ProductCardProps) {
+export default function ProductCard({
+  product,
+  onAddToCart,
+  onSubscribe,
+  headingLevel: Heading = 'h3',
+}: ProductCardProps) {
   // imageUrls[0] is the variant image when coming from getExpandedProducts (homepage shelf).
   // For base FALLBACK_PRODUCTS (e.g. "You May Also Like"), imageUrls[0] is a gallery image — skip it.
   const firstUrl = product.imageUrls?.[0] || (product as any).galleryImages?.[0]?.imageUrl;
@@ -201,9 +215,9 @@ export default function ProductCard({ product, onAddToCart, onSubscribe }: Produ
         )}
 
         <Link href={productUrl} data-testid="product-card-link" className="transition-colors hover:text-[var(--brass-text)]">
-          <h3 className="font-serif text-[19px] leading-snug text-[var(--ink)]">
+          <Heading className="font-serif text-[19px] leading-snug text-[var(--ink)]">
             {product.name}
-          </h3>
+          </Heading>
         </Link>
 
         {/* Expanded variants already carry the size in the name — "… — 1 Litre

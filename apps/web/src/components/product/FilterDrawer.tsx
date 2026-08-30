@@ -95,7 +95,14 @@ export default function FilterDrawer({
         }`}
       />
 
-      <aside
+      {/*
+        A div, not an <aside>. The element already carries role="dialog", and
+        aside has an implicit complementary role that the explicit one is not
+        allowed to override — axe reports it as an ARIA role on an incompatible
+        element. Nothing about the drawer changes; the wrapper stops making two
+        contradictory claims about what it is.
+      */}
+      <div
         ref={panelRef}
         tabIndex={-1}
         role="dialog"
@@ -206,7 +213,7 @@ export default function FilterDrawer({
             Show {resultCount} {resultCount === 1 ? 'product' : 'products'}
           </button>
         </footer>
-      </aside>
+      </div>
     </>
   );
 }
