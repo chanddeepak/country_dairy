@@ -165,8 +165,9 @@ export default function ReviewForm({
       </div>
 
       <div>
-        <label className="text-xs font-bold text-[var(--ink)] block mb-1">Title:</label>
+        <label htmlFor="review-title" className="text-xs font-bold text-[var(--ink)] block mb-1">Title:</label>
         <input
+          id="review-title"
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -176,8 +177,9 @@ export default function ReviewForm({
       </div>
 
       <div>
-        <label className="text-xs font-bold text-[var(--ink)] block mb-1">Comment:</label>
+        <label htmlFor="review-comment" className="text-xs font-bold text-[var(--ink)] block mb-1">Comment:</label>
         <textarea
+          id="review-comment"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           rows={3}

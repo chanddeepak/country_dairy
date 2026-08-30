@@ -31,7 +31,7 @@ nothing here is assumed.
 | 15 | Cookie consent | **decided: none needed** | The site sets **no cookies at all** — verified, no `Set-Cookie` from either server and no `document.cookie` in the source. Only functional browser storage: `cd_token`, `cd_user`, `cd_guest_cart`, `cd_pending_checkout`, `cd_claim_…`. A consent gate over strictly necessary storage would imply tracking that does not happen. The privacy page lists each key instead. **Revisit the moment any analytics or ad script is added** |
 | 16 | Mobile version | **partial** | Responsive classes throughout (183 breakpoint uses) and Next's default viewport tag. **Not tested on a real device** |
 | 17 | Accessibility | **done, by measurement** | Lighthouse accessibility **100** on home, the shop listing and the policy pages. Three real defects were found and fixed: `role="dialog"` on an `<aside>`, headings skipping h1→h3 on both listings and the product page, and an unlabelled sort `<select>` |
-| 18 | Test forms | **partial** | e2e covers auth, checkout, account and support. `ContactForm` and `ReviewForm` have no coverage |
+| 18 | Test forms | **done** | `forms.spec.ts` — seven cases across both. Contact: empty submit files nothing, an unreachable server says so, a server rejection is shown, fields clear after sending. Review: a rating is required, a post lands with the right stars, and the verified badge follows the purchase |
 | 19 | Broken links | **done** | Crawled from the homepage against a production server: **9 internal URLs, 0 broken.** The number is the finding — see below |
 | 20 | Performance | **measured, improved, not finished** | Lighthouse on a production build: **Performance 78, Accessibility 100, Best Practices 100, SEO 100.** Was 61 before the icon fix below |
 
@@ -73,6 +73,36 @@ not in the HTML. The sitemap was the only path to them.
 After server-rendering both listings: **12 URLs, 0 broken**, and product pages
 are reachable from the homepage for the first time. The `?variant=` links they
 carry canonicalise back to the clean product URL, so the two do not compete.
+
+### The two forms, and two defects found writing the tests
+
+`ContactForm`'s happy path was already covered in `support.spec.ts`; nothing
+around it was, and `ReviewForm` had no coverage at all despite being the only
+place a customer publishes something other people read.
+
+Seven cases now, in `forms.spec.ts`. The contact ones are mostly about
+failure: an empty submit files nothing, an unreachable server says so rather
+than pretending to have sent it, a server rejection is shown, and the fields
+clear afterwards so the next message is not the last one again.
+
+**The review pair is the one worth explaining.** Asserting
+`isVerifiedPurchase: false` for a reviewer who bought nothing proves nothing on
+its own — a column that is always false would satisfy it. So a second case buys
+the product first and expects `true`. Between them they can only pass if the
+badge is actually derived from a paid order, which is what the badge claims.
+
+The rating guard was checked by removing it: the test fails without it.
+
+Two defects surfaced while making the form testable by role, both invisible to
+Lighthouse because the form sits behind a sign-in and a modal:
+
+- **The star buttons had no accessible name.** Five identical unlabelled
+  buttons, so a screen reader offered no way to tell which rating was which.
+  Interactive stars now name themselves and expose `aria-pressed`; a read-only
+  rating is a single `role="img"` reading "4 out of 5 stars" rather than five
+  controls describing the markup.
+- **The Title and Comment labels were not associated with their inputs** — no
+  `htmlFor`, no `id`.
 
 ### The listings, and one measurement I got wrong
 
