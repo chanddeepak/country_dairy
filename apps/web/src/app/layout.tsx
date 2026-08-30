@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppProvider } from "../context/AppContext";
 import PageViewTracker from "../components/analytics/PageViewTracker";
 import { StoreConfigProvider } from "../context/StoreConfigContext";
+import { SITE_URL } from "../lib/constants";
 
 /**
  * The two faces of the Himalayan redesign.
@@ -30,9 +31,48 @@ const jost = Jost({
   display: "swap",
 });
 
+const TITLE = "Country Dairy | Organic A2 Vedic Ghee & Wood-Pressed Oils";
+const DESCRIPTION =
+  "Experience premium, traceable organic A2 Vedic Ghee and cold-pressed oils delivered fresh from farm to home. Purity verified with batch lab test reports.";
+
 export const metadata: Metadata = {
-  title: "Country Dairy | Organic A2 Vedic Ghee & Wood-Pressed Oils",
-  description: "Experience premium, traceable organic A2 Vedic Ghee and cold-pressed oils delivered fresh from farm to home. Purity verified with batch lab test reports.",
+  /*
+   * Everything read off-site needs an absolute URL — a crawler or a chat app
+   * unfurling a link has no idea which host served the page. Setting this once
+   * lets every other route write `openGraph.url` and `alternates.canonical` as
+   * a path and have Next resolve it.
+   */
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: TITLE,
+    // Routes that set their own title get " | Country Dairy" for free rather
+    // than each one remembering to append it.
+    template: "%s | Country Dairy",
+  },
+  description: DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "Country Dairy",
+    title: TITLE,
+    description: DESCRIPTION,
+    url: "/",
+    locale: "en_IN",
+    images: [
+      {
+        url: "/images/closing-valley.jpg",
+        width: 1672,
+        height: 941,
+        alt: "Himalayan pasture above the Country Dairy farm",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ["/images/closing-valley.jpg"],
+  },
   icons: {
     icon: "/images/logo-icon.png",
     shortcut: "/images/logo-icon.png",

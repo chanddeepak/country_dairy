@@ -11,6 +11,21 @@ export const COLORS = {
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
+/**
+ * Where this site lives, for the things that must be absolute.
+ *
+ * Canonical links, Open Graph URLs and the sitemap are all read off-site, by a
+ * crawler or a chat app that has no idea what host served the page — a
+ * relative URL in any of them is useless. Next resolves them against
+ * `metadataBase`, which is set from this.
+ *
+ * The apex, not www: the CORS list allows both, so one has to be named as the
+ * canonical one or the two compete for the same rankings.
+ */
+export const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL || 'https://countrydairy.in'
+).replace(/\/$/, '');
+
 // Feature flags live in the database (FeatureFlag table) and are read through
 // StoreConfigContext. Hardcoding them here meant the storefront and the admin
 // console could disagree about what was switched on.

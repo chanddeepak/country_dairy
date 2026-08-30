@@ -1,11 +1,15 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { API_URL } from '../../../lib/constants';
+import { API_URL, resolveStorefrontImageUrl } from '../../../lib/constants';
+
+/** The same share image the root metadata uses. */
+const SITE_SHARE_IMAGE = '/images/closing-valley.jpg';
 
 interface NavShelf {
   name: string;
   slug: string;
   description: string | null;
+  imageUrl: string | null;
 }
 
 /**
@@ -59,10 +63,27 @@ export async function generateMetadata({
   const description =
     shelf.description || `Shop ${shelf.name.toLowerCase()} from Country Dairy.`;
 
+  // Bare name, not "Ghee | Country Dairy": the root metadata sets a title
+  // template that appends the brand, and doing it here too reads as
+  // "Ghee | Country Dairy | Country Dairy".
   return {
-    title: `${shelf.name} | Country Dairy`,
+    title: shelf.name,
     description,
-    openGraph: { title: `${shelf.name} | Country Dairy`, description },
+    alternates: { canonical: `/category/${slug}` },
+    openGraph: {
+      title: `${shelf.name} | Country Dairy`,
+      description,
+      url: `/category/${slug}`,
+      /*
+       * Repeated rather than inherited. A route's openGraph block replaces the
+       * root's outright instead of merging into it, so leaving images out here
+       * does not fall back to the site image — it ships a shared link with no
+       * picture at all, which is exactly what this page did.
+       */
+      images: shelf.imageUrl
+        ? [{ url: resolveStorefrontImageUrl(shelf.imageUrl), alt: shelf.name }]
+        : [{ url: SITE_SHARE_IMAGE, width: 1672, height: 941, alt: 'Country Dairy' }],
+    },
   };
 }
 
