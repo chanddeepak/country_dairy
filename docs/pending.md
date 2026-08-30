@@ -53,11 +53,16 @@ icon — on every page. It was also committed three times over (`public/images/`
 repository. They are now fitted into transparent squares at 192, 180 and a
 multi-size 48px `.ico`: 22 KB, 20 KB and 4.9 KB.
 
-**LCP is still 5.3 s**, and the cause is the same client-rendering problem
-described below: the hero banner comes from an API call the browser only makes
-after JavaScript loads, so the image request starts late no matter how small it
-is. Server-rendering the hero is what moves this number next, not another
-round of image squeezing.
+**LCP did not improve as much as expected.** Server-rendering the hero moved
+Performance 78 → **81** and CLS 0.1 → **0**, but LCP only went 5.3 → 5.1 s. A
+CDN `preconnect` cut the image's own download from 530 ms to 132 ms and left
+the score unchanged at 80–81, inside run-to-run noise.
+
+The remaining cost is **Load Delay, around 3–4 s** — the gap between the page
+loading and the browser starting on the image, even though it is now in the
+HTML and preloaded. Under Lighthouse's simulated slow 4G the JavaScript bundle
+and two font files compete for the same bandwidth. Cutting or deferring that
+bundle is the next lever; more image work is not.
 
 ### What the link crawl actually showed
 
@@ -69,9 +74,38 @@ from the homepage**, because the product links are not in the HTML. The sitemap
 is currently the only path to them. That is the same finding as the section
 below, arrived at from the other direction.
 
+### Server rendering: done for the two pages that matter
+
+Home and the product page now render their content on the server.
+
+| | Home | Product page |
+| --- | --- | --- |
+| `<h1>` in the response | 0 → **1** | 0 → **1** |
+| Body text | 3,521 → **3,649** chars | 812 → **2,485** chars |
+| "Loading product details" | — | **gone** |
+| Hero image in HTML | no → **yes** | — |
+
+The shape is a server shell around a client island: `page.tsx` fetches and
+passes the data in, the existing client component keeps the gallery, variant
+picker, cart drawer and modals, and seeds its state from the prop instead of
+starting empty and filling in from an effect. Home is now statically
+prerendered with a five-minute revalidate; the product page stays dynamic.
+
+**A regression this caused, and the spec that caught it.** The first version
+cached the product fetch for five minutes, which meant a sold-out variant
+stayed on sale for five minutes — `cart.spec.ts` B7 failed with "a sold-out
+variant was still buyable". Titles tolerate staleness; stock does not, and
+both come from the same call, so the fetch is `cache: 'no-store'`.
+
+Still client-rendered, deliberately: `/account`, `/checkout`, `/orders/*` —
+all behind a session, none of them things a crawler should see. `/products`
+and `/category/[slug]` listings have not been converted.
+
 ### The `<h1>` finding, corrected
 
-Every one of those pages **does** have an `<h1>` in its source. What they do
+*(Kept for the record — this is what the work above fixed.)*
+
+Every one of those pages **does** have an `<h1>` in its source. What they did
 not have is any content in the response.
 
 Verified against a production `next start`, not the dev server: the body of a
@@ -142,8 +176,9 @@ requirements rather than treating them as a marketing nicety.
 ### What is left on this list
 
 **Device testing**, coverage for `ContactForm` and `ReviewForm`, and the
-server-rendering refactor — which is now the single item behind the remaining
-performance, crawlability and heading findings at once.
+`/products` and `/category/[slug]` listings, which are still client-rendered —
+so a crawler without JavaScript still cannot walk from the homepage to a
+product, even though the product pages themselves are now server-rendered.
 
 Plus the seventeen business facts, which have their own worksheet:
 [business-facts-needed.md](business-facts-needed.md).

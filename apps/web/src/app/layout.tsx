@@ -6,6 +6,17 @@ import PageViewTracker from "../components/analytics/PageViewTracker";
 import { StoreConfigProvider } from "../context/StoreConfigContext";
 import { SITE_URL } from "../lib/constants";
 
+/** Origin of the image CDN, when one is configured. */
+const CDN_ORIGIN = (() => {
+  try {
+    return process.env.NEXT_PUBLIC_SUPABASE_URL
+      ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
+      : '';
+  } catch {
+    return '';
+  }
+})();
+
 /**
  * The two faces of the Himalayan redesign.
  *
@@ -90,6 +101,21 @@ export default function RootLayout({
       lang="en"
       className={`${newsreader.variable} ${jost.variable} h-full antialiased`}
     >
+      <head>
+        {/*
+          The hero banner is served from object storage on another origin, so
+          the browser had to resolve DNS and negotiate TLS before it could even
+          start the download — time that landed squarely in the largest paint.
+          Warming the connection while the HTML is still parsing takes that off
+          the critical path.
+        */}
+        {CDN_ORIGIN && (
+          <>
+            <link rel="preconnect" href={CDN_ORIGIN} crossOrigin="" />
+            <link rel="dns-prefetch" href={CDN_ORIGIN} />
+          </>
+        )}
+      </head>
       <body className="min-h-full flex flex-col bg-[var(--ivory)] text-[var(--ink)] font-sans">
         <StoreConfigProvider>
           <AppProvider>

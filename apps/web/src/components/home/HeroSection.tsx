@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { heroLayoutClasses } from '../../lib/heroLayout';
 import { ArrowRight } from 'lucide-react';
+import { mapHeroBanners } from '../../lib/heroSlides';
 import { API_URL } from '../../lib/constants';
 
 const STATIC_HERO_SLIDES = [
@@ -46,29 +47,22 @@ const STATIC_HERO_SLIDES = [
   }
 ];
 
-function resolveStorefrontImageUrl(url?: string): string {
-  if (!url) return '/images/hero-banner.png';
-  if (url.startsWith('/hero-banners/') || url.startsWith('/products/')) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    return `${supabaseUrl}/storage/v1/object/public${url}`;
-  }
-  if (url.startsWith('/storage/v1/object/public/')) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    return `${supabaseUrl}${url}`;
-  }
-  if (url.startsWith('/uploads/')) {
-    const apiHost = API_URL.replace(/\/api\/?$/, '');
-    return `${apiHost}${url}`;
-  }
-  return url;
-}
-export default function HeroSection() {
-  const [slides, setSlides] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+export default function HeroSection({ initialSlides }: { initialSlides?: any[] | null }) {
+  /*
+   * Seeded from the server when there is something to seed with. The carousel
+   * used to start empty and fill in after two API calls, so the banner — the
+   * largest thing on the page — could not begin downloading until the bundle
+   * had loaded and hydrated.
+   */
+  const [slides, setSlides] = useState<any[]>(initialSlides ?? []);
+  const [isLoading, setIsLoading] = useState<boolean>(!initialSlides);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
+    // Already have them from the server; asking again would only replace the
+    // slides with identical ones and restart the carousel.
+    if (initialSlides) return;
     fetchHeroBanners();
   }, []);
 
@@ -105,29 +99,7 @@ export default function HeroSection() {
       if (mobileRes.ok) mobileBanners = await mobileRes.json();
 
       if (desktopBanners.length > 0 || mobileBanners.length > 0) {
-        const primaryBanners = desktopBanners.length > 0 ? desktopBanners : mobileBanners;
-        const mapped = primaryBanners.map((b: any, idx: number) => {
-          const mobMatch = mobileBanners[idx] || mobileBanners[0] || b;
-          return {
-            id: b.id || idx,
-            image: resolveStorefrontImageUrl(b.imageUrl || '/images/hero-banner.png'),
-            mobileImage: resolveStorefrontImageUrl(mobMatch.imageUrl || b.imageUrl || '/images/hero-banner.png'),
-            objectPosition: 'center',
-            headline: b.title,
-            subtitle: b.subtitle,
-            // The column has existed since August and nothing read it. A
-            // poster-style banner carries its own headline, so the storefront
-            // must not lay a second one over the top.
-            imageHasText: Boolean(b.imageHasText),
-            ctaText: b.ctaText || 'Shop All Products',
-            ctaHref: b.ctaLink || '/products',
-            // The desktop row owns the placement; the mobile row is only
-            // consulted for its artwork, since anchors are relative and
-            // survive the narrower box on their own.
-            layout: b.layout ?? null,
-          };
-        });
-        setSlides(mapped);
+        setSlides(mapHeroBanners(desktopBanners, mobileBanners));
       } else {
         setSlides(STATIC_HERO_SLIDES);
       }

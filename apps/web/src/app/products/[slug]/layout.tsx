@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { API_URL, resolveStorefrontImageUrl } from '../../../lib/constants';
+import { resolveStorefrontImageUrl } from '../../../lib/constants';
+import { getProduct } from './getProduct';
 
 interface GalleryImage {
   imageUrl: string | null;
@@ -9,37 +10,6 @@ interface GalleryImage {
   mediaType: string;
 }
 
-interface ProductSeo {
-  title: string;
-  tagline: string | null;
-  storyDescription: string | null;
-  metaTitle: string | null;
-  metaDescription: string | null;
-  galleryImages: GalleryImage[] | null;
-}
-
-/**
- * One product, for the metadata and for the 404 decision.
- *
- * Both callers use the same URL and cache options, so Next serves the second
- * from the first — this is one request per render, not two.
- *
- * `undefined` means no such product and `null` means the lookup failed, and
- * the two must not be treated alike: 404-ing a real product because the API
- * blinked would drop it out of search results.
- */
-async function findProduct(slug: string): Promise<ProductSeo | undefined | null> {
-  try {
-    const res = await fetch(`${API_URL}/catalog/products/${encodeURIComponent(slug)}`, {
-      next: { revalidate: 300 },
-    });
-    if (res.status === 404) return undefined;
-    if (!res.ok) return null;
-    return (await res.json()) as ProductSeo;
-  } catch {
-    return null;
-  }
-}
 
 /** First sentence-ish, for a description that has to fit in a search result. */
 function trim(text: string, max = 160): string {
@@ -68,7 +38,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await findProduct(slug);
+  const product = await getProduct(slug);
   if (!product) return {};
 
   const title = product.metaTitle?.trim() || product.title;
@@ -79,13 +49,13 @@ export async function generateMetadata({
       `${product.title} from Country Dairy.`,
   );
 
-  const images = (product.galleryImages ?? [])
-    .filter((g) => g.mediaType === 'IMAGE' && g.imageUrl)
+  const images = ((product.galleryImages ?? []) as GalleryImage[])
+    .filter((g: GalleryImage) => g.mediaType === 'IMAGE' && g.imageUrl)
     // The primary shot first — whichever image leads is the one that appears
     // when the link is shared.
-    .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary))
+    .sort((a: GalleryImage, b: GalleryImage) => Number(b.isPrimary) - Number(a.isPrimary))
     .slice(0, 1)
-    .map((g) => ({
+    .map((g: GalleryImage) => ({
       url: resolveStorefrontImageUrl(g.imageUrl),
       alt: g.altText || product.title,
     }));
@@ -115,7 +85,7 @@ export default async function ProductLayout({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = await findProduct(slug);
+  const product = await getProduct(slug);
 
   // Here rather than in the page: a client component's notFound() runs after
   // hydration, so the customer sees the 404 screen but a 200 has already gone
