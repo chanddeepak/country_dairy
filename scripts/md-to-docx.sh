@@ -11,7 +11,7 @@
 # system-wide install, and nothing to set up on a new machine beyond running
 # this. The .docx imports into Google Docs with its tables intact.
 #
-#   scripts/md-to-docx.sh docs/shiprocket-integration-handover.md
+#   scripts/md-to-docx.sh docs/checkout-and-identity.md
 #   scripts/md-to-docx.sh docs/thing.md docs/Custom-Name.docx
 #
 set -euo pipefail

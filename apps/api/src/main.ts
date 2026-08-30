@@ -32,11 +32,10 @@ function resolveAllowedOrigins(isProduction: boolean): string[] {
  * turned the entire catalogue into a 500 the moment the column existed, which
  * is a spectacular way for a new id to take a shop down.
  *
- * Number rather than String because that is the shape Shiprocket's feed
- * expects: their sample sends `"id": 632910392`, unquoted. These are
- * sequential from 1, so the 2^53 ceiling on a JavaScript number is not a
- * ceiling anyone will reach — a dairy would need to add a product every
- * second for 285 million years.
+ * Number rather than String: the columns are sequential from 1, so the 2^53
+ * ceiling on a JavaScript number is not a ceiling anyone will reach — a dairy
+ * would need to add a product every second for 285 million years. Switching
+ * to String would change the shape of every catalogue response.
  */
 (BigInt.prototype as unknown as { toJSON: () => number }).toJSON = function toJSON(
   this: bigint,
@@ -72,14 +71,9 @@ async function bootstrap() {
     express.raw({ type: '*/*', limit: '1mb' }),
   );
 
-  // Same reasoning for Shiprocket, whose HMAC is over the body they sent.
+  // Same reasoning for Cashfree, whose HMAC is over the body they sent.
   app.use(
     '/api/orders/webhook/cashfree',
-    express.raw({ type: '*/*', limit: '1mb' }),
-  );
-
-  app.use(
-    '/api/shiprocket/webhook/order',
     express.raw({ type: '*/*', limit: '1mb' }),
   );
 
