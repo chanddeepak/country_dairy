@@ -45,6 +45,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     { url: `${SITE_URL}/`, lastModified: now, changeFrequency: 'daily', priority: 1 },
     { url: `${SITE_URL}/products`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
+    // Rarely change, and the pages a gateway or a cautious customer goes
+    // looking for, so they belong in the index rather than only in the footer.
+    ...(['/faq', '/shipping-and-returns', '/privacy', '/terms'] as const).map((path) => ({
+      url: `${SITE_URL}${path}`,
+      lastModified: now,
+      changeFrequency: 'yearly' as const,
+      priority: 0.3,
+    })),
     ...categories.map((c) => ({
       url: `${SITE_URL}/category/${c.slug}`,
       lastModified: c.updatedAt ? new Date(c.updatedAt) : now,

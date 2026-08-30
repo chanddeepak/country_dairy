@@ -14,10 +14,10 @@ nothing here is assumed.
 
 | # | Item | | Evidence |
 | --- | --- | --- | --- |
-| 1 | Privacy policy | **missing** | `/privacy` → 404. No policy content anywhere in `apps/web` |
-| 2 | Terms page | **missing** | `/terms` → 404 |
+| 1 | Privacy policy | **drafted** | `/privacy`, prerendered. Needs the facts listed below before it is true |
+| 2 | Terms page | **drafted** | `/terms`, prerendered. Same caveat |
 | 3 | Clear CTA | **done** | "Add to cart" on cards and detail, "Checkout Now" in the drawer |
-| 4 | FAQ | **missing** | `/faq` → 404 |
+| 4 | FAQ | **drafted** | `/faq`, prerendered. Plain headings, not an accordion, so the answers are indexable |
 | 5 | robots.txt | **done** | `src/app/robots.ts`. Serves live; disallows `/account`, `/checkout`, `/orders/`, `/api/` and points at the sitemap |
 | 6 | sitemap.xml | **done** | `src/app/sitemap.ts`. 6 URLs: home, /products, every nav category, every live product. An unreachable API returns the static routes rather than failing the build |
 | 7 | Custom 404 | **done** | `src/app/not-found.tsx`, on-brand, `noindex`, with a way back. Still a true 404 status. `error.tsx` and `global-error.tsx` added alongside it |
@@ -70,6 +70,33 @@ is a real refactor and is **not** attempted here.
 `/phase1-proof` was publicly reachable and returned 200, though its own comment
 said "Deleted before this branch merges." **Now deleted.**
 
+### The policy pages need facts only you have
+
+Four pages now exist — `/privacy`, `/terms`, `/shipping-and-returns` and
+`/faq` — linked from the footer and listed in the sitemap. They are written
+from what the code actually does: the ₹500 free-delivery threshold, GST-
+inclusive pricing, sign-in by mobile code, Cashfree taking the payment,
+per-order address snapshots, account erasure.
+
+**Eighteen facts in them are decisions rather than code**, and each renders as
+a highlighted `[marker]` so none can go live unnoticed:
+
+| Page | Needs |
+| --- | --- |
+| Privacy | legal entity, GSTIN, data retention period, response window, grievance officer |
+| Terms | legal entity, GSTIN, **FSSAI licence number**, jurisdiction |
+| Shipping & Returns | packing days, dispatch window, local and courier timelines, damage-report window, return window, who pays return postage, refund processing time |
+| FAQ | whether COD is offered, opened shelf life |
+
+The FSSAI number is not optional — a food business selling online in India has
+to display it. And a lawyer should read these before launch; they are an
+honest, specific draft, not legal advice.
+
+**One inconsistency they surfaced:** the announcement bar says "Free shipping
+over ₹499" while `FREE_DELIVERY_THRESHOLD` is 500. For whole-rupee baskets the
+two agree, so nothing is broken today — but the policy pages state ₹500,
+because that is what the code charges on.
+
 ### Why 1, 2 and 4 may block more than SEO
 
 Payment gateways generally want a live privacy policy, terms, and refund,
@@ -80,13 +107,9 @@ requirements rather than treating them as a marketing nicety.
 
 ### What is left on this list
 
-Content pages — **privacy, terms, FAQ** — are not written here because they
-need real business facts: company details, refund and cancellation windows,
-shipping timelines, grievance contact. Invented ones would be worse than none.
-
-Then **cookie consent**, a **Lighthouse run**, **device testing**, coverage for
+**Cookie consent**, a **Lighthouse run**, **device testing**, coverage for
 `ContactForm` and `ReviewForm`, a **link crawl**, and the server-rendering
-refactor described above.
+refactor described above — plus filling in the eighteen facts.
 
 ---
 

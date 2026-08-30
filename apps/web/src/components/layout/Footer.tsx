@@ -83,6 +83,17 @@ export default function Footer() {
 
       <div className="relative z-10 max-w-7xl mx-auto mt-14 pt-7 border-t border-white/12 flex flex-wrap justify-between gap-4 text-[12px] text-[rgb(var(--sand-rgb)/0.6)] font-light">
         <p className="m-0">&copy; 2026 Country Dairy</p>
+
+        {/* The policy pages live here rather than in a column of their own:
+            they are looked for at the foot of a page, and a payment gateway
+            checking a merchant site looks in exactly this spot. */}
+        <nav aria-label="Policies" className="flex flex-wrap gap-x-5 gap-y-2">
+          <Link href="/faq" className="hover:text-white transition-colors">FAQ</Link>
+          <Link href="/shipping-and-returns" className="hover:text-white transition-colors">Shipping &amp; Returns</Link>
+          <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+          <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+        </nav>
+
         <p className="m-0">Every batch tested. Every jar traceable.</p>
       </div>
     </footer>
