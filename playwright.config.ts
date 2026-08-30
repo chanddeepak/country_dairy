@@ -67,6 +67,11 @@ export default defineConfig({
     {
       name: 'storefront',
       testMatch: /storefront\/.*\.spec\.ts/,
+      // The mirror of storefront-mobile's grep. Both projects match the same
+      // files, so without this the phone cases also run at 1280px wide, where
+      // there is no hamburger to open and no drawer to slide in — they would
+      // fail describing a menu that is not supposed to exist.
+      grepInvert: /@responsive/,
       use: { ...devices['Desktop Chrome'], baseURL: STOREFRONT },
       dependencies: ['setup'],
     },

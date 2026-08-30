@@ -29,7 +29,7 @@ nothing here is assumed.
 | 13 | Favicon | **done** | `public/favicon.ico`, `src/app/icon.png`, `apple-icon.png`, plus `icons` in root metadata |
 | 14 | Canonical URLs | **done** | `metadataBase` from `SITE_URL` (`NEXT_PUBLIC_SITE_URL`, default `https://countrydairy.in` — the apex, since CORS allows both it and www) and a canonical on home, category and product |
 | 15 | Cookie consent | **decided: none needed** | The site sets **no cookies at all** — verified, no `Set-Cookie` from either server and no `document.cookie` in the source. Only functional browser storage: `cd_token`, `cd_user`, `cd_guest_cart`, `cd_pending_checkout`, `cd_claim_…`. A consent gate over strictly necessary storage would imply tracking that does not happen. The privacy page lists each key instead. **Revisit the moment any analytics or ad script is added** |
-| 16 | Mobile version | **partial** | Responsive classes throughout (183 breakpoint uses) and Next's default viewport tag. **Not tested on a real device** |
+| 16 | Mobile version | **tested under emulation** | 11 cases in `responsive.spec.ts` on a Pixel 7 profile. No page scrolls sideways, the menu opens, the filter drawer settles inside the screen, the gallery strip scrolls rather than clips, and no tap target breaks WCAG 2.5.8 spacing. **Not a real handset** — see below |
 | 17 | Accessibility | **done, by measurement** | Lighthouse accessibility **100** on home, the shop listing and the policy pages. Three real defects were found and fixed: `role="dialog"` on an `<aside>`, headings skipping h1→h3 on both listings and the product page, and an unlabelled sort `<select>` |
 | 18 | Test forms | **done** | `forms.spec.ts` — seven cases across both. Contact: empty submit files nothing, an unreachable server says so, a server rejection is shown, fields clear after sending. Review: a rating is required, a post lands with the right stars, and the verified badge follows the purchase |
 | 19 | Broken links | **done** | Crawled from the homepage against a production server: **9 internal URLs, 0 broken.** The number is the finding — see below |
@@ -73,6 +73,46 @@ not in the HTML. The sitemap was the only path to them.
 After server-rendering both listings: **12 URLs, 0 broken**, and product pages
 are reachable from the homepage for the first time. The `?variant=` links they
 carry canonicalise back to the clean product URL, so the two do not compete.
+
+### The phone, and the project that ran nothing
+
+`storefront-mobile` has existed in `playwright.config.ts` for some time,
+configured to grep for `@responsive`. **Nothing carried that tag, so it ran
+zero tests** — the same shape as a feature flag with no row, which this
+codebase has been caught by before.
+
+It now runs 11. What they found: **nothing broken.** No page scrolls sideways,
+the menu opens, the filter drawer settles fully inside the screen, the gallery
+thumbnails scroll rather than clip, and every tap target satisfies WCAG 2.5.8.
+
+Two things looked like defects and were not, which is why they were measured
+rather than fixed on sight:
+
+- Product thumbnails sit past the right edge — but inside a container with
+  `overflow-x: auto`, so they scroll. Clipped, they would be unreachable.
+- Ten footer and breadcrumb links are under 24×24px. WCAG allows that when a
+  24px circle centred on the target reaches no other target; measured across
+  33 targets, **zero violations**. Padding them out would have been a change
+  that fixed nothing.
+
+The horizontal-scroll check was proved by injecting a 150vw element into
+`/faq`: that page fails, the other five still pass.
+
+Two of my own mistakes, both caught by running it:
+
+- The drawer assertion fired mid-animation. `toBeVisible` is satisfied on the
+  first frame of a 250ms slide, so it measured the drawer still off the edge.
+  It polls now — the claim is that it fits once open, not at every frame.
+- The desktop project matched the same files and ran the phone cases at
+  1280px, failing on a hamburger that is not supposed to exist there. It
+  carries `grepInvert: /@responsive/` now, mirroring the mobile project's grep.
+
+**What emulation does not cover.** A Pixel 7 profile is a viewport, a pixel
+ratio, a user agent and touch. It will not catch iOS Safari's address bar
+fighting a full-height layout, a font that falls back differently on a real
+handset, touch latency, or anything about how the Cashfree payment window
+behaves inside a real mobile browser. **The payment flow on a real phone
+remains untested**, and it is the one journey where being wrong costs money.
 
 ### The two forms, and two defects found writing the tests
 
