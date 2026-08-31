@@ -17,7 +17,7 @@ which is exactly how a round plate ends up with its edges sliced off.
 | Journey (5 chapters) | **3:4 portrait** | 1086×1448 | `journey-land`, `journey-source`, `journey-craft-v2`, `journey-product-v2`, `journey-home-v2` |
 | BrandStatement | **3:2 landscape** | 1620×1080 | `statement-hills.jpg` |
 | Rituals (3 cards) | **16:9 landscape** | 1600×900 | `ritual-morning`, `ritual-cooking`, `ritual-topping` |
-| Devbhoomi | **463:820 tall portrait** | 926×1640 | `devbhoomi-pasture.jpg` |
+| Devbhoomi | **2:3 portrait** | 1024×1536 | `devbhoomi-pasture-v2.jpg` |
 | GheeStory | 3:4 portrait | 1086×1448 | — |
 
 **Do not reuse one file across two rows.** `statement-hills.jpg` and

@@ -35,10 +35,19 @@ export default function Devbhoomi() {
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
           <div className={`lg:col-span-5 transition-all duration-[900ms] ease-out ${rise}`}>
-            <div className="relative mx-auto aspect-[463/820] w-full max-w-[300px] overflow-hidden bg-[var(--sand)] sm:max-w-[350px] lg:max-w-[380px]">
+            {/*
+              2:3, not 463/820.
+              
+              The old ratio was 0.565 — not a design decision, just the exact
+              dimensions of whichever file was here first, which meant any
+              replacement had to be cropped to fit a number nothing chose. 2:3
+              is a ratio a camera and a generator both produce, so the picture
+              arrives whole.
+            */}
+            <div className="relative mx-auto aspect-[2/3] w-full max-w-[300px] overflow-hidden bg-[var(--sand)] sm:max-w-[350px] lg:max-w-[380px]">
               <Image
-                src="/images/devbhoomi-pasture.jpg"
-                alt="A jar of Country Dairy ghee on a stump, with cattle grazing a hill pasture below snow peaks"
+                src="/images/devbhoomi-pasture-v2.jpg"
+                alt="A jar of Country Dairy ghee on a rock, a cow grazing the pasture beyond, snow peaks along the horizon"
                 fill
                 sizes="(min-width: 1024px) 36vw, 80vw"
                 className="object-cover"
