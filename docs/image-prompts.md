@@ -173,6 +173,36 @@ sides** — that is what cut the plate in half.
 > table. Muted colour, film grain, shallow focus. **16:9 horizontal** — a wide
 > crop, not a square plate centred in the middle. No text, no branding.
 
+## Rooted in Devbhoomi
+
+**Generate at 2:3 portrait, 1024×1536.**
+
+A caveat worth understanding: that slot is currently `aspect-[463/820]`, which
+is 0.565 — a ratio no image generator offers, and one that only exists because
+it was copied from the dimensions of the file that happened to be there. The
+nearest thing you can actually produce is 2:3 (0.667), so **the box gets
+changed to 2:3 when the image is installed** rather than the picture being
+cropped to fit an arbitrary number.
+
+The section is about the place, not the product, and the text beside it already
+carries the argument — so the photograph should be a landscape with a cow in
+it, not a product shot with scenery behind.
+
+> A single native Indian desi cow — humped, pale fawn or white, Gir or Badri
+> type — grazing a high hill pasture in Kumaon, Uttarakhand in the late
+> afternoon, photographed on an 85mm lens from a distance so she is small in
+> the frame and unbothered. Behind her the ground falls away into a deep
+> valley, forested ridges rising in pale layers, snow peaks catching the last
+> warm light along the top of the frame. Wildflowers and coarse grass in the
+> foreground. Tall vertical composition with the mountains occupying the upper
+> half and the cow low and slightly off-centre. Natural light only, muted
+> colour, soft haze, fine film grain, no HDR, no saturation. 2:3 vertical, no
+> text, no logos, no people, no product.
+
+If you would rather keep a jar in this one, put it small and low in the frame
+on a stone, in the same light as the landscape — not lit separately and dropped
+in front, which is what makes a composite read as a composite.
+
 ## After generating
 
 Save as JPEG at 1080×1440 or larger into `apps/web/public/images/`, keeping the
