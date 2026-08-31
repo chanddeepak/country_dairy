@@ -49,8 +49,7 @@ photographs are not tidy.
 
 ## 02 · The Source
 
-> Three or four native Indian desi cows — humped, fawn and white, Gir or
-> Badri type — grazing an open hill pasture in the early morning, shot on an
+> Three or four native Indian desi cows — humped, fawn and white — grazing an open hill pasture in the early morning, shot on an
 > 85mm lens from a respectful distance so they are unbothered and none faces
 > the camera. Backlit, with rim light catching the edge of a shoulder and dust
 > and insects visible in the low sun. Wet grass, one animal's head down, hills
