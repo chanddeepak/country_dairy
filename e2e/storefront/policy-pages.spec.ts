@@ -44,6 +44,25 @@ test.describe('Policy and help pages', () => {
     }
   });
 
+  test('signing in says what you are agreeing to', async ({ page }) => {
+    /*
+     * Signing in is also how an account comes into existence here — there is
+     * no separate sign-up step — so this is the only moment a customer is
+     * shown the terms before one is created for them.
+     */
+    await page.goto('/');
+    await page.getByRole('button', { name: /sign in/i }).first().click();
+
+    await expect(page.getByText(/by continuing you agree to our/i)).toBeVisible();
+
+    // Linked, not just named: text naming a policy nobody can open is worse
+    // than not mentioning it.
+    await expect(page.getByRole('link', { name: /terms of service/i }))
+      .toHaveAttribute('href', '/terms');
+    await expect(page.getByRole('link', { name: /privacy policy/i }))
+      .toHaveAttribute('href', '/privacy');
+  });
+
   test('the content is in the HTML, not fetched after it', async ({ page, request }) => {
     /*
      * Read over HTTP with no browser rendering, which is what a crawler that

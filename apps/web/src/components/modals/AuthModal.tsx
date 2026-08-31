@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Smartphone, Mail, Globe, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useStoreConfig } from '../../context/StoreConfigContext';
+import Link from 'next/link';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -371,6 +372,34 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             )}
           </div>
         )}
+
+        {/*
+          One line for every route in, rather than one per tab.
+          
+          Signing in here is also how an account comes into existence — there is
+          no separate sign-up step to carry this — so the moment of consent is
+          this button, whichever tab it sits under. The links open in a new tab
+          because reading them should not throw away a half-entered number.
+        */}
+        <p className="mt-6 border-t border-[var(--line)] pt-4 text-center text-[11px] leading-relaxed text-[var(--ink-soft)]">
+          By continuing you agree to our{' '}
+          <Link
+            href="/terms"
+            target="_blank"
+            className="font-semibold text-[var(--forest)] underline underline-offset-2"
+          >
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link
+            href="/privacy"
+            target="_blank"
+            className="font-semibold text-[var(--forest)] underline underline-offset-2"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </div>
     </div>
   );
