@@ -15,20 +15,20 @@ import { useReveal } from '../../lib/useReveal';
  */
 const RITUALS = [
   {
-    image: '/images/ritual-morning.jpg',
+    image: '/images/ritual-morning-v2.jpg',
     alt: 'A glass of warm ghee water beside a jar of Country Dairy ghee',
     title: 'First thing',
     body: 'A spoon stirred into warm water, the way a lot of houses start the day.',
   },
   {
-    image: '/images/ritual-cooking.jpg',
-    alt: 'Ghee spooned into a bowl of steaming dal',
+    image: '/images/ritual-cooking-v2.jpg',
+    alt: 'Ghee poured from a spoon into a bowl of steaming dal beside a jar of Country Dairy ghee',
     title: 'In the tadka',
     body: 'For dal, for khichdi, and for everything else that begins with hot ghee.',
   },
   {
-    image: '/images/ritual-topping.jpg',
-    alt: 'Ghee melting on a hot paratha',
+    image: '/images/ritual-topping-v2.jpg',
+    alt: 'Ghee melting on a hot paratha on a steel plate beside a jar of Country Dairy ghee',
     title: 'On the plate',
     body: 'Over rotis, rice and vegetables, while they are still too hot to hold.',
   },

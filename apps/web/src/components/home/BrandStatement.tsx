@@ -47,8 +47,8 @@ export default function BrandStatement() {
           >
             <div className="relative aspect-[3/2] overflow-hidden bg-[var(--sand)]">
               <Image
-                src="/images/statement-hills.jpg"
-                alt="Terraced hillside fields under early morning light"
+                src="/images/statement-hills-v2.jpg"
+                alt="Terraced fields and a stone house below snow peaks at sunrise"
                 fill
                 sizes="(min-width: 1024px) 58vw, 100vw"
                 className="object-cover"
