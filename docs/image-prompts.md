@@ -5,6 +5,30 @@ pictures — same photographer, same camera, same week, same light. That is the
 single thing that makes this section look expensive, and the thing generic
 prompts lose first.
 
+## Every image slot on the homepage, and the shape it needs
+
+**This table is the thing to check before generating anything.** Each section
+crops with `object-cover`, so a picture in the wrong ratio is not scaled down —
+it is cut. A 3:4 portrait dropped into the 16:9 Rituals box loses both sides,
+which is exactly how a round plate ends up with its edges sliced off.
+
+| Section | Ratio | Generate at | Files |
+| --- | --- | --- | --- |
+| Journey (5 chapters) | **3:4 portrait** | 1086×1448 | `journey-land`, `journey-source`, `journey-craft-v2`, `journey-product-v2`, `journey-home-v2` |
+| BrandStatement | **3:2 landscape** | 1620×1080 | `statement-hills.jpg` |
+| Rituals (3 cards) | **16:9 landscape** | 1600×900 | `ritual-morning`, `ritual-cooking`, `ritual-topping` |
+| Devbhoomi | **463:820 tall portrait** | 926×1640 | `devbhoomi-pasture.jpg` |
+| GheeStory | 3:4 portrait | 1086×1448 | — |
+
+**Do not reuse one file across two rows.** `statement-hills.jpg` and
+`devbhoomi-pasture.jpg` were each serving two sections with different ratios,
+so whichever section came second got a hard crop of a photograph framed for the
+other. The journey now has its own five files for that reason.
+
+**Rename when you replace.** An optimised image is addressed by its source
+path, so overwriting a file leaves the URL identical and browsers keep serving
+the old picture. That is why new images appear not to take effect.
+
 ## Before you paste anything
 
 **Aspect ratio: 3:4 portrait. Minimum 1080 × 1440.** The panel renders them in
@@ -101,6 +125,53 @@ Add one of these to the end, one at a time:
 And say what you do **not** want, which does more work than adjectives:
 `no vibrant saturated colours, no symmetrical composition, no studio lighting,
 no clean modern kitchen, no stock-photo styling.`
+
+## The brand statement — "Some flavours are more than flavours"
+
+**3:2 landscape, 1620×1080.** Wider and calmer than the journey pictures: it
+sits beside a large quiet headline on an ivory ground, so it needs air rather
+than incident.
+
+> A wide view across terraced Himalayan farmland in Kumaon, Uttarakhand in the
+> hour after sunrise, shot on a 50mm lens from a low ridge looking across the
+> valley. One broad old tree stands alone on the middle terrace, its canopy
+> catching warm side light; ridgelines recede in three or four pale layers
+> behind it with mist lying in the folds. Deep green terraces in the foreground,
+> unpeopled and quiet. Warm light from the left, cool shadow on the right.
+> Natural light only, muted colour, fine film grain, gentle contrast, no HDR.
+> Composed with open sky in the upper third so the frame can breathe. 3:2
+> horizontal, no text, no logos, no people.
+
+## The rituals cards — three of them
+
+**16:9 landscape, 1600×900.** These are small wide cards, so each one wants a
+single close subject, not a scene. **A portrait picture here loses both its
+sides** — that is what cut the plate in half.
+
+**First thing** — `ritual-morning.jpg`
+
+> A spoon of golden ghee being stirred into a glass of warm water on a kitchen
+> counter in early morning light, shot close on a 50mm lens from just above.
+> Steam rising, soft window light from the left, warm shadow behind. Muted
+> colour, film grain, shallow focus. 16:9 horizontal, filled edge to edge with
+> the glass slightly off-centre. No text, no branding.
+
+**In the tadka** — `ritual-cooking.jpg`
+
+> Ghee being spooned into a steel bowl of steaming yellow dal, photographed
+> close on a 50mm lens from a low three-quarter angle so the steam catches the
+> light. Warm kitchen daylight, dark background falling away. Muted colour,
+> visible grain, shallow depth of field. 16:9 horizontal, composed wide with the
+> bowl to one side. No text, no branding.
+
+**On the plate** — `ritual-topping.jpg`
+
+> Ghee melting into a hot paratha on a steel plate, shot close on a 50mm lens
+> from a low angle at the edge of the plate rather than from directly overhead,
+> so the plate runs out of frame naturally instead of being cut in half.
+> Melted ghee pooling in the centre, warm daylight from a window, worn wooden
+> table. Muted colour, film grain, shallow focus. **16:9 horizontal** — a wide
+> crop, not a square plate centred in the middle. No text, no branding.
 
 ## After generating
 
