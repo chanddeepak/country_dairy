@@ -21,8 +21,10 @@ export default function PrivacyPage() {
         <h2>Who we are</h2>
         <p>
           Country Dairy sells ghee and cold-pressed oils from Tanakpur, Champawat,
-          Uttarakhand 262309. The registered entity is <Pending>legal entity name</Pending> and
-          our GSTIN is <Pending>GSTIN</Pending>. You can reach us at{' '}
+          Uttarakhand 262309. The registered entity is <Pending>legal entity name</Pending>,
+          company identification number <Pending>CIN, if a registered company</Pending>, GSTIN{' '}
+          <Pending>GSTIN</Pending>, FSSAI licence{' '}
+          <Pending>FSSAI licence number</Pending>. You can reach us at{' '}
           <a href="mailto:info@countrydairy.in">info@countrydairy.in</a> or on{' '}
           <a href="tel:+919997801112">+91 99978 01112</a>, daily between 6:00 AM and 9:00 PM.
         </p>
@@ -137,6 +139,16 @@ export default function PrivacyPage() {
           None of these follow you to other sites, and there is no advertising or analytics
           tracker on this one. Clearing your browser storage signs you out and empties the basket;
           nothing else is lost.
+        </p>
+      </section>
+
+      <section>
+        <h2>Children</h2>
+        <p>
+          This shop is not for children. You must be 18 or over to hold an account or place an
+          order, and we do not knowingly collect anything about anyone younger. If you believe a
+          child has given us their details, write to{' '}
+          <a href="mailto:info@countrydairy.in">info@countrydairy.in</a> and we will delete them.
         </p>
       </section>
 

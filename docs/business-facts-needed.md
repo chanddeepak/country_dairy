@@ -1,7 +1,7 @@
 # Facts the policy pages need
 
 `/privacy`, `/terms`, `/shipping-and-returns` and `/faq` are written and live.
-**17 facts in them are decisions only you can make**, and each one renders on
+**22 facts in them are decisions only you can make**, and each one renders on
 the page as a highlighted `[marker]` — so nothing reads as finished until it
 is answered.
 
@@ -50,6 +50,19 @@ against.
 | 11 | **Dispatch window** — how long after an order before it leaves | Shipping & Returns | |
 | 12 | **Local delivery timeline** — the Tanakpur round | Shipping & Returns | |
 | 13 | **Courier timeline** — rest of India | Shipping & Returns | |
+
+## 3b. Added after comparing against Anveshan and Two Brothers
+
+Both competitors carry these and we did not. The natural-variation clause is
+the one with money attached.
+
+| # | Fact | Where it appears | Your answer | Notes |
+| --- | --- | --- | --- | --- |
+| 18 | **CIN**, if the entity is a registered company | Privacy | | Both competitors publish theirs |
+| 19 | **Whether an unboxing video is required** for a missing-item claim | Shipping & Returns | | Two Brothers requires one; it settles disputes but adds friction |
+| 20 | **Claim response time** | Shipping & Returns | | Anveshan commits to 24–48 hours |
+| 21 | **Whether return-to-origin costs are passed on**, and how much | Shipping & Returns | | Anveshan charges reverse logistics on refused or undeliverable orders |
+| 22 | **Whether returns are replacement-only** rather than refund | Shipping & Returns | | Two Brothers replaces and does not refund. Ours currently offers both |
 
 ## 4. The rest
 

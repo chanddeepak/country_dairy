@@ -91,6 +91,49 @@ export default function ShippingAndReturnsPage() {
       </section>
 
       <section>
+        <h2>What is not a fault</h2>
+        <p>
+          Ghee is a seasonal product from a living herd, and it is not made to look identical every
+          time. <strong>Colour, aroma, texture, grain and firmness vary between batches and with
+          the weather</strong> — a jar that is pale in winter and golden in summer, or grainy one
+          month and smooth the next, is behaving exactly as unrefined ghee should.
+        </p>
+        <p>
+          Variation of that kind is not a defect and is not returnable. What is: a jar that is
+          leaking, damaged, mislabelled, past its date, or spoiled. If you are not sure which you
+          have, send us a photograph and we will tell you honestly — including when the answer is
+          that we got it wrong.
+        </p>
+      </section>
+
+      <section>
+        <h2>Telling us about a damaged order</h2>
+        <p>To sort it out in one message rather than five, send:</p>
+        <ul>
+          <li>your order number;</li>
+          <li>a photograph of the outer box, including the label;</li>
+          <li>a photograph of the jar and its batch code.</li>
+        </ul>
+        <p>
+          <Pending>whether an unboxing video is required for a missing item</Pending>. We aim to
+          reply within <Pending>claim response time</Pending>.
+        </p>
+      </section>
+
+      <section>
+        <h2>If a delivery cannot be completed</h2>
+        <p>
+          Couriers try more than once. If a parcel comes back to us because the address was wrong,
+          nobody was there across the attempts, the OTP was not shared, or delivery was refused,
+          we will contact you to arrange a redelivery.
+        </p>
+        <p>
+          <Pending>whether return-to-origin costs are passed on, and how much</Pending>. A refused
+          perishable order is the one case where we may not be able to resend the same jars.
+        </p>
+      </section>
+
+      <section>
         <h2>Refunds</h2>
         <p>
           Refunds go back to the method you paid with — we cannot send them anywhere else. Once
