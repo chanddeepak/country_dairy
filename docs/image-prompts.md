@@ -199,9 +199,30 @@ it, not a product shot with scenery behind.
 > colour, soft haze, fine film grain, no HDR, no saturation. 2:3 vertical, no
 > text, no logos, no people, no product.
 
-If you would rather keep a jar in this one, put it small and low in the frame
-on a stone, in the same light as the landscape — not lit separately and dropped
-in front, which is what makes a composite read as a composite.
+### With the jar in frame
+
+Use this one if the section should show the product. The jar is *in* the
+landscape rather than in front of it, which is the difference between a
+photograph and a composite:
+
+> A jar of golden ghee with a plain cream label standing on a flat grey rock in
+> a high hill pasture in Kumaon, Uttarakhand in the late afternoon, shot on a
+> 50mm lens from a low angle close to the rock so the jar sits in the lower
+> third and the valley opens out behind it. A single humped desi cow grazes in
+> the middle distance, small and unbothered; forested ridges rise in pale
+> layers beyond her and snow peaks catch the last warm light along the top of
+> the frame. The jar is lit by the same low afternoon sun as the landscape,
+> casting one soft shadow to the left across the rock, with the glass picking
+> up warm light through it. Coarse grass and small wildflowers around the base,
+> slightly out of focus. Natural light only, muted colour, soft atmospheric
+> haze, fine film grain, gentle contrast, no HDR, no studio lighting, no
+> reflections that do not belong to the scene. 2:3 vertical, no text on the
+> label, no logos, no people.
+
+Two things to reject if they appear: a jar that looks cut out and pasted (its
+shadow will be missing or fall the wrong way), and a jar large enough to be a
+packshot. This section is about the place; the product is evidence, not the
+subject.
 
 ## After generating
 
