@@ -935,7 +935,7 @@ export default function ProductDetailClient({
                   {/* 5 Steps Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div className="bg-[rgb(var(--ivory-rgb)/0.6)] border border-[rgb(var(--line-rgb)/0.8)] rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
-                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-on-dark)] font-serif font-medium text-lg flex items-center justify-center">
                         1
                       </div>
                       <h4 className="font-serif font-normal text-[var(--ink)] text-sm">Free-Range Grazing</h4>
@@ -945,7 +945,7 @@ export default function ProductDetailClient({
                     </div>
 
                     <div className="bg-[rgb(var(--ivory-rgb)/0.6)] border border-[rgb(var(--line-rgb)/0.8)] rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
-                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-on-dark)] font-serif font-medium text-lg flex items-center justify-center">
                         2
                       </div>
                       <h4 className="font-serif font-normal text-[var(--ink)] text-sm">Whole Curd Culturing</h4>
@@ -955,7 +955,7 @@ export default function ProductDetailClient({
                     </div>
 
                     <div className="bg-[rgb(var(--ivory-rgb)/0.6)] border border-[rgb(var(--line-rgb)/0.8)] rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
-                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-on-dark)] font-serif font-medium text-lg flex items-center justify-center">
                         3
                       </div>
                       <h4 className="font-serif font-normal text-[var(--ink)] text-sm">Wooden Bilona Churning</h4>
@@ -965,7 +965,7 @@ export default function ProductDetailClient({
                     </div>
 
                     <div className="bg-[rgb(var(--ivory-rgb)/0.6)] border border-[rgb(var(--line-rgb)/0.8)] rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
-                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-on-dark)] font-serif font-medium text-lg flex items-center justify-center">
                         4
                       </div>
                       <h4 className="font-serif font-normal text-[var(--ink)] text-sm">Slow Fire Simmering</h4>
@@ -975,7 +975,7 @@ export default function ProductDetailClient({
                     </div>
 
                     <div className="bg-[rgb(var(--ivory-rgb)/0.6)] border border-[rgb(var(--line-rgb)/0.8)] rounded-sm p-4 flex flex-col items-center text-center space-y-2.5 hover:border-[var(--forest)] transition">
-                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-text)] font-serif font-light text-lg flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-[var(--forest)] text-[var(--brass-on-dark)] font-serif font-medium text-lg flex items-center justify-center">
                         5
                       </div>
                       <h4 className="font-serif font-normal text-[var(--ink)] text-sm">Hand-Poured Purity</h4>
