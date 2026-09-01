@@ -457,7 +457,7 @@ function AccountPageContent() {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
-        <main className="flex-1 bg-[var(--ivory)] flex items-center justify-center">
+        <main id="main" tabIndex={-1} className="flex-1 bg-[var(--ivory)] flex items-center justify-center">
           <div className="animate-pulse text-sm text-[var(--ink-soft)]">Loading your account…</div>
         </main>
         <Footer />

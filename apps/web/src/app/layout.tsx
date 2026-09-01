@@ -117,6 +117,20 @@ export default function RootLayout({
         )}
       </head>
       <body className="min-h-full flex flex-col bg-[var(--ivory)] text-[var(--ink)] font-sans">
+        {/*
+          The first thing a keyboard reaches, and invisible until it does.
+
+          Without it every page began with eleven tab stops through the
+          announcement bar, the logo, five nav links and the category strip
+          before reaching anything the customer came for — on every page, every
+          time. This is one keypress instead.
+        */}
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-sm focus:bg-[var(--forest)] focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white"
+        >
+          Skip to content
+        </a>
         <StoreConfigProvider>
           <AppProvider>
             <PageViewTracker />

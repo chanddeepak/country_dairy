@@ -43,7 +43,7 @@ export default function HomeClient({ initialHeroSlides }: { initialHeroSlides: a
         onAuthOpen={() => setIsAuthOpen(true)}
       />
 
-      <main className="flex-1">
+      <main id="main" tabIndex={-1} className="flex-1">
         <HeroSection initialSlides={initialHeroSlides} />
         <BrandStatement />
         <ProductShelf onSubscribe={handleSubscribe} />

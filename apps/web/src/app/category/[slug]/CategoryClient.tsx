@@ -140,7 +140,7 @@ export default function CategoryClient({
     <div className="flex flex-col min-h-screen bg-[var(--ivory)]">
       <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+      <main id="main" tabIndex={-1} className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         {shelf ? (
           <>
             <nav className="flex items-center gap-1 text-xs text-[var(--ink-soft)] mb-4">

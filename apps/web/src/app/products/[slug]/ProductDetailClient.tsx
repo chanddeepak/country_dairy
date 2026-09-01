@@ -327,7 +327,7 @@ export default function ProductDetailClient({
     return (
       <div className="flex min-h-screen flex-col">
         <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
-        <main className="flex flex-1 items-center justify-center bg-[var(--ivory)] px-6 py-24">
+        <main id="main" tabIndex={-1} className="flex flex-1 items-center justify-center bg-[var(--ivory)] px-6 py-24">
           <div className="max-w-md text-center">
             <h1 className="font-serif text-3xl font-light text-[var(--ink)]">
               We cannot load this product

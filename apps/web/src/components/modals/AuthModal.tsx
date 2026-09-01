@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Smartphone, Mail, Globe, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useStoreConfig } from '../../context/StoreConfigContext';
 import Link from 'next/link';
+import { useDialog } from '../../lib/useDialog';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -98,6 +99,27 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   }, [isOpen, activeTab]);
 
+  /*
+   * Declared above the early return because useDialog is a hook and hooks
+   * cannot run conditionally. It only calls setters, so nothing it needs is
+   * defined further down.
+   */
+  const handleClose = useCallback(() => {
+    onClose();
+    setOtpSent(false);
+    setOtpCode('');
+    setSending(false);
+    setVerifying(false);
+    setResendIn(0);
+    setEmail('');
+    setPassword('');
+    setName('');
+    setError('');
+    setActiveTab('mobile');
+  }, [onClose]);
+
+  const dialogRef = useDialog(isOpen, handleClose);
+
   if (!isOpen) return null;
 
   const handleGoogleResponse = async (response: any) => {
@@ -170,31 +192,29 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     else setError(isRegistering ? 'Registration failed. Email might exist.' : 'Invalid email or password.');
   };
 
-  const handleClose = () => {
-    onClose();
-    setOtpSent(false);
-    setOtpCode('');
-    setSending(false);
-    setVerifying(false);
-    setResendIn(0);
-    setEmail('');
-    setPassword('');
-    setName('');
-    setError('');
-    setActiveTab('mobile');
-  };
-
   return (
     <div data-testid="auth-modal" className="fixed inset-0 z-50 bg-[rgb(var(--ink-rgb)/0.55)] backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white max-w-sm w-full p-8 rounded-sm shadow-2xl relative">
+      {/*
+        role and aria-modal so a screen reader announces this as a dialog and
+        stops reading the page underneath, and labelled by its own heading so
+        it announces as something rather than "dialog".
+      */}
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="auth-modal-title"
+        className="bg-white max-w-sm w-full p-8 rounded-sm shadow-2xl relative"
+      >
         <button
           onClick={handleClose}
+          aria-label="Close"
           className="absolute top-4 right-4 text-[var(--ink-soft)] hover:text-[var(--ink)] transition"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <h3 className="font-serif font-light text-2xl text-[var(--ink)] mb-2">Welcome</h3>
+        <h3 id="auth-modal-title" className="font-serif font-light text-2xl text-[var(--ink)] mb-2">Welcome</h3>
         <p className="text-xs text-[var(--ink-soft)] mb-6">
           Sign in to track your orders and check out faster.
         </p>

@@ -26,7 +26,7 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
-      <main className="flex-1 bg-[var(--ivory)]">{children}</main>
+      <main id="main" tabIndex={-1} className="flex-1 bg-[var(--ivory)]">{children}</main>
       <Footer />
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />

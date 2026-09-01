@@ -186,7 +186,7 @@ export default function ProductsClient({
     <div className="flex flex-col min-h-screen">
       <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
 
-      <main className="flex-1 bg-[var(--ivory)]">
+      <main id="main" tabIndex={-1} className="flex-1 bg-[var(--ivory)]">
         {/* Page Header */}
         <div className="bg-white border-b border-[var(--line)]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">

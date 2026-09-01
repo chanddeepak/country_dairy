@@ -358,7 +358,7 @@ export default function CheckoutPage() {
     return (
       <div className="flex min-h-screen flex-col">
         <Navbar onCartOpen={() => {}} onAuthOpen={() => {}} />
-        <main className="flex flex-1 items-center justify-center bg-[var(--ivory)] px-4 py-24">
+        <main id="main" tabIndex={-1} className="flex flex-1 items-center justify-center bg-[var(--ivory)] px-4 py-24">
           <div className="w-full max-w-md text-center">
             {error ? (
               <>

@@ -34,7 +34,7 @@ export default function Error({
   }, [error]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-[var(--ivory)] px-6 py-20 text-center text-[var(--ink)]">
+    <main id="main" tabIndex={-1} className="flex min-h-screen flex-col items-center justify-center bg-[var(--ivory)] px-6 py-20 text-center text-[var(--ink)]">
       <h1 className="max-w-xl font-serif text-4xl leading-tight text-balance sm:text-5xl">
         Something went wrong at our end
       </h1>

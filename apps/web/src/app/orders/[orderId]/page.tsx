@@ -127,7 +127,7 @@ export default function OrderDetailPage() {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar onCartOpen={() => {}} onAuthOpen={() => setIsAuthOpen(true)} />
-        <main className="flex-1 bg-[var(--ivory)]">
+        <main id="main" tabIndex={-1} className="flex-1 bg-[var(--ivory)]">
           {/* Shaped like the real page so nothing jumps when it arrives. */}
           <div
             className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-pulse"
