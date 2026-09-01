@@ -28,7 +28,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const { start: startCheckout, starting, confirming, error: checkoutError } = useCheckoutFlow();
   // Every hook must run before the early return below, otherwise the hook
   // count differs between the open and closed renders and React errors.
-  const { cart, updateCartQty, removeFromCart } = useApp();
+  const { cart, updateCartQty, removeFromCart, user } = useApp();
   const { whatsapp, isFlagOn } = useStoreConfig();
 
   if (!isOpen) return null;
@@ -217,6 +217,22 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     ? 'Opening secure payment…'
                     : 'Checkout Now'}
               </button>
+            )}
+
+            {/*
+              Said before it happens, not discovered afterwards.
+
+              Paying as a guest creates an account from the mobile number
+              Cashfree verifies — which is genuinely useful, and was the one
+              thing on this site that happened to a customer without anyone
+              telling them. Only shown to someone who is not already signed in,
+              because for everyone else it describes nothing.
+            */}
+            {checkoutEnabled && !user && (
+              <p className="mt-2.5 text-center text-[11px] leading-relaxed text-[var(--ink-soft)]">
+                Paying creates an account with your mobile number, so you can find
+                this order later.
+              </p>
             )}
 
             {whatsappHref && (

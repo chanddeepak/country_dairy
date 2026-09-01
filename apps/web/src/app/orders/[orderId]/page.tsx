@@ -187,9 +187,18 @@ export default function OrderDetailPage() {
                   : 'Sign in to see this order'
                 : 'Order not found'}
             </h1>
+            {/*
+              A guest who has never signed in is not someone whose session
+              expired, and telling them "for your security you have been signed
+              out" describes something that did not happen. It also leaves out
+              the one thing they need to know: the account exists already,
+              under the number they paid with.
+            */}
             <p className="text-sm text-[var(--ink-soft)] leading-relaxed mb-5">
               {!user
-                ? 'For your security you have been signed out. Sign in again to track your order.'
+                ? sessionExpired
+                  ? 'For your security you have been signed out. Sign in again to track your order.'
+                  : 'Paying created an account with the mobile number you gave at checkout. Sign in with that number and this order will be waiting.'
                 : 'We could not find that order on your account.'}
             </p>
             {!user ? (

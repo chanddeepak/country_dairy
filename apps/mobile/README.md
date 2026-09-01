@@ -1,56 +1,45 @@
-# Welcome to your Expo app 👋
+# Mobile app — parked
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**This app is not shipping and is not maintained.** It is kept in the
+repository as a starting point, not as working software. Do not build or
+publish it without doing the work listed below first.
 
-## Get started
+Last substantive change: **18 August 2026** — before the Cashfree checkout,
+before phone sign-in replaced email sign-in, and before the Shiprocket
+integration was removed. The storefront and API have moved a long way since.
 
-1. Install dependencies
+## What is broken as it stands
 
-   ```bash
-   npm install
-   ```
+| | |
+| --- | --- |
+| **Sign-in does not work** | `AuthContext` posts to `/auth/email/login`, which is behind `ENABLE_EMAIL_LOGIN` and switched off. Customers sign in with a mobile number and a one-time code now, and this app has no such screen. |
+| **Wrong WhatsApp number** | It carries `918291939317`. The storefront and the footer both use `919997801112`. One of the two is wrong, and a customer messaging the wrong number gets no reply. |
+| **No cart, no checkout** | `ENABLE_CART` and `ENABLE_WEBSITE_PAYMENT` are both false. Nothing can be bought. |
+| **Untested against the current API** | Its assumptions predate two months of changes. Anything here that appears to work should be treated as unverified. |
 
-2. Start the app
+## If it is picked up again
 
-   ```bash
-   npx expo start
-   ```
+1. Replace email sign-in with the phone + one-time code flow the storefront
+   uses, including its rate limits.
+2. Correct the WhatsApp number, and read it from the API rather than a
+   constant so it cannot drift again.
+3. Decide what checkout means on a phone. The web flow hands off to Cashfree's
+   own window, which is a browser experience — a native app needs their SDK or
+   a web view, and that is a design decision, not a port.
+4. Re-check every endpoint it calls against the current API. Several routes it
+   was written for no longer exist.
 
-In the output, you'll find options to open the app in a
+## If it is not
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Delete it. Sixteen components that look like working software but are not is a
+trap for whoever reads this repository next — which is the reason this file
+exists rather than the Expo boilerplate that was here before.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Running it anyway
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+It will build. It will not sign anyone in.
