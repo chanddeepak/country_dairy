@@ -9,7 +9,7 @@ import ProductCard from '../../components/product/ProductCard';
 import AuthModal from '../../components/modals/AuthModal';
 import SubscriptionModal from '../../components/modals/SubscriptionModal';
 import CartDrawer from '../../components/cart/CartDrawer';
-import { FALLBACK_PRODUCTS, API_URL, getExpandedProducts } from '../../lib/constants';
+import { API_URL } from '../../lib/constants';
 import { mapApiProducts, expandAllVariants, isSoldOut } from '../../lib/mapProduct';
 import FilterDrawer, {
   FilterButton,
@@ -54,6 +54,7 @@ export default function ProductsClient({
   );
 
   const [products, setProducts] = useState<any[]>(seeded ?? []);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   // Built from the Category table via each product's categoryName, rather
@@ -100,9 +101,19 @@ export default function ProductsClient({
         }
       }
     } catch (err) {
-      console.warn('API Server offline, using fallback products:', err);
+      console.warn('Could not load the catalogue:', err);
     }
-    setProducts(getExpandedProducts(FALLBACK_PRODUCTS));
+
+    /*
+     * An outage is said out loud, not papered over.
+     *
+     * This used to fall back to a hardcoded list carrying a hardcoded price and
+     * a slug that no longer exists, so an API outage produced a shop that
+     * looked open, quoted a figure nobody was maintaining, and sent every card
+     * to a 404. A shop that admits it cannot load is less damaging than one
+     * that lies about what it sells.
+     */
+    setLoadFailed(true);
   };
 
   const filteredProducts = useMemo(() => {
@@ -263,7 +274,26 @@ export default function ProductsClient({
 
         {/* Product Grid */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-          {filteredProducts.length === 0 ? (
+          {loadFailed ? (
+            <div className="mx-auto max-w-md py-20 text-center">
+              <p className="font-serif text-2xl font-light text-[var(--ink)]">
+                We cannot load the shop right now
+              </p>
+              <p className="mt-3 text-sm text-[var(--ink-soft)]">
+                Something at our end is not answering. Nothing is wrong with your
+                connection, and nothing has been charged.
+              </p>
+              <button
+                onClick={() => { setLoadFailed(false); void fetchProducts(); }}
+                className="mt-6 rounded-sm bg-[var(--forest)] px-8 py-3 text-sm font-bold text-white transition hover:bg-[var(--pine)]"
+              >
+                Try again
+              </button>
+              <p className="mt-4 text-xs text-[var(--ink-soft)]">
+                Or order on WhatsApp — <a className="font-semibold text-[var(--forest)] underline underline-offset-2" href="https://wa.me/919997801112">+91 99978 01112</a>
+              </p>
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-sm font-bold text-[var(--ink-soft)]">No products found matching your criteria.</p>
             </div>

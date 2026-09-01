@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useApp } from '../../context/AppContext';
-import { FALLBACK_PRODUCTS, API_URL, Product, getExpandedProducts } from '../../lib/constants';
+import { API_URL, Product } from '../../lib/constants';
 import { mapApiProducts, expandHomeVariants, isSoldOut } from '../../lib/mapProduct';
 import ProductCard from '../product/ProductCard';
 import ContourField from '../ui/ContourField';
@@ -44,6 +44,9 @@ const COLUMNS: Record<number, string> = {
 export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
   const { addToCart } = useApp();
   const [products, setProducts] = useState<Product[]>([]);
+  // Distinguishes "not fetched yet" from "fetched and there is nothing", so the
+  // shelf does not blink out of the page on every first paint.
+  const [settled, setSettled] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('All');
   useEffect(() => {
     fetchProducts();
@@ -62,23 +65,22 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
           setProducts(
             expandHomeVariants(mapApiProducts(liveProducts)).filter((p) => !isSoldOut(p)),
           );
+          setSettled(true);
           return;
         }
       }
     } catch (err) {
-      console.warn('API Server offline, using fallback products:', err);
+      console.warn('Could not load the shelf:', err);
     }
-    const expanded = getExpandedProducts(FALLBACK_PRODUCTS);
-    const primaryVariants = expanded.filter((p) => {
-      const vol = p.metadata?.volume || p.name;
-      if (vol.includes('2.5L')) return false;
-      const isOil = p.category === 'Wood-Pressed Oils' || p.slug.includes('mustard-oil');
-      if (isOil) {
-        return vol.includes('1L');
-      }
-      return vol.includes('1L') || vol.includes('5L');
-    });
-    setProducts(primaryVariants);
+    /*
+     * Nothing to show rather than something invented.
+     *
+     * This used to fall back to a hardcoded list with hardcoded prices. The
+     * shelf is one band of the homepage, so an empty one costs a scroll; a
+     * wrong one costs a customer who taps a price we are not charging.
+     */
+    setProducts([]);
+    setSettled(true);
   };
 
   const categories = [
@@ -91,6 +93,13 @@ export default function ProductShelf({ onSubscribe }: ProductShelfProps) {
     : products.filter((p) => p.category === activeCategory);
 
   const cells = Math.min(filteredProducts.length + 1, 4);
+
+  /*
+   * A shelf with nothing on it is a hole in the page, so it is not drawn at
+   * all. The nav still links to #shop; landing on the band below it is a
+   * smaller wrong than landing on an empty promise.
+   */
+  if (settled && products.length === 0) return null;
 
   return (
     <section id="shop" className="scroll-mt-24 bg-[var(--cream)] py-20 sm:py-24">

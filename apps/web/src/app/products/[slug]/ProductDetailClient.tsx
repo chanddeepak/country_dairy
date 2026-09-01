@@ -17,7 +17,7 @@ import ProductCard from '../../../components/product/ProductCard';
 import AuthModal from '../../../components/modals/AuthModal';
 import SubscriptionModal from '../../../components/modals/SubscriptionModal';
 import CartDrawer from '../../../components/cart/CartDrawer';
-import { FALLBACK_PRODUCTS, API_URL, PRODUCT_IMAGES, HERO_IMAGE, Product, ProductVariant, resolveStorefrontImageUrl } from '../../../lib/constants';
+import { API_URL, PRODUCT_IMAGES, HERO_IMAGE, Product, ProductVariant, resolveStorefrontImageUrl } from '../../../lib/constants';
 import { useStoreConfig } from '../../../context/StoreConfigContext';
 import { buildProductMessage, whatsAppUrl } from '../../../lib/storeConfig';
 
@@ -109,6 +109,7 @@ export default function ProductDetailClient({
     (seed?.defaultVar as ProductVariant) ?? null,
   );
   const [activeImage, setActiveImage] = useState<string>(seed?.activeImage ?? '');
+  const [loadFailed, setLoadFailed] = useState(false);
   // Owned by ReviewSection, lifted so the header can show the same numbers.
   const [reviewSummary, setReviewSummary] = useState({ averageRating: 0, totalReviews: 0 });
   const [quantity, setQuantity] = useState(1);
@@ -174,18 +175,19 @@ export default function ProductDetailClient({
         }
       }
     } catch (err) {
-      console.warn('[Storefront] Failed to fetch live product by slug/id, using fallback catalog:', err);
+      console.warn('[Storefront] Could not load this product:', err);
     }
 
-    // 2. Fallback matching for static demo items
-    const fb = FALLBACK_PRODUCTS.find((p) => 
-      p.slug === slug || 
-      p.id === slug || 
-      slug.startsWith(p.slug) || 
-      p.variants?.some((v) => v.id === slug || `${p.id}-${v.id}` === slug || `${p.slug}-${v.id}` === slug)
-    ) || FALLBACK_PRODUCTS.find((p) => slug.includes(p.slug)) || FALLBACK_PRODUCTS[0];
-
-    setupProductData(fb);
+    /*
+     * No substitute product.
+     *
+     * This used to fall through a chain of loose matches ending in
+     * `FALLBACK_PRODUCTS[0]`, so a failed lookup showed *a* product — a
+     * hardcoded one, at a hardcoded price, under whatever URL the customer had
+     * opened. Showing the wrong jar at the wrong price is worse than showing
+     * nothing, and it is the sort of wrong that ends in a refund.
+     */
+    setLoadFailed(true);
   };
 
   const setupProductData = (prod: any) => {
@@ -316,6 +318,46 @@ export default function ProductDetailClient({
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
   };
+
+  if (loadFailed) {
+    /*
+     * A skeleton that never resolves is a lie about loading, so a failed
+     * lookup gets its own screen with a way out.
+     */
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Navbar onCartOpen={() => setIsCartOpen(true)} onAuthOpen={() => setIsAuthOpen(true)} />
+        <main className="flex flex-1 items-center justify-center bg-[var(--ivory)] px-6 py-24">
+          <div className="max-w-md text-center">
+            <h1 className="font-serif text-3xl font-light text-[var(--ink)]">
+              We cannot load this product
+            </h1>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
+              Something at our end is not answering. Nothing is wrong with your
+              connection, and nothing has been charged.
+            </p>
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+              <button
+                onClick={() => { setLoadFailed(false); void fetchProduct(); }}
+                className="rounded-sm bg-[var(--forest)] px-8 py-3 text-sm font-bold text-white transition hover:bg-[var(--pine)]"
+              >
+                Try again
+              </button>
+              <Link
+                href="/products"
+                className="rounded-sm border-2 border-[var(--forest)] px-8 py-3 text-sm font-bold text-[var(--forest)] transition hover:bg-[var(--forest)] hover:text-white"
+              >
+                Browse everything
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+        <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+        <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      </div>
+    );
+  }
 
   if (!product) {
     /**

@@ -12,7 +12,7 @@ class HttpError extends Error {
     this.status = status;
   }
 }
-import { FALLBACK_PRODUCTS, API_URL } from '../lib/constants';
+import { API_URL } from '../lib/constants';
 
 /** Why an address write failed, so the page can say something true. */
 export interface AddressResult {
