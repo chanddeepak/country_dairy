@@ -2,7 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { GatewayPayment, safeEqual } from './razorpay.service';
 
-/** A line on the Cashfree checkout's cart summary. */
+/**
+ * A line on the Cashfree checkout's cart summary.
+ *
+ * Field names are theirs, taken from the One Click Checkout integration guide
+ * rather than guessed — `item_image_url`, not `image_url`. The same guessing
+ * cost this file an address once, and the comment below still says so.
+ */
 export interface CashfreeCartItem {
   item_id: string;
   item_name: string;
@@ -10,6 +16,18 @@ export interface CashfreeCartItem {
   item_discounted_unit_price: number;
   item_quantity: number;
   item_currency: string;
+  /**
+   * Absolute and publicly reachable, because their servers fetch it. Omitted
+   * rather than sent broken: without it they draw a neutral parcel icon, which
+   * is better than a broken-image frame on the page taking the money.
+   */
+  item_image_url?: string;
+  /**
+   * The size, mostly. Their summary truncates a long name — "Devbhumi
+   * Uttrakhand Produ…" — and the part it cuts is the part that says which jar
+   * this is, so it goes somewhere it will survive.
+   */
+  item_description?: string;
 }
 
 /** What `POST /pg/orders` gives back, of what we use. */

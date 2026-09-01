@@ -338,6 +338,8 @@ export class OrdersService {
         item_discounted_unit_price: Number(i.unitPrice),
         item_quantity: i.quantity,
         item_currency: 'INR',
+        item_image_url: this.publicImageUrl(i.imageUrl),
+        item_description: i.variantSizeLabel,
       })),
       preferTheirAddress: true,
     });
@@ -707,6 +709,8 @@ export class OrdersService {
           item_discounted_unit_price: priced.unitPrice,
           item_quantity: priced.quantity,
           item_currency: 'INR',
+          item_image_url: this.publicImageUrl(item.variant.imageUrl),
+          item_description: item.variant.sizeLabel,
         })),
         // Their checkout collects an address either way. This says we take
         // the one the customer actually chose there over the one they picked
@@ -783,6 +787,30 @@ export class OrdersService {
   /** Where the customer comes back to. */
   private storefrontUrl(): string {
     return (process.env.STOREFRONT_URL || 'http://localhost:3000').replace(/\/$/, '');
+  }
+
+  /**
+   * A stored image path as a URL someone else's server can fetch.
+   *
+   * Variant images are kept as storage paths — "/products/foo.webp" — which
+   * resolve against the storefront and mean nothing to Cashfree. Their
+   * checkout fetches this from their own servers, so it has to be absolute.
+   *
+   * Returns undefined when there is nothing usable, and the field is then left
+   * out entirely: their summary falls back to a neutral parcel icon, which
+   * looks deliberate, where a broken URL would put a torn-image frame on the
+   * page that is asking for money.
+   */
+  private publicImageUrl(stored?: string | null): string | undefined {
+    if (!stored) return undefined;
+    if (stored.startsWith('http://') || stored.startsWith('https://')) return stored;
+
+    const cdn = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
+    if (!cdn) return undefined;
+
+    if (stored.startsWith('/storage/v1/object/public/')) return `${cdn}${stored}`;
+    if (stored.startsWith('/')) return `${cdn}/storage/v1/object/public${stored}`;
+    return undefined;
   }
 
   /** Where Cashfree posts the webhook. */
