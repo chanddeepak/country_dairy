@@ -69,6 +69,19 @@ services:
       - key: ALLOWED_ORIGINS
         sync: false
 
+      # Crash reporting. Unset means Sentry never initialises and nothing
+      # leaves the process — the wiring ships inert so switching it on is
+      # pasting a DSN here rather than a deploy.
+      - key: SENTRY_DSN
+        sync: false
+
+      # Shared secret for the scheduled sweep that releases stock from unpaid
+      # checkouts. Must match the CRON_SECRET repository secret used by
+      # .github/workflows/expire-abandoned-orders.yml. Unset closes the route
+      # rather than opening it.
+      - key: CRON_SECRET
+        sync: false
+
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY

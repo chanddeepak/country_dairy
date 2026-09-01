@@ -1,5 +1,7 @@
-// Loads .env as a side effect; must precede anything that reads process.env.
-import './config/env';
+// Sentry first: it patches the libraries it instruments as they load, so
+// anything imported before it is invisible to crash reporting. It also loads
+// the env itself, which is why this replaces the direct config import.
+import './instrument';
 
 import * as path from 'path';
 import * as fs from 'fs';

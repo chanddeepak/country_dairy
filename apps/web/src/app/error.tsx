@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import Link from 'next/link';
 
 /**
@@ -19,8 +20,15 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // The digest is what ties this screen to the stack trace in the server
-    // log; the message itself is redacted in production builds.
+    /*
+     * Reported, not just logged.
+     *
+     * The digest is what ties the reference shown to the customer below to a
+     * real trace. It used to go to console.error, which nobody reads — on
+     * launch day a customer hitting this was invisible. Sentry is inert
+     * without a DSN, so this stays a console line locally.
+     */
+    Sentry.captureException(error, { tags: { digest: error.digest ?? 'none' } });
     // eslint-disable-next-line no-console
     console.error('[storefront] render error', error.digest ?? '', error);
   }, [error]);

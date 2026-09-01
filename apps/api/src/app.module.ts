@@ -1,3 +1,4 @@
+import { SentryModule } from '@sentry/nestjs/setup';
 import { Module } from '@nestjs/common';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { AppController } from './app.controller';
@@ -21,6 +22,9 @@ import { AuditModule } from './audit/audit.module';
 
 @Module({
   imports: [
+    // Captures unhandled exceptions from every module below. A no-op when
+    // Sentry was never initialised, which is the case without a DSN.
+    SentryModule.forRoot(),
     FeatureFlagsModule,
     PrismaModule,
     AuthModule,
