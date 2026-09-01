@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useUnsavedChanges } from './useUnsavedChanges';
 import type { CategoryItem } from '../pages/CategoryCMS';
 import type { MediaType, Product, ProductImage, ProductStatus, ProductVariant } from '../types';
 
@@ -21,6 +22,7 @@ interface UseProductFormArgs {
  * over this hook.
  */
 export function useProductForm({ initialProduct, categories, onSave }: UseProductFormArgs) {
+  const snapshotRef = useRef('');
   const [activeTab, setActiveTab] = useState<EditorTab>('core');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -246,6 +248,17 @@ export function useProductForm({ initialProduct, categories, onSave }: UseProduc
         createdAt: initialProduct?.createdAt ?? new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
+
+      /*
+       * What is on screen is now what is stored, so this is the new baseline.
+       * Without it the form stays dirty for ever after the first save and the
+       * browser warns on the way out of work that was already written — a
+       * warning that cries wolf is worse than none, because people learn to
+       * dismiss it before reading.
+       *
+       * Inside the try: only a save that did not throw is a save.
+       */
+      loadedSnapshot.current = snapshotRef.current;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save this product.');
     } finally {
@@ -253,7 +266,46 @@ export function useProductForm({ initialProduct, categories, onSave }: UseProduc
     }
   };
 
+  /*
+   * Dirty by comparison, not by a flag each setter has to remember.
+   *
+   * A boolean set in twenty places is a boolean that will be forgotten in the
+   * twenty-first, and the failure is silent — the warning simply stops
+   * appearing. Serialising the editable fields and comparing against what was
+   * loaded cannot drift out of step with the form, because it *is* the form.
+   *
+   * activeTab, isSaving and error are excluded deliberately: switching tab is
+   * not an edit, and warning about it would train people to click through the
+   * dialog without reading it.
+   */
+  const snapshot = useMemo(
+    () =>
+      JSON.stringify({
+        title, slug, tagline, storyDescription, status, badgeText, categoryName,
+        forceOutOfStock, servingSize, shelfLife, storageInstructions,
+        variants, galleryImages, nutritionFacts,
+      }),
+    [
+      title, slug, tagline, storyDescription, status, badgeText, categoryName,
+      forceOutOfStock, servingSize, shelfLife, storageInstructions,
+      variants, galleryImages, nutritionFacts,
+    ],
+  );
+
+  // Taken once, from the first render, so it is the state as loaded rather
+  // than as last typed.
+  const loadedSnapshot = useRef(snapshot);
+  // Lets save(), declared above, read the current snapshot without depending
+  // on declaration order.
+  snapshotRef.current = snapshot;
+  const isDirty = snapshot !== loadedSnapshot.current;
+
+  // Saving is not losing work, so the warning stands down while it is in
+  // flight and the snapshot is reset once it lands.
+  useUnsavedChanges(isDirty && !isSaving);
+
   return {
+    isDirty,
     activeTab,
     setActiveTab,
     isSaving,
