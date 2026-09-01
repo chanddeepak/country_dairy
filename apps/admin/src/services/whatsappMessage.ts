@@ -82,8 +82,17 @@ export function deliveredMessage(order: AdminOrder): string {
 /** The message that fits where this order currently is. */
 export function messageForStatus(order: AdminOrder): { label: string; body: string } {
   switch (order.status) {
+    /*
+     * SHIPPED alone. There was an OUT_FOR_DELIVERY case here that could never
+     * match: no such status exists in the schema or anywhere in the API, so
+     * the branch was dead and the compiler had been saying so — unnoticed,
+     * because tsc --noEmit -p is a no-op against this project's references and
+     * only tsc -b ever looks.
+     *
+     * Nothing is lost by removing it. A local delivery is still SHIPPED; the
+     * van is a deliveryType, not a status.
+     */
     case 'SHIPPED':
-    case 'OUT_FOR_DELIVERY':
       return { label: 'Send tracking', body: dispatchMessage(order) };
     case 'DELIVERED':
       return { label: 'Ask how it was', body: deliveredMessage(order) };

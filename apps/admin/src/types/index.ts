@@ -83,6 +83,15 @@ export interface AdminOrder {
   shippingCarrier?: string | null;
   customerNote?: string | null;
   shippingAddress: {
+    /**
+     * Who the parcel is for, when we know.
+     *
+     * Written on the Cashfree confirm path from the address the customer
+     * filled in there, so a gift order carries the recipient rather than the
+     * buyer. Absent on orders placed against a saved address, which is why it
+     * is optional — 5 of the last 15 orders had one.
+     */
+    name?: string | null;
     line1: string;
     line2?: string | null;
     city: string;
