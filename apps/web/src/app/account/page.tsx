@@ -603,6 +603,14 @@ function AccountPageContent() {
                     <div className="bg-white border border-[var(--line)] rounded-sm p-12 text-center">
                       <Package className="h-10 w-10 text-[var(--line)] mx-auto mb-3" />
                       <p className="text-sm font-bold text-[var(--ink-soft)]">No orders yet</p>
+                      {/* An empty state that only reports emptiness leaves the
+                          customer to work out the way on for themselves. */}
+                      <Link
+                        href="/products"
+                        className="mt-4 inline-block rounded-sm bg-[var(--forest)] px-6 py-2.5 text-xs font-bold text-white transition hover:bg-[var(--pine)]"
+                      >
+                        Browse the shop
+                      </Link>
                     </div>
                   ) : (
                     <div className="space-y-3">

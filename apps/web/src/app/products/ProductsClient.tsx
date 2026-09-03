@@ -294,8 +294,26 @@ export default function ProductsClient({
               </p>
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-sm font-bold text-[var(--ink-soft)]">No products found matching your criteria.</p>
+            <div className="py-20 text-center">
+              <p className="text-sm font-bold text-[var(--ink-soft)]">
+                No products found matching your criteria.
+              </p>
+              {/*
+                The state that caused this is the way out of it. Reporting the
+                emptiness and leaving the customer to work out which of a
+                search box, a category chip and a filter drawer is hiding
+                everything is how a shop loses someone who wanted to buy.
+              */}
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setActiveCategory('All');
+                  setSelection({});
+                }}
+                className="mt-5 rounded-sm border-2 border-[var(--forest)] px-6 py-2.5 text-xs font-bold text-[var(--forest)] transition hover:bg-[var(--forest)] hover:text-white"
+              >
+                Clear search and filters
+              </button>
             </div>
           ) : (
             <>
