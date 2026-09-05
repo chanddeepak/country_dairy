@@ -1,0 +1,832 @@
+<title>Country Dairy Launch Audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,300;6..72,400&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --forest: #1E3A2B;
+    --pine: #2F5741;
+    --brass: #856428;
+    --brass-bright: #B08D42;
+    --ink: #241E17;
+    --ink-soft: #61594E;
+    --ink-faint: #8A8073;
+    --ground: #FBF8F1;
+    --card: #FFFFFF;
+    --line: #E3DACA;
+    --line-soft: #EFE8DA;
+    --p0: #9C3F26;
+    --p0-bg: #F9E9E3;
+    --p1: #8A6A1F;
+    --p1-bg: #F7EFDA;
+    --p2: #55606B;
+    --p2-bg: #EAEEF1;
+    --pass: #2F5741;
+    --pass-bg: #E7EFE6;
+    --serif: "Newsreader", Georgia, "Times New Roman", serif;
+    --sans: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --forest: #A8C6B0;
+      --pine: #8FB59A;
+      --brass: #D2B473;
+      --brass-bright: #E0C68C;
+      --ink: #ECE6DA;
+      --ink-soft: #A9A192;
+      --ink-faint: #7E7668;
+      --ground: #16130F;
+      --card: #1E1A15;
+      --line: #352F26;
+      --line-soft: #2A251E;
+      --p0: #E0917A;
+      --p0-bg: #3A211A;
+      --p1: #D9B978;
+      --p1-bg: #33291480;
+      --p2: #9DB0C0;
+      --p2-bg: #1F262C;
+      --pass: #9CC49A;
+      --pass-bg: #1C2A1E;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --forest: #A8C6B0;
+    --pine: #8FB59A;
+    --brass: #D2B473;
+    --brass-bright: #E0C68C;
+    --ink: #ECE6DA;
+    --ink-soft: #A9A192;
+    --ink-faint: #7E7668;
+    --ground: #16130F;
+    --card: #1E1A15;
+    --line: #352F26;
+    --line-soft: #2A251E;
+    --p0: #E0917A;
+    --p0-bg: #3A211A;
+    --p1: #D9B978;
+    --p1-bg: #33291480;
+    --p2: #9DB0C0;
+    --p2-bg: #1F262C;
+    --pass: #9CC49A;
+    --pass-bg: #1C2A1E;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 3rem 1.25rem 6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--brass);
+    margin: 0;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(2.1rem, 5vw, 3.2rem);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    margin: 0.5rem 0 0;
+    color: var(--forest);
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    line-height: 1.15;
+    margin: 0;
+    color: var(--forest);
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    font-family: var(--sans);
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--ink);
+  }
+
+  p { margin: 0; max-width: 74ch; }
+  a { color: var(--pine); text-underline-offset: 2px; }
+
+  .lede { color: var(--ink-soft); font-size: 1.03rem; }
+
+  section { display: flex; flex-direction: column; gap: 1.25rem; }
+
+  .section-head { display: flex; flex-direction: column; gap: 0.4rem; }
+
+  /* ---- scoreboard ---- */
+  .scores {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+  }
+  .score {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 0.9rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .score b {
+    font-size: 1.75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .score span {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .score.is-p0 b { color: var(--p0); }
+  .score.is-p1 b { color: var(--p1); }
+  .score.is-pass b { color: var(--pass); }
+
+  /* ---- audit entries ---- */
+  .entry {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line);
+    border-radius: 3px;
+    padding: 1.15rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+  .entry.p0 { border-left-color: var(--p0); }
+  .entry.p1 { border-left-color: var(--p1); }
+  .entry.p2 { border-left-color: var(--p2); }
+  .entry.ok { border-left-color: var(--pass); }
+
+  .entry-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .num {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .chip {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .chip.pass { background: var(--pass-bg); color: var(--pass); }
+  .chip.needs { background: var(--p1-bg); color: var(--p1); }
+  .chip.na { background: var(--p2-bg); color: var(--p2); }
+  .chip.cant { background: var(--p2-bg); color: var(--p2); }
+  .chip.pri-p0 { background: var(--p0-bg); color: var(--p0); }
+  .chip.pri-p1 { background: var(--p1-bg); color: var(--p1); }
+  .chip.pri-p2 { background: var(--p2-bg); color: var(--p2); }
+
+  .fields { display: flex; flex-direction: column; gap: 0.55rem; }
+  .field { display: grid; grid-template-columns: 96px 1fr; gap: 0.75rem; }
+  .field dt {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding-top: 0.25rem;
+  }
+  .field dd { margin: 0; }
+  @media (max-width: 640px) {
+    .field { grid-template-columns: 1fr; gap: 0.15rem; }
+  }
+
+  code, .mono {
+    font-family: var(--mono);
+    font-size: 0.855em;
+    background: var(--line-soft);
+    padding: 0.1rem 0.32rem;
+    border-radius: 2px;
+    word-break: break-word;
+  }
+
+  .evidence {
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+    background: var(--line-soft);
+    border-radius: 2px;
+    padding: 0.7rem 0.85rem;
+    overflow-x: auto;
+    white-space: pre;
+    margin: 0.35rem 0 0;
+    color: var(--ink-soft);
+  }
+
+  /* ---- tables ---- */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 3px; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 560px; }
+  th, td { text-align: left; padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  th {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--line-soft);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num-col { font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+
+  ol, ul { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.45rem; max-width: 74ch; }
+  li::marker { color: var(--brass); }
+
+  .callout {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--p0);
+    background: var(--p0-bg);
+    border-radius: 3px;
+    padding: 1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .callout h3 { color: var(--p0); }
+
+  hr { border: 0; border-top: 1px solid var(--line); margin: 0; }
+
+  .meta { font-size: 13px; color: var(--ink-faint); }
+  .meta strong { color: var(--ink-soft); font-weight: 600; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Pre-launch audit · 1 September 2026</p>
+    <h1>Country Dairy launch audit</h1>
+    <p class="lede" style="margin-top:0.75rem">
+      Twenty areas checked against the running application, not against the plan.
+      Everything marked <b>Pass</b> has evidence beside it; everything I could not
+      exercise is marked <b>Cannot verify</b> rather than assumed. No code was changed.
+    </p>
+    <p class="meta" style="margin-top:1rem">
+      <strong>Stack.</strong> Monorepo: NestJS 11 API · Next.js 16 storefront (web) ·
+      Vite/React admin console · Expo/React&nbsp;Native mobile app.
+      <strong>Product under audit</strong> is the web storefront plus its API — that is
+      what is deployed and what customers will use.
+    </p>
+  </header>
+
+  <div class="scores">
+    <div class="score is-p0"><b>3</b><span>P0 blockers</span></div>
+    <div class="score is-p1"><b>4</b><span>P1 before launch</span></div>
+    <div class="score"><b>6</b><span>P2 improvements</span></div>
+    <div class="score is-pass"><b>14</b><span>Areas passing</span></div>
+  </div>
+
+  <div class="callout">
+    <h3>The finding that decides the launch date</h3>
+    <p>
+      Phone OTP is the only customer sign-in method — email sign-in is behind
+      <code>ENABLE_EMAIL_LOGIN</code>, which is off. In production, with no WhatsApp
+      credentials configured, the message channel <b>throws by design</b>:
+    </p>
+    <p class="evidence">apps/api/src/notifications/log.channel.ts
+
+if (process.env.NODE_ENV === 'production') {
+  this.logger.error('Phone sign-in is on but no message channel is configured…');
+  throw new ServiceUnavailableException('Unable to send a verification code right now');
+}</p>
+    <p>
+      <b>No customer can sign in on production today.</b> Buying still works — a guest
+      pays through Cashfree and we build the account from the phone they verified — but
+      a returning customer cannot get back into it. This is A1 in your own task list and
+      it is blocked on a WhatsApp Business number.
+    </p>
+  </div>
+
+  <hr>
+
+  <!-- ============ THE 20 AREAS ============ -->
+  <section>
+    <div class="section-head">
+      <h2>The twenty areas</h2>
+      <p class="lede">Ordered as given, not by severity. Severity is the stripe on the left.</p>
+    </div>
+
+    <!-- 1 -->
+    <article class="entry p2">
+      <div class="entry-head">
+        <span class="num">01</span><h3>Onboarding</h3>
+        <span class="chip na">Not applicable</span><span class="chip pri-p2">P2</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>No onboarding, tour or first-run concept exists anywhere in <code>apps/web/src</code>. A shop does not need one: the homepage is the onboarding.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>None for a catalogue this small. The one genuinely unfamiliar mechanic — that paying as a guest silently creates an account — is never explained.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>One line near the cart's Checkout button: “Paying creates an account with your mobile number.” Not a tour.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 2 -->
+    <article class="entry ok">
+      <div class="entry-head">
+        <span class="num">02</span><h3>Login flow</h3>
+        <span class="chip pass">Pass</span><span class="chip pri-p2">P2</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>Phone + 6-digit OTP. Rate limits proven live, not just written: 5 per phone per 15&nbsp;min, 10 per IP per hour, plus a daily ceiling. Covered by <code>otp-rate-limit.spec.ts</code> and 141 passing API tests. Wrong code returns a clear refusal; the modal cannot be dismissed by clicking outside.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>Only that it cannot deliver a code in production — see the blocker above. The flow itself is sound.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>Nothing in the flow. Ship the message channel.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 3 -->
+    <article class="entry ok">
+      <div class="entry-head">
+        <span class="num">03</span><h3>Password reset</h3>
+        <span class="chip pass">Pass</span><span class="chip pri-p2">P2</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Correction</dt><dd><b>This audit originally said no password reset existed anywhere. That was wrong.</b> I searched for <code>forgot-password</code> and <code>resetToken</code> — the names a self-service flow would use — and concluded from their absence that nothing existed. What exists is an admin-driven reset, which those searches could not find.</dd></div>
+        <div class="field"><dt>Evidence</dt><dd><code>PATCH /users/staff/:id/password</code>, guarded by <code>@Roles(SUPER_ADMIN)</code>, with a console screen behind it. It refuses non-staff accounts, hashes with bcrypt, and writes an audit entry with the password redacted. Now covered by four tests that assert the manager can actually sign in afterwards, the old password stops working, a non-super-admin gets 403, and a customer account is refused with nothing written to it.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>One real edge remains, much smaller than the one reported: <b>a super admin who forgets their own password</b> has nobody above them to reset it, so that case still ends in a database write.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>Keep two super admins, so one can always reset the other. Cheaper and less to go wrong than an emailed reset flow for a handful of staff.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 4 -->
+    <article class="entry ok">
+      <div class="entry-head">
+        <span class="num">04</span><h3>Account deletion</h3>
+        <span class="chip pass">Pass</span><span class="chip pri-p2">P2</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>Self-service closure from Profile &amp; Security, plus an admin route. Name, email, phone, addresses and reviews are erased; the invoice survives with the street and phone stripped out of its address snapshot and the state kept for tax. Locked in by <code>erasure-admin.spec.ts</code>, which also asserts the held token stops working.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>Retention period is a <code>[marker]</code> on the privacy page, so the policy does not yet say how long the invoice is kept.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>Fill fact #14 in <code>docs/business-facts-needed.md</code>. GST records commonly require eight years.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 5 -->
+    <article class="entry ok">
+      <div class="entry-head">
+        <span class="num">05</span><h3>User permissions</h3>
+        <span class="chip pass">Pass</span><span class="chip pri-p2">P2</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd><b>119 role-guarded endpoints</b> and <b>36 security-tagged API tests</b> that assert the backend refuses, not that the button is hidden. Examples proven: a customer PATCHing an admin delivery-type route gets 403; one customer cannot read another's support thread; a customer cannot attach someone else's order; staff cannot be closed out through the storefront route.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>None found.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>None. Keep the pattern of asserting the status code rather than the UI.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 6 -->
+    <article class="entry ok">
+      <div class="entry-head">
+        <span class="num">06</span><h3>Loading states</h3>
+        <span class="chip pass">Pass</span><span class="chip pri-p2">P2</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>Buttons disable while pending in six components with distinct labels (“Sending code…”, “Verifying…”, “Opening secure payment…”, “Checking with Cashfree…”). Home, product, and both listings now render on the server, so the shell-then-fill flash is gone from the pages that matter.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>Account and order pages still show a spinner-first state, and the hero still arrives after hydration on a cold load.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>Acceptable for session-gated pages. No change needed before launch.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 7 -->
+    <article class="entry ok">
+      <div class="entry-head">
+        <span class="num">07</span><h3>Empty states</h3>
+        <span class="chip pass">Pass</span><span class="chip pri-p2">P2</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>All four audited since. Two were already right &mdash; the empty cart has an icon, a message and a Start Shopping button; a category with nothing on it says so and links out. Two were not, and now are: a search matching nothing offers <b>Clear search and filters</b>, and the orders tab points at the shop. Covered by <code>empty-states.spec.ts</code>, which clicks the clear button and checks the products come back rather than only that it renders.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>None outstanding.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>Done. The principle worth keeping: the state that caused an empty screen is the way out of it, so the empty state should offer that rather than only describing the absence.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 8 -->
+    <article class="entry ok">
+      <div class="entry-head">
+        <span class="num">08</span><h3>Error states</h3>
+        <span class="chip pass">Pass</span><span class="chip pri-p2">P2</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd><code>error.tsx</code> and <code>global-error.tsx</code> now exist with a retry and a way home; a custom 404 returns a true 404 status. Server rejections are surfaced rather than swallowed — <code>forms.spec.ts</code> asserts a 400 from the contact endpoint is shown to the customer, and only the first message.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>None material.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>None.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 9 -->
+    <article class="entry ok">
+      <div class="entry-head">
+        <span class="num">09</span><h3>Network failure states</h3>
+        <span class="chip pass">Pass</span><span class="chip pri-p1">P1</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>The fallback catalogue is gone. It was a hardcoded list carrying a hardcoded &#8377;1450 and a slug that 404s, served silently whenever a catalogue call failed &mdash; so an outage produced a shop that looked open, quoted a price nobody maintained, and sent every card to a dead page. The product page was worse: its lookup ended in <code>FALLBACK_PRODUCTS[0]</code>, so a failed fetch showed <i>the ghee</i> under whichever URL the customer had opened.</dd></div>
+      </dl>
+      <p class="evidence">with the API genuinely stopped:
+/products                 cannot-load: true  retry: true  price shown: false
+/products/…-vedic-ghee    cannot-load: true  retry: true  price shown: false</p>
+      <dl class="fields">
+        <div class="field"><dt>Problem</dt><dd>None outstanding. Shop and product page say they cannot load and offer a retry and a WhatsApp number; the homepage shelf removes itself rather than showing an empty band.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>Done. Worth knowing for future tests: blocking the browser's requests proves nothing here now that these pages render on the server. The first attempt at verifying this passed while the fix did nothing, because Next had already fetched and seeded the page.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 10 -->
+    <article class="entry ok">
+      <div class="entry-head">
+        <span class="num">10</span><h3>Session expiry</h3>
+        <span class="chip pass">Pass</span><span class="chip pri-p2">P2</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>Every authenticated call goes through one wrapper; a 401 clears the stored session and raises a <code>sessionExpired</code> flag rather than leaving a half-authenticated screen. <code>session.spec.ts</code> A8 asserts a rejected token empties the account page — this exact bug shipped once, rendering a name and orders from localStorage while every write failed. The admin console clears its token on 401 too.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>Expiry <i>mid-payment</i> is not proven. The claim token carries a guest through confirm, so the design should hold, but it was not exercised.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>Beta task 4 covers it.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 11 -->
+    <article class="entry ok">
+      <div class="entry-head">
+        <span class="num">11</span><h3>Unsaved changes</h3>
+        <span class="chip pass">Pass</span><span class="chip pri-p1">P1</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>The product editor warns before losing work. Dirtiness is a serialised snapshot compared against the state as loaded, rather than a flag every setter has to remember &mdash; a boolean maintained in twenty places gets forgotten in the twenty-first, and that failure is silent. Tab switches and save-in-flight are excluded, because a warning that cries wolf teaches people to dismiss it unread. Covered by <code>unsaved-changes.spec.ts</code>, confirmed to discriminate by disabling the guard and watching it fail.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>Only the product editor is covered. The hook is generic and unused elsewhere.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>Apply it to the other long editors if they start losing work. The storefront's forms are short enough not to need it.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 12 -->
+    <article class="entry ok">
+      <div class="entry-head">
+        <span class="num">12</span><h3>Duplicate submissions</h3>
+        <span class="chip pass">Pass</span><span class="chip pri-p1">P1</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>The money path is defended at three levels: a single-use claim token; a basket fingerprint in the gateway order id so an unchanged basket reuses the same order rather than creating a second; and a replay-safe webhook — <code>shiprocket-webhook.spec.ts</code> proved a repeat delivery does not take stock twice or burn a second invoice number, and the same guard covers Cashfree. Buttons disable while pending in six components.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>Double-tap on <i>Add to cart</i> was not explicitly tested, and neither was a rapid double submit of the review form.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>Beta task 5. The payment path — the one that costs money — is covered.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 13 -->
+    <article class="entry p1">
+      <div class="entry-head">
+        <span class="num">13</span><h3>Back navigation</h3>
+        <span class="chip cant">Cannot verify</span><span class="chip pri-p1">P1</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>Cashfree opens in a modal on the same page rather than a separate route, which is the right call — there is no page to go back from. Their SDK reports <code>error.code === 'payment_aborted'</code> when a customer answers “Yes, Leave” to their own prompt, and the flow treats that as a cancel rather than a failure.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>The <b>browser back button and the Android back gesture while their modal is open</b> were never tested. If back dismisses the modal without the SDK reporting it, the order is left PENDING with stock held and no signal.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>Test it on a real Android phone before launch — beta task 3. If back escapes silently, add a <code>popstate</code> handler that treats it exactly like <code>payment_aborted</code>.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 14 -->
+    <article class="entry p0">
+      <div class="entry-head">
+        <span class="num">14</span><h3>Payment failures</h3>
+        <span class="chip needs">Needs work</span><span class="chip pri-p0">P0</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>Success, abandonment and resume are all verified in the sandbox. A “Complete payment” retry exists on the order page and was driven to PAID. Totals are reconciled from <code>payment_amount</code>, not <code>order_amount</code> — a bug that once left an invoice overstating price and GST by 16% while 56 unit tests stayed green. <b>A declined payment has never been reproduced</b>: the sandbox's FAILED control refuses automated clicks.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>The most common real failure — a declined card — is the one path nobody has watched. It is written defensively but unproven.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>Drive it manually with UPI VPA <code>testfailure@gocash</code>, then <code>testinsufficientfunds@gocash</code> and <code>testtimeoutbank@gocash</code>. Confirm the order shows FAILED, retry works, and stock is not double-held. Thirty minutes of manual work.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 15 -->
+    <article class="entry p2">
+      <div class="entry-head">
+        <span class="num">15</span><h3>Push notifications</h3>
+        <span class="chip na">Not applicable</span><span class="chip pri-p2">P2</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>No push of any kind: no <code>expo-notifications</code>, no FCM, no web-push, no service worker. Order updates are intended to go out over WhatsApp, and today that is a button in the admin console that opens <code>wa.me</code> for a human to press send.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>None at launch — there is nothing to grant or deny permission for. Dispatch updates depend on staff remembering.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>Ship without push. Revisit when the WhatsApp Business number lands, which also unblocks OTP.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 16 -->
+    <article class="entry ok">
+      <div class="entry-head">
+        <span class="num">16</span><h3>Analytics</h3>
+        <span class="chip pass">Pass</span><span class="chip pri-p2">P2</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>First-party only. Three events — <code>page_view</code>, <code>product_view</code>, <code>whatsapp_order_click</code> — checked against an allowlist server-side and <i>ignored</i> rather than rejected if unknown, so a stray event never surfaces an error mid-journey. Stored: event, product, variant, session, path, referrer (truncated to 500), device type, and user id only when signed in. <b>No IP, no user agent, no third-party tracker anywhere.</b></dd></div>
+        <div class="field"><dt>Problem</dt><dd><code>metadata</code> is free-form JSON — nothing stops a future caller putting something sensitive in it.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>None required. If you ever add a vendor, the privacy page and the cookie decision both have to change with it.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 17 -->
+    <article class="entry p1">
+      <div class="entry-head">
+        <span class="num">17</span><h3>Crash reporting</h3>
+        <span class="chip needs">One value away</span><span class="chip pri-p1">P1</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>Sentry is wired into the storefront and the API, and does nothing without a DSN &mdash; verified the API boots and serves with <code>SENTRY_DSN</code> unset. Both error boundaries report with the <code>digest</code> attached as a tag, so the reference a customer reads off the error screen finds a real trace. <code>sendDefaultPii</code> is off and session replay is off, because this app handles phone numbers and delivery addresses and the defaults would put both in every report.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>Still reporting nowhere until a DSN exists, so on launch day an error is currently invisible.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>Two DSNs pasted into Render and Vercel. Steps in <code>docs/switching-on-monitoring.md</code>. No deploy needed &mdash; and the SDK is lazy-loaded, so an unconfigured reporter now costs no bandwidth either.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 18 -->
+    <article class="entry ok">
+      <div class="entry-head">
+        <span class="num">18</span><h3>Accessibility</h3>
+        <span class="chip pass">Pass</span><span class="chip pri-p1">P1</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>Lighthouse accessibility <b>100</b> on home, the shop listing and the policy pages. All 23 image tags carry alt text; heading order is nested correctly on all four page types. Seven real defects found and fixed: an ARIA role on an incompatible element, headings skipping h1&rarr;h3, an unlabelled sort control, step numerals at <b>2.27:1</b> against their own circle, five star-rating buttons with no accessible name, and review labels not associated with their inputs.</dd></div>
+        <div class="field"><dt>The one Lighthouse could not see</dt><dd><b>The sign-in dialog was unusable without a mouse.</b> Tab walked straight out of it into the page behind &mdash; content hidden under the modal &mdash; twelve tabs never reached its own close button, and Escape did nothing. A keyboard-only customer could open it and had no way to shut it short of reloading. Fixed with a focus trap, focus restore, Escape, and proper dialog semantics; four cases in <code>keyboard.spec.ts</code>. A skip link now precedes eleven tab stops of navigation.</dd></div>
+        <div class="field"><dt>Problem</dt><dd><b>No screen reader has been used on this site.</b> Automated checks do not press Tab and cannot judge how something is announced.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>One VoiceOver pass, homepage to completed order, no mouse. Cashfree's own modal is outside your control &mdash; check it is reachable and escapable.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 19 -->
+    <article class="entry ok">
+      <div class="entry-head">
+        <span class="num">19</span><h3>Devices and screen sizes</h3>
+        <span class="chip pass">Pass</span><span class="chip pri-p1">P1</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>No horizontal scroll on any page at five sizes including 320px and landscape — measured, just now:</dd></div>
+      </dl>
+      <p class="evidence">iPhone SE portrait    320x568   no horizontal scroll
+iPhone 12 portrait    390x844   no horizontal scroll
+iPhone 12 landscape   844x390   no horizontal scroll
+iPad portrait         768x1024  no horizontal scroll
+large desktop        2560x1440  no horizontal scroll</p>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>Plus 11 phone cases on a Pixel 7 profile: the menu opens, the filter drawer settles inside the screen, the gallery strip scrolls rather than clips, and every tap target satisfies WCAG 2.5.8 spacing — 33 targets, zero violations.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>All of it is <b>emulation</b>. It says nothing about iOS Safari's address bar against a full-height layout, font fallback on real hardware, or how Cashfree's window behaves in a real mobile browser.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>The device matrix below. One real iPhone and one real Android, minimum.</dd></div>
+      </dl>
+    </article>
+
+    <!-- 20 -->
+    <article class="entry p1">
+      <div class="entry-head">
+        <span class="num">20</span><h3>Beta testing</h3>
+        <span class="chip needs">Needs work</span><span class="chip pri-p1">P1</span>
+      </div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>No beta has been run. Every result in this document comes from automated tests and my own browser sessions.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>An audit cannot tell you whether people understand “Checkout Now” opening someone else's payment window, or whether they trust a jar they have not smelled. Those are the questions that decide whether the shop works.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>The plan below. Five testers, five tasks, one week.</dd></div>
+      </dl>
+    </article>
+  </section>
+
+  <hr>
+
+  <!-- ============ OUTSIDE THE CHECKLIST ============ -->
+  <section>
+    <div class="section-head">
+      <h2>Serious issues outside the checklist</h2>
+      <p class="lede">Three of these outrank most of the twenty.</p>
+    </div>
+
+    <article class="entry p0">
+      <div class="entry-head"><h3>Live credentials in git history, unrotated</h3><span class="chip pri-p0">P0</span></div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd><code>apps/api/.env.disabled</code> is tracked in git and contains a live <code>DATABASE_URL</code> and <code>JWT_SECRET</code>. Supabase connection strings were also pasted into a chat transcript in an earlier session.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>Anyone with repository history holds the production database and can mint valid session tokens for any account.</dd></div>
+        <div class="field"><dt>Fix</dt><dd><b>Rotate both</b>, then untrack the file. Untracking alone fixes nothing — the values are in history. This needs your dashboards; I cannot do it for you.</dd></div>
+      </dl>
+    </article>
+
+    <article class="entry ok">
+      <div class="entry-head"><h3>Stock from abandoned checkouts is released again</h3><span class="chip pass">Resolved</span></div>
+      <dl class="fields">
+        <div class="field"><dt>Was</dt><dd>The sweep was written and tested and <b>nothing called it</b> &mdash; no <code>@Cron</code>, no <code>ScheduleModule</code>, nothing in <code>render.yaml</code>. Every abandoned checkout reserved jars indefinitely, showing as &ldquo;out of stock&rdquo; on a product with plenty on the shelf.</dd></div>
+        <div class="field"><dt>Now</dt><dd><code>POST /orders/cron/expire-abandoned</code> behind a shared secret, called by a GitHub Action every fifteen minutes. The secret is compared in constant time, an unset secret <b>closes</b> the route rather than opening it, and the route accepts no body &mdash; so there is no <code>olderThanMinutes</code> to set to zero and turn a routine ping into a mass cancellation. Four tests, one named after the empty-matching-empty failure.</dd></div>
+        <div class="field"><dt>Evidence</dt><dd>The first real call released <b>four orders</b> that were holding stock at that moment. This was costing sales, not hypothetically.</dd></div>
+        <div class="field"><dt>Still needed</dt><dd>One generated secret in Render and GitHub. Until both exist the workflow exits without calling anything.</dd></div>
+      </dl>
+    </article>
+
+    <article class="entry p0">
+      <div class="entry-head"><h3>One Click Checkout is not activated in production</h3><span class="chip pri-p0">P0</span></div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>The Cashfree dashboard still shows “Request Activation” for production; only Test is live. Every payment result in this document is sandbox. The console also still reads <code>testMerchantName</code> with no logo uploaded.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>There is no production payment path. Nothing can be sold.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>Request activation now — it is a review with a lead time. Gateways generally check for live privacy, terms, refund and shipping policies, which is why those pages went up; they still need the seventeen business facts filled in, <b>including the FSSAI licence number, which a food business selling online is legally required to display</b>.</dd></div>
+      </dl>
+    </article>
+
+    <article class="entry p1">
+      <div class="entry-head"><h3>The mobile app is stale and unaccounted for</h3><span class="chip pri-p1">P1</span></div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>An Expo/React&nbsp;Native app exists with 16 components and an <code>eas.json</code> build config. Its last commit was <b>18 August</b> — before the entire Cashfree checkout, the OTP sign-in and the Shiprocket removal.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>If it ships it will point at endpoints and flows that no longer exist. If it does not ship, it is 16 files of drift that will be mistaken for live code.</dd></div>
+        <div class="field"><dt>Fix</dt><dd>Decide explicitly: park it with a README saying so, or bring it up to the current API. Do not carry it silently.</dd></div>
+      </dl>
+    </article>
+
+    <article class="entry p1">
+      <div class="entry-head"><h3>Guests cannot reach their own order</h3><span class="chip pri-p1">P1</span></div>
+      <dl class="fields">
+        <div class="field"><dt>Evidence</dt><dd>The return page confirms with a claim token and works without a session, and the guest is auto-signed-in on confirm. But the order page itself requires a session — <code>if (!user) setIsAuthOpen(true)</code> — and there is no guest order-tracking route.</dd></div>
+        <div class="field"><dt>Problem</dt><dd>A guest who clears storage, switches device, or whose auto-sign-in fails cannot see the order they just paid for. With OTP delivery down in production, they cannot sign in to recover it either. <b>These two failures compound.</b></dd></div>
+        <div class="field"><dt>Fix</dt><dd>Either a tokenised order-status link emailed on confirmation, or ship OTP so signing in actually works. The second fixes more.</dd></div>
+      </dl>
+    </article>
+  </section>
+
+  <hr>
+
+  <!-- ============ BETA PLAN ============ -->
+  <section>
+    <div class="section-head">
+      <h2>Beta test plan</h2>
+      <p class="lede">
+        Five testers who have not seen the site, on their own phones, over one week.
+        Recruit at least two who are not comfortable with online payments — they will
+        find things the rest of you cannot see any more.
+      </p>
+    </div>
+
+    <h3>Five realistic tasks</h3>
+    <ol>
+      <li><b>Buy a jar of ghee without making an account.</b> Say nothing else. Watch whether they hesitate when a payment window they did not expect takes over the screen.</li>
+      <li><b>Find out what is actually in the ghee, and whether it has been tested.</b> Do not tell them about batch reports. This tests whether the purity claim is findable at all.</li>
+      <li><b>Start buying the 500ml jar, then change your mind and buy the 1&nbsp;litre instead.</b> Exercises the basket-change path, which forces a new gateway order.</li>
+      <li><b>Come back tomorrow and find the order you placed.</b> The returning-customer path, and today the one most likely to fail.</li>
+      <li><b>Order a jar to be delivered to a relative in another city.</b> Tests whether the split between buyer and recipient is understandable, not just correct.</li>
+    </ol>
+
+    <h3>Five questions for testers</h3>
+    <ol>
+      <li>At any point, were you unsure whether your money had actually gone through? Where exactly?</li>
+      <li>When the payment window opened, did you know whose it was — and did that make you more or less willing to continue?</li>
+      <li>What did you expect to happen after paying that did not happen?</li>
+      <li>Was there anything you wanted to know before buying that you could not find?</li>
+      <li>If this were your money and not a test, what would have stopped you?</li>
+    </ol>
+
+    <h3>What testers should record</h3>
+    <ul>
+      <li><b>Device, OS version and browser</b> on every report — most of what will go wrong here is device-specific.</li>
+      <li>A screenshot or screen recording of anything unexpected, <b>including the URL</b>.</li>
+      <li>The <b>order number</b> and roughly what time, so it can be matched against the gateway and the logs.</li>
+      <li>Anywhere they <b>waited and were not sure whether it was working</b> — the gap between tapping and feedback.</li>
+      <li>Any wording they had to <b>read twice</b>, and any number that looked wrong.</li>
+      <li>Every point where they <b>nearly gave up</b>, even if they eventually got through. That one matters most and is the one testers routinely do not mention.</li>
+    </ul>
+  </section>
+
+  <hr>
+
+  <!-- ============ MANUAL CHECKS ============ -->
+  <section>
+    <div class="section-head">
+      <h2>Manual checks I could not automate</h2>
+      <p class="lede">Roughly two hours in total. Every one of these is a thing an automated suite is structurally unable to answer.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Check</th><th>Why it cannot be automated</th><th class="num-col">Time</th></tr></thead>
+        <tbody>
+          <tr><td>Declined payment, insufficient funds, bank timeout</td><td>The sandbox simulator refuses automated clicks</td><td class="num-col">30 min</td></tr>
+          <tr><td>Browser back and Android back gesture during the Cashfree modal</td><td>Their modal is a cross-origin iframe</td><td class="num-col">15 min</td></tr>
+          <tr><td>Full purchase on a real iPhone and a real Android</td><td>Emulation cannot reproduce Safari's address bar or real touch</td><td class="num-col">30 min</td></tr>
+          <tr><td>VoiceOver from homepage to completed order, no mouse</td><td>Lighthouse cannot judge focus order or screen-reader flow</td><td class="num-col">30 min</td></tr>
+          <tr><td>Session expiring mid-payment</td><td>Requires wall-clock token expiry against a live gateway</td><td class="num-col">15 min</td></tr>
+          <tr><td>Confirm <code>SUPABASE_URL</code> is set on the production API</td><td><code>sync: false</code> — the value only exists in the Render dashboard</td><td class="num-col">2 min</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ============ DEVICE MATRIX ============ -->
+  <section>
+    <div class="section-head">
+      <h2>Device testing matrix</h2>
+      <p class="lede">
+        Weighted for the Indian market this actually sells into: mid-range Android on
+        a patchy connection is the majority case, not the edge case.
+      </p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Device</th><th>Why this one</th><th>Must pass</th><th>Priority</th></tr></thead>
+        <tbody>
+          <tr><td>Mid-range Android, Chrome<br><span class="meta">Redmi / Realme class, 360–412px</span></td><td>The majority of your traffic</td><td>Full purchase, back gesture, OTP entry</td><td><span class="chip pri-p0">P0</span></td></tr>
+          <tr><td>iPhone, Safari<br><span class="meta">iOS 17+, any recent model</span></td><td>Safari renders and scrolls unlike anything emulated</td><td>Full purchase, address bar vs full-height sections</td><td><span class="chip pri-p0">P0</span></td></tr>
+          <tr><td>Small Android<br><span class="meta">320px width</span></td><td>Cheapest phones still in wide use</td><td>No clipping; the filter drawer fits</td><td><span class="chip pri-p1">P1</span></td></tr>
+          <tr><td>Android on slow 4G<br><span class="meta">throttled, or genuinely rural</span></td><td>Your customers are in the hills</td><td>Cashfree modal loads; nobody gives up waiting</td><td><span class="chip pri-p1">P1</span></td></tr>
+          <tr><td>Desktop Chrome<br><span class="meta">1440px</span></td><td>Admin console runs here all day</td><td>Console workflows; the journey strip</td><td><span class="chip pri-p1">P1</span></td></tr>
+          <tr><td>iPad / tablet</td><td>Lower volume, cheap to check</td><td>No broken layouts</td><td><span class="chip pri-p2">P2</span></td></tr>
+          <tr><td>Desktop Safari and Firefox</td><td>Minority, but Safari has its own opinions</td><td>Nothing visually broken</td><td><span class="chip pri-p2">P2</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ============ PLAN ============ -->
+  <section>
+    <div class="section-head">
+      <h2>Prioritised plan</h2>
+      <p class="lede">In order. The first group is not a backlog — nothing ships until it is done.</p>
+    </div>
+
+    <h3>P0 — launch blockers</h3>
+    <p class="lede" style="font-size:0.95rem">The sweep and crash reporting are built and have moved to P1, needing only a value pasted in. These three cannot be prepared from the repository at all.</p>
+    <ol>
+      <li><b>Rotate the leaked <code>DATABASE_URL</code> and <code>JWT_SECRET</code>, then untrack the file.</b> Anyone with repository history holds the database and can mint session tokens. Untracking alone fixes nothing — the values are in history.</li>
+      <li><b>Request production activation for One Click Checkout</b>, and set the real merchant name and logo in place of <code>testMerchantName</code>. This is a review with a lead time, so it should start regardless of everything else.</li>
+      <li><b>Reproduce a declined payment by hand.</b> Success, abandonment and resume are all verified; the most common real failure is the one nobody has watched. The sandbox refuses automated clicks, so it needs a person and about thirty minutes — UPI VPA <code>testfailure@gocash</code>, then confirm the order reads FAILED, the retry works, and stock is not held twice.</li>
+    </ol>
+
+    <h3>P1 — before launch</h3>
+    <p class="lede" style="font-size:0.95rem">Everything that could be done from the repository has been. What is left needs your accounts, your business decisions, or a real person.</p>
+    <ol>
+      <li><b>Paste two Sentry DSNs</b> into Render and Vercel, and <b>one generated secret</b> into Render and GitHub. Both features are built and inert; these are the values that switch them on. <code>docs/switching-on-monitoring.md</code>.</li>
+      <li><b>Make customer sign-in work in production.</b> Phone OTP is the only method and the message channel throws without WhatsApp credentials, so a returning customer currently cannot get back into their account. Everything else about the account system is finished and unusable without it.</li>
+      <li>Fill the seventeen business facts, <b>FSSAI licence first</b> — a food business selling online is legally required to display it — and have a lawyer read the four policy pages.</li>
+      <li>Test back navigation during the payment modal on a real Android.</li>
+      <li>One VoiceOver pass, and one real-device pass per the matrix.</li>
+      <li>Run the beta. One week, five testers.</li>
+    </ol>
+
+    <h3>P2 — after launch</h3>
+    <ol>
+      <li>Automated order notifications, once WhatsApp is live.</li>
+      <li><b>Refunds.</b> The schema is ready — <code>REFUNDED</code>, <code>PARTIALLY_REFUNDED</code>, <code>Payment.refundedAmount</code> — and nothing is wired to it. Deliberately left until the return window and postage rules are decided, since building the mechanism before the policy means guessing at both.</li>
+      <li>COD, if it is offered at all — still an open question on the FAQ.</li>
+      <li>Guest order tracking, if phone sign-in turns out not to cover it.</li>
+      <li>Trim the storefront bundle further. It is 838&nbsp;KB now, down from 1,014&nbsp;KB; the rest is React, Next's runtime and component code, and going lower trades real complexity for diminishing returns.</li>
+      <li>Apply the unsaved-changes hook to the other long admin editors if they start losing work.</li>
+    </ol>
+  </section>
+
+  <hr>
+
+  <section>
+    <p class="meta">
+      <strong>Last verified state, 5 September.</strong> API suite 159 passed / 5 skipped ·
+      storefront and storefront-mobile 76 passed / 9 skipped · admin 18 passed ·
+      <code>nest build</code>, <code>next build</code> and the admin's <code>tsc -b</code>
+      all clean · Lighthouse on a production build: performance 86&ndash;87,
+      accessibility 100, best practices 100, SEO 100.
+      <br><br>
+      <strong>This document has been kept current as the work was done.</strong> Entries
+      marked Resolved say what they said before, so the record of what was found is not
+      quietly rewritten by the record of what was fixed.
+    </p>
+  </section>
+
+</div>
