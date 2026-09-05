@@ -300,15 +300,30 @@ not fix this — the values have to be rotated.
 
 ### Build work
 
-- **E2b — schedule the sweep.** There is no scheduler: no `@Cron`, no
-  `ScheduleModule`, nothing in `render.yaml`. Stock is only released when
-  someone presses "Release held stock" on the consignment desk. Render's free
-  plan sleeps, so it needs an external ping.
+- ~~**E2b — schedule the sweep.**~~ **Done.** A GitHub Action calls
+  `POST /orders/cron/expire-abandoned` every fifteen minutes behind a shared
+  secret. Set `CRON_SECRET` and `API_BASE_URL` to switch it on — see
+  [switching-on-monitoring.md](switching-on-monitoring.md).
+- ~~**Crash reporting.**~~ **Done.** Sentry in the storefront and the API,
+  inert without a DSN and lazy-loaded so an unconfigured reporter costs no
+  bandwidth. Same document has the steps.
 - **Real OTP delivery.** Sign-in still runs on `OTP_DEV_CODE`. `LogChannel`
   throws in production by design, so phone sign-in does not work there at all.
-- **D1–D3** — order confirmed, dispatched/delivered, payment failed.
-- **E3** refunds, **E4** COD, and **guest order tracking** — a guest cannot
-  reach the retry button, because the order page requires a session.
+  This is the one that decides the launch date.
+- **D1–D3** — order confirmed, dispatched/delivered, payment failed. All
+  blocked on the same WhatsApp number as OTP.
+- **E3 refunds.** The schema is ready — `REFUNDED`, `PARTIALLY_REFUNDED` and
+  `Payment.refundedAmount` all exist — and nothing is wired to them: no
+  service, no endpoint, no console screen. Deliberately not built yet, because
+  the rules that shape it (return window, who pays return postage, whether a
+  return is replacement-only) are still open questions in
+  [business-facts-needed.md](business-facts-needed.md). Building the mechanism
+  before the policy would mean guessing at both.
+- **E4 COD**, which the FAQ still lists as an open decision.
+- **Guest order tracking** — a guest cannot reach the retry button, because
+  the order page requires a session. The page now explains that the account
+  exists under the number they paid with, which is the smaller honest fix;
+  shipping OTP closes it properly.
 
 ### Production readiness
 
@@ -320,8 +335,15 @@ both open.
 ### Never tested
 
 A **declined payment** — the sandbox's FAILED control refuses automated
-clicks. The **webhook winning the race** against the browser's return. And
+clicks, so this still needs a person and about thirty minutes. And
 **production**, entirely.
+
+~~The webhook winning the race.~~ **Now tested.** Two identical deliveries
+fired concurrently produce exactly one event row, repeatably. The application
+guard is a read of `processedAt` followed by a write and two callers can both
+read "not processed" — what actually holds this together is the
+`@@unique([provider, eventId])` constraint underneath it, and the test proves
+the database catches what the code cannot see coming.
 
 ### Specs that outlived their features
 
